@@ -385,14 +385,12 @@ function setUpdated() {
   if (el && lastUpdate) el.textContent = "Live · updated " + lastUpdate.toLocaleTimeString(undefined,{hour:"numeric", minute:"2-digit"}) + " · refreshes every minute";
 }
 
-// Day/night look: daytime from sunrise until 8 PM local time, night from 8 PM until sunrise
+// Day/night look: daytime from sunrise to sunset (local time of the city), dark after sunset
 function isDayAt(t) {
   if (!data || !t) return 1;
-  const hour = +t.slice(11, 13);
-  if (hour >= 20) return 0;
   const k = data.daily.time.indexOf(t.slice(0, 10));
-  const rise = k >= 0 ? data.daily.sunrise[k] : t.slice(0, 10) + "T06:00";
-  return t >= rise ? 1 : 0;
+  if (k < 0) { const hr = +t.slice(11, 13); return hr >= 6 && hr < 18 ? 1 : 0; }
+  return t >= data.daily.sunrise[k] && t < data.daily.sunset[k] ? 1 : 0;
 }
 /* ---------- render ---------- */
 function render() {
