@@ -393,29 +393,73 @@ const fmtHour = s => new Date(s).toLocaleTimeString(undefined,{hour:"numeric"});
 const $ = id => document.getElementById(id);
 const uvLabel = u => u < 3 ? "Low" : u < 6 ? "Moderate" : u < 8 ? "High" : u < 11 ? "Very high" : "Extreme";
 
+/* ---------- Saved data: last forecast per city is kept on the device ---------- */
+const cacheKey = () => "skycast_wx_" + place.latitude.toFixed(2) + "," + place.longitude.toFixed(2);
+function saveWeather() {
+  try {
+    localStorage.setItem(cacheKey(), JSON.stringify({ t: Date.now(), data, alerts }));
+    // keep at most 15 cities' worth of saved weather
+    const keys = Object.keys(localStorage).filter(k => k.startsWith("skycast_wx_"))
+      .map(k => { try { return [k, JSON.parse(localStorage.getItem(k)).t || 0]; } catch(e) { return [k, 0]; } })
+      .sort((a, b) => b[1] - a[1]);
+    keys.slice(15).forEach(([k]) => localStorage.removeItem(k));
+  } catch(e) {}
+}
+function loadSaved() {
+  try {
+    const c = JSON.parse(localStorage.getItem(cacheKey()) || "null");
+    if (!c || !c.data || Date.now() - c.t > 3 * 86400000) return null;
+    return c;
+  } catch(e) { return null; }
+}
+let offline = false, savedAt = null;
 async function load(silent) {
-  if (!silent) $("hero").innerHTML = '<div class="msg"><div class="spinner"></div>Loading weather…</div>';
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}`
     + `&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,uv_index`
     + `&hourly=temperature_2m,weather_code,precipitation_probability,is_day`
     + `&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,precipitation_sum,snowfall_sum,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,uv_index_max,sunrise,sunset,daylight_duration`
     + `&timezone=auto&forecast_days=7`;
+  if (!silent) {
+    const c = loadSaved();
+    if (c) {   // show the saved forecast instantly while the fresh one loads
+      data = c.data; alerts = c.alerts || []; savedAt = new Date(c.t); lastUpdate = null;
+      render(); showAlerts();
+    } else {
+      $("hero").innerHTML = '<div class="msg"><div class="spinner"></div>Loading weather…</div>';
+    }
+  }
   try {
     const r = await fetch(url, { cache: "no-store" });
     if (!r.ok) throw new Error();
     data = await r.json();
+    offline = false; savedAt = null;
     render();
-    loadAlerts();
     lastUpdate = new Date();
     setUpdated();
+    saveWeather();
+    loadAlerts();
   } catch(e) {
-    if (!silent) $("hero").innerHTML = '<div class="msg">Couldn\'t load the weather right now. Check your connection and try again.</div>';
+    offline = true;
+    if (data) setUpdated();
+    else $("hero").innerHTML = '<div class="msg">Couldn\'t load the weather and there\'s no saved forecast for this city yet. Check your connection and try again.</div>';
   }
 }
 let lastUpdate = null;
 function setUpdated() {
   const el = $("updated");
-  if (el && lastUpdate) el.textContent = "Live · updated " + lastUpdate.toLocaleTimeString(undefined,{hour:"numeric", minute:"2-digit"}) + " · refreshes every minute";
+  if (!el) return;
+  const tm = d => d.toLocaleString(undefined, { weekday: (Date.now() - d) > 86400000 ? "short" : undefined, hour:"numeric", minute:"2-digit" });
+  const dot = el.previousElementSibling;
+  if (offline) {
+    const when = lastUpdate || savedAt;
+    el.textContent = "Offline · showing saved weather" + (when ? " from " + tm(when) : "") + " · will update when you're back online";
+    if (dot) dot.style.cssText = "background:#ffb347;box-shadow:0 0 8px #ffb347";
+  } else if (lastUpdate) {
+    el.textContent = "Live · updated " + tm(lastUpdate) + " · refreshes every minute";
+    if (dot) dot.style.cssText = "";
+  } else if (savedAt) {
+    el.textContent = "Showing saved weather from " + tm(savedAt) + " · updating…";
+  }
 }
 
 // Day/night look: daytime from sunrise to sunset (local time of the city), dark after sunset
@@ -658,6 +702,7 @@ const MODELS = {
   best:  { name: "Best match", about: "Open-Meteo blends the best models for this area", ids: [null] }
 };
 let radarModel = "hrrr";
+try { const l = localStorage.getItem("skycast_layer"); if (["precip","temp","wind","cloud"].includes(l)) radarLayer = l; } catch(e) {}
 try { const m = localStorage.getItem("skycast_model"); if (m && MODELS[m]) radarModel = m; } catch(e) {}
 const modelOK = m => !MODELS[m].us || inUS();
 function renderModels() {
@@ -991,6 +1036,7 @@ function renderLegend() {
 }
 function setRadarLayer(l) {
   radarLayer = l;
+  try { localStorage.setItem("skycast_layer", l); } catch(e) {}
   renderLegend();
   document.querySelectorAll("[data-layer]").forEach(b => b.classList.toggle("on", b.dataset.layer === l));
   rebuild();
@@ -1039,9 +1085,14 @@ function alertHTML(a, i) {
 async function loadAlerts() {
   if (!inUS()) { alerts = []; $("alerts").innerHTML = ""; return; }
   try { alerts = await alertsAt(place.latitude, place.longitude); } catch(e) { return; }
-  $("alerts").innerHTML = alerts.map(alertHTML).join("");
-  document.querySelectorAll(".alert[data-a]").forEach(el => el.onclick = () => el.classList.toggle("open"));
+  showAlerts();
+  saveWeather();
   notifyNew();
+}
+function showAlerts() {
+  const live = alerts.filter(a => !(a.ends || a.expires) || Date.parse(a.ends || a.expires) > Date.now());
+  $("alerts").innerHTML = live.map(alertHTML).join("");
+  document.querySelectorAll(".alert[data-a]").forEach(el => el.onclick = () => el.classList.toggle("open"));
 }
 async function mapAlertPopup(e) {
   if (!warnLayer) return;
@@ -1108,7 +1159,8 @@ function notifyNew() {
   try { localStorage.setItem("skycast_seen_alerts", JSON.stringify(seen.slice(-200))); } catch(e) {}
 }
 notifyState();
-if ("Notification" in window && Notification.permission === "granted") getSW();
+getSW();   // service worker: keeps the app working offline and handles notifications
+addEventListener("online", () => load(true));
 
 /* ---------- Saved cities & current location ---------- */
 let saved = [];
@@ -1211,6 +1263,7 @@ $("uF").onclick = () => setUnit("F");
 $("uC").onclick = () => setUnit("C");
 setUnit(unit);
 renderCities();
+document.querySelectorAll("[data-layer]").forEach(b => b.classList.toggle("on", b.dataset.layer === radarLayer));
 renderLegend();
 load();
 showView();
