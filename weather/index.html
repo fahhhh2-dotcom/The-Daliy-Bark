@@ -6,6 +6,8 @@
 <meta name="theme-color" content="#0b1424">
 <title>SkyCast Weather</title>
 <link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SkyCast">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -37,7 +39,10 @@
          background: rgba(6,12,26,.55); border-bottom:1px solid var(--line); }
   .bar-in { max-width:1180px; margin:0 auto; padding:12px 18px; display:flex; align-items:center; gap:14px; }
   .brand { font-weight:800; font-size:1.15rem; letter-spacing:-.3px; display:flex; align-items:center; gap:8px; white-space:nowrap; }
-  .brand i { width:26px; height:26px; border-radius:8px; background: linear-gradient(135deg, #ffd36b, #ff8a5c); display:grid; place-items:center; font-style:normal; font-size:.9rem; }
+  .brand { gap:10px !important; }
+  .brand .mark { width:34px; height:34px; flex:0 0 auto; filter: drop-shadow(0 4px 10px rgba(30,80,200,.45)); }
+  .brand .word { font-size:1.2rem; font-weight:800; letter-spacing:-.6px; color:#fff; }
+  .brand .word b { font-weight:800; background: linear-gradient(90deg, #ffd36b, #ff9a4d); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .search { position:relative; flex:1; max-width:520px; margin-left:auto; display:flex; gap:8px; }
   .search input { flex:1; min-width:0; padding:11px 16px 11px 40px; border-radius:14px; border:1px solid var(--line);
     background: rgba(255,255,255,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23c8d2ea' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 14px center;
@@ -222,6 +227,13 @@
   .ticks span { position:absolute; transform:translateX(-50%); white-space:nowrap; }
   .ticks i { position:absolute; top:-14px; height:3px; border-radius:2px; background:var(--accent); opacity:.45; }
   .radar-ctrl { align-items:flex-start !important; }
+  .modelrow { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .modelrow > span { font-size:.72rem; text-transform:uppercase; letter-spacing:1.2px; color:var(--soft); font-weight:700; }
+  .models { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding:2px 0; }
+  .models::-webkit-scrollbar { display:none; }
+  .models button { flex:0 0 auto; border:1px solid var(--line); background:transparent; color:var(--soft); font:inherit; font-weight:700; font-size:.78rem; padding:6px 11px; border-radius:999px; cursor:pointer; }
+  .models button.on { background:var(--accent); color:#0b1424; border-color:var(--accent); }
+  .modelabout { font-size:.75rem; color:var(--faint); margin-bottom:12px; }
   .msg { text-align:center; padding:60px 20px; color:var(--soft); }
   .spinner { width:34px; height:34px; border:3px solid rgba(255,255,255,.2); border-top-color:#fff; border-radius:50%; margin:0 auto 12px; animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -245,7 +257,24 @@
 </head>
 <body class="t-day">
 <div class="bar"><div class="bar-in">
-  <div class="brand"><i>☀</i>SkyCast</div>
+  <div class="brand"><svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
+  <defs>
+    <linearGradient id="lbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3d8bfd"/><stop offset="1" stop-color="#1b2f7a"/></linearGradient>
+    <radialGradient id="lsun" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#fff3b0"/><stop offset=".55" stop-color="#ffd36b"/><stop offset="1" stop-color="#ff9a4d"/></radialGradient>
+    <linearGradient id="lcl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9e6ff"/></linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#lbg)"/>
+  <g stroke="#ffffff" stroke-opacity=".22" stroke-width="2.2" fill="none" stroke-linecap="round">
+    <path d="M10 14a26 26 0 0 1 14-6"/><path d="M8 22a32 32 0 0 1 22-14" stroke-opacity=".14"/>
+  </g>
+  <circle cx="40" cy="24" r="12" fill="url(#lsun)"/>
+  <g stroke="#ffd36b" stroke-width="2.6" stroke-linecap="round">
+    <path d="M40 6v3.5M55.5 24H59M50.9 13.1l2.5-2.5M29.1 13.1l-2.5-2.5"/>
+  </g>
+  <path d="M17 50h28a9 9 0 0 0 1.2-17.9A12.5 12.5 0 0 0 22.4 35 7.6 7.6 0 0 0 17 50z" fill="url(#lcl)"/>
+  <path d="M17 50h28a9 9 0 0 0 8.6-6.4" fill="none" stroke="#9fb8ff" stroke-opacity=".5" stroke-width="1.5"/>
+</svg>
+<span class="word">Sky<b>Cast</b></span></div>
   <nav class="tabs"><a href="#weather" id="tabW" class="on">Weather</a><a href="#radar" id="tabR">Radar</a></nav>
   <div class="search">
     <input id="q" placeholder="Search a city" autocomplete="off">
@@ -303,6 +332,8 @@
       <button data-layer="cloud">☁️ Clouds</button>
       <button id="warnBtn" class="warn">⚠️ Warnings</button>
     </div>
+    <div class="modelrow"><span>Model</span><div class="models" id="models"></div></div>
+    <div class="modelabout" id="modelAbout"></div>
     <div class="mapwrap"><div id="radar"></div><div class="badge live" id="badge"><small>RADAR</small>—</div></div>
     <div class="radar-ctrl">
       <button class="playbtn" id="play" aria-label="Play">▶</button>
@@ -613,6 +644,35 @@ const sky = (() => {
 let map, marker, frames = [], layers = {}, frameIdx = 0, playTimer = null;
 let pastFrames = [], grid = null, gridFor = "", gridAt = 0, gridLoading = false;
 let radarLayer = "precip", warnLayer = null, labelGroup = null, hrrrFrames = [];
+const MODELS = {
+  hrrr:  { name: "HRRR",  about: "NOAA, US · 3 km · new run every hour · best for the next few hours", us: true, ids: ["ncep_hrrr_conus", "gfs_hrrr", "ncep_hrrr_us_conus"] },
+  nam:   { name: "NAM",   about: "NOAA, US · 3 km · new run every 6 hours", us: true, ids: ["ncep_nam_conus", "ncep_nam_us_conus"] },
+  nbm:   { name: "NBM",   about: "NOAA National Blend of Models, US · 2.5 km · new run every hour", us: true, ids: ["ncep_nbm_conus", "ncep_nbm_us_conus"] },
+  gfs:   { name: "GFS",   about: "NOAA global model (American)", ids: ["gfs_seamless", "ncep_gfs_seamless"] },
+  ecmwf: { name: "ECMWF", about: "European Centre global model (European)", ids: ["ecmwf_ifs025", "ecmwf_ifs_025"] },
+  icon:  { name: "ICON",  about: "German Weather Service (DWD)", ids: ["icon_seamless", "dwd_icon_seamless"] },
+  gem:   { name: "GEM",   about: "Environment Canada", ids: ["gem_seamless"] },
+  ukmo:  { name: "UKMO",  about: "UK Met Office", ids: ["ukmo_seamless", "uk_met_office_seamless"] },
+  best:  { name: "Best match", about: "Open-Meteo blends the best models for this area", ids: [null] }
+};
+let radarModel = "hrrr";
+try { const m = localStorage.getItem("skycast_model"); if (m && MODELS[m]) radarModel = m; } catch(e) {}
+const modelOK = m => !MODELS[m].us || inUS();
+function renderModels() {
+  if (!modelOK(radarModel)) radarModel = inUS() ? "hrrr" : "ecmwf";
+  $("models").innerHTML = Object.entries(MODELS).filter(([k]) => modelOK(k))
+    .map(([k, m]) => `<button data-model="${k}" class="${k === radarModel ? "on" : ""}">${m.name}</button>`).join("");
+  document.querySelectorAll("[data-model]").forEach(b => b.onclick = () => setModel(b.dataset.model));
+  const m = MODELS[radarModel];
+  $("modelAbout").textContent = m.name + ": " + m.about + (radarModel === "hrrr" && inUS() ? ". The future radar is NOAA's own HRRR simulated radar." : "");
+}
+function setModel(m) {
+  radarModel = m;
+  try { localStorage.setItem("skycast_model", m); } catch(e) {}
+  renderModels();
+  rebuild();
+  loadGrid(true);
+}
 const IEM = "https://mesonet{s}.agron.iastate.edu/cache/tile.py/1.0.0/";
 const pad = (n, w) => String(n).padStart(w, "0");
 const utcStamp = d => d.getUTCFullYear() + pad(d.getUTCMonth() + 1, 2) + pad(d.getUTCDate(), 2) + pad(d.getUTCHours(), 2) + pad(d.getUTCMinutes(), 2);
@@ -647,6 +707,7 @@ function initMap() {
   labelGroup = L.layerGroup().addTo(map);
   map.on("click", mapAlertPopup);
   marker = L.circleMarker([place.latitude, place.longitude], { radius: 7, color: "#fff", weight: 3, fillColor: "#ff5a5a", fillOpacity: 1, pane: "markerPane" }).addTo(map);
+  renderModels();
   loadRadar();
   loadGrid(true);
 }
@@ -656,6 +717,7 @@ function moveMap() {
   marker.setLatLng([place.latitude, place.longitude]);
   $("twc").href = `https://weather.com/weather/radar/interactive/l/${place.latitude.toFixed(2)},${place.longitude.toFixed(2)}`;
   grid = null;
+  renderModels();
   if (warnLayer && !inUS()) toggleWarnings(false);
   loadRadar();
   loadGrid(true);
@@ -698,8 +760,8 @@ async function fetchChunks(lats, lons, extra) {
 }
 const VARS = ["precipitation", "rain", "snowfall", "temperature_2m", "wind_speed_10m"];
 async function loadGrid(force) {
-  if (!map || gridLoading) return;
-  const id = place.latitude.toFixed(2) + "," + place.longitude.toFixed(2);
+  if (!map) return;
+  const id = place.latitude.toFixed(2) + "," + place.longitude.toFixed(2) + "_" + radarModel;
   if (!force && grid && gridFor === id && Date.now() - gridAt < 30 * 60000) return;
   gridLoading = true;
   const lats = [], lons = [];
@@ -708,20 +770,29 @@ async function loadGrid(force) {
     lons.push((place.longitude - D_LON + c * (2 * D_LON / (COLS - 1))).toFixed(2));
   }
   let j, key, perHour;
+  const model = radarModel, ids = MODELS[model].ids;
+  const ok = (jj, k) => jj[0][k] && jj[0][k].precipitation && !jj[0][k].precipitation.every(v => v === null);
   try {
+    if (model !== "best") throw new Error("use hourly model");
     j = await fetchChunks(lats, lons, `&minutely_15=${VARS.join(",")}&forecast_minutely_15=26&hourly=cloud_cover,precipitation_probability&forecast_hours=8`);
     key = "minutely_15"; perHour = 4;
-    if (!j[0][key] || j[0][key].precipitation.every(v => v === null)) throw new Error("empty");
+    if (!ok(j, key)) throw new Error("empty");
   } catch(e) {
-    try {
-      j = await fetchChunks(lats, lons, `&hourly=${VARS.join(",")},cloud_cover,precipitation_probability&forecast_hours=8`);
-      key = "hourly"; perHour = 1;
-    } catch(e2) {
+    j = null;
+    for (const mid of ids) {
+      try {
+        const jj = await fetchChunks(lats, lons, `${mid ? "&models=" + mid : ""}&hourly=${VARS.join(",")},cloud_cover,precipitation_probability&forecast_hours=8`);
+        if (ok(jj, "hourly")) { j = jj; break; }
+      } catch(e2) {}
+    }
+    key = "hourly"; perHour = 1;
+    if (!j || model !== radarModel) {
       gridLoading = false;
-      $("futureNote").textContent = "Forecast layers couldn't load. Trying again in 5 minutes.";
+      if (model === radarModel) $("futureNote").textContent = `The ${MODELS[model].name} model isn't available for this area right now. Try another model.`;
       rebuild(); return;
     }
   }
+  if (model !== radarModel) { gridLoading = false; return; }
   $("futureNote").textContent = "";
   const times = j[0][key].time.map(t => Date.parse(t + "Z"));
   const step = 3600000 / perHour, now = Date.now();
@@ -732,7 +803,7 @@ async function loadGrid(force) {
   const cloudTimes = j[0].hourly.time.map(t => Date.parse(t + "Z"));
   const cloud = j.map(loc => loc.hourly.cloud_cover || []);
   const prob = j.map(loc => loc.hourly.precipitation_probability || []);
-  grid = { id, times, first, perHour, v, cloudTimes, cloud, prob,
+  grid = { id, model: radarModel, times, first, perHour, v, cloudTimes, cloud, prob,
     bounds: [[place.latitude - D_LAT, place.longitude - D_LON], [place.latitude + D_LAT, place.longitude + D_LON]] };
   gridFor = id; gridAt = Date.now(); gridLoading = false;
   rebuild();
@@ -813,12 +884,12 @@ function rebuild() {
   if (!map) return;
   const cur = frames[frameIdx] && frames[frameIdx].key;
   const model = [];
-  if (grid) {
+  if (grid && grid.model === radarModel) {
     const startT = radarLayer === "precip" ? grid.first + 1 : grid.first;
     for (let t = startT; t <= grid.first + 6 * grid.perHour && t < grid.times.length; t++)
       model.push({ key: `${grid.id}_${radarLayer}_${grid.times[t]}`, model: true, layer: radarLayer, t, time: grid.times[t] });
   }
-  const future = radarLayer === "precip" && hrrrFrames.length ? hrrrFrames : model;
+  const future = radarLayer === "precip" && radarModel === "hrrr" && hrrrFrames.length ? hrrrFrames : model;
   frames = radarLayer === "precip" ? pastFrames.concat(future) : model;
   Object.keys(layers).forEach(k => { if (!frames.find(f => f.key === k)) { map.removeLayer(layers[k]); delete layers[k]; } });
   $("slider").max = Math.max(0, frames.length - 1);
@@ -868,7 +939,7 @@ function showFrame(i) {
     let rel;
     if (mins < 8) rel = "Now";
     else { const h = Math.floor(mins / 60), m = mins % 60; rel = "+" + (h ? h + "h" : "") + (m ? (h ? " " : "") + m + "m" : ""); }
-    const src = f.hrrr ? "NOAA HRRR model" : "Open-Meteo forecast model";
+    const src = f.hrrr ? "NOAA HRRR simulated radar" : `${MODELS[grid && grid.model || radarModel].name} model`;
     const dry = f.model && f.layer === "precip" && f.dry ? ' · <span style="opacity:.75">no rain or snow forecast in this area</span>' : "";
     $("rtime").innerHTML = `<b style="color:var(--accent)">${rel === "Now" ? "Now" : "Future " + rel}</b> · ${clock(f.time)} · ${src}${dry}`;
     $("badge").className = "badge future";
@@ -901,7 +972,7 @@ function renderTicks() {
 }
 function renderLegend() {
   const L_ = {
-    precip: hrrrFrames.length ? `<span class="lg"><i style="background:linear-gradient(90deg,#04e9e7,#019ff4,#02fd02,#01c501,#fdf802,#fd9500,#fd0000,#bc0000,#f800fd)"></i>Light → heavy</span>` :
+    precip: hrrrFrames.length && radarModel === "hrrr" ? `<span class="lg"><i style="background:linear-gradient(90deg,#04e9e7,#019ff4,#02fd02,#01c501,#fdf802,#fd9500,#fd0000,#bc0000,#f800fd)"></i>Light → heavy</span>` :
             `<span class="lg"><i style="background:linear-gradient(90deg,#82eb82,#149123,#fae600,#ff9600,#f02323)"></i>Rain</span>
              <span class="lg"><i style="background:linear-gradient(90deg,#bedcff,#3c6ef0,#1e3cc8)"></i>Snow</span>
              <span class="lg"><i style="background:linear-gradient(90deg,#ffbee6,#c832a0)"></i>Ice / mix</span>
@@ -911,10 +982,10 @@ function renderLegend() {
     cloud: `<span class="lg wide"><i style="background:linear-gradient(90deg,rgba(235,240,248,.1),rgba(235,240,248,.95))"></i>Clear → Overcast</span>`
   };
   $("legendBox").innerHTML = L_[radarLayer];
-  $("radarNote").textContent = radarLayer !== "precip" ? "Forecast model from now through the next 6 hours."
-    : hrrrFrames.length
+  $("radarNote").textContent = radarLayer !== "precip" ? `${MODELS[radarModel].name} forecast model from now through the next 6 hours.`
+    : hrrrFrames.length && radarModel === "hrrr"
     ? "The past hour is real National Weather Service radar. The future part is NOAA's HRRR model simulated radar, which is a prediction. Future frames color precipitation by type: rain, snow, freezing rain and ice."
-    : "The past hour is real radar. Future frames come from a forecast model: solid colors are rain, snow and ice the model expects, and striped areas are where rain or snow is likely.";
+    : `The past hour is real radar. Future frames come from the ${MODELS[radarModel].name} model: solid colors are rain, snow and ice the model expects, and striped areas are where rain or snow is likely.`;
 }
 function setRadarLayer(l) {
   radarLayer = l;
