@@ -29,16 +29,15 @@
   <div class="sub">Live weather, radar &amp; warnings</div>
 
   <div class="card" id="ios">
-    <a class="btn" href="SkyCast.mobileconfig">Add SkyCast to Home Screen</a>
-    <ol>
-      <li>Tap the button above, then tap <b>Allow</b>.</li>
-      <li>Open <b>Settings</b> and tap <b>Profile Downloaded</b> near the top.</li>
-      <li>Tap <b>Install</b>, enter your passcode, and tap <b>Install</b> again.</li>
-      <li>The SkyCast icon is now on your Home Screen.</li>
+    <div id="notSafari" class="note hide" style="opacity:.9;margin:0 0 14px">First open this page in <b>Safari</b>. Adding to the Home Screen only works from Safari.</div>
+    <ol style="margin-top:0">
+      <li>Tap <b>Open SkyCast</b> below.</li>
+      <li>Tap the <b>Share</b> button <span style="display:inline-block;border:1.5px solid #fff;border-radius:4px;padding:0 4px;font-size:.8rem">↑</span> at the bottom of Safari.</li>
+      <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
+      <li>Tap <b>Add</b>. SkyCast is now an app on your Home Screen.</li>
     </ol>
-    <div class="note">Settings will say the profile is "Not Verified". That's normal for small apps: it only adds the SkyCast icon, nothing else. You can remove it any time in Settings › General › VPN &amp; Device Management.</div>
-    <a class="btn alt" href="./">Or open SkyCast in Safari</a>
-    <div class="note">Other way: open SkyCast in Safari, tap Share, then Add to Home Screen.</div>
+    <a class="btn" style="margin-top:16px" href="./">Open SkyCast</a>
+    <div class="note">No downloads and no settings changes. It just saves SkyCast like an app.</div>
   </div>
 
   <div class="card hide" id="android">
@@ -60,6 +59,7 @@
   const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const android = /Android/.test(ua);
   if (!ios) document.getElementById("ios").classList.add("hide");
+  if (ios && /CriOS|FxiOS|EdgiOS|GSA/.test(ua)) document.getElementById("notSafari").classList.remove("hide");
   if (android) document.getElementById("android").classList.remove("hide");
   if (!ios && !android) document.getElementById("desktop").classList.remove("hide");
   let deferred = null;
