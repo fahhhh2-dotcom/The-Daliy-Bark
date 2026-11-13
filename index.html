@@ -3,45 +3,119 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Daily Bark – Dog News Every Day</title>
+<title>The Daily Bark – Real Dog News Every Weekday</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>">
 <style>
-  :root { --ink:#2b1d0e; --paper:#fff8ec; --accent:#e0702c; --soft:#f3e3c8; }
+  :root { --ink:#2b1d0e; --muted:#8a6a48; --paper:#fffaf1; --accent:#e0702c; --accent-dark:#b9541a; --soft:#f6e7cf; --teal:#2f8f83; }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--soft); color:var(--ink); font-family: Georgia, "Times New Roman", serif; }
-  header { background:var(--accent); color:#fff; text-align:center; padding:28px 16px 20px; }
-  header h1 { margin:0; font-size:2.6rem; letter-spacing:1px; }
-  header p { margin:6px 0 0; font-family: system-ui, sans-serif; font-size:.95rem; opacity:.9; }
-  .paw { font-size:2rem; }
-  main { max-width:720px; margin:-12px auto 40px; padding:0 14px; }
-  article { background:var(--paper); border-radius:14px; padding:26px 22px; box-shadow:0 4px 18px rgba(0,0,0,.08); }
-  .tag { display:inline-block; background:var(--accent); color:#fff; font-family:system-ui,sans-serif; font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; padding:4px 10px; border-radius:20px; }
-  .date { font-family:system-ui,sans-serif; font-size:.85rem; color:#8a6a48; margin-top:10px; }
-  article h2 { font-size:1.9rem; line-height:1.2; margin:10px 0 14px; }
-  article p { font-size:1.12rem; line-height:1.65; margin:0 0 14px; }
-  .fact { background:var(--soft); border-left:5px solid var(--accent); padding:12px 14px; border-radius:6px; font-family:system-ui,sans-serif; font-size:.98rem; margin:18px 0; }
-  .source { font-family:system-ui,sans-serif; font-size:.9rem; }
-  .source a { color:var(--accent); font-weight:600; }
-  footer { text-align:center; font-family:system-ui,sans-serif; font-size:.85rem; color:#8a6a48; padding-bottom:30px; }
+  body {
+    margin:0; color:var(--ink); font-family: Georgia, "Times New Roman", serif;
+    background-color:var(--soft);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='%23e0702c' fill-opacity='0.07'%3E%3Cellipse cx='30' cy='38' rx='9' ry='7'/%3E%3Ccircle cx='19' cy='26' r='4'/%3E%3Ccircle cx='26' cy='20' r='4'/%3E%3Ccircle cx='35' cy='20' r='4'/%3E%3Ccircle cx='42' cy='26' r='4'/%3E%3Cellipse cx='88' cy='98' rx='9' ry='7'/%3E%3Ccircle cx='77' cy='86' r='4'/%3E%3Ccircle cx='84' cy='80' r='4'/%3E%3Ccircle cx='93' cy='80' r='4'/%3E%3Ccircle cx='100' cy='86' r='4'/%3E%3C/g%3E%3C/svg%3E");
+  }
+  .sans { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+
+  /* Top strip */
+  .strip { background:var(--ink); color:#f6e7cf; text-align:center; font-size:.78rem; letter-spacing:2px; text-transform:uppercase; padding:7px 10px; }
+
+  /* Masthead */
+  .masthead { text-align:center; padding:30px 16px 18px; max-width:760px; margin:0 auto; }
+  .logo { display:inline-flex; align-items:center; gap:12px; }
+  .logo .paw { font-size:2.6rem; display:inline-block; animation: wiggle 2.8s ease-in-out infinite; transform-origin:50% 80%; }
+  .masthead h1 { margin:0; font-size:clamp(2.4rem, 8vw, 3.8rem); letter-spacing:1px; line-height:1; }
+  .masthead h1 span { color:var(--accent); }
+  .tagline { margin:10px 0 0; color:var(--muted); font-size:1rem; font-style:italic; }
+  .rule { border:0; height:6px; margin:18px 0 0; border-top:3px solid var(--ink); border-bottom:1px solid var(--ink); }
+
+  main { max-width:760px; margin:0 auto 40px; padding:0 14px; display:grid; gap:22px; }
+
+  /* Story card */
+  .story { background:var(--paper); border-radius:18px; overflow:hidden; box-shadow:0 8px 28px rgba(43,29,14,.12); animation: rise .6s ease-out both; }
+  .banner { background:linear-gradient(135deg, var(--accent) 0%, #f2a24b 100%); height:150px; display:flex; align-items:center; justify-content:center; position:relative; }
+  .banner .emoji { font-size:4.6rem; background:rgba(255,255,255,.25); width:118px; height:118px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 10px rgba(255,255,255,.12); animation: bob 3s ease-in-out infinite; }
+  .banner .label { position:absolute; left:16px; top:14px; background:#fff; color:var(--accent-dark); font-size:.72rem; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; padding:5px 11px; border-radius:20px; }
+  .body { padding:24px 24px 26px; }
+  .meta { display:flex; flex-wrap:wrap; gap:10px; align-items:center; color:var(--muted); font-size:.85rem; }
+  .tag { background:var(--soft); color:var(--accent-dark); font-weight:700; text-transform:uppercase; letter-spacing:1px; font-size:.72rem; padding:4px 10px; border-radius:20px; }
+  .story h2 { font-size:clamp(1.6rem, 5vw, 2.1rem); line-height:1.2; margin:12px 0 16px; }
+  .story p { font-size:1.13rem; line-height:1.7; margin:0 0 14px; }
+  .story .text p:first-child::first-letter { float:left; font-size:3.4rem; line-height:.9; padding:6px 8px 0 0; color:var(--accent); font-weight:700; }
+
+  .fact { display:flex; gap:14px; align-items:flex-start; background:#fff3e3; border:2px dashed #f0b27a; border-radius:14px; padding:14px 16px; margin:20px 0 18px; font-size:1rem; line-height:1.5; }
+  .fact .icon { font-size:1.8rem; line-height:1; }
+  .fact strong { color:var(--accent-dark); }
+
+  .source a { display:inline-flex; align-items:center; gap:8px; background:var(--ink); color:#fff; text-decoration:none; font-weight:600; font-size:.92rem; padding:10px 16px; border-radius:10px; transition: transform .15s, background .15s; }
+  .source a:hover { background:var(--accent); transform:translateY(-2px); }
+
+  /* Breed spotlight */
+  .breed { background:var(--paper); border-radius:18px; padding:20px 22px; box-shadow:0 6px 20px rgba(43,29,14,.09); border-left:8px solid var(--teal); display:flex; gap:16px; align-items:center; animation: rise .6s .15s ease-out both; }
+  .breed .badge { flex:none; width:64px; height:64px; border-radius:50%; background:#dff1ee; display:flex; align-items:center; justify-content:center; font-size:2.1rem; }
+  .breed h3 { margin:0 0 4px; font-size:.78rem; letter-spacing:2px; text-transform:uppercase; color:var(--teal); }
+  .breed .name { font-size:1.35rem; font-weight:700; margin:0 0 4px; }
+  .breed p { margin:0; line-height:1.55; font-size:1rem; }
+
+  /* Info row */
+  .info { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; animation: rise .6s .3s ease-out both; }
+  .info div { background:rgba(255,250,241,.85); border-radius:14px; padding:14px 16px; text-align:center; font-size:.92rem; line-height:1.45; color:var(--ink); }
+  .info b { display:block; font-size:1.4rem; margin-bottom:4px; }
+
+  footer { text-align:center; color:var(--muted); font-size:.85rem; padding:6px 16px 34px; }
+  footer .paws { letter-spacing:6px; opacity:.6; }
+
+  @keyframes wiggle { 0%,100% { transform:rotate(0) } 10% { transform:rotate(-14deg) } 20% { transform:rotate(12deg) } 30% { transform:rotate(0) } }
+  @keyframes bob { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-7px) } }
+  @keyframes rise { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:none } }
+  @media (prefers-reduced-motion: reduce) { * { animation:none !important; } }
 </style>
 </head>
 <body>
-<header>
-  <div class="paw">🐾</div>
-  <h1>The Daily Bark</h1>
-  <p>A new dog story every day</p>
-</header>
-<main>
-  <article>
-    <span class="tag">Dog Shows</span>
-    <div class="date">Friday, November 13, 2026</div>
-    <h2>Thousands of Dogs Head to Mexico City for a Big Four-Day Dog Show</h2>
-    <p>Dogs from across North America are strutting their stuff in Mexico City this week. The American Kennel Club (AKC) and the Federación Canófila Mexicana (FCM), Mexico's official kennel club, teamed up for four days of dog shows, running November 12 through 15.</p>
-    <p>The shows drew 2,856 entries, which means thousands of chances for a dog to win a ribbon. There are all-breed shows, where every kind of dog can compete, and specialty shows for single breeds.</p>
-    <p>The leader of the AKC called it a historic milestone for the dog-show world, since it's a big step for the two kennel clubs working together across the border.</p>
-    <div class="fact">🐶 <strong>Fun fact:</strong> At a dog show, judges don't compare dogs to each other first. They compare each dog to the "perfect" version of its breed, then pick the dog that comes closest.</div>
-    <p class="source">Source: <a href="https://www.globenewswire.com/news-release/2026/11/11/3400886/0/en/akc-and-fcm-dog-shows-celebrate-purebred-dogs-across-borders-with-2-856-entries.html" target="_blank" rel="noopener">GlobeNewswire</a></p>
-  </article>
-</main>
-<footer>The Daily Bark · Updated every day 🐕</footer>
+  <div class="strip sans">Real dog news · New story every weekday</div>
+
+  <header class="masthead">
+    <div class="logo"><span class="paw">🐾</span><h1>The Daily <span>Bark</span></h1></div>
+    <p class="tagline">All the news that's fit to fetch</p>
+    <hr class="rule">
+  </header>
+
+  <main>
+    <article class="story">
+      <div class="banner">
+        <span class="label sans">Today's Story</span>
+        <div class="emoji">🏆</div>
+      </div>
+      <div class="body">
+        <div class="meta sans"><span class="tag">Dog Shows</span><span>Friday, November 13, 2026</span><span>· 2 min read</span></div>
+        <h2>Thousands of Dogs Head to Mexico City for a Big Four-Day Dog Show</h2>
+        <div class="text">
+          <p>Dogs from across North America are strutting their stuff in Mexico City this week. The American Kennel Club (AKC) and the Federación Canófila Mexicana (FCM), Mexico's official kennel club, teamed up for four days of dog shows, running November 12 through 15.</p>
+          <p>The shows drew 2,856 entries, which means thousands of chances for a dog to win a ribbon. There are all-breed shows, where every kind of dog can compete, and specialty shows for single breeds.</p>
+          <p>The leader of the AKC called it a historic milestone for the dog-show world, since it's a big step for the two kennel clubs working together across the border.</p>
+        </div>
+        <div class="fact sans"><span class="icon">💡</span><div><strong>Fun fact:</strong> At a dog show, judges don't compare dogs to each other first. They compare each dog to the "perfect" version of its breed, then pick the dog that comes closest.</div></div>
+        <p class="source sans"><a href="https://www.globenewswire.com/news-release/2026/11/11/3400886/0/en/akc-and-fcm-dog-shows-celebrate-purebred-dogs-across-borders-with-2-856-entries.html" target="_blank" rel="noopener">Read the original at GlobeNewswire →</a></p>
+      </div>
+    </article>
+
+    <section class="breed sans">
+      <div class="badge">🐕</div>
+      <div>
+        <h3>Breed Spotlight</h3>
+        <p class="name">Xoloitzcuintli</p>
+        <p>Mexico's national dog, the "Xolo" is one of the oldest dog breeds in the Americas, and it comes in both hairless and coated varieties.</p>
+      </div>
+    </section>
+
+    <section class="info sans">
+      <div><b>📰</b>Every story is real news from a trusted source</div>
+      <div><b>⏰</b>A fresh story every weekday morning</div>
+      <div><b>🔗</b>Tap the link to read the full original article</div>
+    </section>
+  </main>
+
+  <footer class="sans">
+    <div class="paws">🐾 🐾 🐾</div>
+    The Daily Bark · Made with love for dogs everywhere
+  </footer>
 </body>
 </html>
