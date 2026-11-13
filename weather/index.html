@@ -132,7 +132,7 @@
     <a class="twc" id="twc" href="https://weather.com/weather/radar/interactive" target="_blank" rel="noopener">📡 Open The Weather Channel radar ↗</a>
   </div>
 
-  <footer>Forecast from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Radar from <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> · Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></footer>
+  <footer>Forecast from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Radar: NWS NEXRAD via <a href="https://mesonet.agron.iastate.edu/" target="_blank" rel="noopener">Iowa Environmental Mesonet</a> &amp; <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> · Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></footer>
 </div>
 
 <script>
@@ -291,13 +291,16 @@ function render() {
   });
 }
 
-/* ---------- Radar ---------- */
-let map, marker, frames = [], layers = {}, frameIdx = 0, playTimer = null, radarHost = "";
+/* ---------- Radar ----------
+   US: NWS NEXRAD composite via Iowa State Mesonet (no key, no tight limits), animated 50 min → now.
+   Outside US: RainViewer latest frame only (their free tier allows ~100 tiles/min). */
+let map, marker, frames = [], layers = {}, frameIdx = 0, playTimer = null, mode = "";
+const inUS = () => place.latitude > 18 && place.latitude < 72 && place.longitude > -170 && place.longitude < -60;
 function initMap() {
   if (!window.L) { $("radar").innerHTML = '<div class="msg">Radar map couldn\'t load.</div>'; return; }
-  map = L.map("radar", { zoomControl: true, attributionControl: false }).setView([place.latitude, place.longitude], 7);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { maxZoom: 12, subdomains: "abcd" }).addTo(map);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png", { maxZoom: 12, subdomains: "abcd", pane: "shadowPane" }).addTo(map);
+  map = L.map("radar", { zoomControl: true, attributionControl: false, minZoom: 4, maxZoom: 10 }).setView([place.latitude, place.longitude], 7);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { maxZoom: 10, subdomains: "abcd" }).addTo(map);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png", { maxZoom: 10, subdomains: "abcd", pane: "shadowPane" }).addTo(map);
   marker = L.circleMarker([place.latitude, place.longitude], { radius: 7, color: "#fff", weight: 3, fillColor: "#ff5a5a", fillOpacity: 1 }).addTo(map);
   loadRadar();
 }
@@ -306,41 +309,65 @@ function moveMap() {
   map.setView([place.latitude, place.longitude], 7);
   marker.setLatLng([place.latitude, place.longitude]);
   $("twc").href = `https://weather.com/weather/radar/interactive/l/${place.latitude.toFixed(2)},${place.longitude.toFixed(2)}`;
+  loadRadar();
 }
+function clearLayers() { Object.values(layers).forEach(l => map.removeLayer(l)); layers = {}; }
 async function loadRadar() {
-  try {
-    const r = await fetch("https://api.rainviewer.com/public/weather-maps.json", { cache: "no-store" });
-    const j = await r.json();
-    radarHost = j.host;
-    const newFrames = j.radar.past.concat(j.radar.nowcast || []);
-    // drop old layers that are no longer in the list
-    Object.keys(layers).forEach(p => { if (!newFrames.find(f => f.path === p)) { map.removeLayer(layers[p]); delete layers[p]; } });
-    frames = newFrames;
-    $("slider").max = frames.length - 1;
-    if (!playTimer) showFrame(j.radar.past.length - 1);
-  } catch(e) { $("rtime").textContent = "Radar unavailable"; }
+  if (!map) return;
+  const wantMode = inUS() ? "us" : "world";
+  const wasPlaying = !!playTimer;
+  if (wantMode === "us") {
+    // 11 frames, 5 minutes apart; "-m50m" = 50 minutes ago
+    const stamp = Date.now();
+    clearLayers();
+    frames = [];
+    for (let m = 50; m >= 0; m -= 5) {
+      const suffix = m ? `-m${String(m).padStart(2,"0")}m` : "";
+      frames.push({ key: "us" + m, minsAgo: m, url: `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913${suffix}/{z}/{x}/{y}.png?_=${Math.floor(stamp/300000)}` });
+    }
+    $("play").style.display = ""; $("slider").style.display = "";
+  } else {
+    try {
+      const r = await fetch("https://api.rainviewer.com/public/weather-maps.json", { cache: "no-store" });
+      const j = await r.json();
+      const f = j.radar.past[j.radar.past.length - 1];
+      clearLayers();
+      frames = [{ key: f.path, time: f.time, url: `${j.host}${f.path}/512/{z}/{x}/{y}/2/1_1.png`, big: true }];
+    } catch(e) { $("rtime").textContent = "Radar unavailable here"; return; }
+    if (playTimer) { clearInterval(playTimer); playTimer = null; $("play").textContent = "▶ Play"; }
+    $("play").style.display = "none"; $("slider").style.display = "none";
+  }
+  mode = wantMode;
+  $("slider").max = frames.length - 1;
+  if (!wasPlaying || mode !== "us") showFrame(frames.length - 1);
 }
 function layerFor(f) {
-  if (!layers[f.path]) {
-    layers[f.path] = L.tileLayer(`${radarHost}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, { opacity: 0, maxNativeZoom: 7, maxZoom: 12, zIndex: 10 });
-    layers[f.path].addTo(map);
+  if (!layers[f.key]) {
+    const opts = { opacity: 0, zIndex: 10, maxZoom: 10 };
+    if (f.big) Object.assign(opts, { tileSize: 512, zoomOffset: -1, maxNativeZoom: 7 });
+    layers[f.key] = L.tileLayer(f.url, opts).addTo(map);
   }
-  return layers[f.path];
+  return layers[f.key];
 }
 function showFrame(i) {
   if (!frames.length) return;
   frameIdx = (i + frames.length) % frames.length;
-  frames.forEach((f, k) => { if (layers[f.path]) layers[f.path].setOpacity(0); });
+  Object.values(layers).forEach(l => l.setOpacity(0));
   layerFor(frames[frameIdx]).setOpacity(0.75);
-  layerFor(frames[(frameIdx + 1) % frames.length]); // preload next
   $("slider").value = frameIdx;
-  const t = new Date(frames[frameIdx].time * 1000);
-  const ago = Math.round((Date.now() - t) / 60000);
-  $("rtime").textContent = t.toLocaleTimeString(undefined,{hour:"numeric", minute:"2-digit"}) + (ago <= 10 && ago >= -10 ? " (latest)" : "");
+  const f = frames[frameIdx];
+  if (f.minsAgo !== undefined) {
+    $("rtime").textContent = f.minsAgo === 0 ? "Now" : `${f.minsAgo} min ago`;
+  } else {
+    $("rtime").textContent = new Date(f.time * 1000).toLocaleTimeString(undefined,{hour:"numeric", minute:"2-digit"});
+  }
 }
 $("play").onclick = () => {
   if (playTimer) { clearInterval(playTimer); playTimer = null; $("play").textContent = "▶ Play"; }
-  else { playTimer = setInterval(() => showFrame(frameIdx + 1), 600); $("play").textContent = "⏸ Pause"; }
+  else {
+    frames.forEach(layerFor); // preload all frames
+    playTimer = setInterval(() => showFrame(frameIdx + 1), 700); $("play").textContent = "⏸ Pause";
+  }
 };
 $("slider").oninput = e => showFrame(+e.target.value);
 
@@ -388,10 +415,12 @@ $("uC").onclick = () => setUnit("C");
 setUnit(unit);
 load();
 initMap();
-moveMap();
+$("twc").href = `https://weather.com/weather/radar/interactive/l/${place.latitude.toFixed(2)},${place.longitude.toFixed(2)}`;
 
 // refresh forecast + radar every minute
-setInterval(() => { load(true); if (map) loadRadar(); }, 60000);
+setInterval(() => load(true), 60000);
+// radar images update every 5 minutes, so refresh the radar on that schedule
+setInterval(() => { if (map) loadRadar(); }, 300000);
 </script>
 </body>
 </html>
