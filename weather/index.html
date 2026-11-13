@@ -86,6 +86,7 @@
   .detail .head .sub { color:var(--soft); font-size:.9rem; }
   .detail .stats { margin-top:12px; }
   #radar { height: 380px; border-radius:18px; overflow:hidden; background:#2b2f36; }
+  .basemap { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.6); }
   .leaflet-control-attribution { font-size:9px; background:rgba(0,0,0,.4)!important; color:#ccc; }
   .leaflet-control-attribution a { color:#ddd; }
   .radar-ctrl { display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap; }
@@ -134,7 +135,7 @@
     <a class="twc" id="twc" href="https://weather.com/weather/radar/interactive" target="_blank" rel="noopener">📡 Open The Weather Channel radar ↗</a>
   </div>
 
-  <footer>Forecast from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Radar: NWS NEXRAD via <a href="https://mesonet.agron.iastate.edu/" target="_blank" rel="noopener">Iowa Environmental Mesonet</a> &amp; <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> · Map © Esri / <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></footer>
+  <footer>Forecast from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Radar: NWS NEXRAD via <a href="https://mesonet.agron.iastate.edu/" target="_blank" rel="noopener">Iowa Environmental Mesonet</a> &amp; <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> · Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></footer>
 </div>
 
 <script>
@@ -301,17 +302,8 @@ const inUS = () => place.latitude > 18 && place.latitude < 72 && place.longitude
 function initMap() {
   if (!window.L) { $("radar").innerHTML = '<div class="msg">Radar map couldn\'t load.</div>'; return; }
   map = L.map("radar", { zoomControl: true, attributionControl: true, minZoom: 4, maxZoom: 10 }).setView([place.latitude, place.longitude], 7);
-  // Base map: Esri dark gray (no key). If its tiles fail, switch to OpenStreetMap.
-  const esriBase = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", { maxZoom: 10, attribution: "Tiles © Esri" });
-  const esriLabels = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxZoom: 10, pane: "shadowPane" });
-  let fails = 0, switched = false;
-  esriBase.on("tileerror", () => {
-    if (switched || ++fails < 4) return;
-    switched = true;
-    map.removeLayer(esriBase); map.removeLayer(esriLabels);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 10, attribution: "© OpenStreetMap" }).addTo(map);
-  });
-  esriBase.addTo(map); esriLabels.addTo(map);
+  // Base map: OpenStreetMap (no API key), darkened with CSS so the radar stands out
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 10, className: "basemap", attribution: "© OpenStreetMap" }).addTo(map);
   marker = L.circleMarker([place.latitude, place.longitude], { radius: 7, color: "#fff", weight: 3, fillColor: "#ff5a5a", fillOpacity: 1 }).addTo(map);
   loadRadar();
 }
