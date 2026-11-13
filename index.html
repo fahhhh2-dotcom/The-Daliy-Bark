@@ -31,9 +31,8 @@
 
   /* Story card */
   .story { background:var(--paper); border-radius:18px; overflow:hidden; box-shadow:0 8px 28px rgba(43,29,14,.12); animation: rise .6s ease-out both; }
-  .banner { background:linear-gradient(135deg, var(--accent) 0%, #f2a24b 100%); height:150px; display:flex; align-items:center; justify-content:center; position:relative; }
-  .banner .emoji { font-size:4.6rem; background:rgba(255,255,255,.25); width:118px; height:118px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 10px rgba(255,255,255,.12); animation: bob 3s ease-in-out infinite; }
-  .banner .label { position:absolute; left:16px; top:14px; background:#fff; color:var(--accent-dark); font-size:.72rem; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; padding:5px 11px; border-radius:20px; }
+  .banner { background:linear-gradient(135deg, var(--accent) 0%, #f2a24b 100%); padding:12px 16px; }
+  .banner .label { display:inline-block; background:#fff; color:var(--accent-dark); font-size:.72rem; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; padding:5px 11px; border-radius:20px; }
   .body { padding:24px 24px 26px; }
   .meta { display:flex; flex-wrap:wrap; gap:10px; align-items:center; color:var(--muted); font-size:.85rem; }
   .tag { background:var(--soft); color:var(--accent-dark); font-weight:700; text-transform:uppercase; letter-spacing:1px; font-size:.72rem; padding:4px 10px; border-radius:20px; }
@@ -60,11 +59,16 @@
   .info div { background:rgba(255,250,241,.85); border-radius:14px; padding:14px 16px; text-align:center; font-size:.92rem; line-height:1.45; color:var(--ink); }
   .info b { display:block; font-size:1.4rem; margin-bottom:4px; }
 
+  .nav { display:flex; justify-content:center; gap:10px; margin-top:16px; flex-wrap:wrap; }
+  .nav a, .more { text-decoration:none; color:var(--ink); background:var(--paper); border:2px solid var(--ink); border-radius:30px; padding:7px 16px; font-weight:700; font-size:.9rem; transition: background .15s, color .15s; }
+  .nav a:hover, .more:hover { background:var(--ink); color:#fff; }
+  .more { justify-self:center; }
+  .posted time { font-weight:600; color:var(--ink); }
+  .origdate { margin:10px 0 0 !important; font-size:.85rem !important; color:var(--muted); }
   footer { text-align:center; color:var(--muted); font-size:.85rem; padding:6px 16px 34px; }
   footer .paws { letter-spacing:6px; opacity:.6; }
 
   @keyframes wiggle { 0%,100% { transform:rotate(0) } 10% { transform:rotate(-14deg) } 20% { transform:rotate(12deg) } 30% { transform:rotate(0) } }
-  @keyframes bob { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-7px) } }
   @keyframes rise { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:none } }
   @media (prefers-reduced-motion: reduce) { * { animation:none !important; } }
 </style>
@@ -75,17 +79,15 @@
   <header class="masthead">
     <div class="logo"><span class="paw">🐾</span><h1>The Daily <span>Bark</span></h1></div>
     <p class="tagline">All the news that's fit to fetch</p>
+    <nav class="nav sans"><a href="/The-Daliy-Bark/">🏠 Latest Story</a><a href="/The-Daliy-Bark/archive.html">📚 Past Stories</a></nav>
     <hr class="rule">
   </header>
 
   <main>
     <article class="story">
-      <div class="banner">
-        <span class="label sans">Today's Story</span>
-        <div class="emoji">🏆</div>
-      </div>
+      <div class="banner"><span class="label sans">Top Story</span></div>
       <div class="body">
-        <div class="meta sans"><span class="tag">Dog Shows</span><span>Friday, November 13, 2026</span><span>· 2 min read</span></div>
+        <div class="meta sans"><span class="tag">Dog Shows</span><span class="posted">🕒 Posted <time datetime="2026-11-13T13:20-06:00">Friday, November 13, 2026 at 1:20 PM CT</time></span><span>⏱️ 2 min read</span></div>
         <h2>Thousands of Dogs Head to Mexico City for a Big Four-Day Dog Show</h2>
         <div class="text">
           <p>Dogs from across North America are strutting their stuff in Mexico City this week. The American Kennel Club (AKC) and the Federación Canófila Mexicana (FCM), Mexico's official kennel club, teamed up for four days of dog shows, running November 12 through 15.</p>
@@ -94,6 +96,7 @@
         </div>
         <div class="fact sans"><span class="icon">💡</span><div><strong>Fun fact:</strong> At a dog show, judges don't compare dogs to each other first. They compare each dog to the "perfect" version of its breed, then pick the dog that comes closest.</div></div>
         <p class="source sans"><a href="https://www.globenewswire.com/news-release/2026/11/11/3400886/0/en/akc-and-fcm-dog-shows-celebrate-purebred-dogs-across-borders-with-2-856-entries.html" target="_blank" rel="noopener">Read the original at GlobeNewswire →</a></p>
+        <p class="origdate sans">Original article published <span class="od">November 11, 2026</span></p>
       </div>
     </article>
 
@@ -105,6 +108,8 @@
         <p>Mexico's national dog, the "Xolo" is one of the oldest dog breeds in the Americas, and it comes in both hairless and coated varieties.</p>
       </div>
     </section>
+
+    <a class="more sans" href="/The-Daliy-Bark/archive.html">📚 Read past stories →</a>
 
     <section class="info sans">
       <div><b>📰</b>Every story is real news from a trusted source</div>
