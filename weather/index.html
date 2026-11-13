@@ -6,8 +6,8 @@
 <title>SkyCast Weather</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <style>
   :root { --glass: rgba(255,255,255,0.16); --line: rgba(255,255,255,0.25); --text:#fff; --soft:rgba(255,255,255,0.75); }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -85,7 +85,9 @@
   .detail .head .title { font-size:1.15rem; font-weight:600; }
   .detail .head .sub { color:var(--soft); font-size:.9rem; }
   .detail .stats { margin-top:12px; }
-  #radar { height: 380px; border-radius:18px; overflow:hidden; background:#1a2a40; }
+  #radar { height: 380px; border-radius:18px; overflow:hidden; background:#2b2f36; }
+  .leaflet-control-attribution { font-size:9px; background:rgba(0,0,0,.4)!important; color:#ccc; }
+  .leaflet-control-attribution a { color:#ddd; }
   .radar-ctrl { display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap; }
   .radar-ctrl button { background:rgba(255,255,255,.2); border:1px solid var(--line); color:#fff; border-radius:12px; padding:8px 14px; font:inherit; cursor:pointer; }
   .radar-ctrl input[type=range] { flex:1; min-width:120px; accent-color:#fff; }
@@ -132,7 +134,7 @@
     <a class="twc" id="twc" href="https://weather.com/weather/radar/interactive" target="_blank" rel="noopener">📡 Open The Weather Channel radar ↗</a>
   </div>
 
-  <footer>Forecast from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Radar: NWS NEXRAD via <a href="https://mesonet.agron.iastate.edu/" target="_blank" rel="noopener">Iowa Environmental Mesonet</a> &amp; <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> · Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></footer>
+  <footer>Forecast from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> · Radar: NWS NEXRAD via <a href="https://mesonet.agron.iastate.edu/" target="_blank" rel="noopener">Iowa Environmental Mesonet</a> &amp; <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> · Map © Esri / <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></footer>
 </div>
 
 <script>
@@ -298,9 +300,18 @@ let map, marker, frames = [], layers = {}, frameIdx = 0, playTimer = null, mode 
 const inUS = () => place.latitude > 18 && place.latitude < 72 && place.longitude > -170 && place.longitude < -60;
 function initMap() {
   if (!window.L) { $("radar").innerHTML = '<div class="msg">Radar map couldn\'t load.</div>'; return; }
-  map = L.map("radar", { zoomControl: true, attributionControl: false, minZoom: 4, maxZoom: 10 }).setView([place.latitude, place.longitude], 7);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { maxZoom: 10, subdomains: "abcd" }).addTo(map);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png", { maxZoom: 10, subdomains: "abcd", pane: "shadowPane" }).addTo(map);
+  map = L.map("radar", { zoomControl: true, attributionControl: true, minZoom: 4, maxZoom: 10 }).setView([place.latitude, place.longitude], 7);
+  // Base map: Esri dark gray (no key). If its tiles fail, switch to OpenStreetMap.
+  const esriBase = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", { maxZoom: 10, attribution: "Tiles © Esri" });
+  const esriLabels = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxZoom: 10, pane: "shadowPane" });
+  let fails = 0, switched = false;
+  esriBase.on("tileerror", () => {
+    if (switched || ++fails < 4) return;
+    switched = true;
+    map.removeLayer(esriBase); map.removeLayer(esriLabels);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 10, attribution: "© OpenStreetMap" }).addTo(map);
+  });
+  esriBase.addTo(map); esriLabels.addTo(map);
   marker = L.circleMarker([place.latitude, place.longitude], { radius: 7, color: "#fff", weight: 3, fillColor: "#ff5a5a", fillOpacity: 1 }).addTo(map);
   loadRadar();
 }
