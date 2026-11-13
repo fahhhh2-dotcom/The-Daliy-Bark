@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0b1424">
 <title>SkyCast Weather</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SkyCast">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
@@ -176,6 +179,8 @@
   .layers button { border:1px solid var(--line); background:rgba(255,255,255,.07); color:var(--text); font:inherit; font-weight:600; font-size:.85rem; padding:8px 13px; border-radius:12px; cursor:pointer; }
   .layers button.on { background:var(--text); color:#0b1424; border-color:var(--text); }
   .layers .warn.on { background:#ff4d6d; border-color:#ff4d6d; color:#fff; }
+  .nextrain { margin-top:12px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.07); font-size:.85rem; line-height:1.4; }
+  .nextrain:empty { display:none; }
   .lgrow { display:flex; gap:14px; flex-wrap:wrap; margin-top:12px; font-size:.75rem; color:var(--soft); }
   .lg { display:flex; align-items:center; gap:6px; }
   .lg i { width:70px; height:8px; border-radius:4px; display:block; }
@@ -186,6 +191,25 @@
   .radar-teaser b { display:block; font-size:1.05rem; }
   .radar-teaser span { font-size:.85rem; color:var(--soft); }
   .radar-teaser .go { padding:10px 16px; border-radius:12px; background:var(--text); color:#0b1424; font-weight:700; font-size:.85rem; white-space:nowrap; }
+  .alerts { display:grid; gap:10px; }
+  .alerts:empty { display:none; }
+  .alert { border-radius:18px; padding:14px 16px; background:linear-gradient(135deg, rgba(255,77,109,.28), rgba(255,140,60,.18)); border:1px solid rgba(255,120,120,.5); cursor:pointer; }
+  .alert.minor { background:linear-gradient(135deg, rgba(255,200,60,.22), rgba(255,160,60,.12)); border-color:rgba(255,210,90,.45); }
+  .alert .ah { display:flex; align-items:center; gap:10px; font-weight:800; }
+  .alert .ah small { margin-left:auto; font-weight:600; color:var(--soft); font-size:.75rem; white-space:nowrap; }
+  .alert .as { font-size:.82rem; color:var(--soft); margin-top:4px; }
+  .alert .ad { display:none; margin-top:12px; font-size:.85rem; line-height:1.55; white-space:pre-wrap; }
+  .alert.open .ad { display:block; }
+  .alert .ad h4 { font-size:.72rem; text-transform:uppercase; letter-spacing:1px; color:var(--soft); margin:10px 0 4px; }
+  .notify { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .notify .nt { font-size:.85rem; color:var(--soft); flex:1; min-width:180px; }
+  .notify .nt b { color:var(--text); display:block; font-size:.95rem; }
+  .nbtn { border:0; border-radius:12px; padding:10px 16px; font:inherit; font-weight:700; font-size:.88rem; background:var(--accent); color:#0b1424; cursor:pointer; white-space:nowrap; }
+  .nbtn.on { background:rgba(77,255,148,.18); color:#7dffb0; border:1px solid rgba(77,255,148,.4); cursor:default; }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background:#121b2e; color:#f4f7ff; border:1px solid rgba(255,255,255,.15); }
+  .leaflet-popup-content { font-family:inherit; font-size:.85rem; line-height:1.45; max-height:260px; overflow:auto; }
+  .leaflet-popup-content b { font-size:.95rem; }
+  .leaflet-container a.leaflet-popup-close-button { color:#ccc; }
   .msg { text-align:center; padding:60px 20px; color:var(--soft); }
   .spinner { width:34px; height:34px; border:3px solid rgba(255,255,255,.2); border-top-color:#fff; border-radius:50%; margin:0 auto 12px; animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -224,6 +248,7 @@
 <div class="view on" id="viewW">
 <main>
   <div class="col">
+    <div class="alerts" id="alerts"></div>
     <section class="panel hero">
       <canvas id="sky"></canvas>
       <div class="hero-in" id="hero"><div class="msg"><div class="spinner"></div>Loading weather…</div></div>
@@ -244,6 +269,10 @@
     <section class="panel">
       <div class="ph"><h3>7-day forecast</h3><span>Tap a day</span></div>
       <div id="days"></div>
+    </section>
+    <section class="panel notify">
+      <div class="nt"><b>🔔 Weather warnings</b><span id="notifyText">Get a notification when there's a warning for your city.</span></div>
+      <button class="nbtn" id="notifyBtn">Allow notifications</button>
     </section>
     <section class="panel">
       <div class="ph"><h3>Conditions</h3><span id="condTime"></span></div>
@@ -269,6 +298,7 @@
     </div>
     <div class="rtime" id="rtime">—</div>
     <div class="lgrow" id="legendBox"></div>
+    <div class="nextrain" id="nextRain"></div>
     <div class="legend" id="radarNote"></div>
     <div class="legend" id="futureNote" style="color:var(--accent)"></div>
     <a class="twc" id="twc" href="https://weather.com/weather/radar/interactive" target="_blank" rel="noopener">Open The Weather Channel radar ↗</a>
@@ -330,6 +360,7 @@ async function load(silent) {
     if (!r.ok) throw new Error();
     data = await r.json();
     render();
+    loadAlerts();
     lastUpdate = new Date();
     setUpdated();
   } catch(e) {
@@ -376,6 +407,7 @@ function render() {
   renderHourly();
   renderDays();
   renderTiles();
+  renderNextRain();
 }
 
 function renderHourly() {
@@ -461,6 +493,27 @@ function renderDays() {
     selDay = selDay === i ? null : i;
     renderDays();
   });
+}
+
+function nextRain() {
+  const h = data.hourly, c = data.current;
+  const start = Math.max(0, h.time.findIndex(t => t >= c.time.slice(0,13)));
+  for (let i = start; i < h.time.length; i++) {
+    const p = h.precipitation_probability[i] ?? 0, code = h.weather_code[i];
+    if (p >= 50 || code >= 51) {
+      const hrs = i - start, snow = [71,73,75,77,85,86].includes(code);
+      const when = new Date(h.time[i]).toLocaleString(undefined, { weekday: hrs < 18 ? undefined : "short", hour: "numeric" });
+      return { hrs, text: `${hrs === 0 ? (snow ? "Snow" : "Rain") + " likely now" : `${snow ? "Snow" : "Rain"} likely ${hrs < 18 ? "around " : ""}${when}`} (${p}% chance)` };
+    }
+  }
+  return null;
+}
+function renderNextRain() {
+  if (!data) return;
+  const n = nextRain(), name = place.name;
+  $("nextRain").innerHTML = !n ? `☀️ No rain or snow expected near ${name} in the next 7 days.`
+    : n.hrs <= 6 ? `🌧️ <b>${n.text}</b> near ${name}. Press play to watch it on the future radar.`
+    : `🌧️ <b>${n.text}</b> near ${name}. That's more than 6 hours away, so it won't be on the future radar yet.`;
 }
 
 function renderTiles() {
@@ -549,6 +602,7 @@ function initMap() {
   map = L.map("radar", { zoomControl: true, attributionControl: true, minZoom: 4, maxZoom: 10 }).setView([place.latitude, place.longitude], 7);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 10, className: "basemap", attribution: "© OpenStreetMap" }).addTo(map);
   labelGroup = L.layerGroup().addTo(map);
+  map.on("click", mapAlertPopup);
   marker = L.circleMarker([place.latitude, place.longitude], { radius: 7, color: "#fff", weight: 3, fillColor: "#ff5a5a", fillOpacity: 1, pane: "markerPane" }).addTo(map);
   loadRadar();
   loadGrid(true);
@@ -610,12 +664,12 @@ async function loadGrid(force) {
   }
   let j, key, perHour;
   try {
-    j = await fetchChunks(lats, lons, `&minutely_15=${VARS.join(",")}&forecast_minutely_15=26&hourly=cloud_cover&forecast_hours=8`);
+    j = await fetchChunks(lats, lons, `&minutely_15=${VARS.join(",")}&forecast_minutely_15=26&hourly=cloud_cover,precipitation_probability&forecast_hours=8`);
     key = "minutely_15"; perHour = 4;
     if (!j[0][key] || j[0][key].precipitation.every(v => v === null)) throw new Error("empty");
   } catch(e) {
     try {
-      j = await fetchChunks(lats, lons, `&hourly=${VARS.join(",")},cloud_cover&forecast_hours=8`);
+      j = await fetchChunks(lats, lons, `&hourly=${VARS.join(",")},cloud_cover,precipitation_probability&forecast_hours=8`);
       key = "hourly"; perHour = 1;
     } catch(e2) {
       gridLoading = false;
@@ -632,18 +686,21 @@ async function loadGrid(force) {
   VARS.forEach(name => v[name] = j.map(loc => loc[key][name] || []));
   const cloudTimes = j[0].hourly.time.map(t => Date.parse(t + "Z"));
   const cloud = j.map(loc => loc.hourly.cloud_cover || []);
-  grid = { id, times, first, perHour, v, cloudTimes, cloud,
+  const prob = j.map(loc => loc.hourly.precipitation_probability || []);
+  grid = { id, times, first, perHour, v, cloudTimes, cloud, prob,
     bounds: [[place.latitude - D_LAT, place.longitude - D_LON], [place.latitude + D_LAT, place.longitude + D_LON]] };
   gridFor = id; gridAt = Date.now(); gridLoading = false;
   rebuild();
 }
 const at = (name, r, c, t) => grid.v[name][r * COLS + c][t] ?? 0;
-function cloudAt(r, c, t) {
+function hourIdx(t) {
   const target = grid.times[t];
   let best = 0, bd = Infinity;
   grid.cloudTimes.forEach((ct, k) => { const d = Math.abs(ct - target); if (d < bd) { bd = d; best = k; } });
-  return grid.cloud[r * COLS + c][best] ?? 0;
+  return best;
 }
+const cloudAt = (r, c, t) => grid.cloud[r * COLS + c][hourIdx(t)] ?? 0;
+const probAt  = (r, c, t) => (grid.prob && grid.prob[r * COLS + c] && grid.prob[r * COLS + c][hourIdx(t)]) ?? 0;
 
 /* ---- colors ---- */
 const ramp = (stops, v) => {
@@ -661,14 +718,22 @@ const TEMP = [[-25,[120,60,200]],[-12,[60,90,230]],[0,[90,200,255]],[8,[90,220,1
 const WIND = [[0,[60,90,160]],[15,[60,180,200]],[30,[90,210,110]],[45,[240,220,60]],[65,[255,140,40]],[90,[230,40,60]]];
 const step = (stops, v) => { let c = stops[0][1]; for (const [x, col] of stops) if (v >= x) c = col; return c; };
 
-function pixel(layer, t, r0, c0, fx, fy, nr, nc) {
+function pixel(layer, t, r0, c0, fx, fy, nr, nc, x, y) {
   const bl = fn => {
     const a = fn(r0, c0), b = fn(r0, c0 + 1), c = fn(r0 + 1, c0), d = fn(r0 + 1, c0 + 1);
     return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy;
   };
   if (layer === "precip") {
     const rate = bl((r, c) => at("precipitation", r, c, t) * grid.perHour);
-    if (rate < 0.03) return null;
+    if (rate < 0.03) {
+      // model shows no measurable amount here, but the hourly chance of rain is high: draw a hatched "chance" area
+      const pr = bl((r, c) => probAt(r, c, t));
+      if (pr >= 35 && ((x + y) % 6) < 3) {
+        const sn = at("temperature_2m", nr, nc, t) <= 0.5;
+        return sn ? [150, 190, 255, 60 + pr * 1.4] : [90, 210, 110, 60 + pr * 1.4];
+      }
+      return null;
+    }
     const sn = at("snowfall", nr, nc, t) > 0, rn = at("rain", nr, nc, t) > 0;
     const col = sn && rn ? step(MIX, rate) : sn ? step(SNOW, rate) : step(RAIN, rate);
     return [...col, 215];
@@ -687,7 +752,7 @@ function renderLayer(layer, t) {
     const gy = y / SCALE, r0 = Math.min(Math.floor(gy), ROWS - 2), fy = gy - r0;
     for (let x = 0; x < W; x++) {
       const gx = x / SCALE, c0 = Math.min(Math.floor(gx), COLS - 2), fx = gx - c0;
-      const px = pixel(layer, t, r0, c0, fx, fy, Math.round(gy), Math.round(gx));
+      const px = pixel(layer, t, r0, c0, fx, fy, Math.round(gy), Math.round(gx), x, y);
       if (!px) continue;
       any = true;
       const k = (y * W + x) * 4;
@@ -721,7 +786,7 @@ function layerFor(f) {
   if (!layers[f.key]) {
     if (f.model) {
       const out = renderLayer(f.layer, f.t);
-      f.dry = !out.any;
+      f.dry = !out.any; f.any = out.any;
       layers[f.key] = L.imageOverlay(out.url, grid.bounds, { opacity: 0, zIndex: 10 }).addTo(map);
     } else {
       const opts = { opacity: 0, zIndex: 10, maxZoom: 10 };
@@ -755,7 +820,7 @@ function showFrame(i) {
     let rel;
     if (mins < 8) rel = "Now";
     else { const h = Math.floor(mins / 60), m = mins % 60; rel = "+" + (h ? h + "h" : "") + (m ? (h ? " " : "") + m + "m" : ""); }
-    const dry = f.layer === "precip" && f.dry ? ' · <span style="opacity:.75">no rain or snow forecast in this area</span>' : "";
+    const dry = f.layer === "precip" && f.dry && !f.any ? ' · <span style="opacity:.75">no rain or snow forecast in this area</span>' : "";
     $("rtime").innerHTML = `<b style="color:var(--accent)">${rel === "Now" ? "Now" : "Future " + rel}</b> · ${clock} · forecast${dry}`;
   } else {
     $("rtime").innerHTML = `<b>${f.minsAgo === 0 ? "Now" : f.minsAgo + " min ago"}</b> · live radar`;
@@ -765,14 +830,15 @@ function renderLegend() {
   const L_ = {
     precip: `<span class="lg"><i style="background:linear-gradient(90deg,#82eb82,#149123,#fae600,#ff9600,#f02323)"></i>Rain</span>
              <span class="lg"><i style="background:linear-gradient(90deg,#bedcff,#3c6ef0,#1e3cc8)"></i>Snow</span>
-             <span class="lg"><i style="background:linear-gradient(90deg,#ffbee6,#c832a0)"></i>Ice / mix</span>`,
+             <span class="lg"><i style="background:linear-gradient(90deg,#ffbee6,#c832a0)"></i>Ice / mix</span>
+             <span class="lg"><i style="background:repeating-linear-gradient(135deg,rgba(90,210,110,.9) 0 3px,transparent 3px 6px)"></i>Chance of rain/snow</span>`,
     temp: `<span class="lg wide"><i style="background:linear-gradient(90deg,#783cc8,#3c5ae6,#5ac8ff,#5adc96,#c8e650,#ffc83c,#ff7828,#dc1e28)"></i>${unit === "F" ? "-13°F → 104°F" : "-25°C → 40°C"}</span>`,
     wind: `<span class="lg wide"><i style="background:linear-gradient(90deg,#3c5aa0,#3cb4c8,#5ad26e,#f0dc3c,#ff8c28,#e6283c)"></i>${unit === "F" ? "Calm → 55+ mph" : "Calm → 90+ km/h"}</span>`,
     cloud: `<span class="lg wide"><i style="background:linear-gradient(90deg,rgba(235,240,248,.1),rgba(235,240,248,.95))"></i>Clear → Overcast</span>`
   };
   $("legendBox").innerHTML = L_[radarLayer];
   $("radarNote").textContent = radarLayer === "precip"
-    ? "The past hour is real radar. Future frames come from a forecast model and show rain, snow and ice."
+    ? "The past hour is real radar. Future frames come from a forecast model: solid colors are rain, snow and ice the model expects, and striped areas are where rain or snow is likely."
     : "Forecast model from now through the next 6 hours.";
 }
 function setRadarLayer(l) {
@@ -787,6 +853,7 @@ function toggleWarnings(on) {
     warnLayer = L.tileLayer.wms("https://mesonet.agron.iastate.edu/cgi-bin/wms/us/wwa.cgi", { layers: "warnings_c", format: "image/png", transparent: true, opacity: 0.7, zIndex: 20 }).addTo(map);
   } else if (!on && warnLayer) { map.removeLayer(warnLayer); warnLayer = null; }
   $("warnBtn").classList.toggle("on", !!warnLayer);
+  if (warnLayer) $("futureNote").textContent = "Tap anywhere on a colored warning area to see what the warning is.";
 }
 $("play").onclick = () => {
   if (playTimer) { clearInterval(playTimer); playTimer = null; $("play").textContent = "▶"; }
@@ -801,6 +868,99 @@ $("warnBtn").onclick = () => toggleWarnings(!warnLayer);
 
 
 
+
+
+/* ---------- Warnings (National Weather Service, US) ---------- */
+let alerts = [];
+const esc = t => String(t || "").replace(/[&<>]/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" }[ch]));
+const fmtWhen = s => s ? new Date(s).toLocaleString(undefined, { weekday:"short", hour:"numeric", minute:"2-digit" }) : "";
+async function alertsAt(lat, lon) {
+  const r = await fetch(`https://api.weather.gov/alerts/active?point=${lat.toFixed(4)},${lon.toFixed(4)}`, { headers: { Accept: "application/geo+json" } });
+  if (!r.ok) throw new Error("alerts");
+  const j = await r.json();
+  return (j.features || []).map(f => f.properties);
+}
+function alertHTML(a, i) {
+  const minor = /advisory|statement|outlook/i.test(a.event) ? " minor" : "";
+  return `<div class="alert${minor}" data-a="${i}">
+    <div class="ah">⚠️ ${esc(a.event)}<small>${a.ends || a.expires ? "until " + fmtWhen(a.ends || a.expires) : ""} ›</small></div>
+    <div class="as">${esc(a.headline || a.areaDesc)}</div>
+    <div class="ad">${a.description ? `<h4>What's happening</h4>${esc(a.description)}` : ""}${a.instruction ? `<h4>What to do</h4>${esc(a.instruction)}` : ""}<h4>Areas</h4>${esc(a.areaDesc)}<h4>From</h4>${esc(a.senderName)}</div>
+  </div>`;
+}
+async function loadAlerts() {
+  if (!inUS()) { alerts = []; $("alerts").innerHTML = ""; return; }
+  try { alerts = await alertsAt(place.latitude, place.longitude); } catch(e) { return; }
+  $("alerts").innerHTML = alerts.map(alertHTML).join("");
+  document.querySelectorAll(".alert[data-a]").forEach(el => el.onclick = () => el.classList.toggle("open"));
+  notifyNew();
+}
+async function mapAlertPopup(e) {
+  if (!warnLayer) return;
+  const pop = L.popup({ maxWidth: 300 }).setLatLng(e.latlng).setContent("Checking for warnings here…").openOn(map);
+  try {
+    const list = await alertsAt(e.latlng.lat, e.latlng.lng);
+    pop.setContent(!list.length ? "No active warnings at this spot." :
+      list.map(a => `<b>⚠️ ${esc(a.event)}</b><br>${esc(a.headline || "")}<br>${a.description ? `<br>${esc(a.description).slice(0, 700)}${a.description.length > 700 ? "…" : ""}<br>` : ""}${a.instruction ? `<br><b>What to do:</b> ${esc(a.instruction)}` : ""}`).join("<hr style='border-color:#2a3446;margin:10px 0'>"));
+  } catch(err) { pop.setContent("Couldn't load warning details. Try again in a moment."); }
+}
+
+/* ---------- Notifications ---------- */
+let swReg = null;
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+async function getSW() {
+  if (swReg || !("serviceWorker" in navigator)) return swReg;
+  try { swReg = await navigator.serviceWorker.register("sw.js"); await navigator.serviceWorker.ready; } catch(e) {}
+  return swReg;
+}
+function notifyState() {
+  const btn = $("notifyBtn"), txt = $("notifyText");
+  if (!("Notification" in window)) {
+    btn.style.display = "none";
+    txt.textContent = isIOS && !standalone
+      ? "On iPhone: tap Share, then Add to Home Screen. Open SkyCast from your home screen and this button will appear."
+      : "This browser can't show notifications.";
+    return;
+  }
+  if (Notification.permission === "granted") {
+    btn.textContent = "✓ Notifications on"; btn.classList.add("on");
+    txt.textContent = `You'll get a notification when a new warning is issued for ${place.name}. Keep SkyCast open, or in a background tab, so it can check every minute.`;
+  } else if (Notification.permission === "denied") {
+    btn.textContent = "Blocked"; btn.classList.add("on");
+    txt.textContent = "Notifications are blocked for this site. Turn them on in your browser's site settings.";
+  }
+}
+$("notifyBtn").onclick = async () => {
+  if (!("Notification" in window) || Notification.permission !== "default") return;
+  const perm = await Notification.requestPermission();
+  notifyState();
+  if (perm === "granted") {
+    await getSW();
+    show("SkyCast notifications are on", `We'll alert you about weather warnings for ${place.name}.`, "skycast-welcome");
+    notifyNew();
+  }
+};
+async function show(title, body, tag) {
+  try {
+    const reg = await getSW();
+    if (reg && reg.showNotification) await reg.showNotification(title, { body, tag, icon: "icon.svg", badge: "icon.svg" });
+    else new Notification(title, { body, tag });
+  } catch(e) {}
+}
+function notifyNew() {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  let seen = [];
+  try { seen = JSON.parse(localStorage.getItem("skycast_seen_alerts") || "[]"); } catch(e) {}
+  alerts.forEach(a => {
+    if (seen.includes(a.id)) return;
+    seen.push(a.id);
+    show("⚠️ " + a.event + " — " + place.name, a.headline || a.areaDesc || "", a.id);
+  });
+  try { localStorage.setItem("skycast_seen_alerts", JSON.stringify(seen.slice(-200))); } catch(e) {}
+}
+notifyState();
+if ("Notification" in window && Notification.permission === "granted") getSW();
 
 /* ---------- Saved cities & current location ---------- */
 let saved = [];
@@ -831,7 +991,7 @@ function renderCities() {
     persistSaved(); renderCities();
   };
 }
-function goTo(p) { place = { ...p }; selDay = null; save(); renderCities(); load(); moveMap(); }
+function goTo(p) { place = { ...p }; selDay = null; save(); renderCities(); load(); moveMap(); notifyState(); }
 async function nameFor(lat, lon) {
   try {
     const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
