@@ -99,7 +99,7 @@
   .leaflet-bar a { background:#141c2c; color:#fff; border-color:#2a3446; }
   .radar-ctrl { display:flex; align-items:center; gap:12px; margin-top:14px; }
   .playbtn { flex:0 0 auto; width:44px; height:44px; border-radius:50%; border:0; background:var(--text); color:#0b1424; font-size:1rem; cursor:pointer; display:grid; place-items:center; }
-  .radar-ctrl input[type=range] { flex:1; min-width:0; accent-color: var(--accent); }
+  .radar-ctrl input[type=range] { flex:1; min-width:0; accent-color: var(--accent); margin-top:14px; }
   .rtime { font-size:.85rem; margin-top:10px; min-height:1.3em; }
   .legend { display:flex; align-items:center; gap:8px; margin-top:10px; font-size:.72rem; color:var(--faint); }
   .legend .scale { flex:1; height:6px; border-radius:4px; background: linear-gradient(90deg,#82eb82,#32c846,#149123,#fae600,#ff9600,#f02323,#c800c8); }
@@ -210,6 +210,18 @@
   .leaflet-popup-content { font-family:inherit; font-size:.85rem; line-height:1.45; max-height:260px; overflow:auto; }
   .leaflet-popup-content b { font-size:.95rem; }
   .leaflet-container a.leaflet-popup-close-button { color:#ccc; }
+  .mapwrap { position:relative; }
+  .badge { position:absolute; top:12px; left:12px; z-index:500; padding:8px 12px; border-radius:12px; background:rgba(8,14,28,.82); border:1px solid var(--line); font-weight:800; font-size:1.05rem; line-height:1.15; pointer-events:none; backdrop-filter: blur(8px); }
+  .badge small { display:block; font-size:.62rem; letter-spacing:1.4px; font-weight:800; }
+  .badge.live small { color:#4dff94; }
+  .badge.future small { color:var(--accent); }
+  .leaflet-layer, .leaflet-image-layer { transition: opacity .28s ease; }
+  .track { flex:1; min-width:0; position:relative; padding-bottom:18px; }
+  .track input { width:100%; }
+  .ticks { position:absolute; left:8px; right:8px; bottom:0; height:16px; font-size:.68rem; color:var(--soft); }
+  .ticks span { position:absolute; transform:translateX(-50%); white-space:nowrap; }
+  .ticks i { position:absolute; top:-14px; height:3px; border-radius:2px; background:var(--accent); opacity:.45; }
+  .radar-ctrl { align-items:flex-start !important; }
   .msg { text-align:center; padding:60px 20px; color:var(--soft); }
   .spinner { width:34px; height:34px; border:3px solid rgba(255,255,255,.2); border-top-color:#fff; border-radius:50%; margin:0 auto 12px; animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -291,10 +303,10 @@
       <button data-layer="cloud">☁️ Clouds</button>
       <button id="warnBtn" class="warn">⚠️ Warnings</button>
     </div>
-    <div id="radar"></div>
+    <div class="mapwrap"><div id="radar"></div><div class="badge live" id="badge"><small>RADAR</small>—</div></div>
     <div class="radar-ctrl">
       <button class="playbtn" id="play" aria-label="Play">▶</button>
-      <input type="range" id="slider" min="0" max="0" value="0">
+      <div class="track"><input type="range" id="slider" min="0" max="0" value="0"><div class="ticks" id="ticks"></div></div>
     </div>
     <div class="rtime" id="rtime">—</div>
     <div class="lgrow" id="legendBox"></div>
@@ -307,7 +319,7 @@
 
 <footer>
   Forecast & future radar from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> ·
-  Radar: NWS NEXRAD via <a href="https://mesonet.agron.iastate.edu/" target="_blank" rel="noopener">Iowa Environmental Mesonet</a> &amp; <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> ·
+  Radar: NWS NEXRAD &amp; NOAA HRRR future radar via <a href="https://mesonet.agron.iastate.edu/" target="_blank" rel="noopener">Iowa Environmental Mesonet</a> &amp; <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> ·
   Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
 </footer>
 
@@ -593,7 +605,31 @@ const sky = (() => {
    Warnings: NWS watches & warnings (US) from Iowa State Mesonet WMS. */
 let map, marker, frames = [], layers = {}, frameIdx = 0, playTimer = null;
 let pastFrames = [], grid = null, gridFor = "", gridAt = 0, gridLoading = false;
-let radarLayer = "precip", warnLayer = null, labelGroup = null;
+let radarLayer = "precip", warnLayer = null, labelGroup = null, hrrrFrames = [];
+const IEM = "https://mesonet{s}.agron.iastate.edu/cache/tile.py/1.0.0/";
+const pad = (n, w) => String(n).padStart(w, "0");
+const utcStamp = d => d.getUTCFullYear() + pad(d.getUTCMonth() + 1, 2) + pad(d.getUTCDate(), 2) + pad(d.getUTCHours(), 2) + pad(d.getUTCMinutes(), 2);
+async function loadHRRR() {
+  // NOAA HRRR simulated radar with precipitation type, from Iowa Environmental Mesonet
+  let init = null;
+  try {
+    const r = await fetch("https://mesonet.agron.iastate.edu/data/gis/images/4326/hrrr/refd_1080.json", { cache: "no-store" });
+    const j = await r.json();
+    init = new Date(j.model_init_utc);
+    if (isNaN(init)) init = null;
+  } catch(e) {}
+  const initStr = init ? utcStamp(init) : "0";
+  if (!init) { init = new Date(Math.floor((Date.now() - 100 * 60000) / 3600000) * 3600000); }
+  const q = 15 * 60000, start = Math.ceil(Date.now() / q) * q;
+  hrrrFrames = [];
+  for (let k = 0; k < 24; k++) {
+    const target = start + k * q;
+    const fmin = Math.round((target - init.getTime()) / q) * 15;
+    if (fmin < 0 || fmin > 1080) continue;
+    hrrrFrames.push({ key: `hrrr_${initStr}_${fmin}`, hrrr: true, time: target,
+      url: `${IEM}hrrr::REFP-F${pad(fmin, 4)}-${initStr}/{z}/{x}/{y}.png`, init });
+  }
+}
 const inUS = () => place.latitude > 18 && place.latitude < 72 && place.longitude > -170 && place.longitude < -60;
 const ROWS = 13, COLS = 15, D_LAT = 3.2, D_LON = 4.6, SCALE = 12;
 
@@ -621,14 +657,16 @@ function moveMap() {
 async function loadRadar() {
   if (!map) return;
   if (inUS()) {
+    await loadHRRR();
     const bucket = Math.floor(Date.now() / 300000);
     pastFrames = [];
     for (let m = 50; m >= 0; m -= 5) {
       const suffix = m ? `-m${String(m).padStart(2,"0")}m` : "";
       pastFrames.push({ key: `us${m}_${bucket}`, minsAgo: m,
-        url: `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913${suffix}/{z}/{x}/{y}.png?_=${bucket}` });
+        url: `${IEM}nexrad-n0q-900913${suffix}/{z}/{x}/{y}.png?_=${bucket}` });
     }
   } else {
+    hrrrFrames = [];
     try {
       const r = await fetch("https://api.rainviewer.com/public/weather-maps.json", { cache: "no-store" });
       const j = await r.json();
@@ -773,7 +811,8 @@ function rebuild() {
     for (let t = startT; t <= grid.first + 6 * grid.perHour && t < grid.times.length; t++)
       model.push({ key: `${grid.id}_${radarLayer}_${grid.times[t]}`, model: true, layer: radarLayer, t, time: grid.times[t] });
   }
-  frames = radarLayer === "precip" ? pastFrames.concat(model) : model;
+  const future = radarLayer === "precip" && hrrrFrames.length ? hrrrFrames : model;
+  frames = radarLayer === "precip" ? pastFrames.concat(future) : model;
   Object.keys(layers).forEach(k => { if (!frames.find(f => f.key === k)) { map.removeLayer(layers[k]); delete layers[k]; } });
   $("slider").max = Math.max(0, frames.length - 1);
   let idx = frames.findIndex(f => f.key === cur);
@@ -789,7 +828,7 @@ function layerFor(f) {
       f.dry = !out.any; f.any = out.any;
       layers[f.key] = L.imageOverlay(out.url, grid.bounds, { opacity: 0, zIndex: 10 }).addTo(map);
     } else {
-      const opts = { opacity: 0, zIndex: 10, maxZoom: 10 };
+      const opts = { opacity: 0, zIndex: 10, maxZoom: 10, subdomains: "123" };
       if (f.big) Object.assign(opts, { tileSize: 512, zoomOffset: -1, maxNativeZoom: 7 });
       layers[f.key] = L.tileLayer(f.url, opts).addTo(map);
     }
@@ -811,24 +850,52 @@ function showFrame(i) {
   frameIdx = (i + frames.length) % frames.length;
   Object.values(layers).forEach(l => l.setOpacity(0));
   const f = frames[frameIdx];
-  layerFor(f).setOpacity(f.model ? (f.layer === "precip" ? 0.85 : 1) : 0.75);
+  layerFor(f).setOpacity(f.model ? (f.layer === "precip" ? 0.85 : 1) : 0.8);
+  const fi = frames.indexOf(f);
+  if (frames[fi + 1]) layerFor(frames[fi + 1]); // preload next frame
   $("slider").value = frameIdx;
   updateLabels(f);
-  if (f.model) {
+  const clock = t => new Date(t).toLocaleTimeString(undefined,{hour:"numeric", minute:"2-digit"});
+  if (f.model || f.hrrr) {
     const mins = Math.round((f.time - Date.now()) / 60000);
-    const clock = new Date(f.time).toLocaleTimeString(undefined,{hour:"numeric", minute:"2-digit"});
     let rel;
     if (mins < 8) rel = "Now";
     else { const h = Math.floor(mins / 60), m = mins % 60; rel = "+" + (h ? h + "h" : "") + (m ? (h ? " " : "") + m + "m" : ""); }
-    const dry = f.layer === "precip" && f.dry && !f.any ? ' · <span style="opacity:.75">no rain or snow forecast in this area</span>' : "";
-    $("rtime").innerHTML = `<b style="color:var(--accent)">${rel === "Now" ? "Now" : "Future " + rel}</b> · ${clock} · forecast${dry}`;
+    const src = f.hrrr ? "NOAA HRRR model" : "Open-Meteo forecast model";
+    const dry = f.model && f.layer === "precip" && f.dry ? ' · <span style="opacity:.75">no rain or snow forecast in this area</span>' : "";
+    $("rtime").innerHTML = `<b style="color:var(--accent)">${rel === "Now" ? "Now" : "Future " + rel}</b> · ${clock(f.time)} · ${src}${dry}`;
+    $("badge").className = "badge future";
+    $("badge").innerHTML = `<small>${rel === "Now" ? "FORECAST" : "FUTURE RADAR"}</small>${clock(f.time)}`;
   } else {
-    $("rtime").innerHTML = `<b>${f.minsAgo === 0 ? "Now" : f.minsAgo + " min ago"}</b> · live radar`;
+    $("rtime").innerHTML = `<b>${f.minsAgo === 0 ? "Now" : f.minsAgo + " min ago"}</b> · live radar (NWS NEXRAD)`;
+    $("badge").className = "badge live";
+    $("badge").innerHTML = `<small>${f.minsAgo === 0 ? "LIVE RADAR" : "PAST RADAR"}</small>${clock(Date.now() - f.minsAgo * 60000)}`;
   }
+  renderTicks();
+}
+function renderTicks() {
+  const n = frames.length; if (n < 2) { $("ticks").innerHTML = ""; return; }
+  const pos = i => (i / (n - 1) * 100) + "%";
+  let html = "";
+  frames.forEach((f, i) => {
+    let lab = null;
+    if (!f.model && !f.hrrr && i === 0) lab = "-" + f.minsAgo + "m";
+    if (!f.model && !f.hrrr && f.minsAgo === 0) lab = "Now";
+    if (f.model || f.hrrr) {
+      const mins = Math.round((f.time - Date.now()) / 60000);
+      [120, 240, 360].forEach(m => { if (Math.abs(mins - m) < 8) lab = "+" + m / 60 + "h"; });
+      if (radarLayer !== "precip" && i === 0) lab = "Now";
+    }
+    if (lab) html += `<span style="left:${pos(i)}">${lab}</span>`;
+  });
+  const nowIdx = frames.findIndex(f => !f.model && !f.hrrr && f.minsAgo === 0);
+  if (nowIdx >= 0 && nowIdx < n - 1) html += `<i style="left:${pos(nowIdx)};width:calc(100% - ${pos(nowIdx)})"></i>`;
+  $("ticks").innerHTML = html;
 }
 function renderLegend() {
   const L_ = {
-    precip: `<span class="lg"><i style="background:linear-gradient(90deg,#82eb82,#149123,#fae600,#ff9600,#f02323)"></i>Rain</span>
+    precip: hrrrFrames.length ? `<span class="lg"><i style="background:linear-gradient(90deg,#04e9e7,#019ff4,#02fd02,#01c501,#fdf802,#fd9500,#fd0000,#bc0000,#f800fd)"></i>Light → heavy</span>` :
+            `<span class="lg"><i style="background:linear-gradient(90deg,#82eb82,#149123,#fae600,#ff9600,#f02323)"></i>Rain</span>
              <span class="lg"><i style="background:linear-gradient(90deg,#bedcff,#3c6ef0,#1e3cc8)"></i>Snow</span>
              <span class="lg"><i style="background:linear-gradient(90deg,#ffbee6,#c832a0)"></i>Ice / mix</span>
              <span class="lg"><i style="background:repeating-linear-gradient(135deg,rgba(90,210,110,.9) 0 3px,transparent 3px 6px)"></i>Chance of rain/snow</span>`,
@@ -837,9 +904,10 @@ function renderLegend() {
     cloud: `<span class="lg wide"><i style="background:linear-gradient(90deg,rgba(235,240,248,.1),rgba(235,240,248,.95))"></i>Clear → Overcast</span>`
   };
   $("legendBox").innerHTML = L_[radarLayer];
-  $("radarNote").textContent = radarLayer === "precip"
-    ? "The past hour is real radar. Future frames come from a forecast model: solid colors are rain, snow and ice the model expects, and striped areas are where rain or snow is likely."
-    : "Forecast model from now through the next 6 hours.";
+  $("radarNote").textContent = radarLayer !== "precip" ? "Forecast model from now through the next 6 hours."
+    : hrrrFrames.length
+    ? "The past hour is real National Weather Service radar. The future part is NOAA's HRRR model simulated radar, which is a prediction. Future frames color precipitation by type: rain, snow, freezing rain and ice."
+    : "The past hour is real radar. Future frames come from a forecast model: solid colors are rain, snow and ice the model expects, and striped areas are where rain or snow is likely.";
 }
 function setRadarLayer(l) {
   radarLayer = l;
