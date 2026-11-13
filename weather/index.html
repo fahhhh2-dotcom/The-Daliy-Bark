@@ -385,11 +385,20 @@ function setUpdated() {
   if (el && lastUpdate) el.textContent = "Live · updated " + lastUpdate.toLocaleTimeString(undefined,{hour:"numeric", minute:"2-digit"}) + " · refreshes every minute";
 }
 
+// Day/night look: daytime from sunrise until 8 PM local time, night from 8 PM until sunrise
+function isDayAt(t) {
+  if (!data || !t) return 1;
+  const hour = +t.slice(11, 13);
+  if (hour >= 20) return 0;
+  const k = data.daily.time.indexOf(t.slice(0, 10));
+  const rise = k >= 0 ? data.daily.sunrise[k] : t.slice(0, 10) + "T06:00";
+  return t >= rise ? 1 : 0;
+}
 /* ---------- render ---------- */
 function render() {
   const c = data.current, d = data.daily;
-  const now = info(c.weather_code, c.is_day);
-  const kind = kindOf(c.weather_code, c.is_day);
+  const now = info(c.weather_code, isDayAt(c.time));
+  const kind = kindOf(c.weather_code, isDayAt(c.time));
   document.body.className = "t-" + kind;
   sky.set(kind);
 
@@ -441,7 +450,7 @@ function renderHourly() {
   let g = "";
   pts.forEach((i, k) => {
     const x = k * W + W / 2, p = h.precipitation_probability[i] ?? 0;
-    const ic = info(h.weather_code[i], h.is_day[i]).icon;
+    const ic = info(h.weather_code[i], isDayAt(h.time[i])).icon;
     g += `<text x="${x}" y="${xy[k][1] - 12}" text-anchor="middle" font-size="13" font-weight="700">${cvtT(h.temperature_2m[i])}°</text>`;
     g += `<circle cx="${x}" cy="${xy[k][1]}" r="3.5" fill="#fff"/>`;
     g += `<text x="${x}" y="${padTop + chartH + 40}" text-anchor="middle" font-size="20">${ic}</text>`;
@@ -463,7 +472,7 @@ function dayDetail(i) {
   h.time.forEach((t, k) => {
     if (!t.startsWith(d.time[i])) return;
     const p = h.precipitation_probability[k];
-    hours += `<div class="mh">${fmtHour(t)}<div class="i">${info(h.weather_code[k], h.is_day[k]).icon}</div><b>${cvtT(h.temperature_2m[k])}°</b><div class="p">${p >= 10 ? p + "%" : ""}</div></div>`;
+    hours += `<div class="mh">${fmtHour(t)}<div class="i">${info(h.weather_code[k], isDayAt(t)).icon}</div><b>${cvtT(h.temperature_2m[k])}°</b><div class="p">${p >= 10 ? p + "%" : ""}</div></div>`;
   });
   const hrs = Math.floor(d.daylight_duration[i] / 3600), mins = Math.round(d.daylight_duration[i] % 3600 / 60);
   const snow = d.snowfall_sum[i];
