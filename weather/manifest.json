@@ -1,6 +1,6 @@
 {
   "name": "SkyCast Weather",
-  "short_name": "SkyCast",
+  "short_name": "SkyCast Weather",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
