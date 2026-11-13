@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get SkyCast</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.json">
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system, system-ui, sans-serif; color:#fff; min-height:100vh; background:linear-gradient(160deg,#3d8bfd,#0d2c63 65%,#050a16); display:flex; justify-content:center; padding:40px 20px; }
+  .wrap { max-width:440px; width:100%; text-align:center; }
+  img.logo { width:96px; height:96px; border-radius:22px; box-shadow:0 12px 30px rgba(0,0,0,.35); }
+  h1 { font-size:2.4rem; letter-spacing:-1px; margin-top:14px; }
+  h1 b { color:#ffbf5e; }
+  .sub { opacity:.8; margin-top:4px; }
+  .card { margin-top:26px; background:rgba(10,18,36,.45); border:1px solid rgba(255,255,255,.15); border-radius:22px; padding:22px; text-align:left; }
+  .btn { display:block; text-align:center; text-decoration:none; font-weight:800; font-size:1.05rem; padding:15px; border-radius:14px; background:#ffd36b; color:#0b1424; border:0; width:100%; cursor:pointer; }
+  .btn.alt { background:rgba(255,255,255,.12); color:#fff; margin-top:10px; }
+  ol { margin:16px 0 0 20px; line-height:1.6; font-size:.95rem; opacity:.9; }
+  .note { font-size:.8rem; opacity:.6; margin-top:12px; line-height:1.45; }
+  .hide { display:none; }
+</style>
+</head>
+<body><div class="wrap">
+  <img class="logo" src="apple-touch-icon.png" alt="">
+  <h1>Sky<b>Cast</b></h1>
+  <div class="sub">Live weather, radar &amp; warnings</div>
+
+  <div class="card" id="ios">
+    <a class="btn" href="SkyCast.mobileconfig">Add SkyCast to Home Screen</a>
+    <ol>
+      <li>Tap the button above, then tap <b>Allow</b>.</li>
+      <li>Open <b>Settings</b> and tap <b>Profile Downloaded</b> near the top.</li>
+      <li>Tap <b>Install</b>, enter your passcode, and tap <b>Install</b> again.</li>
+      <li>The SkyCast icon is now on your Home Screen.</li>
+    </ol>
+    <div class="note">Settings will say the profile is "Not Verified". That's normal for small apps: it only adds the SkyCast icon, nothing else. You can remove it any time in Settings › General › VPN &amp; Device Management.</div>
+    <a class="btn alt" href="./">Or open SkyCast in Safari</a>
+    <div class="note">Other way: open SkyCast in Safari, tap Share, then Add to Home Screen.</div>
+  </div>
+
+  <div class="card hide" id="android">
+    <button class="btn" id="installBtn">Install SkyCast</button>
+    <ol id="androidSteps">
+      <li>In Chrome, tap the <b>⋮</b> menu.</li>
+      <li>Tap <b>Add to Home screen</b> or <b>Install app</b>.</li>
+    </ol>
+    <a class="btn alt" href="./">Open SkyCast</a>
+  </div>
+
+  <div class="card hide" id="desktop">
+    <a class="btn" href="./">Open SkyCast</a>
+    <div class="note" style="text-align:center">Scan this page's QR code with your phone to add SkyCast to its home screen.</div>
+  </div>
+</div>
+<script>
+  const ua = navigator.userAgent;
+  const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const android = /Android/.test(ua);
+  if (!ios) document.getElementById("ios").classList.add("hide");
+  if (android) document.getElementById("android").classList.remove("hide");
+  if (!ios && !android) document.getElementById("desktop").classList.remove("hide");
+  let deferred = null;
+  const btn = document.getElementById("installBtn");
+  btn.style.display = "none";
+  addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferred = e; btn.style.display = ""; });
+  btn.onclick = async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; btn.style.display = "none"; };
+</script>
+</body>
+</html>
