@@ -611,6 +611,14 @@
   @keyframes bsGlow { 50% { opacity:.55; } }
   @keyframes bsDrop { 0% { transform: translateY(-6px); opacity:0; } 20% { opacity:1; } 100% { transform: translateY(22px); opacity:0; } }
   @media (prefers-reduced-motion: reduce) { .bs-cloud, .bs-sun, .bs-rays { animation:none; } .bs-rain path { animation:none; opacity:1; } }
+  /* ===== SkyCast Plus ===== */
+  .plus-list { list-style:none; text-align:left; display:grid; gap:10px; margin:6px 0 10px; }
+  .plus-list li { display:flex; gap:12px; align-items:flex-start; font-size:.9rem; line-height:1.4; color:var(--soft); }
+  .plus-list li span { flex:0 0 auto; font-size:1.3rem; line-height:1.1; }
+  .plus-list li b { display:block; color:var(--text); font-size:.95rem; }
+  .plus-row .acct-av { background: linear-gradient(135deg, #ffe08a, #ffb347); }
+  .plus-buy { background: linear-gradient(135deg, #ffd36b, #ff9a4d) !important; color:#0b1424 !important; border:0 !important; text-align:center !important; }
+  [data-plus-buy][disabled] { opacity:.55; cursor:default; }
   /* ===== Custom backgrounds (Settings → Background) ===== */
   html[data-bg] body::before { background: var(--bgx); }
   html[data-bg="ocean"]    { --bgx: radial-gradient(1200px 700px at 15% -10%, #12b5c9, transparent 70%), linear-gradient(180deg, #073b55, #031420 90%); }
@@ -824,7 +832,6 @@
         <div class="nextrain" id="nextRain"></div>
         <div class="legend" id="radarNote"></div>
         <div class="legend" id="futureNote"></div>
-        <a class="twc" id="twc" href="https://weather.com/weather/radar/interactive" target="_blank" rel="noopener">Open The Weather Channel radar ↗</a>
       </div>
       <button class="toolbtn" id="recenterBtn" aria-label="Center on my city"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22"/></svg></button>
       <div class="tools">
@@ -891,6 +898,7 @@
     <button data-notif="freeze"><i></i>🥶 Freezing temperatures tonight</button>
   </div>
   <div class="sh-note">A separate mode from warnings: heads-ups from the forecast about 3 hours before rain, snow, storms or a freeze. SkyCast checks every minute while it's open or in a background tab. It can't send alerts when it's fully closed.</div>
+  <button class="acct-row plus-row" id="plusBtn"><span class="acct-av">⭐</span><span><b>SkyCast Plus</b><small id="plusSub">99¢ a month · see what's included</small></span><span class="go">›</span></button>
   <div class="sh-h">Siri mode</div>
   <button class="sh-btn" id="siriBtn">🎙️ Set up Siri mode</button>
   <div class="sh-note">Ask Siri for SkyCast's forecast hands-free, using the same National Weather Service forecast SkyCast shows.</div>
@@ -901,7 +909,7 @@
 </div></div>
 <div id="onb" class="onb" aria-modal="true" role="dialog" hidden>
   <div class="onb-card">
-    <div class="onb-dots"><i class="on"></i><i></i><i></i></div>
+    <div class="onb-dots"><i class="on"></i><i></i><i></i><i></i></div>
     <section class="onb-step on" data-step="0">
       <div class="onb-ic">🌤️</div>
       <h2 id="onbTitle">Welcome to SkyCast</h2>
@@ -931,6 +939,15 @@
       <button class="onb-skip" data-next>Not now</button>
     </section>
     <section class="onb-step" data-step="2">
+      <div class="onb-ic">⭐</div>
+      <h2>Try SkyCast Plus?</h2>
+      <p>Everything you've seen stays free. Plus adds extras for <b style="color:#fff">99¢ a month</b>.</p>
+      <ul class="plus-list" data-plus-list></ul>
+      <div class="sh-note" data-plus-note></div>
+      <button class="onb-go" data-plus-buy>Subscribe for 99¢/month</button>
+      <button class="onb-skip" data-next>Maybe later</button>
+    </section>
+    <section class="onb-step" data-step="3">
       <div class="onb-ic">📍</div>
       <h2>Where do you live?</h2>
       <p>We'll show your weather first every time you open SkyCast.</p>
@@ -941,6 +958,13 @@
     </section>
   </div>
 </div>
+<div class="sheet" id="plusView"><div class="sheet-in">
+  <div class="sh-top"><b>⭐ SkyCast Plus</b><button class="mini-btn" id="plusClose">Done</button></div>
+  <p class="sh-note" style="font-size:.88rem;color:var(--soft)">Radar, warnings, the tornado tracker, wind shear, storm outlooks and the 14-day forecast are free for everyone. Plus adds extras for <b style="color:var(--text)">99¢ a month</b>, and you can cancel anytime.</p>
+  <ul class="plus-list" data-plus-list></ul>
+  <div class="sh-note" data-plus-note></div>
+  <button class="sh-btn plus-buy" data-plus-buy>Subscribe for 99¢/month</button>
+</div></div>
 <div class="sheet" id="acctView"><div class="sheet-in">
   <div class="sh-top"><b>Account</b><button class="mini-btn" id="acctClose">Done</button></div>
   <div style="text-align:center;margin:4px 0 14px"><div class="acct-av big" id="acctAv2">👤</div></div>
@@ -1765,8 +1789,7 @@ function moveMap() {
   if (!map) return;
   map.setView([place.latitude, place.longitude], 7);
   marker.setLatLng([place.latitude, place.longitude]);
-  $("twc").href = `https://weather.com/weather/radar/interactive/l/${place.latitude.toFixed(2)},${place.longitude.toFixed(2)}`;
-  grid = null;
+    grid = null;
   renderModels();
   if (warnLayer && !inUS()) toggleWarnings(false);
   loadRadar();
@@ -1871,7 +1894,7 @@ function renderLayer(layer, t) {
    - a frame is only shown once its map pieces have finished loading, so nothing flashes blank
    - tiles only reload after you stop zooming or dragging */
 let visibleKey = null, waitTimer = null, rangeMode = "short";
-try { rangeMode = localStorage.getItem("skycast_range") || "short"; } catch(e) {}
+rangeMode = "short";   // the radar always opens on "Next 6 hours"; Long range is one tap away
 function setRange(r) {
   rangeMode = r;
   try { localStorage.setItem("skycast_range", r); } catch(e) {}
@@ -2535,7 +2558,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114223340";   // kept equal to version.json on every publish
+const BUILD = "20261114223720";   // kept equal to version.json on every publish
 async function checkForUpdate(opts) {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
@@ -2662,7 +2685,6 @@ const ES = {
   "SATELLITE": "SATÉLITE", "RAIN TOTALS": "LLUVIA ACUMULADA", "STORM OUTLOOK": "TORMENTAS", "HURRICANES": "HURACANES",
   "live radar (NWS NEXRAD)": "radar en vivo (NWS NEXRAD)", "min ago": "min atrás", "Future": "Futuro", "Loading radar…": "Cargando radar…",
   "Light → heavy": "Ligera → fuerte", "Light": "Ligera", "Heavy": "Fuerte",
-  "Open The Weather Channel radar ↗": "Abrir el radar de The Weather Channel ↗",
   "No active hurricanes or tropical storms": "No hay huracanes ni tormentas tropicales activos", "right now.": "en este momento.",
   "No severe storms expected": "No se esperan tormentas fuertes", "anywhere in the US for this day.": "en EE. UU. para este día.",
   "Clear sky": "Despejado", "Mostly clear": "Mayormente despejado", "Partly cloudy": "Parcialmente nublado", "Overcast": "Nublado",
@@ -2966,6 +2988,36 @@ $("acctDelete").onclick = async () => {
 };
 paintAccount();
 
+/* ---------- SkyCast Plus (99¢/month subscription through Stripe) ----------
+   To turn on payments: paste your Stripe Payment Link between the quotes below.
+   Until then, the Subscribe buttons say subscriptions are coming soon. */
+const PLUS_LINK = "";
+const PLUS_FEATURES = [
+  ["📈", "Hour-by-hour for all 7 days", "Every hour of the week, not just the next 24."],
+  ["📊", "Detail charts", "Feels-like, wind gusts and humidity, hour by hour."],
+  ["🎨", "Plus backgrounds", "Animated rain, snow and starry-night backgrounds."],
+  ["⏰", "Daily weather briefing", "A morning summary of your day's weather."],
+  ["🏅", "Supporter badge", "A Plus badge on your account."],
+  ["🚀", "Early access", "Try new SkyCast features before everyone else."]
+];
+function paintPlus() {
+  document.querySelectorAll("[data-plus-list]").forEach(ul => ul.innerHTML = PLUS_FEATURES.map(([i, t, d]) => `<li><span>${i}</span><div><b>${t}</b>${d}</div></li>`).join(""));
+  document.querySelectorAll("[data-plus-buy]").forEach(b => { b.disabled = !PLUS_LINK; b.textContent = PLUS_LINK ? "Subscribe for 99¢/month" : "Coming soon"; });
+  document.querySelectorAll("[data-plus-note]").forEach(n => n.textContent = PLUS_LINK ? "Payments are handled securely by Stripe. Cancel anytime." : "Subscriptions aren't open yet. We'll let you know when Plus is ready.");
+}
+function buyPlus() {
+  if (!PLUS_LINK) return;
+  const q = new URLSearchParams();
+  if (account.uid) q.set("client_reference_id", account.uid);     // lets the payment be matched to the SkyCast account
+  if (account.email) q.set("prefilled_email", account.email);
+  window.open(PLUS_LINK + (q.toString() ? (PLUS_LINK.includes("?") ? "&" : "?") + q : ""), "_blank", "noopener");
+}
+document.querySelectorAll("[data-plus-buy]").forEach(b => b.addEventListener("click", buyPlus));
+$("plusBtn").onclick = () => { $("sheet").classList.remove("open"); $("plusView").classList.add("open"); };
+$("plusClose").onclick = () => $("plusView").classList.remove("open");
+$("plusView").onclick = e => { if (e.target.id === "plusView") $("plusView").classList.remove("open"); };
+paintPlus();
+
 /* ---------- First-time setup: welcome → notifications → where do you live ---------- */
 setTimeout(() => {   // runs once the whole script has loaded
   const o = $("onb"); if (!o) return;
@@ -2975,7 +3027,7 @@ setTimeout(() => {   // runs once the whole script has loaded
     step = n;
     o.querySelectorAll(".onb-step").forEach(s => s.classList.toggle("on", +s.dataset.step === n));
     o.querySelectorAll(".onb-dots i").forEach((d, i) => d.classList.toggle("on", i === n));
-    if (n === 2) setTimeout(() => $("onbQ").focus(), 300);
+    if (n === 3) setTimeout(() => $("onbQ").focus(), 300);
   };
   const paint = () => o.querySelectorAll("[data-onb]").forEach(b => b.classList.toggle("on", !!notifPrefs[b.dataset.onb] && "Notification" in window && Notification.permission === "granted"));
   const canNotify = "Notification" in window;
@@ -3066,6 +3118,7 @@ setTimeout(() => {   // runs once the whole script has loaded
   };
   paintMode();
   o.querySelectorAll("[data-next]").forEach(b => b.onclick = () => go(step + 1));
+  o.querySelector("[data-plus-buy]").addEventListener("click", () => { if (PLUS_LINK) go(3); });
   $("onbDone").onclick = done;
   $("onbHere").onclick = () => { done(); useMyLocation(); };
   let last = 0;
@@ -3413,7 +3466,6 @@ document.querySelectorAll("[data-layer]").forEach(b => b.classList.toggle("on", 
 renderLegend();
 load();
 showView();
-$("twc").href = `https://weather.com/weather/radar/interactive/l/${place.latitude.toFixed(2)},${place.longitude.toFixed(2)}`;
 
 // forecast every minute; radar every 5 minutes (future radar reloads every 30)
 setInterval(() => load(true), 60000);
