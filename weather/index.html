@@ -1251,6 +1251,27 @@ notifyState();
 getSW();   // service worker: keeps the app working offline and handles notifications
 addEventListener("online", () => load(true));
 
+
+/* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
+const BUILD = "20261114001331";
+async function checkForUpdate() {
+  try {
+    const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) return;
+    const v = (await r.json()).build;
+    if (!v || v === BUILD) return;
+    const tried = +(sessionStorage.getItem("skycast_upd_" + v) || 0);
+    if (tried >= 2) return;                      // don't loop if the new page isn't ready yet
+    sessionStorage.setItem("skycast_upd_" + v, tried + 1);
+    if (swReg) { try { await swReg.update(); } catch(e) {} }
+    location.reload();
+  } catch(e) {}
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { checkForUpdate(); load(true); } });
+addEventListener("pageshow", e => { if (e.persisted) checkForUpdate(); });
+setInterval(checkForUpdate, 5 * 60000);
+setTimeout(checkForUpdate, 3000);
+
 /* ---------- Saved cities & current location ---------- */
 let saved = [];
 try { saved = JSON.parse(localStorage.getItem("skycast_saved") || "[]"); } catch(e) {}
