@@ -303,7 +303,7 @@ const hav=(a,b)=>{const r=x=>x*Math.PI/180,q=Math.sin(r(b[0]-a[0])/2)**2+Math.co
 function stat(t){const e=$('spst');if(e)e.textContent=t}
 function gerr(m){$('gps').textContent='GPS off';$('gps').classList.remove('on');$('gmsg').textContent=m;stat(m);if(window.self!==window.top&&/blocked/i.test(m)){const a=$('newtab');a.href="https://claude.ai/artifact/UF4kVFEFJAxZ12y7sCGLan";a.style.display='block'}}
 stat('GPS not started yet — tap Enable GPS');
-function onPos(lat,lon,kmh,h,al,acc,ts){
+function onPos(lat,lon,kmh,h,al,acc,ts){window.accM=acc||0;
  $('gps').textContent='GPS ●';$('gps').classList.add('on');$('gmsg').textContent='';
  const p=[lat,lon];let k=0;
  let src='GPS speed';
@@ -329,36 +329,47 @@ $('egps').onclick=()=>{gerr('Asking for your location…');startGPS()};
 // map: real position + route only, north up
 const FT=[50,100,200,500,1000,2000,5280,10560,26400,52800],fl=f=>f>=5280?(f/5280)+' mi':f+' ft';
 let MZ=17;const tiles={};
-function tileImg(st,z,x,y){const k=st+'/'+z+'/'+x+'/'+y;let t=tiles[k];if(!t){if(Object.keys(tiles).length>400)for(const q in tiles)delete tiles[q];t=tiles[k]=new Image();t.onload=()=>{t.ok=1;drawMap()};t.onerror=()=>{t.bad=1};t.src='https://basemaps.cartocdn.com/'+k+'.png'}return t}
+const RT=(devicePixelRatio||1)>1.4?'@2x':'';
+function tileImg(st,z,x,y){const k=st+'/'+z+'/'+x+'/'+y;let t=tiles[k];if(!t){if(Object.keys(tiles).length>700)for(const q in tiles)delete tiles[q];t=tiles[k]=new Image();t.onload=()=>{t.ok=1;drawMap()};t.onerror=()=>{t.bad=1};t.src='https://basemaps.cartocdn.com/'+k+RT+'.png'}return t}
+function tileDraw(x,st,z,tx,ty,dx,dy){const t=tileImg(st,z,tx,ty);if(t.ok){x.drawImage(t,dx,dy,256,256);return 1}
+ for(let d=1;d<=3&&z-d>=0;d++){const q=tiles[st+'/'+(z-d)+'/'+(tx>>d)+'/'+(ty>>d)];if(q&&q.ok){const f=256>>d||1,sx=(tx-((tx>>d)<<d))*f*(q.naturalWidth/256),sy=(ty-((ty>>d)<<d))*f*(q.naturalHeight/256);x.drawImage(q,sx,sy,f*(q.naturalWidth/256),f*(q.naturalHeight/256),dx,dy,256,256);return 1}}
+ return 0}
 function drawMapOn(cv){if(!cv)return;const dpr=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;if(!W||!H)return;if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
  const home=cv.id==='hcv',x=cv.getContext('2d'),dk=isDark();x.setTransform(dpr,0,0,dpr,0,0);
  x.fillStyle=dk?'#1c2a3d':'#e4e9f1';x.fillRect(0,0,W,H);x.textAlign='center';
  if(!cur){x.fillStyle=dk?'#8e9bb0':'#5d6b82';x.font='600 20px sans-serif';x.fillText('Waiting for GPS…',W/2,H/2-6);x.font='14px sans-serif';x.fillText('Allow location, then move outside',W/2,H/2+20);return}
  const lat=cur[0],lon=cur[1],cl=Math.cos(lat*Math.PI/180),n=2**MZ;Z=n/(156543.03*cl);
  const cx=W/2,cy=H*(home?.5:.55),wx=(lon+180)/360*n*256,sn=Math.sin(lat*Math.PI/180),wy=(.5-Math.log((1+sn)/(1-sn))/(4*Math.PI))*n*256,st=dk?'dark_all':'light_all';let drawn=0;
- for(let tx=Math.floor((wx-cx)/256);tx<=Math.floor((wx-cx+W)/256);tx++)for(let ty=Math.floor((wy-cy)/256);ty<=Math.floor((wy-cy+H)/256);ty++){if(ty<0||ty>=n)continue;const t=tileImg(st,MZ,((tx%n)+n)%n,ty);if(t.ok){x.drawImage(t,Math.round(tx*256-wx+cx),Math.round(ty*256-wy+cy),256,256);drawn++}}
+ for(let tx=Math.floor((wx-cx)/256);tx<=Math.floor((wx-cx+W)/256);tx++)for(let ty=Math.floor((wy-cy)/256);ty<=Math.floor((wy-cy+H)/256);ty++){if(ty<0||ty>=n)continue;const ttx=((tx%n)+n)%n;if(tileDraw(x,st,MZ,ttx,ty,Math.round(tx*256-wx+cx),Math.round(ty*256-wy+cy)))drawn++}
+ if(drawn&&MZ>3)for(let tx=Math.floor((wx-cx)/256)-1;tx<=Math.floor((wx-cx+W)/256)+1;tx++)for(let ty=Math.floor((wy-cy)/256)-1;ty<=Math.floor((wy-cy+H)/256)+1;ty++){if(ty<0||ty>=n)continue;const m=2**(MZ-1);if(!tiles[st+'/'+(MZ-1)+'/'+((((tx>>1)%m)+m)%m)+'/'+(ty>>1)])tileImg(st,MZ-1,((((tx>>1)%m)+m)%m),ty>>1)}
  const ax=lon*111320*cl,ay=lat*110540,ring=FT.filter(f=>f/3.281*Z<=130).pop()||FT[0],rp=ring/3.281*Z;
  if(!drawn){x.strokeStyle=dk?'#2a3b52':'#cbd3df';x.lineWidth=2;for(let k=1;k<=8;k++){x.beginPath();x.arc(cx,cy,k*rp,0,7);x.stroke()}}
  x.save();x.translate(cx,cy);
  if(trail.length>1){x.lineJoin='round';x.lineCap='round';const tp=()=>{x.beginPath();trail.forEach((q,i)=>{const X=(q[1]*111320*cl-ax)*Z,Y=-(q[0]*110540-ay)*Z;i?x.lineTo(X,Y):x.moveTo(X,Y)})};
   x.strokeStyle='rgba(59,130,246,.35)';x.lineWidth=14;tp();x.stroke();x.strokeStyle='#60a5fa';x.lineWidth=5;tp();x.stroke()}
  x.restore();
- x.beginPath();x.arc(cx,cy,26,0,7);x.fillStyle='rgba(34,197,94,.22)';x.fill();
+ const ar=Math.min(Math.max((window.accM||0)*Z,26),H/2);x.beginPath();x.arc(cx,cy,ar,0,7);x.fillStyle='rgba(34,197,94,.16)';x.fill();x.strokeStyle='rgba(34,197,94,.5)';x.lineWidth=1.5;x.stroke();
  x.save();x.translate(cx,cy);x.rotate(hd*Math.PI/180);x.fillStyle='#22c55e';x.strokeStyle='#fff';x.lineWidth=3;x.beginPath();x.moveTo(0,-20);x.lineTo(14,15);x.lineTo(0,8);x.lineTo(-14,15);x.closePath();x.fill();x.stroke();x.restore();
  const by=home?H-78:12;x.fillStyle='rgba(12,16,24,.86)';x.beginPath();x.roundRect(12,by,108,66,20);x.fill();x.textAlign='center';x.fillStyle='#fff';x.font='bold 36px sans-serif';x.fillText(Math.round(sp*.621371),66,by+40);x.font='600 13px sans-serif';x.fillStyle='#9aa7bb';x.fillText('MPH',66,by+58);
  if(drawn){x.textAlign='right';x.font='10px sans-serif';x.fillStyle='rgba(150,160,175,.9)';x.fillText('© OpenStreetMap © CARTO',W-8,H-6)}
- if(!home){x.fillStyle=dk?'#cbd5e1':'#334155';x.fillRect(14,H-24,rp,3);x.textAlign='left';x.font='13px sans-serif';x.fillText(fl(ring),14,H-30)}}
+ {const sy=home?H-14:H-24;x.fillStyle=dk?'#cbd5e1':'#334155';x.fillRect(home?132:14,sy,rp,3);x.textAlign='left';x.font='13px sans-serif';x.fillText(fl(ring),home?132:14,sy-6)}}
 function drawMap(){drawMapOn($('cv'));drawMapOn($('hcv'))}
 const zi=()=>{MZ=Math.min(19,MZ+1);drawMap()},zo=()=>{MZ=Math.max(3,MZ-1);drawMap()};
 $('hzi').onclick=zi;$('hzo').onclick=zo;$('zin').onclick=zi;$('zout').onclick=zo;$('night2').onclick=()=>$('night').click();
 $('hprev').onclick=()=>$('prev').click();$('hplay').onclick=()=>$('play').click();$('hnext').onclick=()=>$('next').click();
 const WCODE=c=>c===0?['Clear','☀️']:c<=2?['Partly cloudy','⛅']:c===3?['Overcast','☁️']:c<=48?['Fog','🌫️']:c<=57?['Drizzle','🌦️']:c<=67?['Rain','🌧️']:c<=77?['Snow','🌨️']:c<=82?['Showers','🌧️']:['Thunderstorms','⛈️'];
 let wAt=0,wPos=null;
-async function loadWx(){if(!cur)return;if(wPos&&Date.now()-wAt<600000&&hav(wPos,cur)<5)return;wAt=Date.now();wPos=cur.slice();const la=cur[0].toFixed(3),lo=cur[1].toFixed(3);
- try{const j=await (await fetch('https://api.open-meteo.com/v1/forecast?latitude='+la+'&longitude='+lo+'&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=auto&forecast_days=1')).json(),w=WCODE(j.current.weather_code);
-  $('wtmp').textContent=Math.round(j.current.temperature_2m)+'°';$('wdsc').textContent=w[0];$('wico').textContent=w[1];$('whl').textContent='↑ '+Math.round(j.daily.temperature_2m_max[0])+'° · ↓ '+Math.round(j.daily.temperature_2m_min[0])+'°';$('wdat').textContent=new Date().toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})}
- catch(e){wAt=0;$('wdsc').textContent='Live weather is blocked in this viewer'}
- try{const g=await (await fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+la+'&longitude='+lo+'&localityLanguage=en')).json();if(g.city||g.locality)$('wloc').textContent='➤ '+(g.city||g.locality)}catch(e){}}
+const wxIco=t=>{t=(t||'').toLowerCase();return/thunder/.test(t)?'⛈️':/snow|flurr|sleet|ice/.test(t)?'🌨️':/rain|shower|drizzle/.test(t)?'🌧️':/fog|haze|smoke|mist/.test(t)?'🌫️':/partly|mostly sunny|mostly clear/.test(t)?'⛅':/cloud|overcast/.test(t)?'☁️':/clear|sunny|fair/.test(t)?'☀️':'⛅'};
+async function nws(u){const r=await fetch(u,{headers:{Accept:'application/geo+json'}});if(!r.ok)throw 0;return r.json()}
+async function loadWx(){if(!cur)return;if(wPos&&Date.now()-wAt<600000&&hav(wPos,cur)<5)return;wAt=Date.now();wPos=cur.slice();
+ try{const pt=(await nws('https://api.weather.gov/points/'+cur[0].toFixed(4)+','+cur[1].toFixed(4))).properties,rl=pt.relativeLocation&&pt.relativeLocation.properties;
+  if(rl&&rl.city)$('wloc').textContent='➤ '+rl.city;
+  const [h,d]=await Promise.all([nws(pt.forecastHourly),nws(pt.forecast)]),n=h.properties.periods[0],ps=d.properties.periods;
+  $('wtmp').textContent=Math.round(n.temperature)+'°';$('wdsc').textContent=n.shortForecast;$('wico').textContent=wxIco(n.shortForecast);
+  const hi=ps.find(q=>q.isDaytime),lo=ps.find(q=>!q.isDaytime);
+  $('whl').textContent=(hi?'↑ '+hi.temperature+'°':'')+(hi&&lo?' · ':'')+(lo?'↓ '+lo.temperature+'°':'');
+  $('wdat').textContent=new Date().toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})}
+ catch(e){wAt=0;$('wdsc').textContent='Weather unavailable (US only)'}}
 setInterval(loadWx,60000);
 // audio + horn
 function mkHorn(){const r=22050,n=Math.floor(r*.6),b=new ArrayBuffer(44+n*2),v=new DataView(b),w=(o,s)=>[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));
