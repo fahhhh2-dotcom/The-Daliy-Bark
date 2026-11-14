@@ -619,6 +619,47 @@
   .plus-row .acct-av { background: linear-gradient(135deg, #ffe08a, #ffb347); }
   .plus-buy { background: linear-gradient(135deg, #ffd36b, #ff9a4d) !important; color:#0b1424 !important; border:0 !important; text-align:center !important; }
   [data-plus-buy][disabled] { opacity:.55; cursor:default; }
+  /* ===== SkyCast Plus features ===== */
+  .plus-pill { display:inline-block; margin-left:6px; padding:2px 7px; border-radius:999px; font-size:.62rem; font-weight:800; letter-spacing:1px; color:#0b1424; background: linear-gradient(135deg, #ffe08a, #ff9a4d); vertical-align:middle; }
+  .ph-days { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; margin-bottom:10px; overscroll-behavior-x:contain; }
+  .ph-days::-webkit-scrollbar { display:none; }
+  .ph-days button { flex:0 0 auto; border:1px solid var(--line); background:transparent; color:var(--soft); font:inherit; font-weight:700; font-size:.82rem; padding:7px 12px; border-radius:999px; cursor:pointer; }
+  .ph-days button.on { background:var(--text); color:#0b1424; border-color:var(--text); }
+  html.light .ph-days button.on { background:#0e1d38; color:#fff; }
+  .ph-row { display:grid; grid-template-columns: 58px 30px 1fr 52px 70px; align-items:center; gap:8px; padding:8px 2px; border-top:1px solid var(--line); font-size:.88rem; }
+  .ph-row:first-child { border-top:0; }
+  .ph-row .t { font-weight:700; }
+  .ph-row .i { font-size:1.2rem; text-align:center; }
+  .ph-row .x { color:var(--soft); font-size:.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ph-row .p { color:#8fd0ff; font-weight:700; font-size:.8rem; text-align:right; }
+  .ph-row .v { font-weight:800; text-align:right; }
+  .pc { margin-top:6px; }
+  .pc + .pc { margin-top:14px; }
+  .pc h4 { font-size:.72rem; text-transform:uppercase; letter-spacing:1.1px; color:var(--soft); margin-bottom:4px; display:flex; justify-content:space-between; }
+  .pc h4 b { color:var(--text); letter-spacing:0; text-transform:none; font-size:.8rem; }
+  .pc svg { width:100%; height:auto; display:block; }
+  .pc svg text { fill: var(--soft); font-family: inherit; }
+  .plus-teaser { display:flex; align-items:center; gap:14px; width:100%; text-align:left; font:inherit; color:var(--text); cursor:pointer; }
+  .plus-teaser .pt-ic { font-size:1.7rem; }
+  .plus-teaser small { display:block; font-size:.7rem; text-transform:uppercase; letter-spacing:1.2px; color:var(--accent); font-weight:800; }
+  .plus-teaser b { display:block; font-size:.92rem; line-height:1.35; margin-top:2px; }
+  .plus-teaser .go { margin-left:auto; color:var(--soft); font-size:1.3rem; }
+  .o-brief h3 { font-size:1.1rem; letter-spacing:-.2px; margin-bottom:6px; }
+  .o-brief p { font-size:.9rem; line-height:1.5; color:var(--soft); }
+  .o-brief .bx { float:right; border:0; background:none; color:var(--soft); font-size:1.1rem; cursor:pointer; }
+  @media (max-width: 959px) { .o-brief { order:3; } .o-plus { order:4; } }
+  #plusFx { position:fixed; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none; display:none; }
+  html[data-bg^="fx-"] #plusFx { display:block; }
+  html[data-bg="fx-rain"]  { --bgx: linear-gradient(180deg, #3a4f6e, #121b2b 90%); }
+  html[data-bg="fx-snow"]  { --bgx: linear-gradient(180deg, #7f97b8, #2b3c56 90%); }
+  html[data-bg="fx-stars"] { --bgx: radial-gradient(1000px 600px at 70% -10%, #2a3a7a, transparent 70%), linear-gradient(180deg, #0b1230, #02040d 90%); }
+  html[data-bg="fx-rain"] body  { --bg1:#4f6a92; --bg2:#121b2b; }
+  html[data-bg="fx-snow"] body  { --bg1:#8aa3c4; --bg2:#2b3c56; }
+  html[data-bg="fx-stars"] body { --bg1:#2a3a7a; --bg2:#02040d; }
+  .sw-fxrain { background: linear-gradient(160deg, #4f6a92, #121b2b); }
+  .sw-fxsnow { background: linear-gradient(160deg, #a9bfdc, #2b3c56); }
+  .sw-fxstars { background: radial-gradient(circle at 30% 30%, #fff 1px, transparent 2px) 0 0/14px 14px, linear-gradient(160deg, #2a3a7a, #02040d); }
+  .acct-plus { margin-left:6px; }
   /* ===== Custom backgrounds (Settings → Background) ===== */
   html[data-bg] body::before { background: var(--bgx); }
   html[data-bg="ocean"]    { --bgx: radial-gradient(1200px 700px at 15% -10%, #12b5c9, transparent 70%), linear-gradient(180deg, #073b55, #031420 90%); }
@@ -700,6 +741,7 @@
 </style>
 </head>
 <body class="t-day">
+<canvas id="plusFx" aria-hidden="true"></canvas>
 <div id="boot" role="status" aria-label="SkyCast is starting">
   <div class="boot-in">
     <svg class="boot-scene" viewBox="0 0 160 150" aria-hidden="true">
@@ -773,10 +815,21 @@
     </section>
 
     <section class="panel" id="tips"></section>
+    <section class="panel o-brief" id="brief" style="display:none"></section>
     <section class="panel o-hourly">
       <div class="ph"><h3>Next 24 hours</h3><span>Temperature & chance of rain</span></div>
       <div class="hscroll" id="hourly"></div>
     </section>
+    <section class="panel o-plus" id="plusHours" style="display:none">
+      <div class="ph"><h3>Hour by hour · 7 days <span class="plus-pill">PLUS</span></h3><span>Tap a day</span></div>
+      <div class="ph-days" id="phDays"></div>
+      <div id="phList"></div>
+    </section>
+    <section class="panel o-plus" id="plusCharts" style="display:none">
+      <div class="ph"><h3>Detail charts <span class="plus-pill">PLUS</span></h3><span>Next 48 hours</span></div>
+      <div id="pcCharts"></div>
+    </section>
+    <button class="panel o-plus plus-teaser" id="plusTeaser" style="display:none"><span class="pt-ic">⭐</span><span><small>SkyCast Plus · 99¢/month</small><b>Hour-by-hour for all 7 days, detail charts, animated backgrounds and more</b></span><span class="go">›</span></button>
     <section class="panel o-cond">
       <div class="ph"><h3>Conditions</h3><span id="condTime"></span></div>
       <div class="tiles" id="tiles"></div>
@@ -879,6 +932,9 @@
     <button data-bg="rose"><span class="sw sw-rose"></span>Rose</button>
     <button data-bg="midnight"><span class="sw sw-midnight"></span>Midnight</button>
     <button data-bg="photo" id="bgPhotoBtn"><span class="sw sw-photo" id="bgPhotoSw">📷</span>My photo</button>
+    <button data-bg="fx-rain" class="bg-plus"><span class="sw sw-fxrain">🌧️</span>Rain ⭐</button>
+    <button data-bg="fx-snow" class="bg-plus"><span class="sw sw-fxsnow">❄️</span>Snow ⭐</button>
+    <button data-bg="fx-stars" class="bg-plus"><span class="sw sw-fxstars">✨</span>Stars ⭐</button>
   </div>
   <input type="file" id="bgFile" accept="image/*" hidden>
   <div class="sh-note" id="bgNote">"Weather" changes with the sky outside. Pick "My photo" to use a picture from your phone or computer. It stays on this device only.</div>
@@ -1161,7 +1217,8 @@ async function fetchNWS(lat, lon) {
   const loc = P.relativeLocation && P.relativeLocation.properties;
 
   // hourly
-  const hourly = { time: [], temperature_2m: [], weather_code: [], precipitation_probability: [], is_day: [], humidity: [], dew: [], wind: [], text: [] };
+  const hourly = { time: [], temperature_2m: [], weather_code: [], precipitation_probability: [], is_day: [], humidity: [], dew: [], wind: [], text: [], feels: [], gust: [] };
+  const AT_H = new Map(expand(grid.apparentTemperature).map(x => [x.t, x.v])), WG_H = new Map(expand(grid.windGust).map(x => [x.t, x.v]));
   hp.forEach(p => {
     const pop = p.probabilityOfPrecipitation ? p.probabilityOfPrecipitation.value ?? 0 : 0;
     hourly.time.push(p.startTime.slice(0, 16));
@@ -1173,6 +1230,7 @@ async function fetchNWS(lat, lon) {
     hourly.dew.push(p.dewpoint ? p.dewpoint.value : null);
     hourly.wind.push({ kmh: mphText(p.windSpeed), dir: DIRS[p.windDirection] ?? 0 });
     hourly.text.push(p.shortForecast);
+    const t0 = Date.parse(p.startTime); hourly.feels.push(AT_H.get(t0) ?? null); hourly.gust.push(WG_H.get(t0) ?? null);
   });
 
   // per-day numbers from the NWS forecast grid
@@ -2558,7 +2616,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114223720";   // kept equal to version.json on every publish
+const BUILD = "20261114224805";   // kept equal to version.json on every publish
 async function checkForUpdate(opts) {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
@@ -2938,7 +2996,7 @@ fbReady.then(F => F.au.onAuthStateChanged(F.auth, async u => {
 function paintAccount() {
   const on = signedIn(), n = on ? displayName() : "", ini = n ? n.trim().charAt(0).toUpperCase() : "👤";
   $("acctAv").textContent = ini; $("acctAv2").textContent = ini;
-  $("acctName").textContent = n ? n : (lang === "es" ? "Cuenta" : "Account");
+  $("acctName").innerHTML = esc(n ? n : (lang === "es" ? "Cuenta" : "Account")) + (isPlus() ? '<span class="plus-pill acct-plus">PLUS</span>' : "");
   $("acctSub").textContent = n ? (lang === "es" ? "Tu cuenta" : "Your account") + " · " + (place.name === "Current location" ? (lang === "es" ? "Ubicación actual" : "Current location") : place.name) : (lang === "es" ? "Configura tu cuenta" : "Set up your account");
 }
 function openAccount() {
@@ -2992,31 +3050,187 @@ paintAccount();
    To turn on payments: paste your Stripe Payment Link between the quotes below.
    Until then, the Subscribe buttons say subscriptions are coming soon. */
 const PLUS_LINK = "";
+const PLUS_PORTAL = "";   // optional: your Stripe customer portal link, so members can cancel or update their card
 const PLUS_FEATURES = [
   ["📈", "Hour-by-hour for all 7 days", "Every hour of the week, not just the next 24."],
   ["📊", "Detail charts", "Feels-like, wind gusts and humidity, hour by hour."],
   ["🎨", "Plus backgrounds", "Animated rain, snow and starry-night backgrounds."],
-  ["⏰", "Daily weather briefing", "A morning summary of your day's weather."],
+  ["⏰", "Morning briefing", "A summary of your day the first time you open SkyCast each morning."],
   ["🏅", "Supporter badge", "A Plus badge on your account."],
   ["🚀", "Early access", "Try new SkyCast features before everyone else."]
 ];
 function paintPlus() {
   document.querySelectorAll("[data-plus-list]").forEach(ul => ul.innerHTML = PLUS_FEATURES.map(([i, t, d]) => `<li><span>${i}</span><div><b>${t}</b>${d}</div></li>`).join(""));
-  document.querySelectorAll("[data-plus-buy]").forEach(b => { b.disabled = !PLUS_LINK; b.textContent = PLUS_LINK ? "Subscribe for 99¢/month" : "Coming soon"; });
-  document.querySelectorAll("[data-plus-note]").forEach(n => n.textContent = PLUS_LINK ? "Payments are handled securely by Stripe. Cancel anytime." : "Subscriptions aren't open yet. We'll let you know when Plus is ready.");
+  const on = isPlus();
+  document.querySelectorAll("[data-plus-buy]").forEach(b => { b.disabled = on ? !PLUS_PORTAL : !PLUS_LINK; b.textContent = on ? (PLUS_PORTAL ? "Manage subscription" : "✓ You're a Plus member") : PLUS_LINK ? "Subscribe for 99¢/month" : "Coming soon"; });
+  document.querySelectorAll("[data-plus-note]").forEach(n => n.textContent = on ? ((typeof plusTest !== "undefined" && plusTest && !plusActive) ? "Test mode: Plus is on for this device so you can try it. Real members are checked through Stripe." : "Thanks for supporting SkyCast! Everything below is unlocked.")
+    : PLUS_LINK ? (signedIn() ? "Payments are handled securely by Stripe. Cancel anytime." : "Sign in first so your Plus membership follows your account.") : "Subscriptions aren't open yet. We'll let you know when Plus is ready.");
+  if ($("plusSub")) $("plusSub").textContent = on ? "You're a member ✓" : "99¢ a month · see what's included";
 }
 function buyPlus() {
+  if (isPlus()) { if (PLUS_PORTAL) location.href = PLUS_PORTAL; return; }
   if (!PLUS_LINK) return;
   const q = new URLSearchParams();
   if (account.uid) q.set("client_reference_id", account.uid);     // lets the payment be matched to the SkyCast account
   if (account.email) q.set("prefilled_email", account.email);
-  window.open(PLUS_LINK + (q.toString() ? (PLUS_LINK.includes("?") ? "&" : "?") + q : ""), "_blank", "noopener");
+  location.href = PLUS_LINK + (q.toString() ? (PLUS_LINK.includes("?") ? "&" : "?") + q : "");
 }
 document.querySelectorAll("[data-plus-buy]").forEach(b => b.addEventListener("click", buyPlus));
 $("plusBtn").onclick = () => { $("sheet").classList.remove("open"); $("plusView").classList.add("open"); };
 $("plusClose").onclick = () => $("plusView").classList.remove("open");
 $("plusView").onclick = e => { if (e.target.id === "plusView") $("plusView").classList.remove("open"); };
 paintPlus();
+
+/* ---------- Plus membership: who has it ----------
+   Real check: the "Run Payments with Stripe" Firebase extension writes each subscription to
+   customers/{uid}/subscriptions. An active or trialing one means Plus is on.
+   Test mode only: coming back from a TEST Stripe link (?plus=thanks) turns Plus on for this device, so you can try everything. */
+var plusActive = false, plusTest = false, PLUS_TESTMODE = false;
+try { plusActive = localStorage.getItem("skycast_plus") === "1"; plusTest = localStorage.getItem("skycast_plus_test") === "1"; } catch(e) {}
+PLUS_TESTMODE = /buy\.stripe\.com\/test_/.test(PLUS_LINK);
+function isPlus() { return !!(plusActive || (PLUS_TESTMODE && plusTest)); }   // a function declaration so earlier code can call it safely
+(() => {
+  const u = new URL(location.href);
+  if (u.searchParams.get("plus") === "thanks") {
+    if (PLUS_TESTMODE) { plusTest = true; try { localStorage.setItem("skycast_plus_test", "1"); } catch(e) {} }
+    u.searchParams.delete("plus"); history.replaceState(null, "", u.pathname + u.search + u.hash);
+    setTimeout(() => toast(isPlus() ? "⭐ Welcome to SkyCast Plus!" : "Thanks! Your Plus membership will turn on in a moment."), 1500);
+  }
+})();
+async function checkPlus(uid) {
+  try {
+    const F = await fbReady, q = F.fs.query(F.fs.collection(F.db, "customers", uid, "subscriptions"), F.fs.where("status", "in", ["active", "trialing"]));
+    const snap = await F.fs.getDocs(q);
+    setPlus(!snap.empty);
+  } catch(e) { /* the Stripe extension isn't installed yet, or you're offline: keep the last known status */ }
+}
+function setPlus(on) {
+  const was = isPlus(); plusActive = !!on;
+  try { localStorage.setItem("skycast_plus", on ? "1" : "0"); } catch(e) {}
+  if (was !== isPlus()) { paintPlus(); paintAccount(); applyBg(); if (data) renderPlusPanels(); }
+}
+fbReady.then(F => F.au.onAuthStateChanged(F.auth, u => { if (u) checkPlus(u.uid); else setPlus(false); })).catch(() => {});
+paintPlus(); paintAccount();
+
+/* ---------- Plus: hour by hour for all 7 days ---------- */
+let phDay = 0;
+function renderPlusHours() {
+  const h = data.hourly; if (!h || !h.time.length) return;
+  const days = [...new Set(h.time.map(t => t.slice(0, 10)))].slice(0, 7);
+  if (phDay >= days.length) phDay = 0;
+  $("phDays").innerHTML = days.map((d, i) => `<button data-phd="${i}" class="${i === phDay ? "on" : ""}">${i === 0 ? (lang === "es" ? "Hoy" : "Today") : new Date(d + "T12:00").toLocaleDateString(LOC(), { weekday: "short", day: "numeric" })}</button>`).join("");
+  document.querySelectorAll("[data-phd]").forEach(b => b.onclick = () => { phDay = +b.dataset.phd; renderPlusHours(); });
+  const day = days[phDay], nowH = data.current.time.slice(0, 13);
+  let html = "";
+  h.time.forEach((t, i) => {
+    if (t.slice(0, 10) !== day || (phDay === 0 && t.slice(0, 13) < nowH)) return;
+    const ic = info(h.weather_code[i], h.is_day[i]).icon, p = h.precipitation_probability[i] || 0;
+    html += `<div class="ph-row"><span class="t">${t.slice(0, 13) === nowH ? (lang === "es" ? "Ahora" : "Now") : fmtHour(t)}</span><span class="i">${ic}</span><span class="x">${esc(h.text[i] || "")} · ${cvtW(h.wind[i].kmh)}</span><span class="p">${p >= 10 ? "💧" + p + "%" : ""}</span><span class="v">${cvtT(h.temperature_2m[i])}°</span></div>`;
+  });
+  $("phList").innerHTML = html || `<div class="sh-note">No hourly forecast for this day yet.</div>`;
+}
+
+/* ---------- Plus: detail charts (feels-like, wind gusts, humidity) ---------- */
+function miniChart(vals, labels, color, fmt) {
+  const pts = vals.map((v, i) => [i, v]).filter(p => p[1] != null);
+  if (pts.length < 2) return `<div class="sh-note">Not available for this spot right now.</div>`;
+  const W = 340, H = 86, px = 14, top = 14, bot = 18, n = vals.length;
+  let mx = Math.max(...pts.map(p => p[1])), mn = Math.min(...pts.map(p => p[1]));
+  const flat = mx === mn; if (flat) { mx += 1; mn -= 1; }
+  const sp = mx - mn;
+  const x = i => px + i * (W - 2 * px) / (n - 1), y = v => top + (1 - (v - mn) / sp) * (H - top - bot);
+  const d = pts.map((p, k) => `${k ? "L" : "M"}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(" ");
+  const area = `${d} L${x(pts[pts.length - 1][0]).toFixed(1)},${H - bot} L${x(pts[0][0]).toFixed(1)},${H - bot} Z`;
+  const hi = pts.reduce((a, b) => b[1] > a[1] ? b : a), lo = pts.reduce((a, b) => b[1] < a[1] ? b : a);
+  let ticks = "";
+  labels.forEach((l, i) => { if (l) ticks += `<text x="${x(i)}" y="${H - 4}" font-size="9" text-anchor="${i === 0 ? "start" : "middle"}">${l}</text>`; });
+  const id = "g" + Math.random().toString(36).slice(2, 7);
+  return `<svg viewBox="0 0 ${W} ${H}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".35"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#${id})"/><path d="${d}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="${x(hi[0])}" cy="${y(hi[1])}" r="3" fill="${color}"/><text x="${Math.min(W - 12, Math.max(12, x(hi[0])))}" y="${y(hi[1]) - 5}" font-size="9.5" font-weight="800" text-anchor="middle" style="fill:var(--text)">${fmt(hi[1])}</text>
+    ${flat ? "" : `<circle cx="${x(lo[0])}" cy="${y(lo[1])}" r="3" fill="${color}"/><text x="${x(lo[0])}" y="${y(lo[1]) + 13}" font-size="9.5" font-weight="800" text-anchor="middle" style="fill:var(--text)">${fmt(lo[1])}</text>`}${ticks}</svg>`;
+}
+function renderPlusCharts() {
+  const h = data.hourly; if (!h) return;
+  const start = Math.max(0, h.time.findIndex(t => t.slice(0, 13) >= data.current.time.slice(0, 13))), end = Math.min(h.time.length, start + 48);
+  const sl = a => (a || []).slice(start, end);
+  const times = sl(h.time), labels = times.map((t, i) => i % 8 === 0 ? (i === 0 ? (lang === "es" ? "Ahora" : "Now") : fmtHour(t)) : "");
+  const feels = sl(h.feels).map(v => v == null ? null : cvtT(v));
+  const gust = sl(h.gust).map(v => v == null ? null : (unit === "F" ? Math.round(v * 0.621371) : Math.round(v)));
+  const hum = sl(h.humidity);
+  const wu = unit === "F" ? "mph" : "km/h";
+  const block = (title, sub, svg) => `<div class="pc"><h4>${title}<b>${sub}</b></h4>${svg}</div>`;
+  const fNow = feels.find(v => v != null), gMax = gust.filter(v => v != null), hNow = hum.find(v => v != null);
+  $("pcCharts").innerHTML =
+    block(lang === "es" ? "Sensación térmica" : "Feels like", fNow != null ? (lang === "es" ? "ahora " : "now ") + fNow + "°" : "", miniChart(feels, labels, "#ff9a4d", v => v + "°")) +
+    block(lang === "es" ? "Ráfagas de viento" : "Wind gusts", gMax.length ? (lang === "es" ? "hasta " : "up to ") + Math.max(...gMax) + " " + wu : "", miniChart(gust, labels, "#7fd6ff", v => v + "")) +
+    block(lang === "es" ? "Humedad" : "Humidity", hNow != null ? (lang === "es" ? "ahora " : "now ") + Math.round(hNow) + "%" : "", miniChart(hum, labels, "#8fe3b0", v => Math.round(v) + "%"));
+}
+
+/* ---------- Plus: morning briefing ---------- */
+function renderBrief() {
+  const el = $("brief"), c = data.current, d = data.daily;
+  const hr = +c.time.slice(11, 13), today = c.time.slice(0, 10);
+  let dismissed = ""; try { dismissed = localStorage.getItem("skycast_brief_x") || ""; } catch(e) {}
+  if (!isPlus() || hr < 4 || hr >= 12 || dismissed === today) { el.style.display = "none"; return; }
+  const name = account.name ? ", " + esc(account.name) : "";
+  const first = d.detail && d.detail[0] && d.detail[0][0];
+  const sentence = first ? esc(first.text.split(/(?<=\.)\s/)[0]) : "";
+  const rain = d.precipitation_probability_max[0] ?? 0;
+  el.innerHTML = `<button class="bx" id="briefX" aria-label="Hide">✕</button><h3>☀️ ${lang === "es" ? "Buenos días" : "Good morning"}${name}</h3>
+    <p>${lang === "es" ? "Hoy" : "Today"}: ${lang === "es" ? "máx." : "high"} <b style="color:var(--text)">${cvtT(d.temperature_2m_max[0])}°</b>, ${lang === "es" ? "mín." : "low"} <b style="color:var(--text)">${cvtT(d.temperature_2m_min[0])}°</b>, ${rain}% ${lang === "es" ? "de lluvia" : "chance of rain"}. ${sentence}</p>`;
+  el.style.display = "";
+  $("briefX").onclick = () => { try { localStorage.setItem("skycast_brief_x", today); } catch(e) {} el.style.display = "none"; };
+  // one notification per morning, if notifications are allowed
+  let sent = ""; try { sent = localStorage.getItem("skycast_brief_sent") || ""; } catch(e) {}
+  if (sent !== today && "Notification" in window && Notification.permission === "granted") {
+    try { localStorage.setItem("skycast_brief_sent", today); } catch(e) {}
+    show(`${lang === "es" ? "Buenos días" : "Good morning"}${account.name ? ", " + account.name : ""}`, `${cvtT(d.temperature_2m_max[0])}° / ${cvtT(d.temperature_2m_min[0])}°, ${rain}% ${lang === "es" ? "de lluvia" : "chance of rain"}. ${first ? first.text.split(/(?<=\.)\s/)[0] : ""}`, "skycast-brief-" + today);
+  }
+}
+
+function renderPlusPanels() {
+  const on = isPlus();
+  $("plusHours").style.display = on ? "" : "none";
+  $("plusCharts").style.display = on ? "" : "none";
+  $("plusTeaser").style.display = !on && PLUS_LINK ? "" : "none";
+  if (on && data) { try { renderPlusHours(); } catch(e) { console.warn(e); } try { renderPlusCharts(); } catch(e) { console.warn(e); } }
+  if (data) { try { renderBrief(); } catch(e) { console.warn(e); } }
+}
+$("plusTeaser").onclick = () => $("plusView").classList.add("open");
+{ const _render = render; render = function() { _render.apply(this, arguments); renderPlusPanels(); }; }
+
+/* ---------- Plus: animated backgrounds (rain, snow, stars) ---------- */
+const plusFx = (() => {
+  const cv = $("plusFx"), ctx = cv.getContext("2d"); let kind = null, parts = [], raf = 0, w = 0, h = 0;
+  const DPR = Math.min(devicePixelRatio || 1, 1.5);
+  const size = () => { w = cv.width = innerWidth * DPR; h = cv.height = innerHeight * DPR; seed(); };
+  const seed = () => {
+    const n = kind === "rain" ? 140 : kind === "snow" ? 110 : kind === "stars" ? 160 : 0;
+    parts = Array.from({ length: n }, () => ({ x: Math.random() * w, y: Math.random() * h, s: Math.random(), p: Math.random() * 6.28 }));
+  };
+  function frame(t) {
+    raf = 0; if (!kind || document.hidden) return;
+    ctx.clearRect(0, 0, w, h);
+    if (kind === "rain") {
+      ctx.strokeStyle = "rgba(190,215,255,.45)"; ctx.lineWidth = 1.2 * DPR; ctx.beginPath();
+      parts.forEach(q => { q.y += (9 + q.s * 9) * DPR; q.x -= 1.5 * DPR; if (q.y > h) { q.y = -20; q.x = Math.random() * w * 1.1; } ctx.moveTo(q.x, q.y); ctx.lineTo(q.x - 2 * DPR, q.y + (10 + q.s * 10) * DPR); });
+      ctx.stroke();
+    } else if (kind === "snow") {
+      ctx.fillStyle = "rgba(255,255,255,.85)";
+      parts.forEach(q => { q.y += (0.6 + q.s * 1.4) * DPR; q.x += Math.sin(t / 1200 + q.p) * .6 * DPR; if (q.y > h) { q.y = -6; q.x = Math.random() * w; } ctx.globalAlpha = .4 + q.s * .6; ctx.beginPath(); ctx.arc(q.x, q.y, (1 + q.s * 2.4) * DPR, 0, 6.28); ctx.fill(); });
+      ctx.globalAlpha = 1;
+    } else if (kind === "stars") {
+      parts.forEach(q => { ctx.globalAlpha = .25 + .75 * Math.abs(Math.sin(t / 900 * (0.3 + q.s) + q.p)); ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(q.x, q.y * .9, (0.5 + q.s * 1.3) * DPR, 0, 6.28); ctx.fill(); });
+      ctx.globalAlpha = 1;
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  addEventListener("resize", () => { if (kind) size(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && kind && !raf) raf = requestAnimationFrame(frame); });
+  return { set(k) { if (k === kind) return; kind = k; if (raf) { cancelAnimationFrame(raf); raf = 0; } if (!k) { ctx.clearRect(0, 0, w, h); return; } size(); if (reduce) { frame(0); cancelAnimationFrame(raf); raf = 0; } else raf = requestAnimationFrame(frame); } };
+})();
 
 /* ---------- First-time setup: welcome → notifications → where do you live ---------- */
 setTimeout(() => {   // runs once the whole script has loaded
@@ -3153,6 +3367,8 @@ function bgPhoto() { try { return localStorage.getItem("skycast_bgimg"); } catch
 function applyBg() {
   const root = document.documentElement, img = bgPhoto();
   if (bgChoice === "photo" && !img) bgChoice = "auto";
+  if (bgChoice.startsWith("fx-") && !isPlus()) bgChoice = "auto";
+  plusFx.set(bgChoice.startsWith("fx-") ? bgChoice.slice(3) : null);
   if (bgChoice === "auto") root.removeAttribute("data-bg"); else root.setAttribute("data-bg", bgChoice);
   if (img) { root.style.setProperty("--bgphoto", `url("${img}")`); $("bgPhotoSw").style.backgroundImage = `url("${img}")`; $("bgPhotoSw").textContent = ""; }
   else { root.style.removeProperty("--bgphoto"); $("bgPhotoSw").style.backgroundImage = ""; $("bgPhotoSw").textContent = "📷"; }
@@ -3163,6 +3379,7 @@ document.querySelectorAll("#bgs [data-bg]").forEach(b => b.onclick = () => {
   const v = b.dataset.bg;
   // tapping "My photo" again (or the first time) lets you pick a new picture
   if (v === "photo" && (!bgPhoto() || bgChoice === "photo")) { $("bgFile").click(); return; }
+  if (v.startsWith("fx-") && !isPlus()) { $("sheet").classList.remove("open"); $("plusView").classList.add("open"); return; }
   setBg(v);
 });
 $("bgFile").onchange = () => {
