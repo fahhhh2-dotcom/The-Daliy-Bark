@@ -70,12 +70,20 @@
   .seg button.on { background:var(--text); color:#0b1424; }
 
   /* layout */
-  main { max-width:1180px; margin:0 auto; padding:22px 18px 40px; display:grid; gap:18px; grid-template-columns: 1fr; }
+  main { max-width:1180px; margin:0 auto; padding:22px 18px 40px; display:grid; gap:18px; grid-template-columns: minmax(0,1fr); }
+  .col { display:grid; gap:18px; min-width:0; align-content:start; }
   @media (min-width: 960px) {
-    main { grid-template-columns: 1.55fr 1fr; align-items:start; }
-    .col-r { position:sticky; top:84px; }
+    main { grid-template-columns: minmax(0,1.6fr) minmax(0,1fr); align-items:start; }
+    /* wide left column: conditions tiles sit 4 across, sun and moon side by side */
+    .o-cond .tiles { grid-template-columns: repeat(4, 1fr); }
+    .o-cond .sun svg { max-height:96px; }
   }
-  .col { display:grid; gap:18px; min-width:0; }
+  /* phones & tablets: one column, most-used things first */
+  @media (max-width: 959px) {
+    .col { display:contents; }
+    #alerts { order:1; } .hero { order:2; } #tips { order:3; } .o-hourly { order:4; } .o-days { order:5; }
+    .radar-teaser { order:6; } .o-cond { order:7; } .news-teaser { order:8; } #afdPanel { order:9; } #comparePanel { order:10; } .notify { order:11; }
+  }
   .panel { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:20px; min-width:0; }
   .ph { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:14px; }
   .ph h3 { font-size:.78rem; text-transform:uppercase; letter-spacing:1.4px; color:var(--soft); font-weight:700; }
@@ -509,27 +517,30 @@
     </section>
 
     <section class="panel" id="tips"></section>
-    <section class="panel">
+    <section class="panel o-hourly">
       <div class="ph"><h3>Next 24 hours</h3><span>Temperature & chance of rain</span></div>
       <div class="hscroll" id="hourly"></div>
     </section>
-
-    <section class="panel" id="afdPanel" style="display:none">
-      <div class="ph"><h3>What forecasters are saying</h3><span id="afdOffice"></span></div>
-      <div id="afd" class="nws-raw"></div>
+    <section class="panel o-cond">
+      <div class="ph"><h3>Conditions</h3><span id="condTime"></span></div>
+      <div class="tiles" id="tiles"></div>
     </section>
-    <a class="panel news-teaser" href="#news" id="newsTeaser" style="display:none"></a>
+  </div>
+
+  <div class="col col-r">
+    <section class="panel o-days">
+      <div class="ph"><h3>7-day forecast</h3><span>Tap a day</span></div>
+      <div id="tgraph"></div>
+      <div id="days"></div>
+    </section>
     <a class="panel radar-teaser" href="#radar">
       <div style="display:flex;align-items:center;gap:14px"><div class="rt-ic">🗺️</div><div><b>Radar</b><span>Live and future radar, satellite, rain totals, storm outlook, hurricanes and warnings</span></div></div>
       <div class="go">Open ›</div>
     </a>
-  </div>
-
-  <div class="col col-r">
-    <section class="panel">
-      <div class="ph"><h3>7-day forecast</h3><span>Tap a day</span></div>
-      <div id="tgraph"></div>
-      <div id="days"></div>
+    <a class="panel news-teaser" href="#news" id="newsTeaser" style="display:none"></a>
+    <section class="panel" id="afdPanel" style="display:none">
+      <div class="ph"><h3>What forecasters are saying</h3><span id="afdOffice"></span></div>
+      <div id="afd" class="nws-raw"></div>
     </section>
     <section class="panel" id="comparePanel" style="display:none">
       <div class="ph"><h3>Your cities</h3><button class="mini-btn" id="cmpRefresh">Update</button></div>
@@ -540,17 +551,13 @@
       <button class="nbtn" id="notifyBtn">Allow notifications</button>
       <button class="mini-btn" id="extraBtn" style="width:100%;padding:9px;font-size:.82rem">🔔 Extra alerts mode: rain, snow, storms, freeze ›</button>
     </section>
-    <section class="panel">
-      <div class="ph"><h3>Conditions</h3><span id="condTime"></span></div>
-      <div class="tiles" id="tiles"></div>
-    </section>
   </div>
 </main>
 </div>
 
 <div class="view" id="viewN">
   <main class="newswrap">
-    <div class="news-head"><h2>Weather news</h2><span>Real stories from the last 3 days, summed up in plain words. Tap one to read the full article.</span></div>
+    <div class="news-head"><h2>Weather news</h2><span>The 9 latest real weather stories, summed up in plain words. Tap one to read the full article.</span></div>
     <div id="newsList"><div class="msg"><div class="spinner"></div>Loading news…</div></div>
   </main>
 </div>
@@ -2020,7 +2027,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114030307";
+const BUILD = "20261114150444";
 async function checkForUpdate(opts) {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
@@ -2176,7 +2183,7 @@ const ES = {
   "SkyCast covers the United States only. Search for a US city or town.": "SkyCast solo cubre Estados Unidos. Busca una ciudad de EE. UU.",
   "US locations only": "Solo ubicaciones de EE. UU.", "United States": "Estados Unidos",
   "News": "Noticias", "Weather news": "Noticias del clima", "Read": "Leer", "Loading news…": "Cargando noticias…",
-  "Real stories from the last 3 days, summed up in plain words. Tap one to read the full article.": "Noticias reales de los últimos 3 días, resumidas en palabras sencillas (en inglés). Toca una para leer el artículo completo.",
+  "The 9 latest real weather stories, summed up in plain words. Tap one to read the full article.": "Las 9 noticias reales más recientes sobre el clima, resumidas en palabras sencillas (en inglés). Toca una para leer el artículo completo.",
   "Warning notifications": "Notificaciones de alertas", "Official weather warnings": "Alertas oficiales del clima", "Extra alerts mode": "Modo de alertas extra",
   "Rain coming": "Viene lluvia", "Snow coming": "Viene nieve", "Thunderstorms coming": "Vienen tormentas", "Freezing temperatures tonight": "Temperaturas bajo cero esta noche",
   "Notifications": "Notificaciones", "Install SkyCast as an app": "Instalar SkyCast como app"
@@ -2396,12 +2403,11 @@ async function loadNews(force) {
     const r = await fetch("news.json?t=" + Math.floor(Date.now() / 300000), { cache: "no-store" });
     const j = await r.json();
     newsLoaded = Date.now();
-    const cutoff = Date.now() - 3 * 86400000;
-    const list = (j.articles || []).filter(a => Date.parse(a.published) > cutoff).sort((a, b) => Date.parse(b.published) - Date.parse(a.published));
+    const list = (j.articles || []).filter(a => !isNaN(Date.parse(a.published))).sort((a, b) => Date.parse(b.published) - Date.parse(a.published)).slice(0, 9);
     renderNews(list);
     try { localStorage.setItem("skycast_news", JSON.stringify(list)); } catch(e) {}
   } catch(e) {
-    let list = []; try { list = JSON.parse(localStorage.getItem("skycast_news") || "[]").filter(a => Date.parse(a.published) > Date.now() - 3 * 86400000); } catch(e2) {}
+    let list = []; try { list = JSON.parse(localStorage.getItem("skycast_news") || "[]").slice(0, 9); } catch(e2) {}
     if (list.length) renderNews(list); else $("newsList").innerHTML = '<div class="msg">News couldn\'t load right now. Try again in a little while.</div>';
   }
 }
