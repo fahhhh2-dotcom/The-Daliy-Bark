@@ -2616,7 +2616,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114224805";   // kept equal to version.json on every publish
+const BUILD = "20261114225521";   // kept equal to version.json on every publish
 async function checkForUpdate(opts) {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
@@ -3049,7 +3049,7 @@ paintAccount();
 /* ---------- SkyCast Plus (99¢/month subscription through Stripe) ----------
    To turn on payments: paste your Stripe Payment Link between the quotes below.
    Until then, the Subscribe buttons say subscriptions are coming soon. */
-const PLUS_LINK = "";
+const PLUS_LINK = "https://buy.stripe.com/test_28E7sNcmzebh1XcacU93y00";   // TEST link (Stripe sandbox). Swap for the live link when going live.
 const PLUS_PORTAL = "";   // optional: your Stripe customer portal link, so members can cancel or update their card
 const PLUS_FEATURES = [
   ["📈", "Hour-by-hour for all 7 days", "Every hour of the week, not just the next 24."],
