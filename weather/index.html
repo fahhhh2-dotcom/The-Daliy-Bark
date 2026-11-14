@@ -351,7 +351,10 @@
   .tools button { width:40px; height:40px; border:0; border-radius:12px; background:transparent; font-size:1.25rem; cursor:pointer; display:grid; place-items:center; color:#fff; opacity:.75; }
   .tools button.on { background:rgba(255,255,255,.22); opacity:1; }
   .tools .warn.on { background:#2f9e4f; }
-  .fsb { top:368px; font-size:1.35rem; }
+  .fsb { top:410px; font-size:1.35rem; }
+  .shearpt { display:grid; place-items:center; }
+  .shearpt i { display:block; font-style:normal; font-size:15px; line-height:1; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.8); }
+  .shearpt b { font-size:10px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.9); margin-top:1px; }
   .legtab { position:absolute; left:0; top:30%; z-index:650; writing-mode:vertical-rl; transform:rotate(180deg); padding:16px 9px; border-radius:12px 0 0 12px; font:inherit; font-weight:800; font-size:.95rem; letter-spacing:.5px; cursor:pointer; }
   .legpanel { display:none; position:absolute; left:10px; top:70px; z-index:670; width:min(330px, calc(100% - 90px)); max-height:calc(100% - 290px); overflow:auto; background:rgba(255,255,255,.97); color:#0e1d38; border-radius:18px; padding:14px 16px; box-shadow:0 12px 30px rgba(0,0,0,.28); --text:#0e1d38; --soft:rgba(14,29,56,.7); --faint:rgba(14,29,56,.55); --line:rgba(14,29,56,.12); --panel2:rgba(14,29,56,.05); }
   .legpanel.open { display:block; }
@@ -493,6 +496,44 @@
     .hero-main { margin-top:22px; }
   }
 
+  /* ===== 14-day forecast ===== */
+  .see14 { display:block; width:100%; margin-top:12px; padding:12px; border-radius:14px; border:1px solid var(--line); background:var(--panel2); color:var(--text); font:inherit; font-weight:800; font-size:.9rem; cursor:pointer; }
+  .see14:hover { background: rgba(255,255,255,.1); }
+  .sheet-in.wide14 { max-width:720px; }
+  .c14wrap { overflow-x:auto; margin:0 -18px 6px; padding:0 18px 6px; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+  .c14 { display:block; }
+  .c14 text { fill: var(--text); font-family: inherit; }
+  .d14 { display:grid; grid-template-columns: 74px 30px 40px 1fr 36px; align-items:center; gap:8px; padding:10px 4px; border-top:1px solid var(--line); }
+  .d14 .dn small { display:block; font-weight:600; font-size:.72rem; color:var(--soft); }
+  .d14.out .dn { color: var(--soft); }
+  .o14 { font-size:.7rem; text-transform:uppercase; letter-spacing:1.2px; font-weight:800; color:var(--accent); padding:14px 4px 6px; border-top:1px solid var(--line); }
+  html.light .sheet-in .c14 text { fill:#0e1d38; }
+  .siri-link { font-size:.78rem; word-break:break-all; padding:10px 12px; border-radius:12px; background:var(--panel2); border:1px solid var(--line); color:var(--text); }
+  .siri-steps { margin:4px 0 8px 20px; display:grid; gap:8px; font-size:.88rem; line-height:1.45; color:var(--soft); }
+  .siri-steps b { color:var(--text); }
+  /* ===== First-time setup ===== */
+  .onb { position:fixed; inset:0; z-index:9000; display:grid; place-items:center; grid-template-columns:minmax(0,1fr); overflow-y:auto; padding:18px; background: radial-gradient(900px 600px at 30% 10%, #3d8bfd, transparent 70%), linear-gradient(180deg, #123a82, #070d1f); animation: fadeOnly .3s ease backwards; }
+  .onb[hidden] { display:none; }
+  .onb-card { width:100%; max-width:420px; margin:auto; background: rgba(12,22,44,.72); border:1px solid rgba(255,255,255,.16); border-radius:28px; padding:22px 20px 18px; color:#fff; --text:#fff; --soft:rgba(255,255,255,.75); --faint:rgba(255,255,255,.55); --line:rgba(255,255,255,.16); --panel2:rgba(255,255,255,.08); box-shadow: 0 30px 60px rgba(0,0,0,.35); }
+  .onb-dots { display:flex; justify-content:center; gap:6px; margin-bottom:14px; }
+  .onb-dots i { width:7px; height:7px; border-radius:99px; background:rgba(255,255,255,.3); transition: all .25s; }
+  .onb-dots i.on { width:22px; background:#ffd36b; }
+  .onb-step { display:none; text-align:center; }
+  .onb-step.on { display:block; animation: rise .35s cubic-bezier(.2,.8,.3,1) backwards; }
+  .onb-ic { font-size:3rem; line-height:1; margin:4px 0 10px; }
+  .onb h2 { font-size:1.45rem; letter-spacing:-.4px; margin-bottom:6px; }
+  .onb p { font-size:.92rem; line-height:1.5; color:var(--soft); margin-bottom:16px; }
+  .onb .toggles { text-align:left; }
+  .onb-go { display:block; width:100%; margin-top:16px; padding:14px; border:0; border-radius:16px; background:#ffd36b; color:#0b1424; font:inherit; font-weight:800; font-size:1rem; cursor:pointer; }
+  .onb-skip { display:block; width:100%; margin-top:8px; padding:10px; border:0; background:none; color:var(--soft); font:inherit; font-weight:700; font-size:.9rem; cursor:pointer; }
+  .onb-search { display:flex; gap:8px; margin-top:10px; }
+  .onb-search input { flex:1; min-width:0; padding:12px 14px; border-radius:14px; border:1px solid var(--line); background:rgba(255,255,255,.1); color:#fff; font:inherit; font-size:.95rem; outline:none; }
+  .onb-search input::placeholder { color:rgba(255,255,255,.55); }
+  .onb-search button { border:0; border-radius:14px; padding:0 16px; background:#fff; color:#0b1424; font:inherit; font-weight:800; cursor:pointer; }
+  .onb-res { margin-top:8px; text-align:left; border-radius:14px; overflow:hidden; }
+  .onb-res div { padding:12px 14px; background:rgba(255,255,255,.07); border-top:1px solid var(--line); cursor:pointer; font-size:.95rem; }
+  .onb-res div:first-child { border-top:0; }
+  .onb-res small { color:var(--soft); }
   /* ===== Custom backgrounds (Settings → Background) ===== */
   html[data-bg] body::before { background: var(--bgx); }
   html[data-bg="ocean"]    { --bgx: radial-gradient(1200px 700px at 15% -10%, #12b5c9, transparent 70%), linear-gradient(180deg, #073b55, #031420 90%); }
@@ -520,7 +561,7 @@
   /* ===== Phones & tablets: one big blue top section (search bar + current weather), edge to edge ===== */
   @media (max-width: 959px) {
     body { --top: var(--bg1); }
-    @supports (color: color-mix(in srgb, red, blue)) { body { --top: color-mix(in srgb, var(--bg1) 72%, var(--bg2)); } }
+    @supports (color: color-mix(in srgb, red, blue)) { body { --top: color-mix(in srgb, var(--bg1) 88%, #fff); } }
     .bar, html.light .bar { background: var(--top); border-bottom: 0; -webkit-backdrop-filter:none; backdrop-filter:none;
       --text:#fff; --soft: rgba(255,255,255,.78); --faint: rgba(255,255,255,.6); --line: rgba(255,255,255,.2); }
     .bar .search input { background-color: rgba(255,255,255,.14); color:#fff; }
@@ -532,16 +573,16 @@
     .cities .city:not(.on) { background: rgba(255,255,255,.14); color:#fff; border-color: rgba(255,255,255,.25); }
     .cities .city.on { background:#fff; color:#0e1d38; }
     .cities .city.add { color: rgba(255,255,255,.85); }
-    #viewW main { padding-top:0; }
-    .panel.hero, html.light .panel.hero { margin: 0 -18px; border:0; border-radius: 0 0 32px 32px;
-      background: linear-gradient(180deg, var(--top) 0%, var(--bg2) 100%);
-      box-shadow: 0 18px 40px rgba(0,0,0,.28);
-      color:#fff; --text:#fff; --soft: rgba(255,255,255,.78); --faint: rgba(255,255,255,.58); --line: rgba(255,255,255,.18); }
+    /* light blue fills the whole top of the screen, behind the current-weather box, then fades into the page */
+    #viewW main { padding-top:6px;
+      background: linear-gradient(180deg, var(--top) 0, var(--top) calc(var(--heroH, 320px) + 6px), rgba(0,0,0,0) calc(var(--heroH, 320px) + 90px)); }
+    .panel.hero, html.light .panel.hero { border:1px solid rgba(255,255,255,.28); border-radius: 26px;
+      background: linear-gradient(160deg, rgba(255,255,255,.22), rgba(255,255,255,.06));
+      box-shadow: 0 14px 34px rgba(10,30,80,.28);
+      color:#fff; --text:#fff; --soft: rgba(255,255,255,.85); --faint: rgba(255,255,255,.65); --line: rgba(255,255,255,.25); }
+    .panel.hero .chip, .panel.hero .updated { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.25); }
     html[data-bg="photo"] .panel.hero { -webkit-backdrop-filter:none; backdrop-filter:none; }
-    .hero-in { padding-left:24px; padding-right:24px; padding-bottom:26px; }
-    .panel.hero #sky { -webkit-mask-image: linear-gradient(180deg, transparent, #000 120px); mask-image: linear-gradient(180deg, transparent, #000 120px); }
   }
-  @media (max-width: 600px) { .panel.hero, html.light .panel.hero { margin: 0 -12px; } }
   .bgs { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; }
   .bgs button { display:flex; flex-direction:column; align-items:center; gap:6px; border:0; background:none; color:var(--soft); font:inherit; font-size:.75rem; font-weight:700; cursor:pointer; padding:0; }
   .bgs .sw { width:100%; aspect-ratio: 1 / 1; max-width:72px; border-radius:18px; border:2px solid var(--line); background-size:cover; background-position:center; display:grid; place-items:center; font-size:1.3rem; }
@@ -642,6 +683,7 @@
       <div class="ph"><h3>7-day forecast</h3><span>Tap a day</span></div>
       <div id="tgraph"></div>
       <div id="days"></div>
+      <button class="see14" id="see14Btn">See 14 days ›</button>
     </section>
     <a class="panel radar-teaser" href="#radar">
       <div style="display:flex;align-items:center;gap:14px"><div class="rt-ic">🗺️</div><div><b>Radar</b><span>Live and future radar, satellite, rain totals, storm outlook, hurricanes and warnings</span></div></div>
@@ -694,6 +736,7 @@
         <button data-layer="totals" aria-label="Rain totals" title="Rain totals">💧</button>
         <button data-layer="outlook" aria-label="Storm outlook" title="Storm outlook">⛈️</button>
         <button data-layer="storms" aria-label="Hurricanes" title="Hurricanes">🌀</button>
+        <button data-layer="shear" aria-label="Wind shear" title="Wind shear">🌬️</button>
         <button id="warnBtn" class="warn" aria-label="Warnings" title="Warnings">⚠️</button>
       </div>
       <button class="toolbtn fsb" id="fsBtn" aria-label="Full screen">⤢</button>
@@ -749,10 +792,71 @@
     <button data-notif="freeze"><i></i>🥶 Freezing temperatures tonight</button>
   </div>
   <div class="sh-note">A separate mode from warnings: heads-ups from the forecast about 3 hours before rain, snow, storms or a freeze. SkyCast checks every minute while it's open or in a background tab. It can't send alerts when it's fully closed.</div>
+  <div class="sh-h">Siri mode</div>
+  <button class="sh-btn" id="siriBtn">🎙️ Set up Siri mode</button>
+  <div class="sh-note">Ask Siri for SkyCast's forecast hands-free, using the same National Weather Service forecast SkyCast shows.</div>
   <div class="sh-h">Share</div>
   <button class="sh-btn" id="shareCardBtn">📸 Share today's weather</button>
   <button class="sh-btn" id="shareAppBtn">📲 Share SkyCast</button>
   <a class="sh-btn" href="install.html">⬇️ Install SkyCast as an app</a>
+</div></div>
+<div id="onb" class="onb" aria-modal="true" role="dialog" hidden>
+  <div class="onb-card">
+    <div class="onb-dots"><i class="on"></i><i></i><i></i></div>
+    <section class="onb-step on" data-step="0">
+      <div class="onb-ic">🌤️</div>
+      <h2>Welcome to SkyCast</h2>
+      <p>Live weather, radar, storm alerts and a 14-day forecast. Let's get you set up in two quick steps.</p>
+      <button class="onb-go" data-next>Get started</button>
+    </section>
+    <section class="onb-step" data-step="1">
+      <div class="onb-ic">🔔</div>
+      <h2>Turn on notifications?</h2>
+      <p>SkyCast can let you know when weather is headed your way.</p>
+      <div class="toggles">
+        <button data-onb="warn"><i></i>⚠️ Weather warnings</button>
+        <button data-onb="extra"><i></i>☔ Extra alerts: rain, snow, storms, freeze</button>
+      </div>
+      <div class="sh-note" id="onbNote"></div>
+      <button class="onb-go" data-next>Next</button>
+      <button class="onb-skip" data-next>Not now</button>
+    </section>
+    <section class="onb-step" data-step="2">
+      <div class="onb-ic">📍</div>
+      <h2>Where do you live?</h2>
+      <p>We'll show your weather first every time you open SkyCast.</p>
+      <button class="sh-btn" id="onbHere">📍 Use my current location</button>
+      <form id="onbForm" class="onb-search"><input id="onbQ" type="search" placeholder="Or type your city, like Austin, TX" autocomplete="off" enterkeyhint="search"><button type="submit">Search</button></form>
+      <div id="onbRes" class="onb-res"></div>
+      <button class="onb-skip" id="onbDone">Skip for now</button>
+    </section>
+  </div>
+</div>
+<div class="sheet" id="sheet14"><div class="sheet-in wide14">
+  <div class="sh-top"><b>14-day forecast</b><button class="mini-btn" id="close14">Done</button></div>
+  <div class="c14wrap" id="chart14"></div>
+  <div id="list14"></div>
+  <div class="sh-note" id="note14">Days 1–7: National Weather Service. Days 8–14: long-range outlook from Open-Meteo, which is less certain the further out it goes.</div>
+</div></div>
+<div class="sheet" id="siriView"><div class="sheet-in">
+  <div class="sh-top"><b>🎙️ Siri mode</b><button class="mini-btn" id="siriClose">Done</button></div>
+  <div class="sh-note" style="font-size:.85rem;color:var(--soft)">Once it's set up, say <b style="color:var(--text)">"Hey Siri, SkyCast weather"</b> and Siri reads you the forecast for <b style="color:var(--text)" id="siriCity">your city</b>. Plain "what's the weather" always goes to Apple's own Weather app, so SkyCast uses its own phrase.</div>
+  <button class="sh-btn" id="siriTest">🔊 Hear what Siri will say</button>
+  <div class="sh-h">Your forecast link</div>
+  <div class="siri-link" id="siriLink">Open the Weather tab first so SkyCast can make your link.</div>
+  <button class="sh-btn" id="siriCopy">📋 Copy link</button>
+  <div class="sh-h">Set it up once (about 2 minutes, iPhone or iPad)</div>
+  <ol class="siri-steps">
+    <li>Open the <b>Shortcuts</b> app and tap <b>+</b> to make a new shortcut. Tap its name at the top and call it <b>SkyCast weather</b>.</li>
+    <li>Add the action <b>Get Contents of URL</b> and paste your forecast link into it.</li>
+    <li>Add <b>Get Dictionary Value</b>. Set it to get the value for the key <b>properties</b>.</li>
+    <li>Add another <b>Get Dictionary Value</b> for the key <b>periods</b>.</li>
+    <li>Add <b>Get Item from List</b> and leave it on <b>First Item</b>.</li>
+    <li>Add one more <b>Get Dictionary Value</b> for the key <b>detailedForecast</b>.</li>
+    <li>Add <b>Speak Text</b>. Tap <b>Done</b>.</li>
+    <li>Try it: <b>"Hey Siri, SkyCast weather."</b></li>
+  </ol>
+  <div class="sh-note">The link is for the city you're looking at right now. If you move or want a different city, pick it in SkyCast, then copy the new link into your shortcut.</div>
 </div></div>
 <div class="sheet" id="shareView"><div class="sheet-in" style="text-align:center">
   <div class="sh-top"><b>Share</b><button class="mini-btn" id="shareClose">Close</button></div>
@@ -764,10 +868,11 @@
 <footer>
   Forecasts, observations &amp; warnings: <a href="https://www.weather.gov/" target="_blank" rel="noopener">National Weather Service</a> ·
   Radar: NWS NEXRAD &amp; NOAA HRRR via <a href="https://mesonet.agron.iastate.edu/" target="_blank" rel="noopener">Iowa Environmental Mesonet</a> ·
-  Search &amp; map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · US locations only
+  14-day outlook: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> · Search &amp; map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · US locations only
 </footer>
 
 <script>
+const FIRST_VISIT = (() => { try { return !localStorage.getItem("skycast") && !localStorage.getItem("skycast_onboarded"); } catch(e) { return false; } })();
 const WMO = {
   0:["Clear sky","☀️","🌙"],1:["Mostly clear","🌤️","🌙"],2:["Partly cloudy","⛅","☁️"],3:["Overcast","☁️","☁️"],
   45:["Fog","🌫️","🌫️"],48:["Freezing fog","🌫️","🌫️"],
@@ -988,7 +1093,7 @@ async function fetchNWS(lat, lon) {
     uv_index: null,
     observed: !!obs, station: obs && obs.station ? obs.station.split("/").pop() : null
   };
-  return { current, hourly, daily, timezone: tz, office: P.cwa || P.gridId, locName: loc ? { name: loc.city, admin1: loc.state } : null };
+  return { current, hourly, daily, timezone: tz, forecastUrl: P.forecast, office: P.cwa || P.gridId, locName: loc ? { name: loc.city, admin1: loc.state } : null };
 }
 
 /* ---------- What forecasters are saying (NWS Area Forecast Discussion) ---------- */
@@ -1522,6 +1627,7 @@ function initMap() {
   map.getPane("tint").innerHTML = '<div class="maptint"></div>';
   labelGroup = L.layerGroup().addTo(map);
   map.on("click", mapAlertPopup);
+  map.on("moveend", () => shearOnMove());
   map.on("zoomstart", () => $("radar").classList.add("zooming"));
   map.on("zoomend", () => setTimeout(() => $("radar").classList.remove("zooming"), 60));
   marker = L.circleMarker([place.latitude, place.longitude], { radius: 7, color: "#fff", weight: 3, fillColor: "#ff5a5a", fillOpacity: 1, pane: "markerPane" }).addTo(map);
@@ -1954,7 +2060,7 @@ function setMapMode(m) {
   clearOverlay();
   const radarUI = m === "radar";
   ["#play", "#speedBtn", "#track", "#rangeChips"].forEach(sel => { const el = document.querySelector(sel); if (el) el.style.display = radarUI ? "" : "none"; });
-  const names = { sat: "🛰️ Satellite", totals: "💧 Rain totals", outlook: "⛈️ Storm outlook", storms: "🌀 Hurricanes" };
+  const names = { sat: "🛰️ Satellite", totals: "💧 Rain totals", outlook: "⛈️ Storm outlook", storms: "🌀 Hurricanes", shear: "🌬️ Wind shear" };
   $("layerPill").classList.toggle("show", !radarUI);
   $("layerPill").innerHTML = radarUI ? "" : `${names[m]}<button aria-label="Back to radar" onclick="setMapMode('radar')">✕</button>`;
   $("subopts").innerHTML = ""; $("futureNote").textContent = "";
@@ -1965,6 +2071,7 @@ function setMapMode(m) {
   if (m === "totals") showTotals();
   if (m === "outlook") showOutlook();
   if (m === "storms") showStorms();
+  if (m === "shear") showShear();
 }
 function badge(top, main, cls) { $("badge").className = "badge " + (cls || "future"); $("badge").innerHTML = `<small>${top}</small>${main}`; }
 
@@ -2021,6 +2128,50 @@ async function showOutlook() {
   $("rtime").innerHTML = feats.length ? `<b>${feats.length} outlook area${feats.length > 1 ? "s" : ""}</b> on the map · zoom out to see the whole country` : "<b>No severe storms expected</b> anywhere in the US for this day.";
   if (feats.length) { try { map.fitBounds(overlay.getBounds(), { maxZoom: 6, padding: [20, 20] }); } catch(e) {} }
 }
+
+/* ---- Wind shear: change in wind between the ground and about 18,000 ft (0–6 km bulk shear), from Open-Meteo model data ---- */
+const SHEAR = [[0, "#5b6b8c"], [20, "#3cb4c8"], [30, "#4fc95a"], [40, "#f0dc3c"], [50, "#ff8c28"], [60, "#e6283c"], [75, "#c832c8"]];
+const shearColor = kt => { let c = SHEAR[0][1]; for (const [v, col] of SHEAR) if (kt >= v) c = col; return c; };
+let shearTimer = null, shearReq = 0;
+async function showShear() {
+  badge("WIND SHEAR", "Right now", "live");
+  $("rtime").innerHTML = "<b>0–6 km wind shear</b> · how much the wind changes from the ground to about 18,000 ft";
+  $("legendBox").innerHTML = `<span class="lg wide"><i style="background:linear-gradient(90deg,#5b6b8c,#3cb4c8,#4fc95a,#f0dc3c,#ff8c28,#e6283c,#c832c8)"></i>0 → 75+ knots</span><span class="lg">Arrows point the way the shear is going</span>`;
+  $("radarNote").textContent = "Strong shear (about 40 knots or more, yellow to red) helps storms organize and rotate, which can lead to supercells and tornadoes when storms form. Shear alone doesn't mean storms will happen. Model data from Open-Meteo, updated hourly.";
+  await drawShear();
+}
+async function drawShear() {
+  if (!map || mapMode !== "shear") return;
+  const req = ++shearReq, b = map.getBounds().pad(0.05);
+  const COLSN = 9, ROWSN = 8, lat0 = b.getSouth(), lat1 = b.getNorth(), lon0 = b.getWest(), lon1 = b.getEast();
+  const dLat = (lat1 - lat0) / ROWSN, dLon = (lon1 - lon0) / COLSN, pts = [];
+  for (let r = 0; r < ROWSN; r++) for (let c = 0; c < COLSN; c++) pts.push([lat0 + (r + .5) * dLat, lon0 + (c + .5) * dLon]);
+  const ok = pts.filter(([la, lo]) => la > -85 && la < 85 && lo > -180 && lo < 180);
+  if (!ok.length) return;
+  const url = "https://api.open-meteo.com/v1/forecast?latitude=" + ok.map(p => p[0].toFixed(2)).join(",") + "&longitude=" + ok.map(p => p[1].toFixed(2)).join(",") +
+    "&hourly=wind_speed_10m,wind_direction_10m,wind_speed_500hPa,wind_direction_500hPa&wind_speed_unit=kn&forecast_hours=1&timezone=GMT";
+  let res;
+  try { const r = await fetch(url); if (!r.ok) throw new Error(); res = await r.json(); }
+  catch (e) { if (req === shearReq) $("rtime").innerHTML = "<b>Wind shear couldn't load right now.</b> Try again in a little while."; return; }
+  if (req !== shearReq || mapMode !== "shear") return;
+  const list = Array.isArray(res) ? res : [res];
+  const g = L.layerGroup();
+  const uv = (s, d) => [-s * Math.sin(d * Math.PI / 180), -s * Math.cos(d * Math.PI / 180)];
+  list.forEach((o, k) => {
+    const h = o && o.hourly; if (!h) return;
+    const s0 = h.wind_speed_10m[0], d0 = h.wind_direction_10m[0], s5 = h.wind_speed_500hPa[0], d5 = h.wind_direction_500hPa[0];
+    if ([s0, d0, s5, d5].some(v => v == null)) return;
+    const [u0, v0] = uv(s0, d0), [u5, v5] = uv(s5, d5), du = u5 - u0, dv = v5 - v0;
+    const kt = Math.round(Math.hypot(du, dv)), heading = (Math.atan2(du, dv) * 180 / Math.PI + 360) % 360;
+    const [la, lo] = ok[k], col = shearColor(kt);
+    g.addLayer(L.rectangle([[la - dLat / 2, lo - dLon / 2], [la + dLat / 2, lo + dLon / 2]], { stroke: false, fillColor: col, fillOpacity: .42, interactive: false }));
+    g.addLayer(L.marker([la, lo], { interactive: false, icon: L.divIcon({ className: "shearpt", iconSize: [44, 34],
+      html: `<i style="transform:rotate(${heading}deg)">⬆</i><b>${kt} kt</b>` }) }));
+  });
+  clearOverlay(); overlay = g.addTo(map);
+  $("rtime").innerHTML = "<b>0–6 km wind shear</b> · how much the wind changes from the ground to about 18,000 ft";
+}
+function shearOnMove() { if (mapMode !== "shear") return; clearTimeout(shearTimer); shearTimer = setTimeout(drawShear, 700); }
 
 async function showStorms() {
   badge("HURRICANES", "Active storms");
@@ -2151,7 +2302,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114161547";
+const BUILD = "20261114162707";
 async function checkForUpdate(opts) {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
@@ -2286,7 +2437,7 @@ const ES = {
   "Freezing drizzle": "Llovizna helada", "Light rain": "Lluvia ligera", "Heavy rain": "Lluvia fuerte", "Freezing rain": "Lluvia helada",
   "Light snow": "Nieve ligera", "Snow": "Nieve", "Heavy snow": "Nieve fuerte", "Snow grains": "Granos de nieve", "Rain showers": "Chubascos",
   "Violent showers": "Chubascos fuertes", "Snow showers": "Chubascos de nieve", "Thunderstorm": "Tormenta eléctrica", "Thunderstorm & hail": "Tormenta con granizo",
-  "Settings": "Ajustes", "Language": "Idioma", "Theme": "Tema", "Dark": "Oscuro", "Auto": "Automático", "Text size": "Tamaño del texto", "Background": "Fondo", "Ocean": "Océano", "Sunset": "Atardecer", "Aurora": "Aurora", "Lavender": "Lavanda", "Forest": "Bosque", "Rose": "Rosa", "Midnight": "Medianoche", "My photo": "Mi foto",
+  "Settings": "Ajustes", "Language": "Idioma", "Theme": "Tema", "Dark": "Oscuro", "Auto": "Automático", "Text size": "Tamaño del texto", "See 14 days ›": "Ver 14 días ›", "14-day forecast": "Pronóstico de 14 días", "Background": "Fondo", "Ocean": "Océano", "Sunset": "Atardecer", "Aurora": "Aurora", "Lavender": "Lavanda", "Forest": "Bosque", "Rose": "Rosa", "Midnight": "Medianoche", "My photo": "Mi foto",
   "Normal": "Normal", "Large": "Grande", "Units": "Unidades", "Share": "Compartir", "Share today's weather": "Compartir el clima de hoy",
   "Share SkyCast": "Compartir SkyCast", "Done": "Listo", "Install SkyCast as an app": "Instalar SkyCast como app",
   "Weather Service forecasts, discussions and warnings stay in English.": "Los pronósticos, discusiones y alertas del Servicio Meteorológico se muestran en inglés.",
@@ -2346,6 +2497,178 @@ document.querySelectorAll("[data-pref]").forEach(b => b.onclick = () => {
   if (wasEs && lang === "en") { location.reload(); return; }   // switching back to English: reload for a clean page
   applyPrefs(true);
 });
+/* ---------- Height of the current-weather box (for the light blue top section on phones) ---------- */
+(() => {
+  const h = document.querySelector(".panel.hero"); if (!h) return;
+  const setH = () => document.documentElement.style.setProperty("--heroH", h.offsetHeight + "px");
+  if ("ResizeObserver" in window) new ResizeObserver(setH).observe(h); else addEventListener("resize", setH);
+  setH();
+})();
+
+/* ---------- 14-day forecast: NWS days 1–7, Open-Meteo outlook for days 8–14 ---------- */
+let om14 = { key: "", t: 0, daily: null };
+async function getOutlook() {
+  const key = place.latitude.toFixed(2) + "," + place.longitude.toFixed(2);
+  if (om14.key === key && Date.now() - om14.t < 3600000 && om14.daily) return om14.daily;
+  const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude.toFixed(4)}&longitude=${place.longitude.toFixed(4)}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=16&timezone=auto`;
+  const r = await fetch(u); if (!r.ok) throw new Error("om " + r.status);
+  const j = await r.json(); om14 = { key, t: Date.now(), daily: j.daily }; return j.daily;
+}
+function days14(extra) {
+  const d = data.daily, out = [];
+  d.time.forEach((t, i) => out.push({ t, code: d.weather_code[i], hi: d.temperature_2m_max[i], lo: d.temperature_2m_min[i], pop: d.precipitation_probability_max[i] ?? 0, outlook: false }));
+  if (extra) {
+    const last = d.time[d.time.length - 1];
+    extra.time.forEach((t, i) => {
+      if (t > last && out.length < 14 && extra.temperature_2m_max[i] != null && extra.temperature_2m_min[i] != null)
+        out.push({ t, code: extra.weather_code[i], hi: extra.temperature_2m_max[i], lo: extra.temperature_2m_min[i], pop: extra.precipitation_probability_max[i] ?? 0, outlook: true });
+    });
+  }
+  return out;
+}
+function render14(list, failed) {
+  const n = list.length, step = 54, W = Math.max(340, step * n + 20), H = 236, px = 10 + step / 2, top = 64, bot = 64;
+  const hi = list.map(x => cvtT(x.hi)), lo = list.map(x => cvtT(x.lo));
+  const mx = Math.max(...hi), mn = Math.min(...lo), span = (mx - mn) || 1;
+  const x = i => px + i * step, y = v => top + (1 - (v - mn) / span) * (H - top - bot);
+  const firstOut = list.findIndex(v => v.outlook);
+  const seg = (arr, a, b) => arr.slice(a, b + 1).map((v, k) => `${k ? "L" : "M"}${x(a + k).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const nameOf = (t, i) => i === 0 ? (lang === "es" ? "Hoy" : "Today") : new Date(t + "T12:00").toLocaleDateString(LOC(), { weekday: "short" });
+  let g = "";
+  if (firstOut > 0) {
+    const bx = x(firstOut) - step / 2;
+    g += `<rect x="${bx}" y="0" width="${W - bx}" height="${H}" rx="14" fill="rgba(255,255,255,.05)"/>`;
+    g += `<text x="${bx + 8}" y="${H - 8}" font-size="9" font-weight="800" opacity=".6" letter-spacing="1">OUTLOOK · LESS CERTAIN</text>`;
+  }
+  const solidEnd = firstOut > 0 ? firstOut - 1 : n - 1;
+  g += `<path d="${seg(hi, 0, solidEnd)}" fill="none" stroke="#ff9a4d" stroke-width="2.5" stroke-linecap="round"/>`;
+  g += `<path d="${seg(lo, 0, solidEnd)}" fill="none" stroke="#6fd0ff" stroke-width="2.5" stroke-linecap="round"/>`;
+  if (firstOut > 0) {
+    g += `<path d="${seg(hi, firstOut - 1, n - 1)}" fill="none" stroke="#ff9a4d" stroke-width="2.5" stroke-dasharray="5 5" stroke-linecap="round"/>`;
+    g += `<path d="${seg(lo, firstOut - 1, n - 1)}" fill="none" stroke="#6fd0ff" stroke-width="2.5" stroke-dasharray="5 5" stroke-linecap="round"/>`;
+  }
+  list.forEach((v, i) => {
+    const dt = new Date(v.t + "T12:00");
+    g += `<text x="${x(i)}" y="16" text-anchor="middle" font-size="11" font-weight="800">${esc(nameOf(v.t, i))}</text>`;
+    g += `<text x="${x(i)}" y="29" text-anchor="middle" font-size="9" opacity=".6">${dt.getMonth() + 1}/${dt.getDate()}</text>`;
+    g += `<text x="${x(i)}" y="50" text-anchor="middle" font-size="16">${info(v.code).icon}</text>`;
+    g += `<circle cx="${x(i)}" cy="${y(hi[i])}" r="3" fill="#ff9a4d"/><circle cx="${x(i)}" cy="${y(lo[i])}" r="3" fill="#6fd0ff"/>`;
+    g += `<text x="${x(i)}" y="${y(hi[i]) - 7}" text-anchor="middle" font-size="11" font-weight="800">${hi[i]}°</text>`;
+    g += `<text x="${x(i)}" y="${y(lo[i]) + 16}" text-anchor="middle" font-size="11" opacity=".75">${lo[i]}°</text>`;
+    if (v.pop >= 10) g += `<text x="${x(i)}" y="${H - 26}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#8fd0ff" style="fill:#8fd0ff">💧${v.pop}%</text>`;
+  });
+  $("chart14").innerHTML = `<svg class="c14" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${g}</svg>`;
+
+  const minAll = Math.min(...list.map(v => v.lo)), maxAll = Math.max(...list.map(v => v.hi)), sp = (maxAll - minAll) || 1;
+  let html = "";
+  list.forEach((v, i) => {
+    if (i === firstOut) html += `<div class="o14">${lang === "es" ? "Pronóstico a largo plazo · menos seguro" : "Long-range outlook · less certain"}</div>`;
+    const dt = new Date(v.t + "T12:00"), left = (v.lo - minAll) / sp * 100, width = Math.max((v.hi - v.lo) / sp * 100, 4);
+    html += `<div class="d14${v.outlook ? " out" : ""}"><div class="dn">${esc(nameOf(v.t, i))}<small>${dt.toLocaleDateString(LOC(), { month: "short", day: "numeric" })}</small></div>
+      <div class="di">${info(v.code).icon}</div><div class="dp">${v.pop >= 10 ? v.pop + "%" : ""}</div>
+      <div style="display:flex;align-items:center;gap:8px"><span class="dlo">${cvtT(v.lo)}°</span><div class="bar2" style="flex:1"><i style="left:${left}%;width:${width}%"></i></div></div>
+      <div class="dhi">${cvtT(v.hi)}°</div></div>`;
+  });
+  if (failed) html += `<div class="sh-note" style="margin-top:10px">Days 8–14 couldn't load right now. Try again in a little while.</div>`;
+  $("list14").innerHTML = html;
+}
+async function open14() {
+  if (!data) return;
+  $("sheet14").classList.add("open");
+  render14(days14(null));
+  if (data.daily.time.length < 14) {
+    try { render14(days14(await getOutlook())); }
+    catch (e) { render14(days14(null), true); }
+  }
+}
+$("see14Btn").onclick = open14;
+$("close14").onclick = () => $("sheet14").classList.remove("open");
+$("sheet14").onclick = e => { if (e.target.id === "sheet14") $("sheet14").classList.remove("open"); };
+
+/* ---------- Siri mode (an iPhone Shortcut that reads the NWS forecast SkyCast uses) ---------- */
+function siriSentence() {
+  if (!data) return "";
+  const c = data.current, d = data.daily, city = place.current && place.name === "Current location" ? (data.locName && data.locName.name) || "your area" : place.name;
+  const first = d.detail && d.detail[0] && d.detail[0][0];
+  const u = unit === "F" ? "degrees" : "degrees Celsius";
+  if (lang === "es") return `Ahora en ${city} hace ${cvtT(c.temperature_2m)} grados. ` + (first ? first.text : "");
+  return `Right now in ${city} it's ${cvtT(c.temperature_2m)} ${u} and ${String(c.condition_text || info(c.weather_code).text).toLowerCase()}. ` + (first ? `${first.name}: ${first.text}` : "");
+}
+function openSiri() {
+  $("sheet").classList.remove("open");
+  $("siriView").classList.add("open");
+  $("siriCity").textContent = place.current && place.name === "Current location" ? ((data && data.locName && data.locName.name) || "your location") : place.name;
+  $("siriLink").textContent = data && data.forecastUrl ? data.forecastUrl : "Open the Weather tab first so SkyCast can make your link.";
+}
+$("siriBtn").onclick = openSiri;
+$("siriClose").onclick = () => $("siriView").classList.remove("open");
+$("siriView").onclick = e => { if (e.target.id === "siriView") $("siriView").classList.remove("open"); };
+$("siriCopy").onclick = async () => {
+  const t = data && data.forecastUrl; if (!t) return;
+  try { await navigator.clipboard.writeText(t); $("siriCopy").textContent = "✅ Copied"; }
+  catch (e) { const r = document.createRange(); r.selectNodeContents($("siriLink")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); $("siriCopy").textContent = "Link selected. Tap Copy."; }
+  setTimeout(() => $("siriCopy").textContent = "📋 Copy link", 2500);
+};
+$("siriTest").onclick = () => {
+  const text = siriSentence();
+  if (!text || !("speechSynthesis" in window)) { $("siriTest").textContent = "🔇 This browser can't read out loud"; return; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text); u.lang = lang === "es" ? "es-US" : "en-US"; u.rate = 1;
+  speechSynthesis.speak(u);
+};
+
+/* ---------- First-time setup: welcome → notifications → where do you live ---------- */
+setTimeout(() => {   // runs once the whole script has loaded
+  const o = $("onb"); if (!FIRST_VISIT || !o) return;
+  let step = 0;
+  const done = () => { try { localStorage.setItem("skycast_onboarded", "1"); } catch(e) {} o.hidden = true; };
+  const go = n => {
+    step = n;
+    o.querySelectorAll(".onb-step").forEach(s => s.classList.toggle("on", +s.dataset.step === n));
+    o.querySelectorAll(".onb-dots i").forEach((d, i) => d.classList.toggle("on", i === n));
+    if (n === 2) setTimeout(() => $("onbQ").focus(), 300);
+  };
+  const paint = () => o.querySelectorAll("[data-onb]").forEach(b => b.classList.toggle("on", !!notifPrefs[b.dataset.onb] && "Notification" in window && Notification.permission === "granted"));
+  const canNotify = "Notification" in window;
+  if (!canNotify) $("onbNote").textContent = /iPhone|iPad/.test(navigator.userAgent)
+    ? "On iPhone and iPad, notifications work after you add SkyCast to your Home Screen (Share → Add to Home Screen). You can turn them on later in ⚙️ Settings."
+    : "This browser doesn't support notifications. You can still use everything else.";
+  o.querySelectorAll("[data-onb]").forEach(b => b.onclick = async () => {
+    if (!canNotify) return;
+    const k = b.dataset.onb, wasOn = b.classList.contains("on");
+    if (!wasOn && Notification.permission === "default") { const p = await Notification.requestPermission(); notifyState(); if (p === "granted") getSW(); }
+    if (Notification.permission !== "granted") { $("onbNote").textContent = "Notifications are blocked for this site. You can allow them later in your browser settings."; paint(); return; }
+    notifPrefs[k] = !wasOn;
+    try { localStorage.setItem("skycast_notif", JSON.stringify(notifPrefs)); } catch(e) {}
+    renderNotifToggles(); paint();
+  });
+  o.querySelectorAll("[data-next]").forEach(b => b.onclick = () => go(step + 1));
+  $("onbDone").onclick = done;
+  $("onbHere").onclick = () => { done(); useMyLocation(); };
+  let last = 0;
+  $("onbForm").onsubmit = async e => {
+    e.preventDefault();
+    const q = $("onbQ").value.trim(), box = $("onbRes"); if (q.length < 2) return;
+    const wait = 1100 - (Date.now() - last); if (wait > 0) await new Promise(r => setTimeout(r, wait)); last = Date.now();
+    box.innerHTML = "<div><small>Searching…</small></div>";
+    try {
+      const j = await (await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=jsonv2&addressdetails=1&countrycodes=us&limit=6&accept-language=en`)).json();
+      box.innerHTML = ""; const seen = new Set();
+      j.forEach(p => {
+        const a = p.address || {}, name = a.city || a.town || a.village || a.hamlet || a.municipality || a.county || p.name, state = a.state || "";
+        if (seen.has(name + state)) return; seen.add(name + state);
+        const el = document.createElement("div");
+        el.innerHTML = `${esc(name)} <small>${esc([a.county !== name ? a.county : "", state].filter(Boolean).join(", "))}</small>`;
+        el.onclick = () => { done(); goTo({ name, admin1: STATES[state] || state, country: "United States", latitude: +p.lat, longitude: +p.lon }); };
+        box.appendChild(el);
+      });
+      if (!box.children.length) box.innerHTML = "<div><small>No US places found. Try a city and state, like Austin, TX.</small></div>";
+    } catch (err) { box.innerHTML = "<div><small>Search isn't working right now. Try again in a moment.</small></div>"; }
+  };
+  paint();
+  o.hidden = false;
+}, 0);
+
 /* ---------- Background picker (saved on this device) ---------- */
 let bgChoice = "auto";
 try { bgChoice = localStorage.getItem("skycast_bg") || "auto"; } catch(e) {}
