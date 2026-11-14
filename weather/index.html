@@ -2679,7 +2679,7 @@ $("siriTest").onclick = () => {
 // To turn on real "Sign up with Google", paste your Google OAuth Web client ID here
 // (console.cloud.google.com → APIs & Services → Credentials → Create OAuth client ID → Web application,
 //  and add https://fahhhh2-dotcom.github.io as an Authorized JavaScript origin).
-const GOOGLE_CLIENT_ID = "";
+const GOOGLE_CLIENT_ID = "22824472007-pi2v7a3ddlck27337ibhs2pc3v9k13od.apps.googleusercontent.com";
 let account = {};
 try { account = JSON.parse(localStorage.getItem("skycast_account") || "{}"); } catch(e) {}
 const signedIn = () => { try { return !!localStorage.getItem("skycast_session") && !!account.email; } catch(e) { return false; } };
@@ -2810,7 +2810,7 @@ setTimeout(() => {   // runs once the whole script has loaded
       try {
         google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: googleDone });
         $("onbGoogle").hidden = true;
-        google.accounts.id.renderButton($("onbGsi"), { theme: "outline", size: "large", shape: "pill", text: "signup_with", width: Math.min(360, $("onbGsi").clientWidth || 320) });
+        google.accounts.id.renderButton($("onbGsi"), { theme: "outline", size: "large", shape: "pill", text: "continue_with", width: Math.min(360, $("onbGsi").clientWidth || 320) });
       } catch(e) {}
     };
     document.head.appendChild(sc);
