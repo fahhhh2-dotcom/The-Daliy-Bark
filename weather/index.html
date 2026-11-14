@@ -366,6 +366,15 @@
   .legpanel .twc { color:#0e1d38; background:rgba(14,29,56,.06); }
   .layerpill { display:none; position:absolute; left:12px; right:80px; bottom:calc(var(--sheeth, 190px) + 22px); z-index:650; align-items:center; gap:10px; padding:12px 14px; border-radius:16px; font-weight:800; font-size:1rem; }
   .layerpill.show { display:flex; }
+  .torpill { display:none; position:absolute; top:70px; left:50%; transform:translateX(-50%); z-index:651; max-width:calc(100% - 150px); padding:9px 14px; border:0; border-radius:14px; background:#ff7a1a; color:#fff; font:inherit; font-weight:700; font-size:.88rem; box-shadow:0 6px 18px rgba(0,0,0,.3); cursor:pointer; text-align:center; }
+  .torpill.show { display:block; }
+  .torpill.ground { background:#e0102f; animation: torBlink 1.6s ease-in-out infinite; }
+  @keyframes torBlink { 50% { box-shadow:0 0 0 6px rgba(255,31,61,.35), 0 6px 18px rgba(0,0,0,.3); } }
+  .tor-ic span { display:grid; place-items:center; width:44px; height:44px; border-radius:50%; font-size:28px; background:rgba(255,255,255,.92); box-shadow:0 0 0 3px var(--tc), 0 4px 10px rgba(0,0,0,.4); }
+  .tor-ic.live span { animation: torPulse 1.2s ease-out infinite; }
+  @keyframes torPulse { 0% { box-shadow:0 0 0 3px var(--tc), 0 0 0 3px var(--tc); } 100% { box-shadow:0 0 0 3px var(--tc), 0 0 0 18px rgba(255,31,61,0); } }
+  .tor-eta { color:#fff; background:rgba(20,20,28,.8); border-radius:8px; font-size:11px; font-weight:800; text-align:center; line-height:20px; white-space:nowrap; }
+  @media (prefers-reduced-motion: reduce) { .torpill.ground, .tor-ic.live span { animation:none; } }
   .layerpill button { margin-left:auto; border:0; background:transparent; color:#fff; font-size:1.2rem; cursor:pointer; }
   .rsheet { position:absolute; left:10px; right:10px; bottom:calc(10px + env(safe-area-inset-bottom)); z-index:700; background:rgba(255,255,255,.95); color:#0e1d38; border-radius:28px; padding:14px 16px 8px; box-shadow:0 10px 30px rgba(0,0,0,.22); --text:#0e1d38; --soft:rgba(14,29,56,.65); --line:rgba(14,29,56,.14); }
   @media (min-width:760px) { .rsheet { left:50%; right:auto; width:560px; transform:translateX(-50%); } }
@@ -783,6 +792,7 @@
       </div>
       <button class="toolbtn fsb" id="fsBtn" aria-label="Full screen">⤢</button>
       <div class="layerpill" id="layerPill"></div>
+      <button class="torpill" id="torPill"></button>
     </div>
     <div class="rsheet" id="rsheet">
       <div class="rchips" id="rangeChips"><button data-range="short">Next 6 hours</button><button data-range="long">Long range · 16 hrs</button></div>
@@ -1697,6 +1707,7 @@ function initMap() {
   map.on("moveend", () => shearOnMove());
   map.on("zoomstart", () => $("radar").classList.add("zooming"));
   map.on("zoomend", () => setTimeout(() => $("radar").classList.remove("zooming"), 60));
+  setTimeout(startTornadoes, 0);
   marker = L.circleMarker([place.latitude, place.longitude], { radius: 7, color: "#fff", weight: 3, fillColor: "#ff5a5a", fillOpacity: 1, pane: "markerPane" }).addTo(map);
   renderModels();
   loadRadar();
@@ -2027,12 +2038,23 @@ const GreenWarnTiles = (window.L && L.TileLayer && L.TileLayer.WMS && L.TileLaye
       const ctx = tile.getContext("2d");
       ctx.drawImage(img, 0, 0, size.x, size.y);
       try {
-        const im = ctx.getImageData(0, 0, size.x, size.y), px = im.data;
-        for (let k = 0; k < px.length; k += 4) {
-          if (px[k + 3] < 8) continue;
-          const lum = 0.3 * px[k] + 0.59 * px[k + 1] + 0.11 * px[k + 2];
-          if (lum < 80) { px[k] = 18; px[k + 1] = 52; px[k + 2] = 28; px[k + 3] = 235; }      // outlines: dark green
-          else { px[k] = 92; px[k + 1] = 201; px[k + 2] = 112; px[k + 3] = 150; }             // areas: green
+        // every watch, warning and advisory: see-through green fill with thick dark outlines around each county/zone
+        const W = size.x, H = size.y, im = ctx.getImageData(0, 0, W, H), px = im.data, n = W * H;
+        const kind = new Uint8Array(n);   // 0 empty, 1 area, 2 outline
+        for (let i = 0; i < n; i++) {
+          const k = i * 4; if (px[k + 3] < 8) continue;
+          kind[i] = (0.3 * px[k] + 0.59 * px[k + 1] + 0.11 * px[k + 2]) < 80 ? 2 : 1;
+        }
+        const out = new Uint8Array(kind);
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {   // thicken outlines by 1px so they read like county borders
+          const i = y * W + x; if (kind[i] !== 2) continue;
+          if (x > 0) out[i - 1] = 2; if (x < W - 1) out[i + 1] = 2; if (y > 0) out[i - W] = 2; if (y < H - 1) out[i + W] = 2;
+        }
+        for (let i = 0; i < n; i++) {
+          const k = i * 4;
+          if (out[i] === 2) { px[k] = 14; px[k + 1] = 28; px[k + 2] = 18; px[k + 3] = 240; }       // outlines: almost black
+          else if (out[i] === 1) { px[k] = 84; px[k + 1] = 196; px[k + 2] = 104; px[k + 3] = 140; } // areas: see-through green
+          else px[k + 3] = 0;
         }
         ctx.putImageData(im, 0, 0);
       } catch(e) { tile.style.filter = "hue-rotate(110deg) saturate(1.4)"; }   // if recoloring is blocked, tint instead
@@ -2098,6 +2120,104 @@ $("warnBtn").onclick = () => toggleWarnings(!warnLayer);
 
 
 
+
+
+/* ---------- Tornado tracker: live NWS Tornado Warnings, with the storm's position and path ----------
+   Every Tornado Warning from the National Weather Service includes where the storm was, which way it's
+   heading and how fast ("eventMotionDescription"), and whether the tornado is confirmed on the ground
+   ("tornadoDetection: OBSERVED") or only seen on radar. SkyCast checks every minute, moves the 🌪️ to
+   where the storm should be now, and draws where it's headed over the next 30 minutes. */
+let torGroup = null, torList = [], torIdx = 0, torTimer = null;
+const COMPASS16 = ["north","north-northeast","northeast","east-northeast","east","east-southeast","southeast","south-southeast","south","south-southwest","southwest","west-southwest","west","west-northwest","northwest","north-northwest"];
+function torMove(lat, lon, bearing, km) {
+  const b = bearing * Math.PI / 180;
+  return [lat + km * Math.cos(b) / 111.32, lon + km * Math.sin(b) / (111.32 * Math.cos(lat * Math.PI / 180))];
+}
+function parseMotion(s) {
+  // e.g. "2026-05-06T23:42:00-00:00...storm...236DEG...38KT...36.43,-97.59"
+  if (!s) return null;
+  const m = String(s).match(/^(\S+?)\.\.\.[^.]*\.\.\.(\d+)DEG\.\.\.(\d+)KT\.\.\.(.+)$/);
+  if (!m) return null;
+  let pts = [...m[4].matchAll(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/g)].map(p => [+p[1], +p[2]]);
+  if (!pts.length) pts = [...m[4].matchAll(/(\d{4})\s+(\d{4,5})/g)].map(p => [+p[1] / 100, -(+p[2]) / 100]);
+  if (!pts.length) return null;
+  return { t: Date.parse(m[1]), from: +m[2], kt: +m[3], pts };
+}
+function torTime(ms) { return new Date(ms).toLocaleTimeString(LOC(), { hour: "numeric", minute: "2-digit" }); }
+async function loadTornadoes() {
+  if (!map || document.hidden) return;
+  let feats = [];
+  try {
+    const r = await fetch("https://api.weather.gov/alerts/active?event=Tornado%20Warning", { headers: { Accept: "application/geo+json" } });
+    if (!r.ok) throw 0;
+    feats = (await r.json()).features || [];
+  } catch(e) { return; }   // keep what's on the map if the check fails
+  if (!torGroup) torGroup = L.layerGroup().addTo(map);
+  torGroup.clearLayers();
+  torList = [];
+  const now = Date.now();
+  feats.forEach(f => {
+    const a = f.properties || {}, prm = a.parameters || {};
+    if (a.messageType === "Cancel" || (a.ends || a.expires) && Date.parse(a.ends || a.expires) < now) return;
+    const det = String((prm.tornadoDetection || [""])[0]).toUpperCase();
+    const threat = String((prm.tornadoDamageThreat || [""])[0]).toUpperCase();
+    const onGround = det === "OBSERVED", emergency = threat === "CATASTROPHIC", pds = threat === "CONSIDERABLE";
+    const col = emergency ? "#c000ff" : onGround ? "#ff1f3d" : "#ff7a1a";
+    // the warning box
+    if (f.geometry) L.geoJSON(f.geometry, { interactive: false, style: { color: col, weight: 3, fillColor: col, fillOpacity: .12, dashArray: onGround ? null : "6 5" } }).addTo(torGroup);
+    const mo = parseMotion((prm.eventMotionDescription || [])[0]);
+    let at = null;
+    if (mo) {
+      const toward = (mo.from + 180) % 360, kmh = mo.kt * 1.852, mph = Math.round(mo.kt * 1.15078);
+      const mins = Math.max(0, Math.min(60, (now - mo.t) / 60000));
+      const start = mo.pts[Math.floor((mo.pts.length - 1) / 2)];
+      at = kmh ? torMove(start[0], start[1], toward, kmh * mins / 60) : start;
+      // where it's been since the warning (gray) and where it's headed next 30 minutes (dashed)
+      if (kmh && mins > 1) L.polyline([start, at], { color: "#3b3b3b", weight: 3, opacity: .7, interactive: false }).addTo(torGroup);
+      if (kmh) {
+        const p15 = torMove(at[0], at[1], toward, kmh / 4), p30 = torMove(at[0], at[1], toward, kmh / 2);
+        L.polyline([at, p30], { color: col, weight: 4, dashArray: "8 7", interactive: false }).addTo(torGroup);
+        [[p15, 15], [p30, 30]].forEach(([p, m]) => {
+          L.circleMarker(p, { radius: 4, color: "#fff", weight: 2, fillColor: col, fillOpacity: 1, interactive: false }).addTo(torGroup);
+          L.marker(p, { interactive: false, icon: L.divIcon({ className: "tor-eta", html: torTime(now + m * 60000), iconSize: [64, 20], iconAnchor: [32, -6] }) }).addTo(torGroup);
+        });
+      }
+      at.moveText = kmh ? `Moving ${COMPASS16[Math.round(toward / 22.5) % 16]} at ${mph} mph` : "Not moving much";
+    } else if (f.geometry) {
+      try { const c = L.geoJSON(f.geometry).getBounds().getCenter(); at = [c.lat, c.lng]; } catch(e) {}
+    }
+    if (!at) return;
+    const label = emergency ? "TORNADO EMERGENCY" : onGround ? "Tornado on the ground" : "Possible tornado (radar)";
+    const html = `<b style="color:${col}">🌪️ ${label}</b><br>` +
+      (onGround ? "Confirmed by spotters, radar or damage reports.<br>" : "Radar shows rotation that could make a tornado.<br>") +
+      (pds ? "<b>Damage could be considerable.</b><br>" : "") +
+      (at.moveText ? at.moveText + "<br>" : "") +
+      `Warning until ${torTime(Date.parse(a.ends || a.expires))}<br><small>${esc(a.areaDesc || "")}</small><br><small>From ${esc(a.senderName || "National Weather Service")}</small>`;
+    const mk = L.marker(at, { zIndexOffset: 1000, icon: L.divIcon({ className: "tor-ic" + (onGround || emergency ? " live" : ""), html: `<span style="--tc:${col}">🌪️</span>`, iconSize: [44, 44], iconAnchor: [22, 22] }) })
+      .bindPopup(html, { maxWidth: 260 }).addTo(torGroup);
+    torList.push({ at, mk, onGround: onGround || emergency });
+  });
+  torList.sort((x, y) => y.onGround - x.onGround);
+  const n = torList.length, ground = torList.filter(t => t.onGround).length;
+  const pill = $("torPill");
+  if (!n) { pill.classList.remove("show"); return; }
+  pill.classList.toggle("ground", ground > 0);
+  pill.innerHTML = ground ? `🌪️ <b>${ground}</b> tornado${ground > 1 ? "es" : ""} on the ground` + (n > ground ? ` · ${n - ground} more warning${n - ground > 1 ? "s" : ""}` : "")
+                          : `🌪️ <b>${n}</b> tornado warning${n > 1 ? "s" : ""}`;
+  pill.classList.add("show");
+}
+$("torPill").onclick = () => {
+  if (!torList.length) return;
+  const t = torList[torIdx++ % torList.length];
+  map.flyTo(t.at, Math.max(map.getZoom(), 8), { duration: .8 });
+  setTimeout(() => t.mk.openPopup(), 850);
+};
+function startTornadoes() {
+  if (torTimer) return;
+  loadTornadoes();
+  torTimer = setInterval(loadTornadoes, 60000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) loadTornadoes(); });
+}
 
 
 /* ---------- Extra maps: satellite, rain totals, storm outlook, hurricanes (all NOAA / NWS) ---------- */
