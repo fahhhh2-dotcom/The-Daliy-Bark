@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b1424">
 <title>SkyCast Weather</title>
+<meta name="description" content="SkyCast: free live weather, future radar, satellite, storm outlooks, hurricane tracker and severe weather alerts for the US.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SkyCast Weather">
+<meta property="og:description" content="Free live weather, future radar and storm alerts. Install it on your phone like an app.">
+<meta property="og:url" content="https://fahhhh2-dotcom.github.io/The-Daliy-Bark/weather/">
+<meta property="og:image" content="https://fahhhh2-dotcom.github.io/The-Daliy-Bark/weather/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -187,6 +195,8 @@
   .layers { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
   .layers button { border:1px solid var(--line); background:rgba(255,255,255,.07); color:var(--text); font:inherit; font-weight:600; font-size:.85rem; padding:8px 13px; border-radius:12px; cursor:pointer; }
   .layers button.on { background:var(--text); color:#0b1424; border-color:var(--text); }
+  .layers.sub button { font-size:.78rem; padding:6px 11px; border-radius:999px; }
+  .stormicon { font-size:30px; line-height:34px; text-align:center; filter: drop-shadow(0 2px 4px rgba(0,0,0,.6)); }
   .layers .warn.on { background:#ff4d6d; border-color:#ff4d6d; color:#fff; }
   .nextrain { margin-top:12px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.07); font-size:.85rem; line-height:1.4; }
   .nextrain:empty { display:none; }
@@ -243,6 +253,64 @@
   .models button { flex:0 0 auto; border:1px solid var(--line); background:transparent; color:var(--soft); font:inherit; font-weight:700; font-size:.78rem; padding:6px 11px; border-radius:999px; cursor:pointer; }
   .models button.on { background:var(--accent); color:#0b1424; border-color:var(--accent); }
   .modelabout { font-size:.75rem; color:var(--faint); margin-bottom:12px; }
+  .tip { padding:9px 0; font-size:.92rem; line-height:1.4; border-top:1px solid var(--line); }
+  .tip:first-of-type { border-top:0; padding-top:2px; }
+  .afd-h { font-size:.72rem; text-transform:uppercase; letter-spacing:1.1px; color:var(--accent); font-weight:800; margin:10px 0 4px; }
+  #afd p { font-size:.9rem; line-height:1.55; color:var(--text); opacity:.92; }
+  #afd details { margin-top:10px; }
+  #afd summary { cursor:pointer; color:var(--accent); font-weight:700; font-size:.88rem; }
+  .tgraph { width:100%; height:auto; display:block; margin:-4px 0 6px; }
+  .tgraph text { fill: var(--text); font-family: inherit; }
+  .moon .moonic { font-size:2.6rem; line-height:1; }
+  .moon .times { display:flex; justify-content:space-between; font-size:.8rem; color:var(--soft); margin-top:10px; }
+  .moon .times b { color:var(--text); display:block; font-size:.95rem; }
+  .cmp { display:grid; grid-template-columns: 1fr 34px 52px 74px; align-items:center; gap:8px; padding:10px 10px; margin:0 -10px; border-radius:14px; cursor:pointer; }
+  .cmp + .cmp { border-top:1px solid var(--line); }
+  .cmp:hover { background:var(--panel2); }
+  .cmp .cn { font-weight:700; font-size:.95rem; }
+  .cmp .cn small { display:block; font-weight:500; color:var(--soft); font-size:.75rem; }
+  .cmp .ci { font-size:1.5rem; text-align:center; }
+  .cmp .ct { font-size:1.35rem; font-weight:700; text-align:right; }
+  .cmp .chl { font-size:.78rem; color:var(--soft); text-align:right; line-height:1.35; }
+  .cmp .chl span { color:#8fd0ff; }
+  .mini-btn { border:1px solid var(--line); background:transparent; color:var(--soft); font:inherit; font-weight:700; font-size:.75rem; padding:4px 10px; border-radius:999px; cursor:pointer; }
+  .gear { height:38px; width:42px; font-size:1rem; }
+  .sheet { position:fixed; inset:0; z-index:3000; background:rgba(0,0,0,.5); display:none; align-items:flex-end; justify-content:center; }
+  .sheet.open { display:flex; }
+  .sheet-in { width:100%; max-width:520px; max-height:88vh; overflow:auto; background:#0f1a30; color:var(--text); border-radius:24px 24px 0 0; padding:18px 18px calc(24px + env(safe-area-inset-bottom)); border:1px solid var(--line); }
+  @media (min-width:700px) { .sheet { align-items:center; } .sheet-in { border-radius:24px; } }
+  .sh-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; font-size:1.1rem; }
+  .sh-row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--line); font-weight:600; font-size:.92rem; }
+  .sh-h { font-size:.72rem; text-transform:uppercase; letter-spacing:1.3px; color:var(--soft); font-weight:800; margin:18px 0 8px; }
+  .sh-note { font-size:.76rem; color:var(--faint); margin:4px 0 6px; line-height:1.45; }
+  .sh-btn { display:block; width:100%; text-align:left; text-decoration:none; color:var(--text); background:var(--panel2); border:1px solid var(--line); border-radius:14px; padding:13px 14px; font:inherit; font-weight:700; font-size:.92rem; margin-top:8px; cursor:pointer; }
+  .toggles { display:grid; gap:6px; }
+  .toggles.subtog { margin:6px 0 0 14px; padding-left:12px; border-left:2px solid var(--line); transition: opacity .2s; }
+  .toggles.subtog.off { opacity:.4; }
+  .toggles .master { font-weight:800; }
+  .toggles button { display:flex; align-items:center; gap:12px; text-align:left; background:var(--panel2); border:1px solid var(--line); border-radius:14px; padding:12px 14px; color:var(--text); font:inherit; font-weight:600; font-size:.9rem; cursor:pointer; }
+  .toggles i { flex:0 0 auto; width:38px; height:22px; border-radius:999px; background:rgba(255,255,255,.18); position:relative; transition:background .2s; order:2; margin-left:auto; }
+  .toggles i::after { content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff; transition:transform .2s; }
+  .toggles button.on i { background:#34c759; }
+  .toggles button.on i::after { transform:translateX(16px); }
+  /* bigger text */
+  html.large { font-size:113%; }
+  html.large .hchart text, html.large .tgraph text { font-size:12px; }
+  /* light theme */
+  html.light { --panel: rgba(255,255,255,.72); --panel2: rgba(10,30,70,.05); --line: rgba(10,30,70,.12); --text:#0e1d38; --soft: rgba(14,29,56,.68); --faint: rgba(14,29,56,.48); }
+  html.light body { background:#dfe9f7; }
+  html.light body::before { background: radial-gradient(1200px 700px at 15% -10%, #9cc7ff, transparent 70%), linear-gradient(180deg, #cfe0f7, #eef3fb 90%); }
+  html.light .bar { background: rgba(255,255,255,.7); }
+  html.light .brand .word { color:#0e1d38; }
+  html.light .hero { background: linear-gradient(160deg, var(--bg1), var(--bg2)); color:#fff; --text:#fff; --soft: rgba(255,255,255,.75); --faint: rgba(255,255,255,.55); --line: rgba(255,255,255,.18); }
+  html.light .results, html.light .sheet-in { background:#fff; }
+  html.light .seg button.on, html.light .tabs a.on, html.light .city.on { background:#0e1d38; color:#fff; }
+  html.light .playbtn { background:#0e1d38; color:#fff; }
+  html.light .radar-teaser .go { background:#0e1d38; color:#fff; }
+  html.light .ring span { background:#fff; }
+  html.light .toggles i { background: rgba(10,30,70,.18); }
+  html.light .alert { color:#0e1d38; }
+  html.light .badge { color:#fff; }
   .msg { text-align:center; padding:60px 20px; color:var(--soft); }
   .spinner { width:34px; height:34px; border:3px solid rgba(255,255,255,.2); border-top-color:#fff; border-radius:50%; margin:0 auto 12px; animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -290,6 +358,7 @@
     <div class="results" id="results"></div>
   </div>
   <div class="seg"><button id="uF" class="on">°F</button><button id="uC">°C</button></div>
+  <button class="iconbtn gear" id="gearBtn" aria-label="Settings">⚙️</button>
 </div></div>
 
 <div class="cities" id="cities"></div>
@@ -304,13 +373,18 @@
       <div class="hero-in" id="hero"><div class="msg"><div class="spinner"></div>Loading weather…</div></div>
     </section>
 
+    <section class="panel" id="tips"></section>
     <section class="panel">
       <div class="ph"><h3>Next 24 hours</h3><span>Temperature & chance of rain</span></div>
       <div class="hscroll" id="hourly"></div>
     </section>
 
+    <section class="panel" id="afdPanel" style="display:none">
+      <div class="ph"><h3>What forecasters are saying</h3><span id="afdOffice"></span></div>
+      <div id="afd" class="nws-raw"></div>
+    </section>
     <a class="panel radar-teaser" href="#radar">
-      <div style="display:flex;align-items:center;gap:14px"><div class="rt-ic">🗺️</div><div><b>Radar</b><span>Live radar, a 6-hour future radar, and storm warnings</span></div></div>
+      <div style="display:flex;align-items:center;gap:14px"><div class="rt-ic">🗺️</div><div><b>Radar</b><span>Live and future radar, satellite, rain totals, storm outlook, hurricanes and warnings</span></div></div>
       <div class="go">Open ›</div>
     </a>
   </div>
@@ -318,11 +392,17 @@
   <div class="col col-r">
     <section class="panel">
       <div class="ph"><h3>7-day forecast</h3><span>Tap a day</span></div>
+      <div id="tgraph"></div>
       <div id="days"></div>
+    </section>
+    <section class="panel" id="comparePanel" style="display:none">
+      <div class="ph"><h3>Your cities</h3><button class="mini-btn" id="cmpRefresh">Update</button></div>
+      <div id="compare"></div>
     </section>
     <section class="panel notify">
       <div class="nt"><b>🔔 Weather warnings</b><span id="notifyText">Get a notification when there's a warning for your city.</span></div>
       <button class="nbtn" id="notifyBtn">Allow notifications</button>
+      <button class="mini-btn" id="extraBtn" style="width:100%;padding:9px;font-size:.82rem">🔔 Extra alerts mode: rain, snow, storms, freeze ›</button>
     </section>
     <section class="panel">
       <div class="ph"><h3>Conditions</h3><span id="condTime"></span></div>
@@ -335,10 +415,15 @@
 <div class="view rview" id="viewR"><div class="rwrap">
   <section class="panel">
     <div class="layers">
-      <button data-layer="precip" class="on">🌧️ Rain &amp; snow radar</button>
+      <button data-layer="radar" class="on">🌧️ Radar</button>
+      <button data-layer="sat">🛰️ Satellite</button>
+      <button data-layer="totals">💧 Rain totals</button>
+      <button data-layer="outlook">⛈️ Storm outlook</button>
+      <button data-layer="storms">🌀 Hurricanes</button>
       <button id="warnBtn" class="warn">⚠️ Warnings</button>
     </div>
 
+    <div class="layers sub" id="subopts" style="display:none"></div>
     <div class="mapwrap"><div id="radar"></div><div class="badge live" id="badge"><small>RADAR</small>—</div></div>
     <div class="radar-ctrl">
       <button class="playbtn" id="play" aria-label="Play">▶</button>
@@ -352,6 +437,41 @@
     <div class="legend" id="futureNote" style="color:var(--accent)"></div>
     <a class="twc" id="twc" href="https://weather.com/weather/radar/interactive" target="_blank" rel="noopener">Open The Weather Channel radar ↗</a>
   </section>
+</div></div>
+
+
+<div class="sheet" id="sheet"><div class="sheet-in">
+  <div class="sh-top"><b>Settings</b><button class="mini-btn" id="sheetClose">Done</button></div>
+  <div class="sh-row"><span>Language</span><div class="seg"><button data-pref="lang:en">English</button><button data-pref="lang:es">Español</button></div></div>
+  <div class="sh-note">Weather Service forecasts, discussions and warnings stay in English.</div>
+  <div class="sh-row"><span>Theme</span><div class="seg"><button data-pref="theme:dark">Dark</button><button data-pref="theme:light">Light</button><button data-pref="theme:auto">Auto</button></div></div>
+  <div class="sh-row"><span>Text size</span><div class="seg"><button data-pref="textSize:normal">Normal</button><button data-pref="textSize:large">Large</button></div></div>
+  <div class="sh-h">Warning notifications</div>
+  <div class="toggles">
+    <button data-notif="warn"><i></i>⚠️ Official weather warnings</button>
+  </div>
+  <div class="sh-note">Alerts you when the National Weather Service issues a warning or advisory for your city.</div>
+  <div class="sh-h">Extra alerts mode</div>
+  <div class="toggles">
+    <button data-notif="extra" class="master"><i></i>🔔 Extra alerts mode</button>
+  </div>
+  <div class="toggles subtog" id="subtog">
+    <button data-notif="rain"><i></i>☔ Rain coming</button>
+    <button data-notif="snow"><i></i>❄️ Snow coming</button>
+    <button data-notif="storm"><i></i>⛈️ Thunderstorms coming</button>
+    <button data-notif="freeze"><i></i>🥶 Freezing temperatures tonight</button>
+  </div>
+  <div class="sh-note">A separate mode from warnings: heads-ups from the forecast about 3 hours before rain, snow, storms or a freeze. SkyCast checks every minute while it's open or in a background tab. It can't send alerts when it's fully closed.</div>
+  <div class="sh-h">Share</div>
+  <button class="sh-btn" id="shareCardBtn">📸 Share today's weather</button>
+  <button class="sh-btn" id="shareAppBtn">📲 Share SkyCast</button>
+  <a class="sh-btn" href="install.html">⬇️ Install SkyCast as an app</a>
+</div></div>
+<div class="sheet" id="shareView"><div class="sheet-in" style="text-align:center">
+  <div class="sh-top"><b>Share</b><button class="mini-btn" id="shareClose">Close</button></div>
+  <img id="shareImg" alt="" style="width:100%;max-width:360px;border-radius:18px;display:block;margin:0 auto">
+  <div class="sh-note">Press and hold the picture to save or share it.</div>
+  <a class="sh-btn" id="shareDl" download="skycast-weather.png">Download picture</a>
 </div></div>
 
 <footer>
@@ -392,9 +512,11 @@ const cvtT = c => unit === "F" ? Math.round(c * 9/5 + 32) : Math.round(c);
 const cvtW = k => unit === "F" ? Math.round(k * 0.621371) + " mph" : Math.round(k) + " km/h";
 const cvtP = mm => unit === "F" ? (mm / 25.4).toFixed(2) + " in" : mm.toFixed(1) + " mm";
 const compass = d => ["N","NE","E","SE","S","SW","W","NW"][Math.round(d/45) % 8];
-const fmtTime = s => new Date(s).toLocaleTimeString(undefined,{hour:"numeric", minute:"2-digit"});
-const fmtHour = s => new Date(s).toLocaleTimeString(undefined,{hour:"numeric"});
+const fmtTime = s => new Date(s).toLocaleTimeString(LOC(),{hour:"numeric", minute:"2-digit"});
+const fmtHour = s => new Date(s).toLocaleTimeString(LOC(),{hour:"numeric"});
 const $ = id => document.getElementById(id);
+let lang = "en";
+const LOC = () => lang === "es" ? "es-US" : undefined;
 const uvLabel = u => u < 3 ? "Low" : u < 6 ? "Moderate" : u < 8 ? "High" : u < 11 ? "Very high" : "Extreme";
 
 /* ---------- National Weather Service data (api.weather.gov, US only, free for any use) ----------
@@ -579,7 +701,181 @@ async function fetchNWS(lat, lon) {
     uv_index: null,
     observed: !!obs, station: obs && obs.station ? obs.station.split("/").pop() : null
   };
-  return { current, hourly, daily, timezone: tz, office: P.gridId, locName: loc ? { name: loc.city, admin1: loc.state } : null };
+  return { current, hourly, daily, timezone: tz, office: P.cwa || P.gridId, locName: loc ? { name: loc.city, admin1: loc.state } : null };
+}
+
+/* ---------- What forecasters are saying (NWS Area Forecast Discussion) ---------- */
+let afdFor = null;
+async function loadDiscussion() {
+  if (!data || !data.office || afdFor === data.office + (data.current && data.current.time.slice(0, 13))) return;
+  const office = data.office;
+  afdFor = office + data.current.time.slice(0, 13);
+  try {
+    const list = await getJSON(`https://api.weather.gov/products/types/AFD/locations/${office}`, 1);
+    const id = list["@graph"] && list["@graph"][0] && list["@graph"][0].id;
+    if (!id) throw new Error();
+    const prod = await getJSON(`https://api.weather.gov/products/${id}`, 1);
+    renderDiscussion(prod.productText || "", prod.issuanceTime, office);
+  } catch(e) { $("afdPanel").style.display = "none"; }
+}
+function renderDiscussion(text, issued, office) {
+  const body = text.replace(/\r/g, "").split("\n");
+  const start = body.findIndex(l => /^\.[A-Z]/.test(l));
+  const clean = body.slice(start < 0 ? 0 : start).join("\n").replace(/\n\$\$[\s\S]*$/, "").replace(/\n&&\n/g, "\n\n");
+  const sections = clean.split(/\n(?=\.[A-Z][A-Z /]+\.\.\.)/).map(sct => {
+    const m = sct.match(/^\.([A-Z][A-Z /]+?)\.\.\.([\s\S]*)$/);
+    return m ? { title: m[1].trim(), text: m[2] } : null;
+  }).filter(Boolean);
+  const pick = sections.find(x => /KEY MESSAGES/.test(x.title)) || sections.find(x => /SYNOPSIS/.test(x.title)) || sections.find(x => /DISCUSSION|SHORT TERM|NEAR TERM/.test(x.title)) || sections[0];
+  if (!pick) { $("afdPanel").style.display = "none"; return; }
+  const tidy = t => esc(t.trim().replace(/\n(?!\n)/g, " ").replace(/ {2,}/g, " ").replace(/^Issued at .*?(?=\S{2,} )/i, ""));
+  const summary = tidy(pick.text);
+  const short = summary.length > 520 ? summary.slice(0, summary.lastIndexOf(" ", 520)) + "…" : summary;
+  $("afdPanel").style.display = "";
+  $("afdOffice").textContent = "NWS " + office + (issued ? " · " + new Date(issued).toLocaleString(LOC(), { weekday: "short", hour: "numeric", minute: "2-digit" }) : "");
+  $("afd").innerHTML = `<div class="afd-h">${esc(pick.title.charAt(0) + pick.title.slice(1).toLowerCase())}</div><p>${short}</p>
+    <details><summary>Read the full discussion</summary>${sections.map(x => `<div class="afd-h">${esc(x.title.charAt(0) + x.title.slice(1).toLowerCase())}</div><p>${tidy(x.text)}</p>`).join("")}</details>`;
+}
+
+/* ---------- 7-day high / low graph ---------- */
+function renderTempGraph() {
+  const d = data.daily, n = d.time.length;
+  if (n < 2) { $("tgraph").innerHTML = ""; return; }
+  const W = 340, H = 120, px = 22, top = 22, bot = 22;
+  const hi = d.temperature_2m_max.map(cvtT), lo = d.temperature_2m_min.map(cvtT);
+  const mx = Math.max(...hi), mn = Math.min(...lo), span = (mx - mn) || 1;
+  const x = i => px + i * (W - 2 * px) / (n - 1), y = v => top + (1 - (v - mn) / span) * (H - top - bot);
+  const line = arr => arr.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  let g = `<path d="${line(hi)} L${x(n - 1)},${y(lo[n - 1])} ${lo.map((v, i) => `L${x(n - 1 - i).toFixed(1)},${y(lo[n - 1 - i]).toFixed(1)}`).join(" ")} Z" fill="url(#tg)" opacity=".35"/>`;
+  g += `<path d="${line(hi)}" fill="none" stroke="#ff9a4d" stroke-width="2.5" stroke-linecap="round"/><path d="${line(lo)}" fill="none" stroke="#6fd0ff" stroke-width="2.5" stroke-linecap="round"/>`;
+  d.time.forEach((t, i) => {
+    g += `<circle cx="${x(i)}" cy="${y(hi[i])}" r="3" fill="#ff9a4d"/><circle cx="${x(i)}" cy="${y(lo[i])}" r="3" fill="#6fd0ff"/>`;
+    g += `<text x="${x(i)}" y="${y(hi[i]) - 7}" text-anchor="middle" font-size="10" font-weight="700">${hi[i]}°</text>`;
+    g += `<text x="${x(i)}" y="${y(lo[i]) + 15}" text-anchor="middle" font-size="10" opacity=".75">${lo[i]}°</text>`;
+  });
+  $("tgraph").innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="tgraph"><defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9a4d"/><stop offset="1" stop-color="#6fd0ff"/></linearGradient></defs>${g}</svg>`;
+}
+
+/* ---------- Moon (calculated on the phone, standard astronomy formulas) ---------- */
+const MOON = (() => {
+  const rad = Math.PI / 180, dayMs = 864e5, J1970 = 2440588, J2000 = 2451545, e = rad * 23.4397;
+  const toDays = ms => ms / dayMs - 0.5 + J1970 - J2000;
+  const ra = (l, b) => Math.atan2(Math.sin(l) * Math.cos(e) - Math.tan(b) * Math.sin(e), Math.cos(l));
+  const dec = (l, b) => Math.asin(Math.sin(b) * Math.cos(e) + Math.cos(b) * Math.sin(e) * Math.sin(l));
+  const sun = d => { const M = rad * (357.5291 + 0.98560028 * d), C = rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M)), L = M + C + rad * 102.9372 + Math.PI; return { dec: dec(L, 0), ra: ra(L, 0) }; };
+  const moon = d => { const L = rad * (218.316 + 13.176396 * d), M = rad * (134.963 + 13.064993 * d), F = rad * (93.272 + 13.229350 * d);
+    const l = L + rad * 6.289 * Math.sin(M), b = rad * 5.128 * Math.sin(F); return { ra: ra(l, b), dec: dec(l, b), dist: 385001 - 20905 * Math.cos(M) }; };
+  function illum(ms) {
+    const d = toDays(ms), s = sun(d), m = moon(d), sd = 149598000;
+    const phi = Math.acos(Math.sin(s.dec) * Math.sin(m.dec) + Math.cos(s.dec) * Math.cos(m.dec) * Math.cos(s.ra - m.ra));
+    const inc = Math.atan2(sd * Math.sin(phi), m.dist - sd * Math.cos(phi));
+    const ang = Math.atan2(Math.cos(s.dec) * Math.sin(s.ra - m.ra), Math.sin(s.dec) * Math.cos(m.dec) - Math.cos(s.dec) * Math.sin(m.dec) * Math.cos(s.ra - m.ra));
+    return { fraction: (1 + Math.cos(inc)) / 2, phase: 0.5 + 0.5 * inc * (ang < 0 ? -1 : 1) / Math.PI };
+  }
+  function alt(ms, lat, lng) {
+    const lw = rad * -lng, phi = rad * lat, d = toDays(ms), c = moon(d);
+    const H = rad * (280.16 + 360.9856235 * d) - lw - c.ra;
+    let h = Math.asin(Math.sin(phi) * Math.sin(c.dec) + Math.cos(phi) * Math.cos(c.dec) * Math.cos(H));
+    const hh = Math.max(h, 0); h += 0.0002967 / Math.tan(hh + 0.00312536 / (hh + 0.08901179));
+    return h;
+  }
+  function times(t, lat, lng) {   // t = local midnight in ms
+    const hc = 0.133 * rad, H = 3600000;
+    let h0 = alt(t, lat, lng) - hc, rise, set;
+    for (let i = 1; i <= 24; i += 2) {
+      const h1 = alt(t + i * H, lat, lng) - hc, h2 = alt(t + (i + 1) * H, lat, lng) - hc;
+      const a = (h0 + h2) / 2 - h1, b = (h2 - h0) / 2, xe = -b / (2 * a), ye = (a * xe + b) * xe + h1, D = b * b - 4 * a * h1;
+      let roots = 0, x1 = 0, x2 = 0;
+      if (D >= 0) { const dx = Math.sqrt(D) / (Math.abs(a) * 2); x1 = xe - dx; x2 = xe + dx; if (Math.abs(x1) <= 1) roots++; if (Math.abs(x2) <= 1) roots++; if (x1 < -1) x1 = x2; }
+      if (roots === 1) { if (h0 < 0) rise = i + x1; else set = i + x1; }
+      else if (roots === 2) { rise = i + (ye < 0 ? x2 : x1); set = i + (ye < 0 ? x1 : x2); }
+      if (rise && set) break;
+      h0 = h2;
+    }
+    return { rise: rise ? t + rise * H : null, set: set ? t + set * H : null };
+  }
+  return { illum, times };
+})();
+const PHASES = [[0.03, "New moon", "🌑"], [0.22, "Waxing crescent", "🌒"], [0.28, "First quarter", "🌓"], [0.47, "Waxing gibbous", "🌔"], [0.53, "Full moon", "🌕"], [0.72, "Waning gibbous", "🌖"], [0.78, "Last quarter", "🌗"], [0.97, "Waning crescent", "🌘"], [1.01, "New moon", "🌑"]];
+function moonInfo() {
+  const now = Date.now(), il = MOON.illum(now), ph = PHASES.find(p => il.phase < p[0]);
+  let full = null;
+  const fr = h => MOON.illum(now + h * 3600000).fraction;
+  for (let h = 1, a = fr(0), b = fr(1); h < 24 * 31; h++) { const c = fr(h + 1); if (b > 0.97 && b >= a && b >= c) { full = now + h * 3600000; break; } a = b; b = c; }
+  const tz = data.timezone, today = data.current.time.slice(0, 10);
+  const off = Date.parse(localStr(now, tz) + ":00Z") - Math.floor(now / 60000) * 60000;
+  const midnight = Date.parse(today + "T00:00:00Z") - off;
+  const t = MOON.times(midnight, place.latitude, place.longitude);
+  return { name: ph[1], icon: ph[2], pct: Math.round(il.fraction * 100), full, rise: t.rise && localStr(t.rise, tz), set: t.set && localStr(t.set, tz) };
+}
+function renderMoon() {
+  try {
+    const m = moonInfo();
+    const fullTxt = m.full ? new Date(m.full).toLocaleDateString(LOC(), { month: "short", day: "numeric" }) : "—";
+    const el = document.createElement("div");
+    el.className = "tile wide moon";
+    el.innerHTML = `<div class="k">Moon</div><div class="tilerow"><div><div class="v" style="font-size:1.25rem">${m.name}</div>
+      <div class="s" style="margin-top:4px">${m.pct}% lit · Next full moon ${fullTxt}</div></div><div class="moonic">${m.icon}</div></div>
+      <div class="times"><div>Moonrise<b>${m.rise ? fmtTime(m.rise) : "—"}</b></div><div style="text-align:right">Moonset<b>${m.set ? fmtTime(m.set) : "—"}</b></div></div>`;
+    $("tiles").appendChild(el);
+  } catch(e) {}
+}
+
+/* ---------- What to wear / bring ---------- */
+function renderTips() {
+  const c = data.current, h = data.hourly, d = data.daily, tips = [];
+  const start = Math.max(0, h.time.findIndex(t => t >= c.time.slice(0, 13)));
+  const next = h.time.slice(start, start + 12).map((t, k) => ({ t, p: h.precipitation_probability[start + k] || 0, code: h.weather_code[start + k], temp: h.temperature_2m[start + k] }));
+  const wet = next.find(x => x.p >= 50 || x.code >= 51);
+  const feels = c.apparent_temperature, low = Math.min(...next.map(x => x.temp));
+  if (wet) {
+    const snow = [71, 73, 75, 77, 85, 86].includes(wet.code);
+    const when = wet.t === next[0].t ? "now" : "after " + fmtHour(wet.t);
+    tips.push(snow ? `❄️ Snow likely ${when}: wear boots and give yourself extra travel time.` : `☂️ Bring an umbrella: rain likely ${when}.`);
+  }
+  if (feels <= -7) tips.push("🧤 Bitter cold: heavy coat, hat and gloves.");
+  else if (feels <= 4) tips.push("🧥 Wear a warm coat.");
+  else if (feels <= 12) tips.push("🧥 Grab a jacket.");
+  else if (feels <= 18) tips.push("👕 Light layers or a sweater.");
+  else if (feels >= 32) tips.push("🥵 Very hot: light clothes, drink plenty of water.");
+  else if (feels >= 26) tips.push("🕶️ Warm out: shorts weather. Don't forget sunscreen if it's sunny.");
+  else tips.push("😎 Comfortable out: a T-shirt should be fine.");
+  if (low <= 0 && feels > 0) tips.push(`🥶 It drops to ${cvtT(low)}° later, so bring something warmer for tonight.`);
+  if ((c.wind_gusts_10m || 0) >= 50 || (c.wind_speed_10m || 0) >= 40) tips.push("💨 Very windy: secure loose things outside.");
+  if (alerts && alerts.length) tips.unshift("⚠️ There's an active weather alert. Tap it at the top for details.");
+  $("tips").innerHTML = `<div class="ph" style="margin-bottom:8px"><h3>Today's tips</h3></div>` + tips.slice(0, 3).map(t => `<div class="tip">${t.replace(/\.\.(?=\s|$)/g, ".")}</div>`).join("");
+}
+
+/* ---------- Compare your saved cities ---------- */
+async function renderCompare(refresh) {
+  const box = $("compare");
+  if (!saved.length) { $("comparePanel").style.display = "none"; return; }
+  $("comparePanel").style.display = "";
+  const rows = saved.map(p => {
+    let c = null;
+    try { c = JSON.parse(localStorage.getItem("skycast_wx_" + p.latitude.toFixed(2) + "," + p.longitude.toFixed(2)) || "null"); } catch(e) {}
+    return { p, c };
+  });
+  const draw = () => {
+    box.innerHTML = rows.map(({ p, c }, i) => {
+      const d = c && c.data;
+      if (!d) return `<div class="cmp" data-i="${i}"><div class="cn">${esc(p.name)}<small>${esc(p.admin1 || "")}</small></div><div class="ci">…</div><div class="ct">—</div><div class="chl"></div></div>`;
+      const ic = info(d.current.weather_code, 1).icon;
+      return `<div class="cmp" data-i="${i}"><div class="cn">${esc(p.name)}<small>${esc(p.admin1 || "")}${Date.now() - c.t > 3 * 3600000 ? " · older" : ""}</small></div><div class="ci">${ic}</div>
+        <div class="ct">${cvtT(d.current.temperature_2m)}°</div><div class="chl">${cvtT(d.daily.temperature_2m_max[0])}° / ${cvtT(d.daily.temperature_2m_min[0])}°<br><span>${d.daily.precipitation_probability_max[0]}% rain</span></div></div>`;
+    }).join("");
+    box.querySelectorAll(".cmp").forEach(el => el.onclick = () => goTo(saved[+el.dataset.i]));
+  };
+  draw();
+  for (const r of rows) {
+    if (!refresh && r.c && Date.now() - r.c.t < 30 * 60000) continue;
+    try {
+      const d = await fetchNWS(r.p.latitude, r.p.longitude);
+      r.c = { t: Date.now(), data: d, alerts: [] };
+      try { localStorage.setItem("skycast_wx_" + r.p.latitude.toFixed(2) + "," + r.p.longitude.toFixed(2), JSON.stringify(r.c)); } catch(e) {}
+      draw();
+    } catch(e) {}
+  }
 }
 
 /* ---------- Saved data: last forecast per city is kept on the device ---------- */
@@ -620,6 +916,7 @@ async function load(silent) {
     setUpdated();
     saveWeather();
     loadAlerts();
+    checkWeatherNotifs();
   } catch(e) {
     if (e.notUS) {
       data = null; offline = false;
@@ -636,7 +933,7 @@ let lastUpdate = null;
 function setUpdated() {
   const el = $("updated");
   if (!el) return;
-  const tm = d => d.toLocaleString(undefined, { weekday: (Date.now() - d) > 86400000 ? "short" : undefined, hour:"numeric", minute:"2-digit" });
+  const tm = d => d.toLocaleString(LOC(), { weekday: (Date.now() - d) > 86400000 ? "short" : undefined, hour:"numeric", minute:"2-digit" });
   const dot = el.previousElementSibling;
   if (offline) {
     const when = lastUpdate || savedAt;
@@ -666,7 +963,7 @@ function render() {
   sky.set(kind);
 
   const loc = [place.current && place.name === "Current location" ? "Current location" : place.name, place.admin1, place.country].filter((v,i,a) => v && a.indexOf(v) === i).join(", ");
-  const when = new Date(c.time).toLocaleDateString(undefined,{weekday:"long", month:"short", day:"numeric"}) + " · " + fmtTime(c.time);
+  const when = new Date(c.time).toLocaleDateString(LOC(),{weekday:"long", month:"short", day:"numeric"}) + " · " + fmtTime(c.time);
   const rainToday = d.precipitation_probability_max[0] ?? 0;
   $("hero").innerHTML = `
     <div class="loc">📍 ${loc}</div>
@@ -675,7 +972,7 @@ function render() {
       <div class="t-big">${cvtT(c.temperature_2m)}<sup>°${unit}</sup></div>
       <div class="cond-wrap">
         <div class="cond-ic">${now.icon}</div>
-        <div class="cond-tx">${c.condition_text || now.text}</div>
+        <div class="cond-tx">${lang === "es" ? now.text : (c.condition_text || now.text)}</div>
         <div class="cond-sub">H ${cvtT(d.temperature_2m_max[0])}° · L ${cvtT(d.temperature_2m_min[0])}°</div>
       </div>
     </div>
@@ -691,7 +988,11 @@ function render() {
   renderHourly();
   renderDays();
   renderTiles();
+  renderMoon();
+  renderTempGraph();
+  renderTips();
   renderNextRain();
+  loadDiscussion();
 }
 
 function renderHourly() {
@@ -730,7 +1031,7 @@ function renderHourly() {
 function dayDetail(i) {
   const d = data.daily, h = data.hourly;
   const di = info(d.weather_code[i]);
-  const label = new Date(d.time[i] + "T12:00").toLocaleDateString(undefined,{weekday:"long", month:"long", day:"numeric"});
+  const label = new Date(d.time[i] + "T12:00").toLocaleDateString(LOC(),{weekday:"long", month:"long", day:"numeric"});
   let hours = "";
   h.time.forEach((t, k) => {
     if (!t.startsWith(d.time[i])) return;
@@ -761,7 +1062,7 @@ function renderDays() {
   let html = "";
   d.time.forEach((t, i) => {
     const di = info(d.weather_code[i]);
-    const name = i === 0 ? "Today" : new Date(t + "T12:00").toLocaleDateString(undefined,{weekday:"short"});
+    const name = i === 0 ? "Today" : new Date(t + "T12:00").toLocaleDateString(LOC(),{weekday:"short"});
     const lo = d.temperature_2m_min[i], hi = d.temperature_2m_max[i], p = d.precipitation_probability_max[i] ?? 0;
     const left = (lo - minAll) / span * 100, width = Math.max((hi - lo) / span * 100, 4);
     const nowDot = i === 0 ? `<b style="left:${Math.min(100, Math.max(0, (c.temperature_2m - minAll) / span * 100))}%"></b>` : "";
@@ -786,7 +1087,7 @@ function nextRain() {
     const p = h.precipitation_probability[i] ?? 0, code = h.weather_code[i];
     if (p >= 50 || code >= 51) {
       const hrs = i - start, snow = [71,73,75,77,85,86].includes(code);
-      const when = new Date(h.time[i]).toLocaleString(undefined, { weekday: hrs < 18 ? undefined : "short", hour: "numeric" });
+      const when = new Date(h.time[i]).toLocaleString(LOC(), { weekday: hrs < 18 ? undefined : "short", hour: "numeric" });
       return { hrs, text: `${hrs === 0 ? (snow ? "Snow" : "Rain") + " likely now" : `${snow ? "Snow" : "Rain"} likely ${hrs < 18 ? "around " : ""}${when}`} (${p}% chance)` };
     }
   }
@@ -1036,6 +1337,7 @@ function rebuild() {
   $("slider").max = Math.max(0, frames.length - 1);
   let idx = frames.findIndex(f => f.key === cur);
   if (idx < 0) idx = Math.max(0, pastFrames.length - 1);
+  if (typeof mapMode !== "undefined" && mapMode !== "radar") { frameIdx = idx; return; }
   renderLegend();
   if (frames.length) showFrame(idx);
   else $("rtime").textContent = "Radar unavailable";
@@ -1066,6 +1368,7 @@ function ensureLayer(f) {
 }
 const shownLayer = e => e ? (e.ready ? e.layer : e.old) : null;
 function display(f) {
+  if (typeof mapMode !== "undefined" && mapMode !== "radar") return true;
   const e = layers[f.key], target = shownLayer(e);
   if (!target) return false;
   Object.values(layers).forEach(x => { [x.layer, x.old].forEach(l => { if (l && l !== target) l.setOpacity(0); }); });
@@ -1093,7 +1396,7 @@ function showFrame(i) {
   frameIdx = (i + frames.length) % frames.length;
   const f = frames[frameIdx];
   const e = ensureLayer(f);
-  if (!display(f) && !playTimer) {             // dragging the slider: show it right away, rain fills in as it loads
+  if (!display(f) && !playTimer && mapMode === "radar") {             // dragging the slider: show it right away, rain fills in as it loads
     Object.values(layers).forEach(x => [x.layer, x.old].forEach(l => { if (l && l !== e.layer) l.setOpacity(0); }));
     e.layer.setOpacity(0.8); visibleKey = f.key;
   }
@@ -1101,7 +1404,8 @@ function showFrame(i) {
   if (nx) ensureLayer(nx);                      // get the next frame ready
   $("slider").value = frameIdx;
   delete $("rtime").dataset.loading;
-  const clock = t => new Date(t).toLocaleTimeString(undefined,{hour:"numeric", minute:"2-digit"});
+  if (mapMode !== "radar") return;
+  const clock = t => new Date(t).toLocaleTimeString(LOC(),{hour:"numeric", minute:"2-digit"});
   if (f.model || f.hrrr) {
     const mins = Math.round((f.time - Date.now()) / 60000);
     let rel;
@@ -1201,17 +1505,136 @@ $("play").onclick = () => {
 document.querySelectorAll("[data-speed]").forEach(b => b.onclick = () => setSpeed(+b.dataset.speed));
 setSpeed(speed);
 $("slider").oninput = e => { if (playTimer) stopPlay(); showFrame(+e.target.value); };
-document.querySelectorAll("[data-layer]").forEach(b => b.onclick = () => setRadarLayer(b.dataset.layer));
 $("warnBtn").onclick = () => toggleWarnings(!warnLayer);
 
 
 
 
 
+/* ---------- Extra maps: satellite, rain totals, storm outlook, hurricanes (all NOAA / NWS) ---------- */
+let mapMode = "radar", overlay = null, overlayOpt = { totals: "mrms_p24h", outlook: 1 };
+const IEMWMS = "https://mesonet.agron.iastate.edu/cgi-bin/wms/";
+const OUTLOOK_LAYERS = { 1: 1, 2: 9, 3: 17 };   // NOAA map service layer ids for the day 1/2/3 categorical outlooks
+const RISK = {
+  TSTM: { c: "#c1e9c1", n: "Thunderstorms", d: "General thunderstorms, not expected to be severe" },
+  MRGL: { c: "#66a366", n: "1 · Marginal", d: "Isolated severe storms possible" },
+  SLGT: { c: "#f6f67b", n: "2 · Slight", d: "Scattered severe storms possible" },
+  ENH:  { c: "#e6c27a", n: "3 · Enhanced", d: "Numerous severe storms possible" },
+  MDT:  { c: "#e67f7f", n: "4 · Moderate", d: "Widespread severe storms likely" },
+  HIGH: { c: "#ff80ff", n: "5 · High", d: "Widespread, long-lived, intense storms" }
+};
+const prop = (p, k) => p[k] ?? p[k.toUpperCase()] ?? p[k.toLowerCase()];
+
+function clearOverlay() { if (overlay) { map.removeLayer(overlay); overlay = null; } }
+function hideRadarFrames() {
+  if (playTimer) stopPlay();
+  Object.values(layers).forEach(x => [x.layer, x.old].forEach(l => l && l.setOpacity(0)));
+  visibleKey = null;
+}
+function setMapMode(m) {
+  if (!map) return;
+  mapMode = m;
+  document.querySelectorAll("[data-layer]").forEach(b => b.classList.toggle("on", b.dataset.layer === m));
+  clearOverlay();
+  const radarUI = m === "radar";
+  [".radar-ctrl", ".speeds", "#ticks"].forEach(sel => { const el = document.querySelector(sel); if (el) el.style.display = radarUI ? "" : "none"; });
+  $("subopts").innerHTML = ""; $("futureNote").textContent = "";
+  if (radarUI) { $("subopts").style.display = "none"; renderLegend(); if (frames.length) showFrame(frameIdx); return; }
+  hideRadarFrames();
+  $("subopts").style.display = "";
+  if (m === "sat") showSatellite();
+  if (m === "totals") showTotals();
+  if (m === "outlook") showOutlook();
+  if (m === "storms") showStorms();
+}
+function badge(top, main, cls) { $("badge").className = "badge " + (cls || "future"); $("badge").innerHTML = `<small>${top}</small>${main}`; }
+
+function showSatellite() {
+  const west = place.longitude < -105;
+  overlay = L.tileLayer.wms(IEMWMS + (west ? "goes_west.cgi" : "goes_east.cgi"), {
+    layers: "conus_ch13", format: "image/png", transparent: true, opacity: 0.75, zIndex: 15, _: Math.floor(Date.now() / 300000)
+  }).addTo(map);
+  badge("SATELLITE", "Clouds now", "live");
+  $("rtime").innerHTML = `<b>Latest image</b> · NOAA ${west ? "GOES-West" : "GOES-East"} satellite, infrared`;
+  $("legendBox").innerHTML = `<span class="lg wide"><i style="background:linear-gradient(90deg,#222,#888,#fff)"></i>Low, warm clouds → high, cold clouds</span>`;
+  $("radarNote").textContent = "Infrared shows clouds day and night. Brighter clouds are higher and colder, which often means thicker clouds and storms.";
+}
+
+function showTotals() {
+  const opts = [["mrms_p1h", "1 hour"], ["mrms_p24h", "24 hours"], ["mrms_p72h", "3 days"]];
+  $("subopts").innerHTML = opts.map(([k, n]) => `<button data-tot="${k}" class="${overlayOpt.totals === k ? "on" : ""}">${n}</button>`).join("");
+  document.querySelectorAll("[data-tot]").forEach(b => b.onclick = () => { overlayOpt.totals = b.dataset.tot; setMapMode("totals"); });
+  overlay = L.tileLayer.wms(IEMWMS + "us/mrms_nn.cgi", {
+    layers: overlayOpt.totals, format: "image/png", transparent: true, opacity: 0.8, zIndex: 15, _: Math.floor(Date.now() / 600000)
+  }).addTo(map);
+  const label = opts.find(o => o[0] === overlayOpt.totals)[1];
+  badge("RAIN TOTALS", "Last " + label, "live");
+  $("rtime").innerHTML = `<b>Rain and melted snow in the last ${label}</b> · NOAA MRMS radar estimate`;
+  const leg = `${IEMWMS}us/mrms_nn.cgi?service=WMS&version=1.1.1&request=GetLegendGraphic&format=image/png&layer=${overlayOpt.totals}`;
+  $("legendBox").innerHTML = `<img src="${leg}" alt="" style="max-width:100%;border-radius:8px;background:#fff" onerror="this.replaceWith(document.createTextNode('Colors go from light amounts to heavy amounts.'))">`;
+  $("radarNote").textContent = "Estimated from radar and rain gauges. Snow is counted as the water it melts into.";
+}
+
+async function showOutlook() {
+  $("subopts").innerHTML = [1, 2, 3].map(d => `<button data-day="${d}" class="${overlayOpt.outlook === d ? "on" : ""}">${d === 1 ? "Today" : d === 2 ? "Tomorrow" : "Day 3"}</button>`).join("");
+  document.querySelectorAll("[data-day]").forEach(b => b.onclick = () => { overlayOpt.outlook = +b.dataset.day; setMapMode("outlook"); });
+  badge("STORM OUTLOOK", overlayOpt.outlook === 1 ? "Today" : overlayOpt.outlook === 2 ? "Tomorrow" : "Day 3");
+  $("rtime").innerHTML = "Loading the Storm Prediction Center outlook…";
+  $("legendBox").innerHTML = Object.values(RISK).map(r => `<span class="lg"><i style="background:${r.c};width:16px;height:12px"></i>${r.n}</span>`).join("");
+  $("radarNote").textContent = "From NOAA's Storm Prediction Center. Tap a colored area to see what it means. Higher numbers mean a bigger chance of severe storms (large hail, damaging wind or tornadoes).";
+  const day = overlayOpt.outlook;
+  let gj = null;
+  try {
+    const r = await fetch(`https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/SPC_wx_outlks/MapServer/${OUTLOOK_LAYERS[day]}/query?where=1%3D1&outFields=*&outSR=4326&f=geojson`);
+    gj = await r.json();
+    if (!gj.features) throw new Error();
+  } catch(e) {
+    try { gj = await (await fetch(`https://www.spc.noaa.gov/products/outlook/day${day}otlk_cat.nolyr.geojson`)).json(); } catch(e2) { gj = null; }
+  }
+  if (mapMode !== "outlook" || overlayOpt.outlook !== day) return;
+  if (!gj) { $("rtime").textContent = "The storm outlook couldn't load right now. Try again in a few minutes."; return; }
+  const feats = (gj.features || []).filter(f => RISK[String(prop(f.properties, "label") || "").toUpperCase()]);
+  overlay = L.geoJSON({ type: "FeatureCollection", features: feats }, {
+    style: f => { const k = String(prop(f.properties, "label")).toUpperCase(); return { color: prop(f.properties, "stroke") || RISK[k].c, weight: 1.5, fillColor: prop(f.properties, "fill") || RISK[k].c, fillOpacity: 0.45 }; },
+    onEachFeature: (f, l) => { const k = String(prop(f.properties, "label")).toUpperCase(); l.bindPopup(`<b>${RISK[k].n}</b><br>${RISK[k].d}`); }
+  }).addTo(map);
+  const here = feats.map(f => String(prop(f.properties, "label")).toUpperCase()).filter(k => k !== "TSTM");
+  $("rtime").innerHTML = feats.length ? `<b>${feats.length} outlook area${feats.length > 1 ? "s" : ""}</b> on the map · zoom out to see the whole country` : "<b>No severe storms expected</b> anywhere in the US for this day.";
+  if (feats.length) { try { map.fitBounds(overlay.getBounds(), { maxZoom: 6, padding: [20, 20] }); } catch(e) {} }
+}
+
+async function showStorms() {
+  badge("HURRICANES", "Active storms");
+  $("legendBox").innerHTML = "";
+  $("radarNote").textContent = "From NOAA's National Hurricane Center (Atlantic and Eastern/Central Pacific).";
+  $("rtime").textContent = "Checking for active storms…";
+  let list = null;
+  try { list = (await (await fetch("https://www.nhc.noaa.gov/CurrentStorms.json", { cache: "no-store" })).json()).activeStorms; } catch(e) {}
+  if (mapMode !== "storms") return;
+  if (!list) { $("rtime").innerHTML = `Couldn't reach the Hurricane Center. See <a href="https://www.nhc.noaa.gov/" target="_blank" rel="noopener" style="color:var(--accent)">nhc.noaa.gov</a>.`; return; }
+  if (!list.length) { $("rtime").innerHTML = "<b>No active hurricanes or tropical storms</b> right now."; return; }
+  overlay = L.layerGroup().addTo(map);
+  const pts = [];
+  list.forEach(s => {
+    const lat = +s.latitudeNumeric, lon = +s.longitudeNumeric;
+    if (isNaN(lat) || isNaN(lon)) return;
+    pts.push([lat, lon]);
+    const kind = { HU: "Hurricane", TS: "Tropical Storm", TD: "Tropical Depression", STS: "Subtropical Storm", PTC: "Potential Tropical Cyclone" }[s.classification] || s.classification;
+    const mph = s.intensity ? Math.round(+s.intensity * 1.15078) : null;
+    L.marker([lat, lon], { icon: L.divIcon({ className: "stormicon", html: "🌀", iconSize: [34, 34], iconAnchor: [17, 17] }) })
+      .bindPopup(`<b>${kind} ${esc(s.name)}</b><br>${mph ? "Winds " + mph + " mph<br>" : ""}${s.movementDir != null ? "Moving " + compass(+s.movementDir) + (s.movementSpeed ? " at " + Math.round(+s.movementSpeed * 1.15078) + " mph" : "") + "<br>" : ""}${s.publicAdvisory && s.publicAdvisory.url ? `<a href="${s.publicAdvisory.url}" target="_blank" rel="noopener">Read the advisory</a>` : ""}`)
+      .addTo(overlay);
+  });
+  $("rtime").innerHTML = `<b>${list.length} active storm${list.length > 1 ? "s" : ""}</b> · tap a 🌀 for details`;
+  if (pts.length) map.fitBounds(pts, { maxZoom: 5, padding: [40, 40] });
+}
+document.querySelectorAll("[data-layer]").forEach(b => b.onclick = () => setMapMode(b.dataset.layer));
+setInterval(() => { if (map && (mapMode === "sat" || mapMode === "totals")) setMapMode(mapMode); }, 10 * 60000);
+
 /* ---------- Warnings (National Weather Service, US) ---------- */
 let alerts = [];
 const esc = t => String(t || "").replace(/[&<>]/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" }[ch]));
-const fmtWhen = s => s ? new Date(s).toLocaleString(undefined, { weekday:"short", hour:"numeric", minute:"2-digit" }) : "";
+const fmtWhen = s => s ? new Date(s).toLocaleString(LOC(), { weekday:"short", hour:"numeric", minute:"2-digit" }) : "";
 async function alertsAt(lat, lon) {
   const r = await fetch(`https://api.weather.gov/alerts/active?point=${lat.toFixed(4)},${lon.toFixed(4)}`, { headers: { Accept: "application/geo+json" } });
   if (!r.ok) throw new Error("alerts");
@@ -1293,6 +1716,7 @@ async function show(title, body, tag) {
 }
 function notifyNew() {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (typeof notifPrefs !== "undefined" && !notifPrefs.warn) return;
   let seen = [];
   try { seen = JSON.parse(localStorage.getItem("skycast_seen_alerts") || "[]"); } catch(e) {}
   alerts.forEach(a => {
@@ -1308,7 +1732,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114001726";
+const BUILD = "20261114003016";
 async function checkForUpdate() {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
@@ -1345,7 +1769,7 @@ function renderCities() {
   $("curLoc").onclick = useMyLocation;
   document.querySelectorAll(".city[data-i]").forEach(b => b.onclick = e => {
     const del = e.target.dataset.del;
-    if (del !== undefined) { e.stopPropagation(); saved.splice(+del, 1); persistSaved(); renderCities(); return; }
+    if (del !== undefined) { e.stopPropagation(); saved.splice(+del, 1); persistSaved(); renderCities(); renderCompare(false); return; }
     goTo(saved[+b.dataset.i]);
   });
   const sb = $("saveBtn");
@@ -1353,7 +1777,7 @@ function renderCities() {
     const i = saved.findIndex(p => keyOf(p) === cur);
     if (i >= 0) { saved.splice(i, 1); toast(place.name + " removed"); }
     else { if (saved.length >= 12) saved.shift(); saved.push({ name: place.name, admin1: place.admin1, country: place.country, latitude: place.latitude, longitude: place.longitude }); toast(place.name + " saved"); }
-    persistSaved(); renderCities();
+    persistSaved(); renderCities(); renderCompare(false);
   };
 }
 function goTo(p) { place = { ...p }; selDay = null; save(); renderCities(); load(); moveMap(); notifyState(); }
@@ -1391,6 +1815,211 @@ function showView() {
   scrollTo(0, 0);
 }
 addEventListener("hashchange", showView);
+
+/* ---------- Settings: language, theme, text size ---------- */
+const SITE_URL = "https://fahhhh2-dotcom.github.io/The-Daliy-Bark/weather/";
+const ES = {
+  // longer phrases first is handled automatically
+  "Search a US city, then press Search": "Busca una ciudad de EE. UU.",
+  "Weather": "Clima", "Radar": "Radar", "Current location": "Ubicación actual", "Save": "Guardar", "Saved": "Guardada",
+  "Next 24 hours": "Próximas 24 horas", "Temperature & chance of rain": "Temperatura y probabilidad de lluvia",
+  "7-day forecast": "Pronóstico de 7 días", "Tap a day": "Toca un día", "Today": "Hoy", "Tomorrow": "Mañana", "Now": "Ahora",
+  "Your cities": "Tus ciudades", "Update": "Actualizar", "older": "antiguo", "rain": "lluvia",
+  "Conditions": "Condiciones", "as of": "a las", "Station": "Estación",
+  "Feels like": "Sensación", "Feels": "Sensación", "Rain": "Lluvia", "Chance of rain": "Prob. de lluvia", "Total precip": "Precipitación total",
+  "Snowfall": "Nieve", "Wind": "Viento", "Gusts": "Ráfagas", "gusts": "ráfagas", "From the": "Del", "Sunrise / sunset": "Amanecer / atardecer",
+  "Daylight": "Luz del día", "Sunrise": "Amanecer", "Sunset": "Atardecer", "Sun": "Sol", "Moon": "Luna", "Moonrise": "Salida de la luna", "Moonset": "Puesta de la luna",
+  "lit": "iluminada", "Next full moon": "Próxima luna llena",
+  "New moon": "Luna nueva", "Waxing crescent": "Creciente", "First quarter": "Cuarto creciente", "Waxing gibbous": "Gibosa creciente",
+  "Full moon": "Luna llena", "Waning gibbous": "Gibosa menguante", "Last quarter": "Cuarto menguante", "Waning crescent": "Menguante",
+  "Dew point": "Punto de rocío", "Sticky": "Pegajoso", "Comfortable": "Agradable", "Dry air": "Aire seco", "Humidity": "Humedad",
+  "Muggy": "Bochornoso", "Damp": "Húmedo", "Dry": "Seco", "Pressure": "Presión",
+  "Live · updated": "En vivo · actualizado", "Offline · saved weather from": "Sin conexión · clima guardado de", "Offline · saved weather": "Sin conexión · clima guardado",
+  "Showing saved weather from": "Mostrando clima guardado de", "updating…": "actualizando…", "Loading weather…": "Cargando el clima…",
+  "Today's tips": "Consejos de hoy", "What forecasters are saying": "Lo que dicen los meteorólogos", "Read the full discussion": "Leer la discusión completa",
+  "Weather warnings": "Alertas del clima", "Allow notifications": "Permitir notificaciones", "✓ Notifications on": "✓ Notificaciones activadas",
+  "Get a notification when there's a warning for your city.": "Recibe una notificación cuando haya una alerta para tu ciudad.",
+  "until": "hasta", "What's happening": "Qué está pasando", "What to do": "Qué hacer", "Areas": "Zonas", "From": "De",
+  "Open": "Abrir", "Live and future radar, satellite, rain totals, storm outlook, hurricanes and warnings": "Radar en vivo y futuro, satélite, lluvia acumulada, tormentas, huracanes y alertas",
+  "Satellite": "Satélite", "Rain totals": "Lluvia acumulada", "Storm outlook": "Pronóstico de tormentas", "Hurricanes": "Huracanes", "Warnings": "Alertas",
+  "Speed": "Velocidad", "LIVE RADAR": "RADAR EN VIVO", "PAST RADAR": "RADAR ANTERIOR", "FUTURE RADAR": "RADAR FUTURO", "FORECAST": "PRONÓSTICO",
+  "SATELLITE": "SATÉLITE", "RAIN TOTALS": "LLUVIA ACUMULADA", "STORM OUTLOOK": "TORMENTAS", "HURRICANES": "HURACANES",
+  "live radar (NWS NEXRAD)": "radar en vivo (NWS NEXRAD)", "min ago": "min atrás", "Future": "Futuro", "Loading radar…": "Cargando radar…",
+  "Light → heavy": "Ligera → fuerte", "Light": "Ligera", "Heavy": "Fuerte",
+  "Open The Weather Channel radar ↗": "Abrir el radar de The Weather Channel ↗",
+  "No active hurricanes or tropical storms": "No hay huracanes ni tormentas tropicales activos", "right now.": "en este momento.",
+  "No severe storms expected": "No se esperan tormentas fuertes", "anywhere in the US for this day.": "en EE. UU. para este día.",
+  "Clear sky": "Despejado", "Mostly clear": "Mayormente despejado", "Partly cloudy": "Parcialmente nublado", "Overcast": "Nublado",
+  "Fog": "Niebla", "Freezing fog": "Niebla helada", "Light drizzle": "Llovizna ligera", "Drizzle": "Llovizna", "Heavy drizzle": "Llovizna fuerte",
+  "Freezing drizzle": "Llovizna helada", "Light rain": "Lluvia ligera", "Heavy rain": "Lluvia fuerte", "Freezing rain": "Lluvia helada",
+  "Light snow": "Nieve ligera", "Snow": "Nieve", "Heavy snow": "Nieve fuerte", "Snow grains": "Granos de nieve", "Rain showers": "Chubascos",
+  "Violent showers": "Chubascos fuertes", "Snow showers": "Chubascos de nieve", "Thunderstorm": "Tormenta eléctrica", "Thunderstorm & hail": "Tormenta con granizo",
+  "Settings": "Ajustes", "Language": "Idioma", "Theme": "Tema", "Dark": "Oscuro", "Auto": "Automático", "Text size": "Tamaño del texto",
+  "Normal": "Normal", "Large": "Grande", "Units": "Unidades", "Share": "Compartir", "Share today's weather": "Compartir el clima de hoy",
+  "Share SkyCast": "Compartir SkyCast", "Done": "Listo", "Install SkyCast as an app": "Instalar SkyCast como app",
+  "Weather Service forecasts, discussions and warnings stay in English.": "Los pronósticos, discusiones y alertas del Servicio Meteorológico se muestran en inglés.",
+  "Link copied": "Enlace copiado", "Press and hold the picture to save or share it.": "Mantén presionada la imagen para guardarla o compartirla.",
+  "Download picture": "Descargar imagen", "Close": "Cerrar",
+  "Bring an umbrella: rain likely": "Lleva paraguas: probable lluvia", "Snow likely": "Probable nieve", "wear boots and give yourself extra travel time.": "usa botas y sal con tiempo.",
+  "after": "después de las", "now": "ahora",
+  "Bitter cold: heavy coat, hat and gloves.": "Frío intenso: abrigo grueso, gorro y guantes.", "Wear a warm coat.": "Usa un abrigo.",
+  "Grab a jacket.": "Lleva una chaqueta.", "Light layers or a sweater.": "Capas ligeras o un suéter.",
+  "Very hot: light clothes, drink plenty of water.": "Mucho calor: ropa ligera y toma mucha agua.",
+  "Warm out: shorts weather. Don't forget sunscreen if it's sunny.": "Hace calor: día de shorts. No olvides el protector solar si hay sol.",
+  "Comfortable out: a T-shirt should be fine.": "Clima agradable: una camiseta basta.",
+  "Very windy: secure loose things outside.": "Mucho viento: asegura objetos sueltos afuera.",
+  "There's an active weather alert. Tap it at the top for details.": "Hay una alerta del clima activa. Tócala arriba para ver detalles.",
+  "Rain likely": "Probable lluvia", "likely now": "probable ahora", "chance": "probabilidad", "near": "cerca de",
+  "Press play to watch it on the future radar.": "Pulsa reproducir para verla en el radar futuro.",
+  "No rain or snow expected near": "No se espera lluvia ni nieve cerca de", "in the next 7 days.": "en los próximos 7 días.",
+  "SkyCast covers the United States only. Search for a US city or town.": "SkyCast solo cubre Estados Unidos. Busca una ciudad de EE. UU.",
+  "US locations only": "Solo ubicaciones de EE. UU.", "United States": "Estados Unidos",
+  "Warning notifications": "Notificaciones de alertas", "Official weather warnings": "Alertas oficiales del clima", "Extra alerts mode": "Modo de alertas extra",
+  "Rain coming": "Viene lluvia", "Snow coming": "Viene nieve", "Thunderstorms coming": "Vienen tormentas", "Freezing temperatures tonight": "Temperaturas bajo cero esta noche",
+  "Notifications": "Notificaciones", "Install SkyCast as an app": "Instalar SkyCast como app"
+};
+const ES_KEYS = Object.keys(ES).sort((a, b) => b.length - a.length);
+const ES_RE = new RegExp(ES_KEYS.map(k => "(?<![A-Za-zÀ-ÿ])" + k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![A-Za-zÀ-ÿ])").join("|"), "g");
+const SKIP = ".nws-raw, .nwstext, .alert .ad, .alert .as, .alert .ah, script, style, svg.mark, input, .word";
+function translateNode(root) {
+  if (lang !== "es" || !root) return;
+  const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement && n.parentElement.closest(SKIP) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  const nodes = []; while (walk.nextNode()) nodes.push(walk.currentNode);
+  nodes.forEach(n => { const t = n.nodeValue; if (!/[A-Za-z]/.test(t)) return; const r = t.replace(ES_RE, m => ES[m]); if (r !== t) n.nodeValue = r; });
+}
+const translator = new MutationObserver(muts => { if (lang !== "es") return; muts.forEach(m => m.addedNodes.forEach(n => translateNode(n.nodeType === 3 ? n.parentElement : n))); });
+
+let theme = "dark", textSize = "normal";
+try { const st = JSON.parse(localStorage.getItem("skycast_prefs") || "{}"); lang = st.lang || (navigator.language || "").startsWith("es") && "es" || "en"; theme = st.theme || "dark"; textSize = st.textSize || "normal"; } catch(e) {}
+function savePrefs() { try { localStorage.setItem("skycast_prefs", JSON.stringify({ lang, theme, textSize })); } catch(e) {} }
+function applyPrefs(rerender) {
+  const light = theme === "light" || (theme === "auto" && matchMedia("(prefers-color-scheme: light)").matches);
+  document.documentElement.classList.toggle("light", light);
+  document.documentElement.classList.toggle("large", textSize === "large");
+  document.documentElement.lang = lang;
+  $("q").placeholder = lang === "es" ? ES["Search a US city, then press Search"] : "Search a US city, then press Search";
+  document.querySelectorAll("[data-pref]").forEach(b => { const [k, v] = b.dataset.pref.split(":"); b.classList.toggle("on", { lang, theme, textSize }[k] === v); });
+  if (lang === "es") { translator.observe(document.body, { childList: true, subtree: true }); translateNode(document.body); }
+  else translator.disconnect();
+  if (rerender) { if (data) render(); if (map) rebuild(); renderCities(); if (typeof mapMode !== "undefined" && mapMode !== "radar") setMapMode(mapMode); }
+}
+document.querySelectorAll("[data-pref]").forEach(b => b.onclick = () => {
+  const [k, v] = b.dataset.pref.split(":");
+  const wasEs = lang === "es";
+  if (k === "lang") lang = v; if (k === "theme") theme = v; if (k === "textSize") textSize = v;
+  savePrefs();
+  if (wasEs && lang === "en") { location.reload(); return; }   // switching back to English: reload for a clean page
+  applyPrefs(true);
+});
+$("gearBtn").onclick = () => $("sheet").classList.add("open");
+$("sheetClose").onclick = () => $("sheet").classList.remove("open");
+$("sheet").onclick = e => { if (e.target.id === "sheet") $("sheet").classList.remove("open"); };
+matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { if (theme === "auto") applyPrefs(false); });
+
+/* ---------- Sharing (helps you promote SkyCast) ---------- */
+async function shareSkyCast() {
+  const payload = { title: "SkyCast Weather", text: "Free live weather, radar and storm alerts:", url: SITE_URL + "install.html" };
+  try { if (navigator.share) { await navigator.share(payload); return; } } catch(e) { if (e.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(payload.url); toast(lang === "es" ? ES["Link copied"] : "Link copied"); } catch(e) { toast(payload.url); }
+}
+async function shareCard() {
+  if (!data) return;
+  const W = 1080, H = 1350, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const x = cv.getContext("2d"), c = data.current, d = data.daily;
+  const kind = kindOf(c.weather_code, isDayAt(c.time));
+  const bg = { day: ["#3d8bfd", "#0d2c63"], night: ["#253a6b", "#070d1f"], cloudy: ["#6c7c92", "#1d2533"], rain: ["#3b5a8f", "#0e1a30"], snow: ["#9fb7d4", "#2b3c56"], storm: ["#5a4a8a", "#120f24"], fog: ["#8b97a6", "#262d37"] }[kind];
+  const g = x.createLinearGradient(0, 0, W * 0.6, H); g.addColorStop(0, bg[0]); g.addColorStop(1, bg[1]); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  const font = (w, s) => `${w} ${s}px "Plus Jakarta Sans", system-ui, sans-serif`;
+  // logo
+  try {
+    const svg = new XMLSerializer().serializeToString(document.querySelector(".brand .mark"));
+    const img = new Image(); img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    await img.decode(); x.drawImage(img, 70, 70, 110, 110);
+  } catch(e) {}
+  x.fillStyle = "#fff"; x.font = font(800, 64); x.fillText("Sky", 200, 148);
+  const skyW = x.measureText("Sky").width; x.fillStyle = "#ffbf5e"; x.fillText("Cast", 200 + skyW, 148);
+  const now = info(c.weather_code, isDayAt(c.time));
+  const loc = [place.name, place.admin1].filter(Boolean).join(", ");
+  x.fillStyle = "rgba(255,255,255,.85)"; x.font = font(600, 44); x.fillText("📍 " + loc, 70, 300);
+  x.font = font(500, 34); x.fillStyle = "rgba(255,255,255,.65)";
+  x.fillText(new Date().toLocaleDateString(LOC(), { weekday: "long", month: "long", day: "numeric" }), 70, 352);
+  x.fillStyle = "#fff"; x.font = font(300, 300); x.fillText(cvtT(c.temperature_2m) + "°", 50, 640);
+  x.font = "220px system-ui, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif"; x.textAlign = "right"; x.fillText(now.icon, W - 60, 600); x.textAlign = "left";
+  const condTxt = lang === "es" ? (ES[now.text] || now.text) : (c.condition_text || now.text);
+  x.font = font(700, 54); x.fillText(condTxt, 70, 740);
+  x.font = font(500, 40); x.fillStyle = "rgba(255,255,255,.75)";
+  x.fillText(`H ${cvtT(d.temperature_2m_max[0])}°  ·  L ${cvtT(d.temperature_2m_min[0])}°  ·  ☔ ${d.precipitation_probability_max[0]}%`, 70, 805);
+  // 5-day strip
+  const n = Math.min(5, d.time.length), bw = (W - 140) / n;
+  x.fillStyle = "rgba(0,0,0,.25)"; x.beginPath(); x.roundRect(70, 880, W - 140, 270, 36); x.fill();
+  for (let i = 0; i < n; i++) {
+    const cx = 70 + bw * i + bw / 2; x.textAlign = "center";
+    x.fillStyle = "rgba(255,255,255,.8)"; x.font = font(700, 34);
+    x.fillText(i === 0 ? (lang === "es" ? "Hoy" : "Today") : new Date(d.time[i] + "T12:00").toLocaleDateString(LOC(), { weekday: "short" }), cx, 945);
+    x.font = "64px system-ui, 'Apple Color Emoji', sans-serif"; x.fillText(info(d.weather_code[i]).icon, cx, 1035);
+    x.fillStyle = "#fff"; x.font = font(700, 36); x.fillText(cvtT(d.temperature_2m_max[i]) + "°", cx - 4, 1100);
+    x.fillStyle = "rgba(255,255,255,.6)"; x.font = font(500, 30); x.fillText(cvtT(d.temperature_2m_min[i]) + "°", cx, 1132);
+  }
+  x.textAlign = "left";
+  x.fillStyle = "rgba(255,255,255,.9)"; x.font = font(700, 36); x.fillText(lang === "es" ? "Consigue SkyCast gratis:" : "Get SkyCast free:", 70, 1240);
+  x.fillStyle = "#ffbf5e"; x.font = font(600, 30); x.fillText(SITE_URL.replace("https://", ""), 70, 1285);
+  const blob = await new Promise(r => cv.toBlob(r, "image/png"));
+  const file = new File([blob], "skycast-weather.png", { type: "image/png" });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: "SkyCast Weather", text: `Weather in ${loc} · ${SITE_URL}` }); return;
+    }
+  } catch(e) { if (e.name === "AbortError") return; }
+  const url = URL.createObjectURL(blob);
+  $("shareImg").src = url; $("shareDl").href = url;
+  $("sheet").classList.remove("open"); $("shareView").classList.add("open");
+}
+$("shareCardBtn").onclick = shareCard;
+$("extraBtn").onclick = () => { $("sheet").classList.add("open"); setTimeout(() => document.querySelector('[data-notif="extra"]').scrollIntoView({ block: "center", behavior: "smooth" }), 50); };
+$("shareAppBtn").onclick = shareSkyCast;
+$("shareClose").onclick = () => $("shareView").classList.remove("open");
+
+/* ---------- Extra notifications: rain, snow, storms, freeze (checked every time the forecast refreshes) ---------- */
+let notifPrefs = { warn: true, extra: false, rain: true, snow: true, storm: true, freeze: true };
+try { Object.assign(notifPrefs, JSON.parse(localStorage.getItem("skycast_notif") || "{}")); } catch(e) {}
+function renderNotifToggles() {
+  document.querySelectorAll("[data-notif]").forEach(b => { b.classList.toggle("on", !!notifPrefs[b.dataset.notif]); b.setAttribute("aria-pressed", !!notifPrefs[b.dataset.notif]); });
+  $("subtog").classList.toggle("off", !notifPrefs.extra);
+}
+document.querySelectorAll("[data-notif]").forEach(b => b.onclick = async () => {
+  const k = b.dataset.notif;
+  if (["rain", "snow", "storm", "freeze"].includes(k) && !notifPrefs.extra) { toast(lang === "es" ? "Primero activa el modo de alertas extra." : "Turn on Extra alerts mode first."); return; }
+  notifPrefs[k] = !notifPrefs[k];
+  try { localStorage.setItem("skycast_notif", JSON.stringify(notifPrefs)); } catch(e) {}
+  renderNotifToggles();
+  if (notifPrefs[k] && "Notification" in window && Notification.permission === "default") {
+    const p = await Notification.requestPermission(); notifyState(); if (p === "granted") getSW();
+  }
+  if (!("Notification" in window) || Notification.permission !== "granted") toast(lang === "es" ? "Primero permite las notificaciones." : "Allow notifications first so SkyCast can alert you.");
+  checkWeatherNotifs();
+});
+function checkWeatherNotifs() {
+  if (!notifPrefs.extra || !data || !("Notification" in window) || Notification.permission !== "granted") return;
+  const h = data.hourly, c = data.current;
+  const start = Math.max(0, h.time.findIndex(t => t >= c.time.slice(0, 13)));
+  const soon = h.time.slice(start, start + 3).map((t, k) => ({ t, p: h.precipitation_probability[start + k] || 0, code: h.weather_code[start + k], temp: h.temperature_2m[start + k] }));
+  const tonight = h.time.slice(start, start + 12).map((t, k) => ({ t, temp: h.temperature_2m[start + k] }));
+  let sent = {};
+  try { sent = JSON.parse(localStorage.getItem("skycast_sent") || "{}"); } catch(e) {}
+  const day = c.time.slice(0, 10), city = place.name, es = lang === "es";
+  const fire = (key, title, body) => { const id = key + "|" + day + "|" + keyOf(place); if (sent[id]) return; sent[id] = Date.now(); show(title, body, id); };
+  const isSnow = x => [71, 73, 75, 77, 85, 86].includes(x.code), isStorm = x => x.code >= 95, isWet = x => x.p >= 50 || x.code >= 51;
+  const snowHr = soon.find(x => isSnow(x) && isWet(x)), stormHr = soon.find(isStorm), rainHr = soon.find(x => isWet(x) && !isSnow(x) && !isStorm(x));
+  const when = x => x.t === soon[0].t ? (es ? "ahora" : "now") : (es ? "cerca de las " : "around ") + fmtHour(x.t);
+  if (notifPrefs.snow && snowHr) fire("snow", es ? `❄️ Nieve pronto en ${city}` : `❄️ Snow coming in ${city}`, es ? `Probable nieve ${when(snowHr)} (${snowHr.p}%).` : `Snow likely ${when(snowHr)} (${snowHr.p}% chance).`);
+  if (notifPrefs.storm && stormHr) fire("storm", es ? `⛈️ Tormentas pronto en ${city}` : `⛈️ Storms coming in ${city}`, es ? `Probables tormentas eléctricas ${when(stormHr)}.` : `Thunderstorms likely ${when(stormHr)}. Head indoors when you hear thunder.`);
+  if (notifPrefs.rain && rainHr) fire("rain", es ? `☔ Lluvia pronto en ${city}` : `☔ Rain coming in ${city}`, es ? `Probable lluvia ${when(rainHr)} (${rainHr.p}%).` : `Rain likely ${when(rainHr)} (${rainHr.p}% chance). Grab an umbrella.`);
+  const freeze = tonight.find(x => x.temp <= 0);
+  if (notifPrefs.freeze && freeze && c.temperature_2m > 0) fire("freeze", es ? `🥶 Helada esta noche en ${city}` : `🥶 Freezing temps in ${city}`, es ? `Baja a ${cvtT(freeze.temp)}° ${when(freeze)}. Protege plantas y mascotas.` : `Drops to ${cvtT(freeze.temp)}° ${when(freeze)}. Bring in pets and plants.`);
+  const keep = Object.entries(sent).filter(([, t]) => Date.now() - t < 3 * 86400000);
+  try { localStorage.setItem("skycast_sent", JSON.stringify(Object.fromEntries(keep))); } catch(e) {}
+}
+renderNotifToggles();
 
 /* ---------- Search & controls ---------- */
 let timer;
@@ -1438,8 +2067,12 @@ function setUnit(u) {
 $("uF").onclick = () => setUnit("F");
 $("uC").onclick = () => setUnit("C");
 setUnit(unit);
+applyPrefs(false);
 renderCities();
-document.querySelectorAll("[data-layer]").forEach(b => b.classList.toggle("on", b.dataset.layer === radarLayer));
+$("cmpRefresh").onclick = () => renderCompare(true);
+setTimeout(() => renderCompare(false), 4000);
+setInterval(() => renderCompare(false), 30 * 60000);
+document.querySelectorAll("[data-layer]").forEach(b => b.classList.toggle("on", b.dataset.layer === "radar"));
 renderLegend();
 load();
 showView();
