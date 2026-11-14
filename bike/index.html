@@ -153,6 +153,7 @@ body::before{content:'';position:fixed;inset:-20%;z-index:-1;pointer-events:none
 @media (orientation:portrait){.side{height:clamp(170px,25dvh,230px)}.mc{padding:10px;gap:2px}.mic{display:none}.mc .tp{gap:6px}.mc .rb{width:38px;height:38px}.mc .rb.big{width:50px;height:50px}.wc{padding:12px}#wtmp{font-size:clamp(38px,8dvh,56px)}#wdsc{font-size:13px}.wrow b{font-size:14px}#wico{font-size:24px!important}}
 #night,#night2{display:none!important}
 #heng.on{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.35)}
+#heng{width:auto;min-width:56px;height:auto;padding:8px 10px;border-radius:22px;display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1}#heng span{font-size:22px;line-height:26px}#heng small{font-size:11px;font-weight:700}
 </style></head><body>
 
 <div id="splash"><div class="scene"><canvas id="b3d"></canvas><div class="road" style="display:none"></div>
@@ -172,13 +173,14 @@ body::before{content:'';position:fixed;inset:-20%;z-index:-1;pointer-events:none
 <div id="cp">
 <div class="rail"><div class="rt" id="rc">--:--</div><div class="note" id="rbat" style="margin:0"></div><span class="pill" id="rgps">GPS off</span><div class="rsep"></div>
 <button class="rb2 on" data-go="gps" aria-label="Map">🗺️</button><button class="rb2" data-go="music" aria-label="Music">♪</button><button class="rb2" data-go="rides" aria-label="Rides">🚕</button><button class="rb2" data-go="apps" aria-label="Apps">▦</button><button class="rb2" id="night2" aria-label="Night mode">🌙</button></div>
-<div class="mapw"><canvas id="hcv"></canvas><div class="mz"><button class="rb2" id="hzi">＋</button><button class="rb2" id="hzo">－</button><button class="rb2" id="heng" title="Engine sound follows your speed">🏍️</button></div></div>
+<div class="mapw"><canvas id="hcv"></canvas><div class="mz"><button class="rb2" id="hzi">＋</button><button class="rb2" id="hzo">－</button><button class="rb2" id="heng" title="Engine sound follows your speed"><span>🏍️</span><small id="hengt">Engine</small></button></div></div>
 <div class="side"><div class="mc"><div class="mic" id="mic2">🎵</div><div class="mt" id="hm">No music playing</div><div class="tp" style="margin:0"><button class="rb" id="hprev">⏮</button><button class="rb big" id="hplay">▶</button><button class="rb" id="hnext">⏭</button></div></div>
 <div class="wc"><div class="wrow"><b id="wloc">➤ Your location</b><span id="wico" style="font-size:34px">⛅</span></div><div id="wtmp">--°</div><div id="wdsc" style="font-weight:600">Waiting for location…</div><div class="wrow" style="margin-top:auto;color:#c7cbe8;font-size:14px"><span id="whl"></span><span id="wdat"></span></div></div></div>
 </div></div>
 <div class="scr" id="apps"><div class="hd"><button class="back">‹ Home</button><h3>Apps</h3></div><div class="grid">
 <button class="ic" data-go="music"><i style="background:linear-gradient(145deg,#fb7185,#e11d48)">🎵</i>Music</button>
 <button class="ic" data-go="gps"><i style="background:linear-gradient(145deg,#4ade80,#2563eb)">📍</i>GPS</button>
+<button class="ic" data-go="engine"><i style="background:linear-gradient(145deg,#f87171,#991b1b)">🏍️</i>Engine</button>
 <button class="ic" data-go="horn"><i style="background:linear-gradient(145deg,#fbbf24,#f97316)">📣</i>Horn</button>
 <button class="ic" data-go="ride"><i style="background:linear-gradient(145deg,#a78bfa,#7c3aed)">🚲</i>Ride</button>
 <button class="ic" data-go="speaker"><i style="background:linear-gradient(145deg,#94a3b8,#475569)">🔊</i>Speakers</button>
@@ -189,6 +191,10 @@ body::before{content:'';position:fixed;inset:-20%;z-index:-1;pointer-events:none
 <button class="ic" data-go="rides"><i style="background:linear-gradient(145deg,#475569,#0f172a)">🚕</i>Rides</button>
 
 </div></div>
+<div class="scr" id="engine"><div class="hd"><button class="back">‹ Home</button><h3>Engine sound</h3></div>
+<button class="honk" id="eng2" style="background:linear-gradient(145deg,#ef4444,#991b1b);color:#fff;font-size:34px">🏍️ Start engine</button>
+<div class="c" style="margin-top:14px;text-align:center"><h2>Follows your real speed</h2><div style="font-size:44px;font-weight:800" id="engmph">0 mph</div><div class="note" id="enggr">Engine off</div></div>
+<div class="note" style="text-align:center">Idles when you're stopped, revs up as you speed up and shifts gears. Uses your GPS speed. Turn your phone volume up or use a Speaker.</div></div>
 <div class="scr" id="horn"><div class="hd"><button class="back">‹ Home</button><h3>Horn</h3></div><button class="honk" id="honk">HONK</button>
 <div class="c" id="hc" style="margin-top:14px"><h2>Choose your horn <span id="hn"></span></h2><div class="chips" id="chips"></div></div>
 <div class="note" style="text-align:center">Plays from your phone — or from the speaker you chose under Speakers.</div></div>
@@ -371,7 +377,10 @@ function engTick(){if(!ENG)return;const mph=sp*.621371,G=[0,9,20,32,45,58,72],gi
  ENG.lp.frequency.setTargetAtTime(500+rpm*.45,t,.08);ENG.lfo.frequency.setTargetAtTime(mph<.5?9:f/2,t,.1);
  ENG.out.gain.setTargetAtTime(mph<.5?.22:.28+fr*.12,t,.08);ENG.gear=gr}
 function engStop(){if(!ENG)return;const e=ENG;ENG=null;clearInterval(e.t);try{e.out.gain.setTargetAtTime(0,AC.currentTime,.05)}catch(x){}setTimeout(()=>[e.o1,e.o2,e.o3,e.lfo].forEach(o=>{try{o.stop()}catch(x){}}),300)}
-$('heng').onclick=()=>{if(ENG){engStop();$('heng').classList.remove('on')}else{try{engStart();$('heng').classList.add('on')}catch(e){ENG=null}}};
+function engUI(){const on=!!ENG;$('heng').classList.toggle('on',on);$('hengt').textContent=on?'Engine on':'Engine';$('eng2').textContent=on?'⏹ Stop engine':'🏍️ Start engine';if(!on){$('engmph').textContent=Math.round(sp*.621371)+' mph';$('enggr').textContent='Engine off'}}
+function engToggle(){tap();if(ENG)engStop();else{try{engStart()}catch(e){ENG=null}}engUI()}
+$('heng').onclick=engToggle;$('eng2').onclick=engToggle;
+setInterval(()=>{if(ENG){$('engmph').textContent=Math.round(sp*.621371)+' mph';$('enggr').textContent=(sp*.621371<.5?'Idling':'Gear '+ENG.gear)}},300);
 
 const zi=()=>{MZ=Math.min(19,MZ+1);drawMap()},zo=()=>{MZ=Math.max(3,MZ-1);drawMap()};
 $('hzi').onclick=zi;$('hzo').onclick=zo;$('zin').onclick=zi;$('zout').onclick=zo;$('night2').onclick=()=>$('night').click();
