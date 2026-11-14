@@ -536,6 +536,17 @@
   .onb-res div { padding:12px 14px; background:rgba(255,255,255,.07); border-top:1px solid var(--line); cursor:pointer; font-size:.95rem; }
   .onb-res div:first-child { border-top:0; }
   .onb-res small { color:var(--soft); }
+  .onb-in + .onb-in { margin-top:8px; }
+  .onb-in.left { text-align:left; }
+  .onb-google { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:13px; border:0; border-radius:16px; background:#fff; color:#1f1f1f; font:inherit; font-weight:700; font-size:.98rem; cursor:pointer; }
+  .onb-google svg { width:20px; height:20px; flex:0 0 auto; }
+  #onbGsi { display:flex; justify-content:center; min-height:0; }
+  #onbGsi:empty { display:none; }
+  .onb-or { display:flex; align-items:center; gap:10px; margin:14px 0; color:var(--soft); font-size:.8rem; font-weight:700; }
+  .onb-or::before, .onb-or::after { content:""; flex:1; height:1px; background:var(--line); }
+  .onb-err { min-height:1.1em; margin-top:8px; font-size:.85rem; font-weight:700; color:#ffb3a8; }
+  .onb-swap { display:block; width:100%; margin-top:10px; border:0; background:none; color:#ffd36b; font:inherit; font-weight:700; font-size:.9rem; cursor:pointer; }
+  .sh-btn.out { color:#ff8b7a; }
   /* ===== Account ===== */
   .acct-row { display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:12px 14px; margin-bottom:6px; border-radius:16px; border:1px solid var(--line); background:var(--panel2); color:var(--text); font:inherit; cursor:pointer; }
   .acct-row b { display:block; font-size:1rem; }
@@ -836,11 +847,19 @@
     <div class="onb-dots"><i class="on"></i><i></i><i></i></div>
     <section class="onb-step on" data-step="0">
       <div class="onb-ic">🌤️</div>
-      <h2>Welcome to SkyCast</h2>
-      <p>Let's make your SkyCast account. It takes three quick steps.</p>
-      <input id="onbName" class="onb-in" type="text" placeholder="Your first name" autocomplete="given-name" maxlength="30">
+      <h2 id="onbTitle">Welcome to SkyCast</h2>
+      <p id="onbLead">Make your SkyCast account to get started.</p>
+      <div id="onbGsi"></div>
+      <button class="onb-google" id="onbGoogle" type="button"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span id="onbGoogleTx">Sign up with Google</span></button>
+      <div class="onb-or">or use your email</div>
+      <form id="onbAuth" novalidate>
+        <input id="onbEmail" class="onb-in left" type="email" placeholder="Email" autocomplete="email" inputmode="email" maxlength="80">
+        <input id="onbPw" class="onb-in left" type="password" placeholder="Make a password" autocomplete="new-password" maxlength="60">
+        <div class="onb-err" id="onbErr"></div>
+        <button class="onb-go" id="onbGo" type="submit" style="margin-top:8px">Sign up</button>
+      </form>
+      <button class="onb-swap" id="onbSwap" type="button">Already have an account? Sign in</button>
       <div class="sh-note">Your account is saved on this device.</div>
-      <button class="onb-go" data-next>Next</button>
     </section>
     <section class="onb-step" data-step="1">
       <div class="onb-ic">🔔</div>
@@ -868,13 +887,15 @@
 <div class="sheet" id="acctView"><div class="sheet-in">
   <div class="sh-top"><b>Account</b><button class="mini-btn" id="acctClose">Done</button></div>
   <div style="text-align:center;margin:4px 0 14px"><div class="acct-av big" id="acctAv2">👤</div></div>
-  <div class="sh-h">Name</div>
-  <input id="acctNameIn" class="acct-in" type="text" placeholder="Your first name" autocomplete="given-name" maxlength="30">
+  <div class="sh-h">Signed in as</div>
+  <div class="sh-row" style="border-top:0"><span id="acctEmail">—</span><small id="acctVia" style="color:var(--soft);font-weight:700"></small></div>
   <div class="sh-h">Your city</div>
   <div class="sh-row" style="border-top:0"><span id="acctCity">—</span><button class="mini-btn" id="acctCityBtn">Change</button></div>
   <div class="sh-h">Notifications</div>
   <div class="sh-row" style="border-top:0"><span id="acctNotif">—</span><button class="mini-btn" id="acctNotifBtn">Settings</button></div>
   <button class="sh-btn" id="acctSetup">🔁 Run the setup again</button>
+  <button class="sh-btn" id="acctLogout">🚪 Log out</button>
+  <button class="sh-btn out" id="acctDelete">🗑️ Delete account</button>
   <div class="sh-note">Your account is saved on this device only. It isn't uploaded anywhere.</div>
 </div></div>
 <div class="sheet" id="sheet14"><div class="sheet-in wide14">
@@ -917,7 +938,7 @@
 </footer>
 
 <script>
-const FIRST_VISIT = (() => { try { return !localStorage.getItem("skycast_onboarded"); } catch(e) { return false; } })();
+const FIRST_VISIT = (() => { try { return !localStorage.getItem("skycast_onboarded") || !localStorage.getItem("skycast_session"); } catch(e) { return false; } })();
 const WMO = {
   0:["Clear sky","☀️","🌙"],1:["Mostly clear","🌤️","🌙"],2:["Partly cloudy","⛅","☁️"],3:["Overcast","☁️","☁️"],
   45:["Fog","🌫️","🌫️"],48:["Freezing fog","🌫️","🌫️"],
@@ -2655,34 +2676,60 @@ $("siriTest").onclick = () => {
 };
 
 /* ---------- Account (saved on this device) ---------- */
+// To turn on real "Sign up with Google", paste your Google OAuth Web client ID here
+// (console.cloud.google.com → APIs & Services → Credentials → Create OAuth client ID → Web application,
+//  and add https://fahhhh2-dotcom.github.io as an Authorized JavaScript origin).
+const GOOGLE_CLIENT_ID = "";
 let account = {};
 try { account = JSON.parse(localStorage.getItem("skycast_account") || "{}"); } catch(e) {}
+const signedIn = () => { try { return !!localStorage.getItem("skycast_session") && !!account.email; } catch(e) { return false; } };
 function saveAccount(a) { account = { ...account, ...a }; try { localStorage.setItem("skycast_account", JSON.stringify(account)); } catch(e) {} paintAccount(); }
+function displayName() { return account.name || (account.email ? account.email.split("@")[0] : ""); }
+async function hashPw(pw) {
+  const txt = "skycast:" + (account.email || "") + ":" + pw;
+  try { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(txt)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join(""); }
+  catch(e) { let h = 5381; for (const c of txt) h = (h * 33 ^ c.charCodeAt(0)) >>> 0; return "d" + h.toString(16); }
+}
 function paintAccount() {
-  const n = account.name, ini = n ? n.trim().charAt(0).toUpperCase() : "👤";
+  const on = signedIn(), n = on ? displayName() : "", ini = n ? n.trim().charAt(0).toUpperCase() : "👤";
   $("acctAv").textContent = ini; $("acctAv2").textContent = ini;
   $("acctName").textContent = n ? n : (lang === "es" ? "Cuenta" : "Account");
   $("acctSub").textContent = n ? (lang === "es" ? "Tu cuenta" : "Your account") + " · " + (place.name === "Current location" ? (lang === "es" ? "Ubicación actual" : "Current location") : place.name) : (lang === "es" ? "Configura tu cuenta" : "Set up your account");
 }
 function openAccount() {
+  if (!signedIn()) { showOnb(); return; }
   $("sheet").classList.remove("open"); $("acctView").classList.add("open");
-  $("acctNameIn").value = account.name || "";
+  $("acctEmail").textContent = account.email || "—";
+  $("acctVia").textContent = account.provider === "google" ? "Google" : "Email";
   $("acctCity").textContent = [place.name, place.admin1].filter(Boolean).join(", ");
   const perm = "Notification" in window ? Notification.permission : "unsupported";
   $("acctNotif").textContent = perm === "granted" ? (notifPrefs.extra ? "Warnings + extra alerts on" : "Warnings on") : perm === "denied" ? "Blocked in browser settings" : perm === "unsupported" ? "Not available here" : "Off";
+  $("acctDelete").textContent = "🗑️ Delete account"; delete $("acctDelete").dataset.sure;
 }
 $("acctBtn").onclick = openAccount;
 $("acctClose").onclick = () => $("acctView").classList.remove("open");
 $("acctView").onclick = e => { if (e.target.id === "acctView") $("acctView").classList.remove("open"); };
-$("acctNameIn").oninput = () => saveAccount({ name: $("acctNameIn").value.trim() });
 $("acctCityBtn").onclick = () => { $("acctView").classList.remove("open"); location.hash = "#weather"; setTimeout(() => $("q").focus(), 200); };
 $("acctNotifBtn").onclick = () => { $("acctView").classList.remove("open"); $("sheet").classList.add("open"); };
 $("acctSetup").onclick = () => { try { localStorage.removeItem("skycast_onboarded"); } catch(e) {} location.reload(); };
+// Log out: keeps the account on this device so you can sign back in
+$("acctLogout").onclick = () => {
+  try { localStorage.removeItem("skycast_session"); } catch(e) {}
+  try { window.google && google.accounts && google.accounts.id.disableAutoSelect(); } catch(e) {}
+  location.reload();
+};
+// Delete account: tap twice, then everything about the account is wiped and the sign-up screen comes back
+$("acctDelete").onclick = () => {
+  const b = $("acctDelete");
+  if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "⚠️ Tap again to delete your account"; return; }
+  try { ["skycast_account", "skycast_session", "skycast_onboarded"].forEach(k => localStorage.removeItem(k)); } catch(e) {}
+  location.reload();
+};
 paintAccount();
 
 /* ---------- First-time setup: welcome → notifications → where do you live ---------- */
 setTimeout(() => {   // runs once the whole script has loaded
-  const o = $("onb"); if (!FIRST_VISIT || !o) return;
+  const o = $("onb"); if (!o) return;
   let step = 0;
   const done = () => { try { localStorage.setItem("skycast_onboarded", "1"); } catch(e) {} o.hidden = true; };
   const go = n => {
@@ -2705,8 +2752,75 @@ setTimeout(() => {   // runs once the whole script has loaded
     try { localStorage.setItem("skycast_notif", JSON.stringify(notifPrefs)); } catch(e) {}
     renderNotifToggles(); paint();
   });
-  $("onbName").value = account.name || "";
-  o.querySelectorAll("[data-next]").forEach(b => b.onclick = () => { if (step === 0) saveAccount({ name: $("onbName").value.trim() }); go(step + 1); });
+  // ---- step 1: sign up / sign in ----
+  let mode = account.email ? "in" : "up";
+  const err = t => $("onbErr").textContent = t || "";
+  const paintMode = () => {
+    const up = mode === "up";
+    $("onbTitle").textContent = up ? "Welcome to SkyCast" : "Welcome back";
+    $("onbLead").textContent = up ? "Make your SkyCast account to get started." : "Sign in to your SkyCast account.";
+    $("onbGoogleTx").textContent = up ? "Sign up with Google" : "Sign in with Google";
+    $("onbPw").placeholder = up ? "Make a password" : "Password";
+    $("onbPw").autocomplete = up ? "new-password" : "current-password";
+    $("onbGo").textContent = up ? "Sign up" : "Sign in";
+    $("onbSwap").textContent = up ? "Already have an account? Sign in" : "New here? Make an account";
+    if (!up && account.email && !$("onbEmail").value) $("onbEmail").value = account.email;
+    err("");
+  };
+  // after signing in: a returning person goes straight to the weather, a new one continues the setup
+  const signedInNow = () => {
+    try { localStorage.setItem("skycast_session", "1"); } catch(e) {}
+    paintAccount();
+    let onboarded = false; try { onboarded = !!localStorage.getItem("skycast_onboarded"); } catch(e) {}
+    if (onboarded) { o.hidden = true; toast("Signed in as " + account.email); } else go(1);
+  };
+  $("onbSwap").onclick = () => { mode = mode === "up" ? "in" : "up"; paintMode(); };
+  $("onbAuth").onsubmit = async e => {
+    e.preventDefault();
+    const email = $("onbEmail").value.trim().toLowerCase(), pw = $("onbPw").value;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err("Type a real email, like you@gmail.com");
+    if (mode === "up") {
+      if (pw.length < 6) return err("Make your password at least 6 letters or numbers");
+      if (account.email === email && account.pw) { mode = "in"; paintMode(); $("onbEmail").value = email; return err("You already have an account. Type your password to sign in."); }
+      try { ["skycast_account", "skycast_onboarded"].forEach(k => localStorage.removeItem(k)); } catch(e2) {}
+      account = { email };
+      saveAccount({ email, provider: "email", pw: await hashPw(pw), name: "" });
+      signedInNow();
+    } else {
+      if (!pw) return err("Type your password");
+      if (account.email !== email || !account.pw) return err("There's no account with that email on this device. Tap \"Make an account\".");
+      if (await hashPw(pw) !== account.pw) return err("That password isn't right. Try again.");
+      signedInNow();
+    }
+  };
+  // Google
+  const googleDone = r => {
+    try {
+      const b = r.credential.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+      const info = JSON.parse(decodeURIComponent(atob(b).split("").map(c => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")).join("")));
+      const email = (info.email || "").toLowerCase(); if (!email) throw 0;
+      if (account.email !== email) { try { localStorage.removeItem("skycast_onboarded"); } catch(e2) {} account = {}; }
+      saveAccount({ email, provider: "google", name: info.given_name || info.name || "", pw: account.pw });
+      signedInNow();
+    } catch(e) { err("Google sign-in didn't work. Try again or use your email."); }
+  };
+  if (GOOGLE_CLIENT_ID) {
+    const sc = document.createElement("script"); sc.src = "https://accounts.google.com/gsi/client"; sc.async = true;
+    sc.onload = () => {
+      try {
+        google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: googleDone });
+        $("onbGoogle").hidden = true;
+        google.accounts.id.renderButton($("onbGsi"), { theme: "outline", size: "large", shape: "pill", text: "signup_with", width: Math.min(360, $("onbGsi").clientWidth || 320) });
+      } catch(e) {}
+    };
+    document.head.appendChild(sc);
+  }
+  $("onbGoogle").onclick = () => {
+    if (window.google && google.accounts) { google.accounts.id.prompt(); return; }
+    err(GOOGLE_CLIENT_ID ? "Google is still loading. Try again in a second." : "Google sign-in is coming soon. Use your email for now.");
+  };
+  paintMode();
+  o.querySelectorAll("[data-next]").forEach(b => b.onclick = () => go(step + 1));
   $("onbDone").onclick = done;
   $("onbHere").onclick = () => { done(); useMyLocation(); };
   let last = 0;
@@ -2730,7 +2844,8 @@ setTimeout(() => {   // runs once the whole script has loaded
     } catch (err) { box.innerHTML = "<div><small>Search isn't working right now. Try again in a moment.</small></div>"; }
   };
   paint();
-  o.hidden = false;
+  window.showOnb = () => { go(0); paintMode(); $("sheet").classList.remove("open"); o.hidden = false; };
+  if (FIRST_VISIT) { if (signedIn()) go(1); o.hidden = false; }
 }, 0);
 
 /* ---------- Background picker (saved on this device) ---------- */
