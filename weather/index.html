@@ -224,7 +224,7 @@
   .badge small { display:block; font-size:.62rem; letter-spacing:1.4px; font-weight:800; }
   .badge.live small { color:#4dff94; }
   .badge.future small { color:var(--accent); }
-  .leaflet-layer, .leaflet-image-layer { transition: opacity .28s ease; }
+  .radar-tiles { transition: opacity .35s ease; will-change: opacity; }
   .track { flex:1; min-width:0; position:relative; padding-bottom:18px; }
   .track input { width:100%; }
   .ticks { position:absolute; left:8px; right:8px; bottom:0; height:16px; font-size:.68rem; color:var(--soft); }
@@ -896,7 +896,7 @@ async function loadHRRR() {
     const target = start + k * q;
     const fmin = Math.round((target - init.getTime()) / q) * 15;
     if (fmin < 0 || fmin > 1080) continue;
-    hrrrFrames.push({ key: `hrrr_${initStr}_${fmin}`, hrrr: true, time: target,
+    hrrrFrames.push({ key: `f${k}`, hrrr: true, time: target,
       url: `${IEM}hrrr::REFP-F${pad(fmin, 4)}-${initStr}/{z}/{x}/{y}.png`, init });
   }
 }
@@ -934,7 +934,7 @@ async function loadRadar() {
     pastFrames = [];
     for (let m = 50; m >= 0; m -= 5) {
       const suffix = m ? `-m${String(m).padStart(2,"0")}m` : "";
-      pastFrames.push({ key: `us${m}_${bucket}`, minsAgo: m,
+      pastFrames.push({ key: `us${m}`, minsAgo: m,
         url: `${IEM}nexrad-n0q-900913${suffix}/{z}/{x}/{y}.png?_=${bucket}` });
     }
   } else {
@@ -1017,38 +1017,59 @@ function renderLayer(layer, t) {
 }
 
 /* ---- frames ---- */
+/* Smooth radar engine:
+   - every frame keeps a stable slot; when its picture is refreshed, the old one stays on screen until the new one has loaded
+   - a frame is only shown once its map pieces have finished loading, so nothing flashes blank
+   - tiles only reload after you stop zooming or dragging */
+let visibleKey = null, waitTimer = null;
 function rebuild() {
   if (!map) return;
   const cur = frames[frameIdx] && frames[frameIdx].key;
-  const model = [];
-  if (grid && grid.model === radarModel) {
-    const startT = radarLayer === "precip" ? grid.first + 1 : grid.first;
-    for (let t = startT; t <= grid.first + 6 * grid.perHour && t < grid.times.length; t++)
-      model.push({ key: `${grid.id}_${radarLayer}_${grid.times[t]}`, model: true, layer: radarLayer, t, time: grid.times[t] });
-  }
-  const future = radarLayer === "precip" && radarModel === "hrrr" && hrrrFrames.length ? hrrrFrames : model;
-  frames = radarLayer === "precip" ? pastFrames.concat(future) : model;
-  Object.keys(layers).forEach(k => { if (!frames.find(f => f.key === k)) { map.removeLayer(layers[k]); delete layers[k]; } });
+  frames = pastFrames.concat(hrrrFrames);
+  Object.keys(layers).forEach(k => { if (!frames.find(f => f.key === k)) { dropEntry(layers[k]); delete layers[k]; } });
   $("slider").max = Math.max(0, frames.length - 1);
   let idx = frames.findIndex(f => f.key === cur);
-  if (idx < 0) idx = radarLayer === "precip" ? Math.max(0, pastFrames.length - 1) : 0;
+  if (idx < 0) idx = Math.max(0, pastFrames.length - 1);
   renderLegend();
   if (frames.length) showFrame(idx);
-  else { $("rtime").textContent = grid || radarLayer === "precip" ? "Radar unavailable" : "Loading forecast layer…"; labelGroup.clearLayers(); }
+  else $("rtime").textContent = "Radar unavailable";
 }
-function layerFor(f) {
-  if (!layers[f.key]) {
-    if (f.model) {
-      const out = renderLayer(f.layer, f.t);
-      f.dry = !out.any; f.any = out.any;
-      layers[f.key] = L.imageOverlay(out.url, grid.bounds, { opacity: 0, zIndex: 10 }).addTo(map);
-    } else {
-      const opts = { opacity: 0, zIndex: 10, maxZoom: 10, subdomains: "123" };
-      if (f.big) Object.assign(opts, { tileSize: 512, zoomOffset: -1, maxNativeZoom: 7 });
-      layers[f.key] = L.tileLayer(f.url, opts).addTo(map);
+function dropEntry(e) { if (!e) return; if (e.layer) map.removeLayer(e.layer); if (e.old) map.removeLayer(e.old); }
+function ensureLayer(f) {
+  let e = layers[f.key];
+  if (e && e.url === f.url) return e;
+  const layer = L.tileLayer(f.url, { opacity: 0, zIndex: 10, maxZoom: 10, subdomains: "123",
+    updateWhenIdle: true, updateWhenZooming: false, keepBuffer: 2, className: "radar-tiles" });
+  const ne = { layer, url: f.url, ready: false, old: e ? (e.ready ? e.layer : e.old) : null };
+  if (e && e.layer && e.layer !== ne.old) map.removeLayer(e.layer);
+  layer.on("loading", () => { ne.loading = true; });
+  layer.on("load", () => {
+    ne.ready = true; ne.loading = false;
+    if (ne.old) {   // new picture is in: retire the old one smoothly
+      const old = ne.old; ne.old = null;
+      if (visibleKey === f.key) { layer.setOpacity(0.8); setTimeout(() => map.removeLayer(old), 350); }
+      else map.removeLayer(old);
     }
-  }
-  return layers[f.key];
+    if (frames[frameIdx] && frames[frameIdx].key === f.key && visibleKey !== f.key) display(f);
+    updateProgress();
+  });
+  layer.addTo(map);
+  layers[f.key] = ne;
+  return ne;
+}
+const shownLayer = e => e ? (e.ready ? e.layer : e.old) : null;
+function display(f) {
+  const e = layers[f.key], target = shownLayer(e);
+  if (!target) return false;
+  Object.values(layers).forEach(x => { [x.layer, x.old].forEach(l => { if (l && l !== target) l.setOpacity(0); }); });
+  target.setOpacity(0.8);
+  visibleKey = f.key;
+  return true;
+}
+function updateProgress() {
+  if (!playTimer || !$("rtime").dataset.loading) return;
+  const n = frames.filter(f => shownLayer(layers[f.key])).length;
+  if (n < frames.length) $("rtime").innerHTML = `Loading radar… ${n}/${frames.length}`;
 }
 function updateLabels(f) {
   labelGroup.clearLayers();
@@ -1063,13 +1084,13 @@ function updateLabels(f) {
 function showFrame(i) {
   if (!frames.length) return;
   frameIdx = (i + frames.length) % frames.length;
-  Object.values(layers).forEach(l => l.setOpacity(0));
   const f = frames[frameIdx];
-  layerFor(f).setOpacity(f.model ? (f.layer === "precip" ? 0.85 : 1) : 0.8);
-  const fi = frames.indexOf(f);
-  if (frames[fi + 1]) layerFor(frames[fi + 1]); // preload next frame
+  ensureLayer(f);
+  display(f);                                   // if it isn't loaded yet, the last picture stays up until it is
+  const nx = frames[(frameIdx + 1) % frames.length];
+  if (nx) ensureLayer(nx);                      // get the next frame ready
   $("slider").value = frameIdx;
-  updateLabels(f);
+  delete $("rtime").dataset.loading;
   const clock = t => new Date(t).toLocaleTimeString(undefined,{hour:"numeric", minute:"2-digit"});
   if (f.model || f.hrrr) {
     const mins = Math.round((f.time - Date.now()) / 60000);
@@ -1138,14 +1159,28 @@ function toggleWarnings(on) {
   $("warnBtn").classList.toggle("on", !!warnLayer);
   if (warnLayer) $("futureNote").textContent = "Tap anywhere on a colored warning area to see what the warning is.";
 }
+let hold = 0;
+function stopPlay() { clearInterval(playTimer); playTimer = null; $("play").textContent = "▶"; }
 $("play").onclick = () => {
-  if (playTimer) { clearInterval(playTimer); playTimer = null; $("play").textContent = "▶"; }
-  else {
-    frames.forEach(layerFor); // preload
-    playTimer = setInterval(() => showFrame(frameIdx + 1), 550); $("play").textContent = "❚❚";
-  }
+  if (playTimer) { stopPlay(); return; }
+  frames.forEach(ensureLayer);                  // load every frame first
+  if (frameIdx >= frames.length - 1) showFrame(0);
+  $("play").textContent = "❚❚";
+  $("rtime").dataset.loading = "1"; updateProgress();
+  let waited = 0;
+  hold = 0;
+  playTimer = setInterval(() => {
+    if (hold > 0) { hold -= 1; return; }
+    const ni = (frameIdx + 1) % frames.length, nf = frames[ni];
+    if (!shownLayer(layers[nf.key]) && waited < 4) { waited += 1; return; }   // wait (up to ~2 s) for the next frame to load
+    waited = 0;
+    showFrame(ni);
+    const f = frames[ni];
+    if (ni === frames.length - 1) hold = 3;              // linger on the last frame
+    else if (!f.hrrr && f.minsAgo === 0) hold = 2;       // short pause on "Now"
+  }, 500);
 };
-$("slider").oninput = e => showFrame(+e.target.value);
+$("slider").oninput = e => { if (playTimer) stopPlay(); showFrame(+e.target.value); };
 document.querySelectorAll("[data-layer]").forEach(b => b.onclick = () => setRadarLayer(b.dataset.layer));
 $("warnBtn").onclick = () => toggleWarnings(!warnLayer);
 
@@ -1253,7 +1288,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114001331";
+const BUILD = "20261114001535";
 async function checkForUpdate() {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
