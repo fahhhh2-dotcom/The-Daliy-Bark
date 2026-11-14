@@ -138,6 +138,8 @@
   .mh { flex:0 0 52px; text-align:center; padding:8px 4px; border-radius:12px; background:rgba(255,255,255,.06); font-size:.8rem; }
   .mh .i { font-size:1.2rem; margin:3px 0; }
   .mh .p { color:#8fd0ff; font-size:.68rem; min-height:1em; }
+  .nwstext { font-size:.85rem; line-height:1.5; color:var(--soft); margin-bottom:10px; }
+  .nwstext b { color:var(--text); }
   .kv { display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; }
   .kv div { padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.06); font-size:.8rem; color:var(--soft); }
   .kv b { display:block; color:var(--text); font-size:1rem; margin-top:2px; }
@@ -279,7 +281,7 @@
 <span class="word">Sky<b>Cast</b></span></div>
   <nav class="tabs"><a href="#weather" id="tabW" class="on">Weather</a><a href="#radar" id="tabR">Radar</a></nav>
   <div class="search">
-    <input id="q" placeholder="Search a city" autocomplete="off">
+    <form id="searchForm" style="display:contents"><input id="q" type="search" enterkeyhint="search" placeholder="Search a US city, then press Search" autocomplete="off"></form>
     <div class="results" id="results"></div>
   </div>
   <div class="seg"><button id="uF" class="on">°F</button><button id="uC">°C</button></div>
@@ -303,7 +305,7 @@
     </section>
 
     <a class="panel radar-teaser" href="#radar">
-      <div style="display:flex;align-items:center;gap:14px"><div class="rt-ic">🗺️</div><div><b>Radar</b><span>Live radar, a 6-hour future radar, and rain, snow, temperature, wind, cloud and warning maps</span></div></div>
+      <div style="display:flex;align-items:center;gap:14px"><div class="rt-ic">🗺️</div><div><b>Radar</b><span>Live radar, a 6-hour future radar, and storm warnings</span></div></div>
       <div class="go">Open ›</div>
     </a>
   </div>
@@ -328,14 +330,10 @@
 <div class="view rview" id="viewR"><div class="rwrap">
   <section class="panel">
     <div class="layers">
-      <button data-layer="precip" class="on">🌧️ Rain &amp; snow</button>
-      <button data-layer="temp">🌡️ Temperature</button>
-      <button data-layer="wind">💨 Wind</button>
-      <button data-layer="cloud">☁️ Clouds</button>
+      <button data-layer="precip" class="on">🌧️ Rain &amp; snow radar</button>
       <button id="warnBtn" class="warn">⚠️ Warnings</button>
     </div>
-    <div class="modelrow"><span>Model</span><div class="models" id="models"></div></div>
-    <div class="modelabout" id="modelAbout"></div>
+
     <div class="mapwrap"><div id="radar"></div><div class="badge live" id="badge"><small>RADAR</small>—</div></div>
     <div class="radar-ctrl">
       <button class="playbtn" id="play" aria-label="Play">▶</button>
@@ -351,9 +349,9 @@
 </div></div>
 
 <footer>
-  Forecast & future radar from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> ·
-  Radar: NWS NEXRAD &amp; NOAA HRRR future radar via <a href="https://mesonet.agron.iastate.edu/" target="_blank" rel="noopener">Iowa Environmental Mesonet</a> &amp; <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a> ·
-  Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
+  Forecasts, observations &amp; warnings: <a href="https://www.weather.gov/" target="_blank" rel="noopener">National Weather Service</a> ·
+  Radar: NWS NEXRAD &amp; NOAA HRRR via <a href="https://mesonet.agron.iastate.edu/" target="_blank" rel="noopener">Iowa Environmental Mesonet</a> ·
+  Search &amp; map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · US locations only
 </footer>
 
 <script>
@@ -393,6 +391,191 @@ const fmtHour = s => new Date(s).toLocaleTimeString(undefined,{hour:"numeric"});
 const $ = id => document.getElementById(id);
 const uvLabel = u => u < 3 ? "Low" : u < 6 ? "Moderate" : u < 8 ? "High" : u < 11 ? "Very high" : "Extreme";
 
+/* ---------- National Weather Service data (api.weather.gov, US only, free for any use) ----------
+   Converted into the same shape the rest of the page already draws. */
+async function getJSON(url, tries = 2) {
+  for (let i = 0; i < tries; i++) {
+    const r = await fetch(url, { headers: { Accept: "application/geo+json" }, cache: "no-store" });
+    if (r.ok) return r.json();
+    if (r.status === 404) { const e = new Error("not found"); e.status = 404; throw e; }
+    if (i === tries - 1) throw new Error("NWS " + r.status);
+    await new Promise(res => setTimeout(res, 700));
+  }
+}
+const fToC = f => (f - 32) * 5 / 9;
+const DIRS = { N:0, NNE:22.5, NE:45, ENE:67.5, E:90, ESE:112.5, SE:135, SSE:157.5, S:180, SSW:202.5, SW:225, WSW:247.5, W:270, WNW:292.5, NW:315, NNW:337.5 };
+const mphText = s => { const n = String(s || "").match(/\d+/g); return n ? Math.max(...n.map(Number)) * 1.609 : 0; };
+
+// NWS forecast words -> weather type codes used for icons and backgrounds
+function codeFromText(text, pop) {
+  let t = String(text || "").toLowerCase();
+  if (/slight chance|isolated/.test(t) && pop != null && pop < 25) {
+    const sky = t.split(/then|and/).find(p => /sunny|clear|cloudy|fair/.test(p));
+    t = sky || "partly cloudy";
+  }
+  if (/thunder|t-storm|tstorm/.test(t)) return 95;
+  if (/freezing|sleet|ice|wintry/.test(t)) return 66;
+  if (/blizzard|heavy snow/.test(t)) return 75;
+  if (/flurr|light snow/.test(t)) return 71;
+  if (/snow/.test(t)) return 73;
+  if (/heavy rain/.test(t)) return 65;
+  if (/drizzle|light rain/.test(t)) return 61;
+  if (/shower/.test(t)) return 80;
+  if (/rain/.test(t)) return 63;
+  if (/fog|haze|smoke|mist|dust/.test(t)) return 45;
+  if (/mostly cloudy|cloudy|overcast/.test(t)) return /partly/.test(t) ? 2 : 3;
+  if (/partly/.test(t)) return 2;
+  if (/mostly sunny|mostly clear|few clouds/.test(t)) return 1;
+  if (/sunny|clear|fair/.test(t)) return 0;
+  return 2;
+}
+
+// local "YYYY-MM-DDTHH:MM" string for a moment in the city's time zone
+function localStr(ms, tz) {
+  const p = {};
+  new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+    .formatToParts(new Date(ms)).forEach(x => p[x.type] = x.value);
+  return `${p.year}-${p.month}-${p.day}T${p.hour === "24" ? "00" : p.hour}:${p.minute}`;
+}
+
+// NWS grid values cover time ranges like "2026-11-13T18:00:00+00:00/PT6H"; spread them over each hour
+function hoursOf(validTime) {
+  const [start, dur] = validTime.split("/");
+  const m = dur.match(/P(?:(\d+)D)?(?:T(?:(\d+)H)?)?/);
+  const h = (+(m[1] || 0)) * 24 + (+(m[2] || 0)) || 1;
+  const t0 = Date.parse(start);
+  return Array.from({ length: h }, (_, i) => t0 + i * 3600000);
+}
+function expand(series, amount) {
+  const out = [];
+  (series && series.values || []).forEach(v => {
+    if (v.value == null) return;
+    const hrs = hoursOf(v.validTime);
+    hrs.forEach(t => out.push({ t, v: amount ? v.value / hrs.length : v.value }));
+  });
+  return out;
+}
+
+// sunrise / sunset (standard astronomical formulas)
+function sunTimes(dateStr, lat, lon) {
+  const rad = Math.PI / 180, dayMs = 864e5, J1970 = 2440588, J2000 = 2451545, e = rad * 23.4397, J0 = 0.0009;
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  const ms = Date.UTC(y, mo - 1, d, 12) - lon / 15 * 3600000;
+  const toDays = m => m / dayMs - 0.5 + J1970 - J2000, fromJ = j => (j + 0.5 - J1970) * dayMs;
+  const lw = rad * -lon, phi = rad * lat, dd = toDays(ms);
+  const n = Math.round(dd - J0 - lw / (2 * Math.PI));
+  const ds = J0 + lw / (2 * Math.PI) + n;
+  const M = rad * (357.5291 + 0.98560028 * ds);
+  const C = rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
+  const L = M + C + rad * 102.9372 + Math.PI;
+  const dec = Math.asin(Math.sin(e) * Math.sin(L));
+  const Jnoon = J2000 + ds + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+  const w = Math.acos((Math.sin(-0.833 * rad) - Math.sin(phi) * Math.sin(dec)) / (Math.cos(phi) * Math.cos(dec)));
+  const a = J0 + (w + lw) / (2 * Math.PI) + n;
+  const Jset = J2000 + a + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+  return { rise: fromJ(Jnoon - (Jset - Jnoon)), set: fromJ(Jset) };
+}
+
+async function fetchNWS(lat, lon) {
+  let pt;
+  try { pt = await getJSON(`https://api.weather.gov/points/${lat.toFixed(4)},${lon.toFixed(4)}`); }
+  catch (e) { if (e.status === 404) { const err = new Error("notUS"); err.notUS = true; throw err; } throw e; }
+  const P = pt.properties, tz = P.timeZone;
+  const [fc, hr, gridRes, st] = await Promise.all([
+    getJSON(P.forecast), getJSON(P.forecastHourly), getJSON(P.forecastGridData),
+    getJSON(P.observationStations).catch(() => null)
+  ]);
+  let obs = null;
+  if (st && st.features && st.features[0]) {
+    obs = await getJSON(st.features[0].id + "/observations/latest", 1).then(j => j.properties).catch(() => null);
+    if (obs && (Date.now() - Date.parse(obs.timestamp) > 2 * 3600000)) obs = null;   // too old
+  }
+  const grid = gridRes.properties, periods = fc.properties.periods, hp = hr.properties.periods;
+  const loc = P.relativeLocation && P.relativeLocation.properties;
+
+  // hourly
+  const hourly = { time: [], temperature_2m: [], weather_code: [], precipitation_probability: [], is_day: [], humidity: [], dew: [], wind: [], text: [] };
+  hp.forEach(p => {
+    const pop = p.probabilityOfPrecipitation ? p.probabilityOfPrecipitation.value ?? 0 : 0;
+    hourly.time.push(p.startTime.slice(0, 16));
+    hourly.temperature_2m.push(p.temperatureUnit === "F" ? fToC(p.temperature) : p.temperature);
+    hourly.precipitation_probability.push(pop);
+    hourly.weather_code.push(codeFromText(p.shortForecast, pop));
+    hourly.is_day.push(p.isDaytime ? 1 : 0);
+    hourly.humidity.push(p.relativeHumidity ? p.relativeHumidity.value : null);
+    hourly.dew.push(p.dewpoint ? p.dewpoint.value : null);
+    hourly.wind.push({ kmh: mphText(p.windSpeed), dir: DIRS[p.windDirection] ?? 0 });
+    hourly.text.push(p.shortForecast);
+  });
+
+  // per-day numbers from the NWS forecast grid
+  const byDate = (series, amount) => {
+    const m = {};
+    expand(series, amount).forEach(({ t, v }) => { const d = localStr(t, tz).slice(0, 10); (m[d] = m[d] || []).push({ t, v }); });
+    return m;
+  };
+  const T = byDate(grid.temperature), AT = byDate(grid.apparentTemperature), QPF = byDate(grid.quantitativePrecipitation, true),
+        SN = byDate(grid.snowfallAmount, true), WS = byDate(grid.windSpeed), WG = byDate(grid.windGust),
+        WD = expand(grid.windDirection), POP = byDate(grid.probabilityOfPrecipitation);
+  const today = localStr(Date.now(), tz).slice(0, 10);
+  const dates = Object.keys(T).filter(d => d >= today).sort().slice(0, 7);
+  const max = a => a && a.length ? Math.max(...a.map(x => x.v)) : null;
+  const min = a => a && a.length ? Math.min(...a.map(x => x.v)) : null;
+  const sum = a => a ? a.reduce((s, x) => s + x.v, 0) : 0;
+
+  const daily = { time: dates, weather_code: [], temperature_2m_max: [], temperature_2m_min: [], apparent_temperature_max: [], apparent_temperature_min: [],
+    precipitation_probability_max: [], precipitation_sum: [], snowfall_sum: [], wind_speed_10m_max: [], wind_gusts_10m_max: [],
+    wind_direction_10m_dominant: [], uv_index_max: [], sunrise: [], sunset: [], daylight_duration: [], detail: [] };
+  dates.forEach(d => {
+    const dayP = periods.find(p => p.startTime.slice(0, 10) === d && p.isDaytime);
+    const nightP = periods.find(p => p.startTime.slice(0, 10) === d && !p.isDaytime);
+    const main = dayP || nightP;
+    const popMax = max(POP[d]);
+    daily.weather_code.push(main ? codeFromText(main.shortForecast, popMax) : 2);
+    daily.temperature_2m_max.push(max(T[d]));
+    daily.temperature_2m_min.push(min(T[d]));
+    daily.apparent_temperature_max.push(max(AT[d]) ?? max(T[d]));
+    daily.apparent_temperature_min.push(min(AT[d]) ?? min(T[d]));
+    daily.precipitation_probability_max.push(Math.round(popMax ?? 0));
+    daily.precipitation_sum.push(sum(QPF[d]));
+    daily.snowfall_sum.push(sum(SN[d]) / 10);
+    const ws = WS[d] || [];
+    const top = ws.reduce((b, x) => (!b || x.v > b.v ? x : b), null);
+    daily.wind_speed_10m_max.push(top ? top.v : 0);
+    daily.wind_gusts_10m_max.push(max(WG[d]) ?? (top ? top.v : 0));
+    const wd = top && WD.find(x => x.t === top.t);
+    daily.wind_direction_10m_dominant.push(wd ? wd.v : 0);
+    daily.uv_index_max.push(null);
+    const s = sunTimes(d, lat, lon);
+    daily.sunrise.push(localStr(s.rise, tz)); daily.sunset.push(localStr(s.set, tz));
+    daily.daylight_duration.push((s.set - s.rise) / 1000);
+    daily.detail.push([dayP && { name: dayP.name, text: dayP.detailedForecast }, nightP && { name: nightP.name, text: nightP.detailedForecast }].filter(Boolean));
+  });
+
+  // current conditions: latest station observation, or the current forecast hour
+  const h0 = 0, num = q => q && q.value != null ? q.value : null;
+  const nowStr = localStr(Date.now(), tz);
+  const gNow = arr => { const x = expand(arr).filter(v => v.t <= Date.now()).pop(); return x ? x.v : null; };
+  const temp = num(obs && obs.temperature) ?? hourly.temperature_2m[h0];
+  const text = (obs && obs.textDescription) || hourly.text[h0];
+  const current = {
+    time: nowStr,
+    temperature_2m: temp,
+    relative_humidity_2m: Math.round(num(obs && obs.relativeHumidity) ?? hourly.humidity[h0] ?? 0),
+    apparent_temperature: num(obs && obs.heatIndex) ?? num(obs && obs.windChill) ?? gNow(grid.apparentTemperature) ?? temp,
+    weather_code: codeFromText(text, hourly.precipitation_probability[h0]),
+    condition_text: text,
+    wind_speed_10m: num(obs && obs.windSpeed) ?? hourly.wind[h0].kmh,
+    wind_direction_10m: num(obs && obs.windDirection) ?? hourly.wind[h0].dir,
+    wind_gusts_10m: num(obs && obs.windGust) ?? gNow(grid.windGust),
+    pressure_msl: (num(obs && obs.seaLevelPressure) ?? num(obs && obs.barometricPressure)) != null ? (num(obs.seaLevelPressure) ?? num(obs.barometricPressure)) / 100 : null,
+    dew_point_2m: num(obs && obs.dewpoint) ?? hourly.dew[h0],
+    uv_index: null,
+    observed: !!obs, station: obs && obs.station ? obs.station.split("/").pop() : null
+  };
+  return { current, hourly, daily, timezone: tz, office: P.gridId, locName: loc ? { name: loc.city, admin1: loc.state } : null };
+}
+
 /* ---------- Saved data: last forecast per city is kept on the device ---------- */
 const cacheKey = () => "skycast_wx_" + place.latitude.toFixed(2) + "," + place.longitude.toFixed(2);
 function saveWeather() {
@@ -414,11 +597,6 @@ function loadSaved() {
 }
 let offline = false, savedAt = null;
 async function load(silent) {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}`
-    + `&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,uv_index`
-    + `&hourly=temperature_2m,weather_code,precipitation_probability,is_day`
-    + `&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,precipitation_sum,snowfall_sum,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,uv_index_max,sunrise,sunset,daylight_duration`
-    + `&timezone=auto&forecast_days=7`;
   if (!silent) {
     const c = loadSaved();
     if (c) {   // show the saved forecast instantly while the fresh one loads
@@ -429,9 +607,7 @@ async function load(silent) {
     }
   }
   try {
-    const r = await fetch(url, { cache: "no-store" });
-    if (!r.ok) throw new Error();
-    data = await r.json();
+    data = await fetchNWS(place.latitude, place.longitude);
     offline = false; savedAt = null;
     render();
     lastUpdate = new Date();
@@ -439,6 +615,12 @@ async function load(silent) {
     saveWeather();
     loadAlerts();
   } catch(e) {
+    if (e.notUS) {
+      data = null; offline = false;
+      $("hero").innerHTML = '<div class="msg">SkyCast covers the United States only. Search for a US city or town.</div>';
+      ["hourly","days","tiles","alerts"].forEach(id => $(id).innerHTML = "");
+      return;
+    }
     offline = true;
     if (data) setUpdated();
     else $("hero").innerHTML = '<div class="msg">Couldn\'t load the weather and there\'s no saved forecast for this city yet. Check your connection and try again.</div>';
@@ -487,7 +669,7 @@ function render() {
       <div class="t-big">${cvtT(c.temperature_2m)}<sup>°${unit}</sup></div>
       <div class="cond-wrap">
         <div class="cond-ic">${now.icon}</div>
-        <div class="cond-tx">${now.text}</div>
+        <div class="cond-tx">${c.condition_text || now.text}</div>
         <div class="cond-sub">H ${cvtT(d.temperature_2m_max[0])}° · L ${cvtT(d.temperature_2m_min[0])}°</div>
       </div>
     </div>
@@ -549,10 +731,11 @@ function dayDetail(i) {
     const p = h.precipitation_probability[k];
     hours += `<div class="mh">${fmtHour(t)}<div class="i">${info(h.weather_code[k], isDayAt(t)).icon}</div><b>${cvtT(h.temperature_2m[k])}°</b><div class="p">${p >= 10 ? p + "%" : ""}</div></div>`;
   });
-  const hrs = Math.floor(d.daylight_duration[i] / 3600), mins = Math.round(d.daylight_duration[i] % 3600 / 60);
+  const totMin = Math.round(d.daylight_duration[i] / 60), hrs = Math.floor(totMin / 60), mins = totMin % 60;
   const snow = d.snowfall_sum[i];
   return `<div class="detail">
     <div class="dh"><div class="ic">${di.icon}</div><div><div class="tt">${label}</div><div class="ss">${di.text} · ${cvtT(d.temperature_2m_max[i])}° / ${cvtT(d.temperature_2m_min[i])}°</div></div></div>
+    ${(d.detail && d.detail[i] || []).map(x => `<div class="nwstext"><b>${esc(x.name)}</b> ${esc(x.text)}</div>`).join("")}
     <div class="mini">${hours}</div>
     <div class="kv">
       <div>Feels like<b>${cvtT(d.apparent_temperature_min[i])}° – ${cvtT(d.apparent_temperature_max[i])}°</b></div>
@@ -561,7 +744,6 @@ function dayDetail(i) {
       ${snow > 0 ? `<div>Snowfall<b>${unit === "F" ? (snow / 2.54).toFixed(1) + " in" : snow.toFixed(1) + " cm"}</b></div>` : ""}
       <div>Wind<b>${cvtW(d.wind_speed_10m_max[i])} ${compass(d.wind_direction_10m_dominant[i])}</b></div>
       <div>Gusts<b>${cvtW(d.wind_gusts_10m_max[i])}</b></div>
-      <div>Max UV<b>${Math.round(d.uv_index_max[i] ?? 0)} · ${uvLabel(d.uv_index_max[i] ?? 0)}</b></div>
       <div>Sunrise / sunset<b>${fmtTime(d.sunrise[i])} · ${fmtTime(d.sunset[i])}</b></div>
       <div>Daylight<b>${hrs}h ${mins}m</b></div>
     </div></div>`;
@@ -619,14 +801,14 @@ function renderTiles() {
   const frac = Math.min(1, Math.max(0, (nowT - rise) / (set - rise)));
   const ang = Math.PI * (1 - frac), sx = 100 + 80 * Math.cos(ang), sy = 90 - 80 * Math.sin(ang);
   const up = nowT >= rise && nowT <= set;
-  const pres = unit === "F" ? (c.pressure_msl * 0.02953).toFixed(2) : Math.round(c.pressure_msl);
-  $("condTime").textContent = "as of " + fmtTime(c.time);
+  const pres = c.pressure_msl == null ? "—" : unit === "F" ? (c.pressure_msl * 0.02953).toFixed(2) : Math.round(c.pressure_msl);
+  $("condTime").textContent = (c.observed && c.station ? "Station " + c.station + " · " : "") + "as of " + fmtTime(c.time);
   $("tiles").innerHTML = `
-    <div class="tile"><div class="k">UV index</div><div class="v">${Math.round(uv)}</div>
-      <div class="uvbar"><b style="left:${Math.min(100, uv / 11 * 100)}%"></b></div><div class="s">${uvLabel(uv)}</div></div>
+    <div class="tile"><div class="k">Dew point</div><div class="v">${c.dew_point_2m == null ? "—" : cvtT(c.dew_point_2m) + "°"}</div>
+      <div class="s">${c.dew_point_2m == null ? "" : c.dew_point_2m >= 18 ? "Sticky" : c.dew_point_2m >= 13 ? "Comfortable" : "Dry air"}</div></div>
     <div class="tile"><div class="k">Humidity</div>
       <div class="ring" style="background:conic-gradient(#8fd0ff ${hum * 3.6}deg, rgba(255,255,255,.1) 0)"><span>${hum}%</span></div>
-      <div class="s">${hum > 70 ? "Muggy" : hum < 30 ? "Dry" : "Comfortable"}</div></div>
+      <div class="s">${c.dew_point_2m != null && c.dew_point_2m >= 18 ? "Muggy" : hum >= 85 ? "Damp" : hum < 30 ? "Dry" : "Comfortable"}</div></div>
     <div class="tile"><div class="k">Wind</div>
       <div class="tilerow"><div><div class="v">${cvtW(c.wind_speed_10m).split(" ")[0]}<span style="font-size:.8rem;font-weight:500;color:var(--soft)"> ${unit === "F" ? "mph" : "km/h"}</span></div></div>
       <div class="compass"><i style="transform:rotate(${(c.wind_direction_10m + 180) % 360}deg)"></i></div></div>
@@ -638,7 +820,7 @@ function renderTiles() {
         <line x1="10" y1="90" x2="190" y2="90" stroke="rgba(255,255,255,.18)"/>
         ${up ? `<circle cx="${sx}" cy="${sy}" r="9" fill="#ffd36b"/><circle cx="${sx}" cy="${sy}" r="16" fill="#ffd36b" opacity=".2"/>` : ""}
       </svg>
-      <div class="times"><div>Sunrise<b>${fmtTime(d.sunrise[0])}</b></div><div style="text-align:center">Daylight<b>${Math.floor(d.daylight_duration[0]/3600)}h ${Math.round(d.daylight_duration[0]%3600/60)}m</b></div><div style="text-align:right">Sunset<b>${fmtTime(d.sunset[0])}</b></div></div>
+      <div class="times"><div>Sunrise<b>${fmtTime(d.sunrise[0])}</b></div><div style="text-align:center">Daylight<b>${Math.floor(Math.round(d.daylight_duration[0]/60)/60)}h ${Math.round(d.daylight_duration[0]/60)%60}m</b></div><div style="text-align:right">Sunset<b>${fmtTime(d.sunset[0])}</b></div></div>
     </div>`;
 }
 
@@ -690,36 +872,10 @@ const sky = (() => {
 let map, marker, frames = [], layers = {}, frameIdx = 0, playTimer = null;
 let pastFrames = [], grid = null, gridFor = "", gridAt = 0, gridLoading = false;
 let radarLayer = "precip", warnLayer = null, labelGroup = null, hrrrFrames = [];
-const MODELS = {
-  hrrr:  { name: "HRRR",  about: "NOAA, US · 3 km · new run every hour · best for the next few hours", us: true, ids: ["ncep_hrrr_conus", "gfs_hrrr", "ncep_hrrr_us_conus"] },
-  nam:   { name: "NAM",   about: "NOAA, US · 3 km · new run every 6 hours", us: true, ids: ["ncep_nam_conus", "ncep_nam_us_conus"] },
-  nbm:   { name: "NBM",   about: "NOAA National Blend of Models, US · 2.5 km · new run every hour", us: true, ids: ["ncep_nbm_conus", "ncep_nbm_us_conus"] },
-  gfs:   { name: "GFS",   about: "NOAA global model (American)", ids: ["gfs_seamless", "ncep_gfs_seamless"] },
-  ecmwf: { name: "ECMWF", about: "European Centre global model (European)", ids: ["ecmwf_ifs025", "ecmwf_ifs_025"] },
-  icon:  { name: "ICON",  about: "German Weather Service (DWD)", ids: ["icon_seamless", "dwd_icon_seamless"] },
-  gem:   { name: "GEM",   about: "Environment Canada", ids: ["gem_seamless"] },
-  ukmo:  { name: "UKMO",  about: "UK Met Office", ids: ["ukmo_seamless", "uk_met_office_seamless"] },
-  best:  { name: "Best match", about: "Open-Meteo blends the best models for this area", ids: [null] }
-};
 let radarModel = "hrrr";
-try { const l = localStorage.getItem("skycast_layer"); if (["precip","temp","wind","cloud"].includes(l)) radarLayer = l; } catch(e) {}
-try { const m = localStorage.getItem("skycast_model"); if (m && MODELS[m]) radarModel = m; } catch(e) {}
-const modelOK = m => !MODELS[m].us || inUS();
-function renderModels() {
-  if (!modelOK(radarModel)) radarModel = inUS() ? "hrrr" : "ecmwf";
-  $("models").innerHTML = Object.entries(MODELS).filter(([k]) => modelOK(k))
-    .map(([k, m]) => `<button data-model="${k}" class="${k === radarModel ? "on" : ""}">${m.name}</button>`).join("");
-  document.querySelectorAll("[data-model]").forEach(b => b.onclick = () => setModel(b.dataset.model));
-  const m = MODELS[radarModel];
-  $("modelAbout").textContent = m.name + ": " + m.about + (radarModel === "hrrr" && inUS() ? ". The future radar is NOAA's own HRRR simulated radar." : "");
-}
-function setModel(m) {
-  radarModel = m;
-  try { localStorage.setItem("skycast_model", m); } catch(e) {}
-  renderModels();
-  rebuild();
-  loadGrid(true);
-}
+const radarLayerSaved = null;
+function renderModels() {}
+
 const IEM = "https://mesonet{s}.agron.iastate.edu/cache/tile.py/1.0.0/";
 const pad = (n, w) => String(n).padStart(w, "0");
 const utcStamp = d => d.getUTCFullYear() + pad(d.getUTCMonth() + 1, 2) + pad(d.getUTCDate(), 2) + pad(d.getUTCHours(), 2) + pad(d.getUTCMinutes(), 2);
@@ -782,79 +938,13 @@ async function loadRadar() {
         url: `${IEM}nexrad-n0q-900913${suffix}/{z}/{x}/{y}.png?_=${bucket}` });
     }
   } else {
-    hrrrFrames = [];
-    try {
-      const r = await fetch("https://api.rainviewer.com/public/weather-maps.json", { cache: "no-store" });
-      const j = await r.json();
-      const f = j.radar.past[j.radar.past.length - 1];
-      pastFrames = [{ key: f.path, minsAgo: Math.max(0, Math.round((Date.now() - f.time * 1000) / 60000)),
-        url: `${j.host}${f.path}/512/{z}/{x}/{y}/2/1_1.png`, big: true }];
-    } catch(e) { pastFrames = []; }
+    hrrrFrames = []; pastFrames = [];
   }
   rebuild();
 }
 
-/* ---- model grid ---- */
-async function fetchChunks(lats, lons, extra) {
-  const CHUNK = 50, reqs = [];
-  for (let i = 0; i < lats.length; i += CHUNK) {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats.slice(i, i + CHUNK).join(",")}&longitude=${lons.slice(i, i + CHUNK).join(",")}&timezone=GMT${extra}`;
-    reqs.push(fetch(url).then(r => { if (!r.ok) throw new Error("grid " + r.status); return r.json(); }).then(j => Array.isArray(j) ? j : [j]));
-  }
-  const j = (await Promise.all(reqs)).flat();
-  if (j.length !== lats.length) throw new Error("count");
-  return j;
-}
-const VARS = ["precipitation", "rain", "snowfall", "temperature_2m", "wind_speed_10m"];
-async function loadGrid(force) {
-  if (!map) return;
-  const id = place.latitude.toFixed(2) + "," + place.longitude.toFixed(2) + "_" + radarModel;
-  if (!force && grid && gridFor === id && Date.now() - gridAt < 30 * 60000) return;
-  gridLoading = true;
-  const lats = [], lons = [];
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    lats.push((place.latitude + D_LAT - r * (2 * D_LAT / (ROWS - 1))).toFixed(2));
-    lons.push((place.longitude - D_LON + c * (2 * D_LON / (COLS - 1))).toFixed(2));
-  }
-  let j, key, perHour;
-  const model = radarModel, ids = MODELS[model].ids;
-  const ok = (jj, k) => jj[0][k] && jj[0][k].precipitation && !jj[0][k].precipitation.every(v => v === null);
-  try {
-    if (model !== "best") throw new Error("use hourly model");
-    j = await fetchChunks(lats, lons, `&minutely_15=${VARS.join(",")}&forecast_minutely_15=26&hourly=cloud_cover,precipitation_probability&forecast_hours=8`);
-    key = "minutely_15"; perHour = 4;
-    if (!ok(j, key)) throw new Error("empty");
-  } catch(e) {
-    j = null;
-    for (const mid of ids) {
-      try {
-        const jj = await fetchChunks(lats, lons, `${mid ? "&models=" + mid : ""}&hourly=${VARS.join(",")},cloud_cover,precipitation_probability&forecast_hours=8`);
-        if (ok(jj, "hourly")) { j = jj; break; }
-      } catch(e2) {}
-    }
-    key = "hourly"; perHour = 1;
-    if (!j || model !== radarModel) {
-      gridLoading = false;
-      if (model === radarModel) $("futureNote").textContent = `The ${MODELS[model].name} model isn't available for this area right now. Try another model.`;
-      rebuild(); return;
-    }
-  }
-  if (model !== radarModel) { gridLoading = false; return; }
-  $("futureNote").textContent = "";
-  const times = j[0][key].time.map(t => Date.parse(t + "Z"));
-  const step = 3600000 / perHour, now = Date.now();
-  let first = times.findIndex(t => t > now - step / 2);
-  if (first < 0) first = 0;
-  const v = {};
-  VARS.forEach(name => v[name] = j.map(loc => loc[key][name] || []));
-  const cloudTimes = j[0].hourly.time.map(t => Date.parse(t + "Z"));
-  const cloud = j.map(loc => loc.hourly.cloud_cover || []);
-  const prob = j.map(loc => loc.hourly.precipitation_probability || []);
-  grid = { id, model: radarModel, times, first, perHour, v, cloudTimes, cloud, prob,
-    bounds: [[place.latitude - D_LAT, place.longitude - D_LON], [place.latitude + D_LAT, place.longitude + D_LON]] };
-  gridFor = id; gridAt = Date.now(); gridLoading = false;
-  rebuild();
-}
+/* ---- forecast-model layers removed: future radar comes from NOAA HRRR (US) ---- */
+async function loadGrid() {}
 const at = (name, r, c, t) => grid.v[name][r * COLS + c][t] ?? 0;
 function hourIdx(t) {
   const target = grid.times[t];
@@ -986,7 +1076,7 @@ function showFrame(i) {
     let rel;
     if (mins < 8) rel = "Now";
     else { const h = Math.floor(mins / 60), m = mins % 60; rel = "+" + (h ? h + "h" : "") + (m ? (h ? " " : "") + m + "m" : ""); }
-    const src = f.hrrr ? "NOAA HRRR simulated radar" : `${MODELS[grid && grid.model || radarModel].name} model`;
+    const src = "NOAA HRRR simulated radar";
     const dry = f.model && f.layer === "precip" && f.dry ? ' · <span style="opacity:.75">no rain or snow forecast in this area</span>' : "";
     $("rtime").innerHTML = `<b style="color:var(--accent)">${rel === "Now" ? "Now" : "Future " + rel}</b> · ${clock(f.time)} · ${src}${dry}`;
     $("badge").className = "badge future";
@@ -1029,10 +1119,9 @@ function renderLegend() {
     cloud: `<span class="lg wide"><i style="background:linear-gradient(90deg,rgba(235,240,248,.1),rgba(235,240,248,.95))"></i>Clear → Overcast</span>`
   };
   $("legendBox").innerHTML = L_[radarLayer];
-  $("radarNote").textContent = radarLayer !== "precip" ? `${MODELS[radarModel].name} forecast model from now through the next 6 hours.`
-    : hrrrFrames.length && radarModel === "hrrr"
+  $("radarNote").textContent = hrrrFrames.length
     ? "The past hour is real National Weather Service radar. The future part is NOAA's HRRR model simulated radar, which is a prediction. Future frames color precipitation by type: rain, snow, freezing rain and ice."
-    : `The past hour is real radar. Future frames come from the ${MODELS[radarModel].name} model: solid colors are rain, snow and ice the model expects, and striped areas are where rain or snow is likely.`;
+    : "Live National Weather Service radar. The future radar will appear here when NOAA's latest HRRR run is available.";
 }
 function setRadarLayer(l) {
   radarLayer = l;
@@ -1194,9 +1283,9 @@ function renderCities() {
 function goTo(p) { place = { ...p }; selDay = null; save(); renderCities(); load(); moveMap(); notifyState(); }
 async function nameFor(lat, lon) {
   try {
-    const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
-    const j = await r.json();
-    return { name: j.city || j.locality || "My location", admin1: j.principalSubdivision || "", country: j.countryName || "" };
+    const j = await getJSON(`https://api.weather.gov/points/${lat.toFixed(4)},${lon.toFixed(4)}`, 1);
+    const l = j.properties.relativeLocation.properties;
+    return { name: l.city, admin1: l.state, country: "United States" };
   } catch(e) { return { name: "My location" }; }
 }
 function useMyLocation() {
@@ -1229,27 +1318,38 @@ addEventListener("hashchange", showView);
 
 /* ---------- Search & controls ---------- */
 let timer;
-$("q").addEventListener("input", e => {
-  clearTimeout(timer);
-  const q = e.target.value.trim();
-  if (q.length < 2) { $("results").style.display = "none"; return; }
-  timer = setTimeout(async () => {
-    try {
-      const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=en`);
-      const j = await r.json();
-      const box = $("results");
-      box.innerHTML = "";
-      (j.results || []).forEach(p => {
-        const el = document.createElement("div");
-        el.innerHTML = `${p.name} <small>${[p.admin1, p.country].filter(Boolean).join(", ")}</small>`;
-        el.onclick = () => { box.style.display = "none"; $("q").value = ""; $("q").blur(); goTo({ name: p.name, admin1: p.admin1, country: p.country, latitude: p.latitude, longitude: p.longitude }); };
-        box.appendChild(el);
-      });
-      if (!j.results) box.innerHTML = "<div><small>No places found</small></div>";
-      box.style.display = "block";
-    } catch(e) {}
-  }, 300);
-});
+// City search: OpenStreetMap Nominatim, US places only. Runs when you press Search/Enter (their rules don't allow search-as-you-type).
+const STATES = {"Alabama":"AL","Alaska":"AK","Arizona":"AZ","Arkansas":"AR","California":"CA","Colorado":"CO","Connecticut":"CT","Delaware":"DE","District of Columbia":"DC","Florida":"FL","Georgia":"GA","Hawaii":"HI","Idaho":"ID","Illinois":"IL","Indiana":"IN","Iowa":"IA","Kansas":"KS","Kentucky":"KY","Louisiana":"LA","Maine":"ME","Maryland":"MD","Massachusetts":"MA","Michigan":"MI","Minnesota":"MN","Mississippi":"MS","Missouri":"MO","Montana":"MT","Nebraska":"NE","Nevada":"NV","New Hampshire":"NH","New Jersey":"NJ","New Mexico":"NM","New York":"NY","North Carolina":"NC","North Dakota":"ND","Ohio":"OH","Oklahoma":"OK","Oregon":"OR","Pennsylvania":"PA","Rhode Island":"RI","South Carolina":"SC","South Dakota":"SD","Tennessee":"TN","Texas":"TX","Utah":"UT","Vermont":"VT","Virginia":"VA","Washington":"WA","West Virginia":"WV","Wisconsin":"WI","Wyoming":"WY","Puerto Rico":"PR"};
+let lastSearch = 0;
+async function searchCities(q) {
+  const box = $("results");
+  if (q.length < 2) return;
+  const wait = 1100 - (Date.now() - lastSearch);   // at most one search per second
+  if (wait > 0) await new Promise(r => setTimeout(r, wait));
+  lastSearch = Date.now();
+  box.innerHTML = "<div><small>Searching…</small></div>"; box.style.display = "block";
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=jsonv2&addressdetails=1&countrycodes=us&limit=6&accept-language=en`);
+    const j = await r.json();
+    box.innerHTML = "";
+    const seen = new Set();
+    j.forEach(p => {
+      const a = p.address || {};
+      const name = a.city || a.town || a.village || a.hamlet || a.municipality || a.county || p.name;
+      const state = a.state || "";
+      const key = name + "|" + state;
+      if (seen.has(key)) return; seen.add(key);
+      const el = document.createElement("div");
+      el.innerHTML = `${esc(name)} <small>${esc([a.county !== name ? a.county : "", state].filter(Boolean).join(", "))}</small>`;
+      el.onclick = () => { box.style.display = "none"; $("q").value = ""; $("q").blur();
+        goTo({ name, admin1: STATES[state] || state, country: "United States", latitude: +p.lat, longitude: +p.lon }); };
+      box.appendChild(el);
+    });
+    if (!box.children.length) box.innerHTML = "<div><small>No US places found. Try a city and state, like “Austin, TX”.</small></div>";
+  } catch(e) { box.innerHTML = "<div><small>Search isn't working right now. Try again in a moment.</small></div>"; }
+}
+$("searchForm").addEventListener("submit", e => { e.preventDefault(); searchCities($("q").value.trim()); });
+$("q").addEventListener("input", () => { if (!$("q").value.trim()) $("results").style.display = "none"; });
 document.addEventListener("click", e => { if (!e.target.closest(".search")) $("results").style.display = "none"; });
 
 function setUnit(u) {
