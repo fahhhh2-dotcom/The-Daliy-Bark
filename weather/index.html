@@ -396,6 +396,26 @@
   @media (prefers-reduced-motion: reduce) { .boot-logo, .boot-word, .boot-bar, .boot-tag, .boot-bar i { animation:none; } }
   .rsheet .radar-ctrl { align-items:center !important; }
   .rsheet .ticks { height:auto !important; }
+  /* ===== News ===== */
+  html.onnews .cities { display:none; }
+  .newswrap { max-width:760px; margin:0 auto; padding:18px 18px 40px; }
+  .news-head h2 { font-size:1.5rem; letter-spacing:-.5px; }
+  .news-head span { display:block; color:var(--soft); font-size:.88rem; margin-top:4px; line-height:1.45; }
+  .news-day { font-size:.75rem; text-transform:uppercase; letter-spacing:1.4px; color:var(--soft); font-weight:800; margin:22px 0 10px; }
+  .story { display:block; text-decoration:none; color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:16px 16px 14px; margin-bottom:12px; }
+  .story:active { transform:scale(.99); }
+  .story .st-top { display:flex; align-items:center; gap:8px; font-size:.75rem; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:var(--accent); }
+  .story .st-ic { font-size:1.3rem; }
+  .story h3 { font-size:1.08rem; line-height:1.35; margin:8px 0 6px; letter-spacing:-.2px; }
+  .story p { font-size:.9rem; line-height:1.55; color:var(--soft); }
+  .story .st-src { display:flex; justify-content:space-between; gap:10px; margin-top:12px; font-size:.8rem; color:var(--faint); font-weight:600; }
+  .story .st-src b { color:var(--text); font-weight:700; }
+  .news-teaser { display:flex; align-items:center; gap:14px; text-decoration:none; color:var(--text); }
+  .news-teaser .nt-ic { font-size:1.8rem; }
+  .news-teaser small { display:block; font-size:.7rem; text-transform:uppercase; letter-spacing:1.3px; color:var(--accent); font-weight:800; }
+  .news-teaser b { display:block; font-size:.98rem; line-height:1.35; margin-top:2px; }
+  .news-teaser .go { margin-left:auto; color:var(--soft); font-size:1.3rem; }
+  @media (max-width:440px) { .brand .word { display:none; } .tabs a { padding:6px 11px; font-size:.86rem; } }
   .msg { text-align:center; padding:60px 20px; color:var(--soft); }
   .spinner { width:34px; height:34px; border:3px solid rgba(255,255,255,.2); border-top-color:#fff; border-radius:50%; margin:0 auto 12px; animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -466,7 +486,7 @@
   <path d="M17 50h28a9 9 0 0 0 8.6-6.4" fill="none" stroke="#9fb8ff" stroke-opacity=".5" stroke-width="1.5"/>
 </svg>
 <span class="word">Sky<b>Cast</b></span></div>
-  <nav class="tabs"><a href="#weather" id="tabW" class="on">Weather</a><a href="#radar" id="tabR">Radar</a></nav>
+  <nav class="tabs"><a href="#weather" id="tabW" class="on">Weather</a><a href="#radar" id="tabR">Radar</a><a href="#news" id="tabN">News</a></nav>
   <div class="search">
     <form id="searchForm" style="display:contents"><input id="q" type="search" enterkeyhint="search" placeholder="Search a US city, then press Search" autocomplete="off"></form>
     <div class="results" id="results"></div>
@@ -498,6 +518,7 @@
       <div class="ph"><h3>What forecasters are saying</h3><span id="afdOffice"></span></div>
       <div id="afd" class="nws-raw"></div>
     </section>
+    <a class="panel news-teaser" href="#news" id="newsTeaser" style="display:none"></a>
     <a class="panel radar-teaser" href="#radar">
       <div style="display:flex;align-items:center;gap:14px"><div class="rt-ic">🗺️</div><div><b>Radar</b><span>Live and future radar, satellite, rain totals, storm outlook, hurricanes and warnings</span></div></div>
       <div class="go">Open ›</div>
@@ -527,6 +548,12 @@
 </main>
 </div>
 
+<div class="view" id="viewN">
+  <main class="newswrap">
+    <div class="news-head"><h2>Weather news</h2><span>Real stories from the last 3 days, summed up in plain words. Tap one to read the full article.</span></div>
+    <div id="newsList"><div class="msg"><div class="spinner"></div>Loading news…</div></div>
+  </main>
+</div>
 <div class="view rview" id="viewR">
   <section class="radarpanel" id="radarPanel">
     <div class="mapwrap">
@@ -1530,7 +1557,7 @@ function rampFor(r, g, b) {
   recolorCache.set(key, v);
   return v;
 }
-const RecolorTiles = L.TileLayer.extend({
+const RecolorTiles = !window.L ? null : L.TileLayer.extend({
   createTile(coords, done) {
     const tile = document.createElement("canvas"), size = this.getTileSize();
     tile.width = size.x; tile.height = size.y;
@@ -1559,7 +1586,7 @@ function ensureLayer(f) {
   let e = layers[f.key];
   if (e && e.url === f.url) return e;
   const opts = { opacity: 0, zIndex: 10, maxZoom: 10, subdomains: "123", updateWhenIdle: true, updateWhenZooming: false, keepBuffer: 2, className: "radar-tiles" };
-  const layer = f.hrrr ? L.tileLayer(f.url, opts) : new RecolorTiles(f.url, opts);
+  const layer = f.hrrr || !RecolorTiles ? L.tileLayer(f.url, opts) : new RecolorTiles(f.url, opts);
   const ne = { layer, url: f.url, ready: false, old: e ? (e.ready ? e.layer : e.old) : null };
   if (e && e.layer && e.layer !== ne.old) map.removeLayer(e.layer);
   layer.on("loading", () => { ne.loading = true; });
@@ -1686,7 +1713,7 @@ function setRadarLayer(l) {
 }
 /* Warnings: National Weather Service warning areas (counties and storm polygons), redrawn on the phone
    as green areas with dark outlines. */
-const GreenWarnTiles = (L.TileLayer && L.TileLayer.WMS && L.TileLayer.WMS.extend) ? L.TileLayer.WMS.extend({
+const GreenWarnTiles = (window.L && L.TileLayer && L.TileLayer.WMS && L.TileLayer.WMS.extend) ? L.TileLayer.WMS.extend({
   createTile(coords, done) {
     const tile = document.createElement("canvas"), size = this.getTileSize();
     tile.width = size.x; tile.height = size.y;
@@ -1993,7 +2020,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114015432";
+const BUILD = "20261114030307";
 async function checkForUpdate(opts) {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
@@ -2071,13 +2098,17 @@ function useMyLocation() {
 
 /* ---------- Views ---------- */
 function showView() {
-  const radar = location.hash === "#radar";
+  const radar = location.hash === "#radar", news = location.hash === "#news";
   document.documentElement.classList.toggle("onradar", radar);
+  document.documentElement.classList.toggle("onnews", news);
   setBarH();
-  $("viewW").classList.toggle("on", !radar);
+  $("viewW").classList.toggle("on", !radar && !news);
   $("viewR").classList.toggle("on", radar);
-  $("tabW").classList.toggle("on", !radar);
+  $("viewN").classList.toggle("on", news);
+  $("tabW").classList.toggle("on", !radar && !news);
   $("tabR").classList.toggle("on", radar);
+  $("tabN").classList.toggle("on", news);
+  if (news) loadNews();
   if (radar) {
     if (!map) initMap();
     else setTimeout(() => map.invalidateSize(), 50);
@@ -2144,6 +2175,8 @@ const ES = {
   "No rain or snow expected near": "No se espera lluvia ni nieve cerca de", "in the next 7 days.": "en los próximos 7 días.",
   "SkyCast covers the United States only. Search for a US city or town.": "SkyCast solo cubre Estados Unidos. Busca una ciudad de EE. UU.",
   "US locations only": "Solo ubicaciones de EE. UU.", "United States": "Estados Unidos",
+  "News": "Noticias", "Weather news": "Noticias del clima", "Read": "Leer", "Loading news…": "Cargando noticias…",
+  "Real stories from the last 3 days, summed up in plain words. Tap one to read the full article.": "Noticias reales de los últimos 3 días, resumidas en palabras sencillas (en inglés). Toca una para leer el artículo completo.",
   "Warning notifications": "Notificaciones de alertas", "Official weather warnings": "Alertas oficiales del clima", "Extra alerts mode": "Modo de alertas extra",
   "Rain coming": "Viene lluvia", "Snow coming": "Viene nieve", "Thunderstorms coming": "Vienen tormentas", "Freezing temperatures tonight": "Temperaturas bajo cero esta noche",
   "Notifications": "Notificaciones", "Install SkyCast as an app": "Instalar SkyCast como app"
@@ -2353,6 +2386,59 @@ function bootDone() {
   setTimeout(() => { const b = $("boot"); if (!b) return; b.classList.add("done"); setTimeout(() => b.remove(), 600); }, Math.max(0, 1100 - (Date.now() - bootStart)));
 }
 setTimeout(bootDone, 4500);   // never keep it up longer than this, even if the weather is slow
+
+
+/* ---------- Weather news (news.json is refreshed every morning) ---------- */
+let newsLoaded = 0;
+async function loadNews(force) {
+  if (!force && Date.now() - newsLoaded < 15 * 60000) return;
+  try {
+    const r = await fetch("news.json?t=" + Math.floor(Date.now() / 300000), { cache: "no-store" });
+    const j = await r.json();
+    newsLoaded = Date.now();
+    const cutoff = Date.now() - 3 * 86400000;
+    const list = (j.articles || []).filter(a => Date.parse(a.published) > cutoff).sort((a, b) => Date.parse(b.published) - Date.parse(a.published));
+    renderNews(list);
+    try { localStorage.setItem("skycast_news", JSON.stringify(list)); } catch(e) {}
+  } catch(e) {
+    let list = []; try { list = JSON.parse(localStorage.getItem("skycast_news") || "[]").filter(a => Date.parse(a.published) > Date.now() - 3 * 86400000); } catch(e2) {}
+    if (list.length) renderNews(list); else $("newsList").innerHTML = '<div class="msg">News couldn\'t load right now. Try again in a little while.</div>';
+  }
+}
+function ago(ms) {
+  const m = Math.round((Date.now() - ms) / 60000);
+  if (m < 60) return m + " min ago";
+  const h = Math.round(m / 60); if (h < 24) return h + (h === 1 ? " hour ago" : " hours ago");
+  const d = Math.round(h / 24); return d + (d === 1 ? " day ago" : " days ago");
+}
+function renderNews(list) {
+  const t = $("newsTeaser");
+  if (!list.length) {
+    $("newsList").innerHTML = '<div class="msg">No new weather stories right now. Check back tomorrow morning.</div>';
+    t.style.display = "none"; return;
+  }
+  const dayName = ms => {
+    const d = new Date(ms), today = new Date(), y = new Date(Date.now() - 86400000);
+    if (d.toDateString() === today.toDateString()) return lang === "es" ? "Hoy" : "Today";
+    if (d.toDateString() === y.toDateString()) return lang === "es" ? "Ayer" : "Yesterday";
+    return d.toLocaleDateString(LOC(), { weekday: "long", month: "short", day: "numeric" });
+  };
+  let html = "", lastDay = "";
+  list.forEach(a => {
+    const ms = Date.parse(a.published), day = dayName(ms);
+    if (day !== lastDay) { html += `<div class="news-day">${esc(day)}</div>`; lastDay = day; }
+    html += `<a class="story nws-raw" href="${esc(a.url)}" target="_blank" rel="noopener">
+      <div class="st-top"><span class="st-ic">${esc(a.icon || "📰")}</span>${esc(a.tag || "Weather")}</div>
+      <h3>${esc(a.title)}</h3><p>${esc(a.summary)}</p>
+      <div class="st-src"><span><b>${esc(a.source)}</b> · ${ago(ms)}</span><span>Read ↗</span></div></a>`;
+  });
+  $("newsList").innerHTML = html;
+  const top = list[0];
+  t.innerHTML = `<span class="nt-ic">${esc(top.icon || "📰")}</span><span><small>Weather news</small><b>${esc(top.title)}</b></span><span class="go">›</span>`;
+  t.style.display = "";
+}
+setTimeout(() => loadNews(), 1500);
+setInterval(() => loadNews(), 30 * 60000);
 
 /* ---------- Search & controls ---------- */
 let timer;

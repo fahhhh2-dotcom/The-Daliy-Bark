@@ -1,0 +1,35 @@
+{
+  "updated": "2026-11-13T21:05:00-06:00",
+  "articles": [
+    {
+      "id": "foxweather-2026-11-13-noreaster",
+      "published": "2026-11-13T06:30:00-05:00",
+      "tag": "Storm",
+      "icon": "🌨️",
+      "title": "Nor'easter soaks the I-95 corridor as the season's first snow falls up north",
+      "summary": "A nor'easter brought heavy rain and wind to the East Coast on Friday. The heaviest snow was expected Friday afternoon into Saturday morning in upstate New York, southern Vermont and New Hampshire, with 1 to 3 inches possible in the Adirondacks and the Green and White Mountains. Lake-effect rain and snow were set to follow around the Great Lakes.",
+      "source": "FOX Weather",
+      "url": "https://www.foxweather.com/weather-news/northeast-faces-messy-friday-as-noreaster-ushers-in-rain-wind-and-snow"
+    },
+    {
+      "id": "gizmodo-2026-11-13-polar-vortex",
+      "published": "2026-11-13T15:25:00-05:00",
+      "tag": "Cold",
+      "icon": "🥶",
+      "title": "Record-early polar vortex disruption could bring more cold around Thanksgiving",
+      "summary": "The earliest polar vortex disruption on record pushed Arctic air into the eastern U.S. this week, helping this week's nor'easter drop snow in higher areas. Forecast models hint at another round of cold, and possibly snow, in the East around Thanksgiving weekend.",
+      "source": "Gizmodo",
+      "url": "https://gizmodo.com/unpredecented-polar-vortex-event-arctic-blast-2000839635"
+    },
+    {
+      "id": "nbcboston-2026-11-13-noreaster",
+      "published": "2026-11-13T05:48:00-05:00",
+      "tag": "Local",
+      "icon": "🌧️",
+      "title": "Boston gets mostly cold rain as the nor'easter moves out",
+      "summary": "Greater Boston saw mainly a cold rain from Friday's nor'easter, with north-northeast winds gusting to around 30 mph. Some higher spots in New England picked up a few inches of snow before the storm pulled away.",
+      "source": "NBC Boston",
+      "url": "https://www.nbcboston.com/news/local/weather-boston-noreaster-rain-snow-radar/4048824/"
+    }
+  ]
+}
