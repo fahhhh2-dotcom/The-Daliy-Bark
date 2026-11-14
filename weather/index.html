@@ -526,6 +526,8 @@
   .onb .toggles { text-align:left; }
   .onb-go { display:block; width:100%; margin-top:16px; padding:14px; border:0; border-radius:16px; background:#ffd36b; color:#0b1424; font:inherit; font-weight:800; font-size:1rem; cursor:pointer; }
   .onb-skip { display:block; width:100%; margin-top:8px; padding:10px; border:0; background:none; color:var(--soft); font:inherit; font-weight:700; font-size:.9rem; cursor:pointer; }
+  .onb-in { display:block; width:100%; padding:13px 14px; border-radius:14px; border:1px solid var(--line); background:rgba(255,255,255,.1); color:#fff; font:inherit; font-size:1rem; outline:none; text-align:center; }
+  .onb-in::placeholder { color:rgba(255,255,255,.55); }
   .onb-search { display:flex; gap:8px; margin-top:10px; }
   .onb-search input { flex:1; min-width:0; padding:12px 14px; border-radius:14px; border:1px solid var(--line); background:rgba(255,255,255,.1); color:#fff; font:inherit; font-size:.95rem; outline:none; }
   .onb-search input::placeholder { color:rgba(255,255,255,.55); }
@@ -534,6 +536,28 @@
   .onb-res div { padding:12px 14px; background:rgba(255,255,255,.07); border-top:1px solid var(--line); cursor:pointer; font-size:.95rem; }
   .onb-res div:first-child { border-top:0; }
   .onb-res small { color:var(--soft); }
+  /* ===== Account ===== */
+  .acct-row { display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:12px 14px; margin-bottom:6px; border-radius:16px; border:1px solid var(--line); background:var(--panel2); color:var(--text); font:inherit; cursor:pointer; }
+  .acct-row b { display:block; font-size:1rem; }
+  .acct-row small { display:block; color:var(--soft); font-size:.8rem; font-weight:600; }
+  .acct-row .go { margin-left:auto; color:var(--soft); font-size:1.3rem; }
+  .acct-av { flex:0 0 auto; width:44px; height:44px; border-radius:50%; display:grid; place-items:center; font-weight:800; font-size:1.15rem; color:#0b1424; background: linear-gradient(135deg, #ffd36b, #ff9a4d); }
+  .acct-av.big { width:76px; height:76px; font-size:2rem; margin:0 auto; }
+  .acct-in { display:block; width:100%; padding:12px 14px; border-radius:14px; border:1px solid var(--line); background:var(--panel2); color:var(--text); font:inherit; font-size:1rem; outline:none; }
+  /* boot animation: a cloud floats in, the sun shines, then it rains */
+  .boot-scene { width:150px; height:140px; overflow:visible; filter: drop-shadow(0 14px 30px rgba(0,0,0,.35)); }
+  .bs-cloud { transform-origin: 70px 85px; animation: bsCloud .7s cubic-bezier(.2,1.3,.4,1) both, bsFloat 3s ease-in-out .7s infinite; }
+  .bs-sun { transform-origin: 104px 46px; animation: bsSun .8s cubic-bezier(.2,1.2,.4,1) .55s both; }
+  .bs-rays { transform-origin: 104px 46px; animation: bsSpin 6s linear 1.2s infinite, bsGlow 1.4s ease-in-out 1.2s infinite; }
+  .bs-rain path { opacity:0; animation: bsDrop .75s linear infinite; }
+  .bs-rain .d1 { animation-delay: 1.5s; } .bs-rain .d2 { animation-delay: 1.75s; } .bs-rain .d3 { animation-delay: 1.6s; } .bs-rain .d4 { animation-delay: 1.85s; }
+  @keyframes bsCloud { from { transform: translateX(-60px) scale(.7); opacity:0; } to { transform:none; opacity:1; } }
+  @keyframes bsFloat { 50% { transform: translateY(-4px); } }
+  @keyframes bsSun { from { transform: translate(-22px, 30px) scale(.4); opacity:0; } to { transform:none; opacity:1; } }
+  @keyframes bsSpin { to { transform: rotate(360deg); } }
+  @keyframes bsGlow { 50% { opacity:.55; } }
+  @keyframes bsDrop { 0% { transform: translateY(-6px); opacity:0; } 20% { opacity:1; } 100% { transform: translateY(22px); opacity:0; } }
+  @media (prefers-reduced-motion: reduce) { .bs-cloud, .bs-sun, .bs-rays { animation:none; } .bs-rain path { animation:none; opacity:1; } }
   /* ===== Custom backgrounds (Settings → Background) ===== */
   html[data-bg] body::before { background: var(--bgx); }
   html[data-bg="ocean"]    { --bgx: radial-gradient(1200px 700px at 15% -10%, #12b5c9, transparent 70%), linear-gradient(180deg, #073b55, #031420 90%); }
@@ -558,31 +582,32 @@
   html[data-bg="rose"] body { --bg1:#e8607f; --bg2:#4a1530; }
   html[data-bg="midnight"] body { --bg1:#26334d; --bg2:#0b0f18; }
 
-  /* ===== Phones & tablets: one big blue top section (search bar + current weather), edge to edge ===== */
-  @media (max-width: 959px) {
-    body { --top: var(--bg1); }
-    @supports (color: color-mix(in srgb, red, blue)) { body { --top: color-mix(in srgb, var(--bg1) 88%, #fff); } }
-    .bar, html.light .bar { background: var(--top); border-bottom: 0; -webkit-backdrop-filter:none; backdrop-filter:none;
-      --text:#fff; --soft: rgba(255,255,255,.78); --faint: rgba(255,255,255,.6); --line: rgba(255,255,255,.2); }
-    .bar .search input { background-color: rgba(255,255,255,.14); color:#fff; }
-    .bar .search input::placeholder { color: rgba(255,255,255,.7); }
-    html.light .bar .brand .word { color:#fff; }
-    html.light .bar .tabs a.on { background:#fff; color:#0e1d38; }
-    html:not(.onradar):not(.onnews) .cities, html:not(.onradar):not(.onnews) .toast { background: var(--top); max-width:none; margin:0; }
-    html:not(.onradar):not(.onnews) .toast { padding-top:6px; }
-    .cities .city:not(.on) { background: rgba(255,255,255,.14); color:#fff; border-color: rgba(255,255,255,.25); }
-    .cities .city.on { background:#fff; color:#0e1d38; }
-    .cities .city.add { color: rgba(255,255,255,.85); }
-    /* light blue fills the whole top of the screen, behind the current-weather box, then fades into the page */
-    #viewW main { padding-top:6px;
-      background: linear-gradient(180deg, var(--top) 0, var(--top) calc(var(--heroH, 320px) + 6px), rgba(0,0,0,0) calc(var(--heroH, 320px) + 90px)); }
-    .panel.hero, html.light .panel.hero { border:1px solid rgba(255,255,255,.28); border-radius: 26px;
-      background: linear-gradient(160deg, rgba(255,255,255,.22), rgba(255,255,255,.06));
-      box-shadow: 0 14px 34px rgba(10,30,80,.28);
-      color:#fff; --text:#fff; --soft: rgba(255,255,255,.85); --faint: rgba(255,255,255,.65); --line: rgba(255,255,255,.25); }
-    .panel.hero .chip, .panel.hero .updated { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.25); }
-    html[data-bg="photo"] .panel.hero { -webkit-backdrop-filter:none; backdrop-filter:none; }
-  }
+  /* ===== Light blue everywhere: top bar, page background (even when you scroll) and a frosted current-weather box ===== */
+  body { --top: var(--bg1); --top2: var(--bg1); }
+  @supports (color: color-mix(in srgb, red, blue)) { body { --top: color-mix(in srgb, var(--bg1) 88%, #fff); --top2: color-mix(in srgb, var(--bg1) 78%, var(--bg2)); } }
+  html:not([data-bg]) body { background: var(--top2); }
+  html:not([data-bg]) body::before { background: linear-gradient(180deg, var(--top) 0%, var(--top) 35%, var(--top2) 100%); }
+  .bar, html.light .bar { background: var(--top); border-bottom: 0; -webkit-backdrop-filter:none; backdrop-filter:none;
+    --text:#fff; --soft: rgba(255,255,255,.78); --faint: rgba(255,255,255,.6); --line: rgba(255,255,255,.2); }
+  .bar .search input { background-color: rgba(255,255,255,.14); color:#fff; }
+  .bar .search input::placeholder { color: rgba(255,255,255,.7); }
+  html.light .bar .brand .word { color:#fff; }
+  html.light .bar .tabs a.on, html.light .bar .seg button.on { background:#fff; color:#0e1d38; }
+  .cities .city:not(.on) { background: rgba(255,255,255,.14); color:#fff; border-color: rgba(255,255,255,.25); }
+  .cities .city.on { background:#fff; color:#0e1d38; }
+  .cities .city.add { color: rgba(255,255,255,.85); }
+  .toast { color:#fff; }
+  html:not([data-bg]) footer { color: rgba(255,255,255,.7); }
+  html:not([data-bg]) footer a { color:#fff; }
+  html:not([data-bg]) .news-head span, html:not([data-bg]) .news-day { color: rgba(255,255,255,.85); }
+  html:not([data-bg]) .news-head h2 { color:#fff; }
+  .panel.hero, html.light .panel.hero { border:1px solid rgba(255,255,255,.28);
+    background: linear-gradient(160deg, rgba(255,255,255,.22), rgba(255,255,255,.06));
+    box-shadow: 0 14px 34px rgba(10,30,80,.28);
+    color:#fff; --text:#fff; --soft: rgba(255,255,255,.85); --faint: rgba(255,255,255,.65); --line: rgba(255,255,255,.25); }
+  .panel.hero .chip, .panel.hero .updated { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.25); }
+  html[data-bg="photo"] .panel.hero { -webkit-backdrop-filter:none; backdrop-filter:none; background: rgba(10,18,36,.55); }
+  @media (max-width: 959px) { #viewW main { padding-top:6px; } }
   .bgs { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; }
   .bgs button { display:flex; flex-direction:column; align-items:center; gap:6px; border:0; background:none; color:var(--soft); font:inherit; font-size:.75rem; font-weight:700; cursor:pointer; padding:0; }
   .bgs .sw { width:100%; aspect-ratio: 1 / 1; max-width:72px; border-radius:18px; border:2px solid var(--line); background-size:cover; background-position:center; display:grid; place-items:center; font-size:1.3rem; }
@@ -602,23 +627,28 @@
 <body class="t-day">
 <div id="boot" role="status" aria-label="SkyCast is starting">
   <div class="boot-in">
-    <svg class="boot-logo" viewBox="0 0 64 64" aria-hidden="true">
-  <defs>
-    <linearGradient id="blbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3d8bfd"/><stop offset="1" stop-color="#1b2f7a"/></linearGradient>
-    <radialGradient id="blsun" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#fff3b0"/><stop offset=".55" stop-color="#ffd36b"/><stop offset="1" stop-color="#ff9a4d"/></radialGradient>
-    <linearGradient id="blcl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9e6ff"/></linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="16" fill="url(#blbg)"/>
-  <g stroke="#ffffff" stroke-opacity=".22" stroke-width="2.2" fill="none" stroke-linecap="round">
-    <path d="M10 14a26 26 0 0 1 14-6"/><path d="M8 22a32 32 0 0 1 22-14" stroke-opacity=".14"/>
-  </g>
-  <circle cx="40" cy="24" r="12" fill="url(#blsun)"/>
-  <g stroke="#ffd36b" stroke-width="2.6" stroke-linecap="round">
-    <path d="M40 6v3.5M55.5 24H59M50.9 13.1l2.5-2.5M29.1 13.1l-2.5-2.5"/>
-  </g>
-  <path d="M17 50h28a9 9 0 0 0 1.2-17.9A12.5 12.5 0 0 0 22.4 35 7.6 7.6 0 0 0 17 50z" fill="url(#blcl)"/>
-  <path d="M17 50h28a9 9 0 0 0 8.6-6.4" fill="none" stroke="#9fb8ff" stroke-opacity=".5" stroke-width="1.5"/>
-</svg>
+    <svg class="boot-scene" viewBox="0 0 160 150" aria-hidden="true">
+      <defs>
+        <radialGradient id="bsun" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#fff3b0"/><stop offset=".55" stop-color="#ffd36b"/><stop offset="1" stop-color="#ff9a4d"/></radialGradient>
+        <linearGradient id="bcl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9e6ff"/></linearGradient>
+      </defs>
+      <!-- 2. the sun comes out from behind the cloud and shines -->
+      <g class="bs-sun">
+        <g class="bs-rays" stroke="#ffd36b" stroke-width="5" stroke-linecap="round">
+          <path d="M104 8v10M104 74v10M66 46h10M132 46h10M77 19l7 7M124 66l7 7M77 73l7-7M124 26l7-7"/>
+        </g>
+        <circle cx="104" cy="46" r="22" fill="url(#bsun)"/>
+      </g>
+      <!-- 1. a cloud floats in -->
+      <g class="bs-cloud">
+        <path d="M38 100h66a19 19 0 0 0 2.6-37.8A27 27 0 0 0 54.4 70 16.5 16.5 0 0 0 38 100z" fill="url(#bcl)"/>
+        <path d="M38 100h66a19 19 0 0 0 18.4-14" fill="none" stroke="#9fb8ff" stroke-opacity=".5" stroke-width="2.5"/>
+      </g>
+      <!-- 3. then it rains -->
+      <g class="bs-rain" stroke="#8fd0ff" stroke-width="4.5" stroke-linecap="round">
+        <path class="d1" d="M52 110l-4 12"/><path class="d2" d="M70 110l-4 12"/><path class="d3" d="M88 110l-4 12"/><path class="d4" d="M106 110l-4 12"/>
+      </g>
+    </svg>
 
     <div class="boot-word">Sky<b>Cast</b></div>
     <div class="boot-bar"><i></i></div>
@@ -757,6 +787,7 @@
 
 <div class="sheet" id="sheet"><div class="sheet-in">
   <div class="sh-top"><b>Settings</b><button class="mini-btn" id="sheetClose">Done</button></div>
+  <button class="acct-row" id="acctBtn"><span class="acct-av" id="acctAv">👤</span><span><b id="acctName">Account</b><small id="acctSub">Set up your account</small></span><span class="go">›</span></button>
   <div class="sh-row"><span>Language</span><div class="seg"><button data-pref="lang:en">English</button><button data-pref="lang:es">Español</button></div></div>
   <div class="sh-note">Weather Service forecasts, discussions and warnings stay in English.</div>
   <div class="sh-row"><span>Units</span><div class="seg"><button data-unit="F">°F</button><button data-unit="C">°C</button></div></div>
@@ -806,8 +837,10 @@
     <section class="onb-step on" data-step="0">
       <div class="onb-ic">🌤️</div>
       <h2>Welcome to SkyCast</h2>
-      <p>Live weather, radar, storm alerts and a 14-day forecast. Let's get you set up in two quick steps.</p>
-      <button class="onb-go" data-next>Get started</button>
+      <p>Let's make your SkyCast account. It takes three quick steps.</p>
+      <input id="onbName" class="onb-in" type="text" placeholder="Your first name" autocomplete="given-name" maxlength="30">
+      <div class="sh-note">Your account is saved on this device.</div>
+      <button class="onb-go" data-next>Next</button>
     </section>
     <section class="onb-step" data-step="1">
       <div class="onb-ic">🔔</div>
@@ -832,6 +865,18 @@
     </section>
   </div>
 </div>
+<div class="sheet" id="acctView"><div class="sheet-in">
+  <div class="sh-top"><b>Account</b><button class="mini-btn" id="acctClose">Done</button></div>
+  <div style="text-align:center;margin:4px 0 14px"><div class="acct-av big" id="acctAv2">👤</div></div>
+  <div class="sh-h">Name</div>
+  <input id="acctNameIn" class="acct-in" type="text" placeholder="Your first name" autocomplete="given-name" maxlength="30">
+  <div class="sh-h">Your city</div>
+  <div class="sh-row" style="border-top:0"><span id="acctCity">—</span><button class="mini-btn" id="acctCityBtn">Change</button></div>
+  <div class="sh-h">Notifications</div>
+  <div class="sh-row" style="border-top:0"><span id="acctNotif">—</span><button class="mini-btn" id="acctNotifBtn">Settings</button></div>
+  <button class="sh-btn" id="acctSetup">🔁 Run the setup again</button>
+  <div class="sh-note">Your account is saved on this device only. It isn't uploaded anywhere.</div>
+</div></div>
 <div class="sheet" id="sheet14"><div class="sheet-in wide14">
   <div class="sh-top"><b>14-day forecast</b><button class="mini-btn" id="close14">Done</button></div>
   <div class="c14wrap" id="chart14"></div>
@@ -872,7 +917,7 @@
 </footer>
 
 <script>
-const FIRST_VISIT = (() => { try { return !localStorage.getItem("skycast") && !localStorage.getItem("skycast_onboarded"); } catch(e) { return false; } })();
+const FIRST_VISIT = (() => { try { return !localStorage.getItem("skycast_onboarded"); } catch(e) { return false; } })();
 const WMO = {
   0:["Clear sky","☀️","🌙"],1:["Mostly clear","🌤️","🌙"],2:["Partly cloudy","⛅","☁️"],3:["Overcast","☁️","☁️"],
   45:["Fog","🌫️","🌫️"],48:["Freezing fog","🌫️","🌫️"],
@@ -2302,7 +2347,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114162707";
+const BUILD = "20261114163154";
 async function checkForUpdate(opts) {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
@@ -2497,14 +2542,6 @@ document.querySelectorAll("[data-pref]").forEach(b => b.onclick = () => {
   if (wasEs && lang === "en") { location.reload(); return; }   // switching back to English: reload for a clean page
   applyPrefs(true);
 });
-/* ---------- Height of the current-weather box (for the light blue top section on phones) ---------- */
-(() => {
-  const h = document.querySelector(".panel.hero"); if (!h) return;
-  const setH = () => document.documentElement.style.setProperty("--heroH", h.offsetHeight + "px");
-  if ("ResizeObserver" in window) new ResizeObserver(setH).observe(h); else addEventListener("resize", setH);
-  setH();
-})();
-
 /* ---------- 14-day forecast: NWS days 1–7, Open-Meteo outlook for days 8–14 ---------- */
 let om14 = { key: "", t: 0, daily: null };
 async function getOutlook() {
@@ -2617,6 +2654,32 @@ $("siriTest").onclick = () => {
   speechSynthesis.speak(u);
 };
 
+/* ---------- Account (saved on this device) ---------- */
+let account = {};
+try { account = JSON.parse(localStorage.getItem("skycast_account") || "{}"); } catch(e) {}
+function saveAccount(a) { account = { ...account, ...a }; try { localStorage.setItem("skycast_account", JSON.stringify(account)); } catch(e) {} paintAccount(); }
+function paintAccount() {
+  const n = account.name, ini = n ? n.trim().charAt(0).toUpperCase() : "👤";
+  $("acctAv").textContent = ini; $("acctAv2").textContent = ini;
+  $("acctName").textContent = n ? n : (lang === "es" ? "Cuenta" : "Account");
+  $("acctSub").textContent = n ? (lang === "es" ? "Tu cuenta" : "Your account") + " · " + (place.name === "Current location" ? (lang === "es" ? "Ubicación actual" : "Current location") : place.name) : (lang === "es" ? "Configura tu cuenta" : "Set up your account");
+}
+function openAccount() {
+  $("sheet").classList.remove("open"); $("acctView").classList.add("open");
+  $("acctNameIn").value = account.name || "";
+  $("acctCity").textContent = [place.name, place.admin1].filter(Boolean).join(", ");
+  const perm = "Notification" in window ? Notification.permission : "unsupported";
+  $("acctNotif").textContent = perm === "granted" ? (notifPrefs.extra ? "Warnings + extra alerts on" : "Warnings on") : perm === "denied" ? "Blocked in browser settings" : perm === "unsupported" ? "Not available here" : "Off";
+}
+$("acctBtn").onclick = openAccount;
+$("acctClose").onclick = () => $("acctView").classList.remove("open");
+$("acctView").onclick = e => { if (e.target.id === "acctView") $("acctView").classList.remove("open"); };
+$("acctNameIn").oninput = () => saveAccount({ name: $("acctNameIn").value.trim() });
+$("acctCityBtn").onclick = () => { $("acctView").classList.remove("open"); location.hash = "#weather"; setTimeout(() => $("q").focus(), 200); };
+$("acctNotifBtn").onclick = () => { $("acctView").classList.remove("open"); $("sheet").classList.add("open"); };
+$("acctSetup").onclick = () => { try { localStorage.removeItem("skycast_onboarded"); } catch(e) {} location.reload(); };
+paintAccount();
+
 /* ---------- First-time setup: welcome → notifications → where do you live ---------- */
 setTimeout(() => {   // runs once the whole script has loaded
   const o = $("onb"); if (!FIRST_VISIT || !o) return;
@@ -2642,7 +2705,8 @@ setTimeout(() => {   // runs once the whole script has loaded
     try { localStorage.setItem("skycast_notif", JSON.stringify(notifPrefs)); } catch(e) {}
     renderNotifToggles(); paint();
   });
-  o.querySelectorAll("[data-next]").forEach(b => b.onclick = () => go(step + 1));
+  $("onbName").value = account.name || "";
+  o.querySelectorAll("[data-next]").forEach(b => b.onclick = () => { if (step === 0) saveAccount({ name: $("onbName").value.trim() }); go(step + 1); });
   $("onbDone").onclick = done;
   $("onbHere").onclick = () => { done(); useMyLocation(); };
   let last = 0;
@@ -2708,7 +2772,7 @@ $("bgFile").onchange = () => {
 };
 applyBg();
 
-$("gearBtn").onclick = () => $("sheet").classList.add("open");
+$("gearBtn").onclick = () => { paintAccount(); $("sheet").classList.add("open"); };
 $("sheetClose").onclick = () => $("sheet").classList.remove("open");
 $("sheet").onclick = e => { if (e.target.id === "sheet") $("sheet").classList.remove("open"); };
 matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { if (theme === "auto") applyPrefs(false); });
@@ -2876,9 +2940,9 @@ const bootStart = Date.now();
 let bootClosed = false;
 function bootDone() {
   if (bootClosed) return; bootClosed = true;
-  setTimeout(() => { const b = $("boot"); if (!b) return; b.classList.add("done"); setTimeout(() => b.remove(), 600); }, Math.max(0, 1100 - (Date.now() - bootStart)));
+  setTimeout(() => { const b = $("boot"); if (!b) return; b.classList.add("done"); setTimeout(() => b.remove(), 600); }, Math.max(0, 2600 - (Date.now() - bootStart)));
 }
-setTimeout(bootDone, 4500);   // never keep it up longer than this, even if the weather is slow
+setTimeout(bootDone, 5000);   // never keep it up longer than this, even if the weather is slow
 
 
 /* ---------- Weather news (news.json is refreshed every morning) ---------- */
