@@ -154,6 +154,7 @@ body::before{content:'';position:fixed;inset:-20%;z-index:-1;pointer-events:none
 #night,#night2{display:none!important}
 #heng.on{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.35)}
 #heng{width:auto;min-width:56px;height:auto;padding:8px 10px;border-radius:22px;display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1}#heng span{font-size:22px;line-height:26px}#heng small{font-size:11px;font-weight:700}
+.ech{border:1px solid var(--bd);background:color-mix(in srgb,var(--tx) 6%,transparent);color:var(--tx);border-radius:18px;padding:10px 6px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:center;transition:transform .12s}.ech:active{transform:scale(.95)}.ech i{display:block;font-style:normal;font-size:26px}.ech.on{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;border-color:transparent}
 </style></head><body>
 
 <div id="splash"><div class="scene"><canvas id="b3d"></canvas><div class="road" style="display:none"></div>
@@ -193,6 +194,7 @@ body::before{content:'';position:fixed;inset:-20%;z-index:-1;pointer-events:none
 </div></div>
 <div class="scr" id="engine"><div class="hd"><button class="back">‹ Home</button><h3>Engine sound</h3></div>
 <button class="honk" id="eng2" style="background:linear-gradient(145deg,#ef4444,#991b1b);color:#fff;font-size:34px">🏍️ Start engine</button>
+<div class="c" style="margin-top:14px"><h2>Mode <span id="engmn"></span></h2><div class="chips" id="engchips"></div></div>
 <div class="c" style="margin-top:14px;text-align:center"><h2>Follows your real speed</h2><div style="font-size:44px;font-weight:800" id="engmph">0 mph</div><div class="note" id="enggr">Engine off</div></div>
 <div class="note" style="text-align:center">Idles when you're stopped, revs up as you speed up and shifts gears. Uses your GPS speed. Turn your phone volume up or use a Speaker.</div></div>
 <div class="scr" id="horn"><div class="hd"><button class="back">‹ Home</button><h3>Horn</h3></div><button class="honk" id="honk">HONK</button>
@@ -361,26 +363,46 @@ function drawMapOn(cv){if(!cv)return;const dpr=devicePixelRatio||1,W=cv.clientWi
  if(drawn){x.textAlign='right';x.font='10px sans-serif';x.fillStyle='rgba(150,160,175,.9)';x.fillText('© OpenStreetMap © CARTO',W-8,H-6)}
  {const sy=home?H-14:H-24;x.fillStyle=dk?'#cbd5e1':'#334155';x.fillRect(home?132:14,sy,rp,3);x.textAlign='left';x.font='13px sans-serif';x.fillText(fl(ring),home?132:14,sy-6)}}
 function drawMap(){drawMapOn($('cv'));drawMapOn($('hcv'))}
-// engine-sound mode: pitch follows your real GPS speed, like a motorcycle shifting through gears
-let ENG=null;
+// engine-sound modes: synthesized from real firing pulses; pitch/gear follow your real GPS speed
+const EMODES=[
+ {n:'Cruiser',e:'🏍️',cyl:[0,.4375],two:0,idle:900,lo:1800,hi:5200,G:[0,8,17,28,40,55,75],lp:900,pk:[140,9],sh:2.2,noise:.10,vary:.35},
+ {n:'Sport bike',e:'🏁',cyl:[0,.25,.5,.75],two:0,idle:1400,lo:4000,hi:12500,G:[0,14,28,44,62,85,115],lp:3800,pk:[900,7],sh:3,noise:.14,vary:.06},
+ {n:'Dirt bike',e:'🏜️',cyl:[0],two:1,idle:1800,lo:3500,hi:9500,G:[0,9,19,31,45,60,80],lp:3200,pk:[1600,10],sh:3.2,noise:.16,vary:.2},
+ {n:'Scooter',e:'🛵',cyl:[0],two:0,idle:1500,lo:2800,hi:7500,G:[0,8,15,24,34,45,60],lp:1900,pk:[600,6],sh:2.6,noise:.08,vary:.12},
+ {n:'Electric',e:'⚡',ev:1,G:[0,200]}];
+let ENG=null,EM=0;try{EM=Math.min(EMODES.length-1,+localStorage.getItem('engmode')||0)}catch(e){}
 function engStart(){AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();
- const o1=AC.createOscillator(),o2=AC.createOscillator(),o3=AC.createOscillator(),g1=AC.createGain(),g2=AC.createGain(),g3=AC.createGain(),sh=AC.createWaveShaper(),lp=AC.createBiquadFilter(),out=AC.createGain(),lfo=AC.createOscillator(),lg=AC.createGain();
- o1.type='sawtooth';o2.type='square';o3.type='sawtooth';g1.gain.value=.5;g2.gain.value=.3;g3.gain.value=.18;
- const c=new Float32Array(256);for(let i=0;i<256;i++){const x=i/128-1;c[i]=Math.tanh(x*3)}sh.curve=c;lp.type='lowpass';lp.Q.value=2;
- out.gain.value=0;lfo.type='sine';lg.gain.value=.25;lfo.connect(lg);lg.connect(out.gain);
- o1.connect(g1);o2.connect(g2);o3.connect(g3);g1.connect(sh);g2.connect(sh);g3.connect(sh);sh.connect(lp);lp.connect(out);out.connect(AC.destination);
- [o1,o2,o3,lfo].forEach(o=>o.start());ENG={o1,o2,o3,lp,out,lfo,lg,gear:1};
- ENG.t=setInterval(engTick,90);engTick()}
-function engTick(){if(!ENG)return;const mph=sp*.621371,G=[0,9,20,32,45,58,72],gi=Math.max(1,G.findIndex((v,i)=>i>0&&mph<v)),gr=gi<0?6:gi;
- const lo=G[gr-1],hi=G[gr]||80,fr=Math.min(1,Math.max(0,(mph-lo)/(hi-lo))),rpm=mph<.5?1300:1900+fr*5600,f=rpm/60*2,t=AC.currentTime;
- ENG.o1.frequency.setTargetAtTime(f,t,.06);ENG.o2.frequency.setTargetAtTime(f/2,t,.06);ENG.o3.frequency.setTargetAtTime(f*2,t,.06);
- ENG.lp.frequency.setTargetAtTime(500+rpm*.45,t,.08);ENG.lfo.frequency.setTargetAtTime(mph<.5?9:f/2,t,.1);
- ENG.out.gain.setTargetAtTime(mph<.5?.22:.28+fr*.12,t,.08);ENG.gear=gr}
-function engStop(){if(!ENG)return;const e=ENG;ENG=null;clearInterval(e.t);try{e.out.gain.setTargetAtTime(0,AC.currentTime,.05)}catch(x){}setTimeout(()=>[e.o1,e.o2,e.o3,e.lfo].forEach(o=>{try{o.stop()}catch(x){}}),300)}
-function engUI(){const on=!!ENG;$('heng').classList.toggle('on',on);$('hengt').textContent=on?'Engine on':'Engine';$('eng2').textContent=on?'⏹ Stop engine':'🏍️ Start engine';if(!on){$('engmph').textContent=Math.round(sp*.621371)+' mph';$('enggr').textContent='Engine off'}}
+ const m=EMODES[EM],sr=AC.sampleRate,out=AC.createGain(),lp=AC.createBiquadFilter(),pk=AC.createBiquadFilter(),sh=AC.createWaveShaper(),hp=AC.createBiquadFilter();
+ const E={m,out,lp,pk,rpm:m.idle||0,thr:.2,ph:0,ex:0,lpS:0,gear:1,mph:0,last:0};
+ hp.type='highpass';hp.frequency.value=40;lp.type='lowpass';lp.Q.value=1.2;pk.type='peaking';
+ const k=new Float32Array(512);const dr=m.sh||2;for(let i=0;i<512;i++){const x=i/256-1;k[i]=Math.tanh(x*dr)}sh.curve=k;sh.oversample='2x';
+ out.gain.value=0;
+ if(m.ev){const o1=AC.createOscillator(),o2=AC.createOscillator(),g1=AC.createGain(),g2=AC.createGain();o1.type='sine';o2.type='triangle';g1.gain.value=.5;g2.gain.value=.25;o1.connect(g1);o2.connect(g2);g1.connect(out);g2.connect(out);o1.start();o2.start();E.o1=o1;E.o2=o2;lp.type='lowpass'}
+ else{lp.frequency.value=m.lp;pk.frequency.value=m.pk[0];pk.gain.value=m.pk[1];pk.Q.value=1.4;
+  const sp2=AC.createScriptProcessor(1024,0,1);E.sp=sp2;
+  sp2.onaudioprocess=ev=>{const o=ev.outputBuffer.getChannelData(0),c=m.cyl,cyc=m.two?1:2;let ph=E.ph,ex=E.ex,ls=E.lpS;const dec=Math.exp(-1/(sr*.0016));
+   for(let i=0;i<o.length;i++){const rpm=E.rpm*(1+.012*(Math.random()-.5)*(E.rpm<m.idle*1.4?1:.3)),dph=rpm/60/cyc/sr,np=ph+dph;
+    for(let q=0;q<c.length;q++){const f=c[q];if((ph<f&&np>=f)||(np>=1&&f<np-1)){ex+=(1-m.vary+Math.random()*m.vary*2)*(.45+E.thr*.9)}}
+    ph=np>=1?np-1:np;ex*=dec;ls+=(ex-ls)*.35;
+    o[i]=ls*1.6+(Math.random()*2-1)*m.noise*(.2+E.thr)*.35}
+   E.ph=ph;E.ex=ex;E.lpS=ls};
+  sp2.connect(hp);hp.connect(pk);pk.connect(sh);sh.connect(lp);lp.connect(out)}
+ if(m.ev){out.connect(AC.destination)}else{out.connect(AC.destination)}
+ ENG=E;E.t=setInterval(engTick,60);engTick()}
+function engTick(){const E=ENG;if(!E)return;const m=E.m,mph=sp*.621371,t=AC.currentTime,dt=.06;
+ const acc=(mph-E.mph)/dt;E.mph=mph;E.thr=Math.max(.08,Math.min(1,E.thr*.7+(.25+acc*.35+Math.min(mph/60,.5))*.3));
+ const G=m.G,gi=G.findIndex((v,i)=>i>0&&mph<v),gr=gi<0?G.length-1:gi,lo=G[gr-1],hi=G[gr]||lo+25,fr=Math.min(1,Math.max(0,(mph-lo)/(hi-lo)));E.gear=gr;
+ if(m.ev){const f=140+mph*26;E.o1.frequency.setTargetAtTime(f,t,.05);E.o2.frequency.setTargetAtTime(f*2.02,t,.05);E.out.gain.setTargetAtTime(mph<.5?.04:.16+Math.min(mph/80,.2),t,.08);return}
+ const target=mph<.5?m.idle:m.lo+fr*(m.hi-m.lo);E.rpm+=(target-E.rpm)*.35;
+ E.lp.frequency.setTargetAtTime(m.lp*(.7+E.rpm/m.hi*.9),t,.05);
+ E.out.gain.setTargetAtTime((mph<.5?.4:.42+E.thr*.25)*(m.two?.8:1)*(m.cyl.length>2?.75:1),t,.06)}
+function engStop(){const E=ENG;if(!E)return;ENG=null;clearInterval(E.t);try{E.out.gain.setTargetAtTime(0,AC.currentTime,.05)}catch(x){}setTimeout(()=>{try{E.sp&&(E.sp.onaudioprocess=null,E.sp.disconnect());E.o1&&E.o1.stop();E.o2&&E.o2.stop();E.out.disconnect()}catch(x){}},300)}
+EMODES.forEach((m,i)=>{const b=document.createElement('button');b.className='ech';b.innerHTML='<i>'+m.e+'</i>'+m.n;b.onclick=()=>{tap();setEM(i)};$('engchips').appendChild(b)});
+function setEM(i){EM=i;try{localStorage.setItem('engmode',i)}catch(e){}$('engmn').textContent='· '+EMODES[i].n;Q('.ech').forEach((c,j)=>c.classList.toggle('on',j===i));if(ENG){engStop();engStart()}engUI()}
+function engUI(){const on=!!ENG;$('heng').classList.toggle('on',on);$('hengt').textContent=on?EMODES[EM].n:'Engine';$('eng2').textContent=on?'⏹ Stop engine':EMODES[EM].e+' Start engine';if(!on){$('engmph').textContent=Math.round(sp*.621371)+' mph';$('enggr').textContent='Engine off'}}
 function engToggle(){tap();if(ENG)engStop();else{try{engStart()}catch(e){ENG=null}}engUI()}
 $('heng').onclick=engToggle;$('eng2').onclick=engToggle;
-setInterval(()=>{if(ENG){$('engmph').textContent=Math.round(sp*.621371)+' mph';$('enggr').textContent=(sp*.621371<.5?'Idling':'Gear '+ENG.gear)}},300);
+setEM(EM);setInterval(()=>{if(ENG){$('engmph').textContent=Math.round(sp*.621371)+' mph';$('enggr').textContent=(ENG.m.ev?'Electric motor':sp*.621371<.5?'Idling':'Gear '+ENG.gear)}},300);
 
 const zi=()=>{MZ=Math.min(19,MZ+1);drawMap()},zo=()=>{MZ=Math.max(3,MZ-1);drawMap()};
 $('hzi').onclick=zi;$('hzo').onclick=zo;$('zin').onclick=zi;$('zout').onclick=zo;$('night2').onclick=()=>$('night').click();
