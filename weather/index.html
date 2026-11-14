@@ -197,7 +197,7 @@
   .layers button.on { background:var(--text); color:#0b1424; border-color:var(--text); }
   .layers.sub button { font-size:.78rem; padding:6px 11px; border-radius:999px; }
   .stormicon { font-size:30px; line-height:34px; text-align:center; filter: drop-shadow(0 2px 4px rgba(0,0,0,.6)); }
-  .layers .warn.on { background:#ff4d6d; border-color:#ff4d6d; color:#fff; }
+  .layers .warn.on { background:#2f9e4f; border-color:#2f9e4f; color:#fff; }
   .nextrain { margin-top:12px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.07); font-size:.85rem; line-height:1.4; }
   .nextrain:empty { display:none; }
   .lgrow { display:flex; gap:14px; flex-wrap:wrap; margin-top:12px; font-size:.75rem; color:var(--soft); }
@@ -342,7 +342,7 @@
   .tools { position:absolute; right:12px; top:76px; z-index:650; display:flex; flex-direction:column; gap:2px; padding:6px; border-radius:18px; }
   .tools button { width:40px; height:40px; border:0; border-radius:12px; background:transparent; font-size:1.25rem; cursor:pointer; display:grid; place-items:center; color:#fff; opacity:.75; }
   .tools button.on { background:rgba(255,255,255,.22); opacity:1; }
-  .tools .warn.on { background:#ff4d6d; }
+  .tools .warn.on { background:#2f9e4f; }
   .fsb { top:368px; font-size:1.35rem; }
   .legtab { position:absolute; left:0; top:30%; z-index:650; writing-mode:vertical-rl; transform:rotate(180deg); padding:16px 9px; border-radius:12px 0 0 12px; font:inherit; font-weight:800; font-size:.95rem; letter-spacing:.5px; cursor:pointer; }
   .legpanel { display:none; position:absolute; left:10px; top:70px; z-index:670; width:min(330px, calc(100% - 90px)); max-height:calc(100% - 290px); overflow:auto; background:rgba(255,255,255,.97); color:#0e1d38; border-radius:18px; padding:14px 16px; box-shadow:0 12px 30px rgba(0,0,0,.28); --text:#0e1d38; --soft:rgba(14,29,56,.7); --faint:rgba(14,29,56,.55); --line:rgba(14,29,56,.12); --panel2:rgba(14,29,56,.05); }
@@ -1370,6 +1370,8 @@ function initMap() {
   renderModels();
   loadRadar();
   loadGrid(true);
+  let w = "1"; try { w = localStorage.getItem("skycast_warn") ?? "1"; } catch(e) {}
+  if (w === "1" && inUS()) toggleWarnings(true);
 }
 function moveMap() {
   if (!map) return;
@@ -1682,13 +1684,44 @@ function setRadarLayer(l) {
   document.querySelectorAll("[data-layer]").forEach(b => b.classList.toggle("on", b.dataset.layer === l));
   rebuild();
 }
+/* Warnings: National Weather Service warning areas (counties and storm polygons), redrawn on the phone
+   as green areas with dark outlines. */
+const GreenWarnTiles = (L.TileLayer && L.TileLayer.WMS && L.TileLayer.WMS.extend) ? L.TileLayer.WMS.extend({
+  createTile(coords, done) {
+    const tile = document.createElement("canvas"), size = this.getTileSize();
+    tile.width = size.x; tile.height = size.y;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const ctx = tile.getContext("2d");
+      ctx.drawImage(img, 0, 0, size.x, size.y);
+      try {
+        const im = ctx.getImageData(0, 0, size.x, size.y), px = im.data;
+        for (let k = 0; k < px.length; k += 4) {
+          if (px[k + 3] < 8) continue;
+          const lum = 0.3 * px[k] + 0.59 * px[k + 1] + 0.11 * px[k + 2];
+          if (lum < 80) { px[k] = 18; px[k + 1] = 52; px[k + 2] = 28; px[k + 3] = 235; }      // outlines: dark green
+          else { px[k] = 92; px[k + 1] = 201; px[k + 2] = 112; px[k + 3] = 150; }             // areas: green
+        }
+        ctx.putImageData(im, 0, 0);
+      } catch(e) { tile.style.filter = "hue-rotate(110deg) saturate(1.4)"; }   // if recoloring is blocked, tint instead
+      done(null, tile);
+    };
+    img.onerror = () => done(new Error("tile"), tile);
+    img.src = this.getTileUrl(coords);
+    return tile;
+  }
+}) : null;
 function toggleWarnings(on) {
   if (on && !inUS()) { $("futureNote").textContent = "Storm warnings are only available for US cities."; on = false; }
   if (on && !warnLayer) {
-    warnLayer = L.tileLayer.wms("https://mesonet.agron.iastate.edu/cgi-bin/wms/us/wwa.cgi", { layers: "warnings_c", format: "image/png", transparent: true, opacity: 0.7, zIndex: 20 }).addTo(map);
+    const opts = { layers: "warnings_c,warnings_p", format: "image/png", transparent: true, opacity: 1, zIndex: 20, _: Math.floor(Date.now() / 300000) };
+    warnLayer = (GreenWarnTiles ? new GreenWarnTiles("https://mesonet.agron.iastate.edu/cgi-bin/wms/us/wwa.cgi", opts)
+                                : L.tileLayer.wms("https://mesonet.agron.iastate.edu/cgi-bin/wms/us/wwa.cgi", opts)).addTo(map);
   } else if (!on && warnLayer) { map.removeLayer(warnLayer); warnLayer = null; }
   $("warnBtn").classList.toggle("on", !!warnLayer);
-  if (warnLayer) $("futureNote").textContent = "Tap anywhere on a colored warning area to see what the warning is.";
+  try { localStorage.setItem("skycast_warn", warnLayer ? "1" : "0"); } catch(e) {}
+  if (warnLayer) $("futureNote").textContent = "Green areas are active National Weather Service warnings and advisories. Tap one to see what it is.";
 }
 let hold = 0, speed = 1;
 try { speed = +localStorage.getItem("skycast_speed") || 1; } catch(e) {}
@@ -1960,7 +1993,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114005211";
+const BUILD = "20261114015432";
 async function checkForUpdate(opts) {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
@@ -2382,7 +2415,7 @@ $("twc").href = `https://weather.com/weather/radar/interactive/l/${place.latitud
 
 // forecast every minute; radar every 5 minutes (future radar reloads every 30)
 setInterval(() => load(true), 60000);
-setInterval(() => { if (map) { loadRadar(); loadFuture(false); } }, 300000);
+setInterval(() => { if (map) { loadRadar(); if (warnLayer && warnLayer.setParams) warnLayer.setParams({ _: Math.floor(Date.now() / 300000) }); } }, 300000);
 </script>
 </body>
 </html>
