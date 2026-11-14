@@ -26,7 +26,7 @@
 <style>
   :root {
     --bg1:#1d4e9e; --bg2:#0b1f45; --accent:#ffd36b;
-    --panel: rgba(10,18,36,.42); --panel2: rgba(255,255,255,.07); --line: rgba(255,255,255,.12);
+    --panel: rgba(12,22,44,.66); --panel2: rgba(255,255,255,.07); --line: rgba(255,255,255,.12);
     --text:#f4f7ff; --soft:rgba(232,238,255,.66); --faint:rgba(232,238,255,.4);
     --r: 22px;
   }
@@ -44,8 +44,8 @@
   body.t-fog     { --bg1:#8b97a6; --bg2:#262d37; --accent:#e9eef4; }
 
   /* top bar */
-  .bar { position:sticky; top:0; z-index:1500; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-         background: rgba(6,12,26,.55); border-bottom:1px solid var(--line); }
+  .bar { position:sticky; top:0; z-index:1500; transform: translateZ(0);
+         background: rgba(8,15,30,.94); border-bottom:1px solid var(--line); }
   .bar { padding-top: env(safe-area-inset-top); }
   .bar-in { max-width:1180px; margin:0 auto; padding:12px 18px; display:flex; align-items:center; gap:14px; }
   .brand { font-weight:800; font-size:1.15rem; letter-spacing:-.3px; display:flex; align-items:center; gap:8px; white-space:nowrap; }
@@ -76,7 +76,7 @@
     .col-r { position:sticky; top:84px; }
   }
   .col { display:grid; gap:18px; min-width:0; }
-  .panel { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:20px; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); min-width:0; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:20px; min-width:0; }
   .ph { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:14px; }
   .ph h3 { font-size:.78rem; text-transform:uppercase; letter-spacing:1.4px; color:var(--soft); font-weight:700; }
   .ph span { font-size:.78rem; color:var(--faint); }
@@ -97,7 +97,7 @@
   .chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:18px; }
   .chip { display:flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; background:rgba(0,0,0,.25); border:1px solid var(--line); font-size:.82rem; }
   .chip b { font-weight:700; }
-  .updated { align-self:flex-start; display:inline-flex; align-items:center; gap:7px; font-size:.75rem; font-weight:600; color:var(--soft); margin-top:12px; padding:6px 11px; border-radius:999px; background:rgba(0,0,0,.4); backdrop-filter: blur(6px); }
+  .updated { align-self:flex-start; display:inline-flex; align-items:center; gap:7px; font-size:.75rem; font-weight:600; color:var(--soft); margin-top:12px; padding:6px 11px; border-radius:999px; background:rgba(0,0,0,.4); }
   .dot { width:7px; height:7px; border-radius:50%; background:#4dff94; box-shadow:0 0 8px #4dff94; animation:pulse 2s infinite; }
   @keyframes pulse { 50% { opacity:.3; } }
 
@@ -108,7 +108,8 @@
 
   /* radar */
   #radar { border-radius:16px; overflow:hidden; background:#1b2230; }
-  .basemap { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.6); }
+  .maptint { position:absolute; left:-50000px; top:-50000px; width:100000px; height:100000px; background:rgba(10,18,34,.55); }
+  html.light .maptint { background:rgba(255,255,255,.15); }
   .leaflet-control-attribution { font-size:9px; background:rgba(0,0,0,.45)!important; color:#ccc; }
   .leaflet-control-attribution a { color:#ddd; }
   .leaflet-bar a { background:#141c2c; color:#fff; border-color:#2a3446; }
@@ -181,7 +182,7 @@
   /* saved cities */
   .cities { max-width:1180px; margin:0 auto; padding:14px 18px 0; display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; }
   .cities::-webkit-scrollbar { display:none; }
-  .city { flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:14px; background:var(--panel); border:1px solid var(--line); color:var(--text); font:inherit; font-size:.85rem; font-weight:600; cursor:pointer; backdrop-filter: blur(12px); }
+  .city { flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:14px; background:var(--panel); border:1px solid var(--line); color:var(--text); font:inherit; font-size:.85rem; font-weight:600; cursor:pointer; }
   .city.on { background:var(--text); color:#0b1424; }
   .city .ct { font-weight:500; opacity:.75; }
   .city .x { opacity:.5; font-size:.95rem; padding-left:2px; }
@@ -230,11 +231,13 @@
   .leaflet-popup-content b { font-size:.95rem; }
   .leaflet-container a.leaflet-popup-close-button { color:#ccc; }
   .mapwrap { position:relative; }
-  .badge { position:absolute; top:12px; left:12px; z-index:500; padding:8px 12px; border-radius:12px; background:rgba(8,14,28,.82); border:1px solid var(--line); font-weight:800; font-size:1.05rem; line-height:1.15; pointer-events:none; backdrop-filter: blur(8px); }
+  .badge { position:absolute; top:12px; left:12px; z-index:500; padding:8px 12px; border-radius:12px; background:rgba(8,14,28,.82); border:1px solid var(--line); font-weight:800; font-size:1.05rem; line-height:1.15; pointer-events:none; }
   .badge small { display:block; font-size:.62rem; letter-spacing:1.4px; font-weight:800; }
   .badge.live small { color:#4dff94; }
   .badge.future small { color:var(--accent); }
-  .radar-tiles { transition: opacity var(--fade, .35s) ease; will-change: opacity; }
+  .radar-tiles { transition: opacity var(--fade, .35s) ease; }
+  #radar.zooming .radar-tiles { transition: none; }
+  #radar { touch-action: none; }
   .speeds { display:flex; align-items:center; gap:6px; margin-top:10px; }
   .speeds span { font-size:.72rem; text-transform:uppercase; letter-spacing:1.2px; color:var(--soft); font-weight:700; margin-right:4px; }
   .speeds button { border:1px solid var(--line); background:transparent; color:var(--soft); font:inherit; font-weight:700; font-size:.8rem; padding:5px 11px; border-radius:999px; cursor:pointer; }
@@ -297,10 +300,10 @@
   html.large { font-size:113%; }
   html.large .hchart text, html.large .tgraph text { font-size:12px; }
   /* light theme */
-  html.light { --panel: rgba(255,255,255,.72); --panel2: rgba(10,30,70,.05); --line: rgba(10,30,70,.12); --text:#0e1d38; --soft: rgba(14,29,56,.68); --faint: rgba(14,29,56,.48); }
+  html.light { --panel: rgba(255,255,255,.86); --panel2: rgba(10,30,70,.05); --line: rgba(10,30,70,.12); --text:#0e1d38; --soft: rgba(14,29,56,.68); --faint: rgba(14,29,56,.48); }
   html.light body { background:#dfe9f7; }
   html.light body::before { background: radial-gradient(1200px 700px at 15% -10%, #9cc7ff, transparent 70%), linear-gradient(180deg, #cfe0f7, #eef3fb 90%); }
-  html.light .bar { background: rgba(255,255,255,.7); }
+  html.light .bar { background: rgba(255,255,255,.95); }
   html.light .brand .word { color:#0e1d38; }
   html.light .hero { background: linear-gradient(160deg, var(--bg1), var(--bg2)); color:#fff; --text:#fff; --soft: rgba(255,255,255,.75); --faint: rgba(255,255,255,.55); --line: rgba(255,255,255,.18); }
   html.light .results, html.light .sheet-in { background:#fff; }
@@ -311,12 +314,38 @@
   html.light .toggles i { background: rgba(10,30,70,.18); }
   html.light .alert { color:#0e1d38; }
   html.light .badge { color:#fff; }
+  .updbanner { display:none; margin:12px auto 0; max-width:1180px; width:calc(100% - 36px); padding:10px 14px; border-radius:14px; border:0; background:var(--accent); color:#0b1424; font:inherit; font-weight:800; font-size:.88rem; cursor:pointer; }
+  .updbanner.show { display:block; }
+  .fsbtn, .mylocbtn { position:absolute; right:12px; z-index:600; width:42px; height:42px; border-radius:12px; border:1px solid var(--line); background:rgba(8,14,28,.85); color:#fff; font-size:1.25rem; cursor:pointer; display:grid; place-items:center; }
+  .fsbtn { top:12px; }
+  .mylocbtn { top:62px; font-size:1.35rem; }
+  .leaflet-top.leaflet-left { top:62px; }
+  /* full-screen radar */
+  html.fsopen, html.fsopen body { overflow:hidden; }
+  .radarpanel.fs { position:fixed; inset:0; z-index:2600; margin:0; border-radius:0; border:0; padding:calc(8px + env(safe-area-inset-top)) 0 calc(6px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; background:#08101f; }
+  .radarpanel.fs .layers button { white-space:nowrap; flex:0 0 auto; }
+  .radarpanel.fs .layers { flex-wrap:nowrap; overflow-x:auto; padding:0 12px; margin-bottom:8px; scrollbar-width:none; }
+  .radarpanel.fs .layers::-webkit-scrollbar { display:none; }
+  .radarpanel.fs .layers.sub { margin-top:-2px; }
+  .radarpanel.fs .mapwrap { flex:1; min-height:0; }
+  .radarpanel.fs #radar { height:100% !important; min-height:0 !important; border-radius:0; }
+  .radarpanel.fs .radar-ctrl, .radarpanel.fs .speeds, .radarpanel.fs .rtime, .radarpanel.fs .lgrow { padding:0 14px; }
+  .radarpanel.fs .radar-ctrl { margin-top:10px; }
+  .radarpanel.fs .speeds { margin-top:4px; }
+  .radarpanel.fs .rtime { margin-top:6px; font-size:.8rem; }
+  .radarpanel.fs .lgrow { margin-top:6px; }
+  .radarpanel.fs #radarNote, .radarpanel.fs #futureNote, .radarpanel.fs .twc, .radarpanel.fs .nextrain, .radarpanel.fs .legend { display:none; }
+  .radarpanel.fs .fsbtn { font-size:1.1rem; }
   .msg { text-align:center; padding:60px 20px; color:var(--soft); }
   .spinner { width:34px; height:34px; border:3px solid rgba(255,255,255,.2); border-top-color:#fff; border-radius:50%; margin:0 auto 12px; animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   footer { max-width:1180px; margin:0 auto; padding:0 18px 30px; text-align:center; color:var(--faint); font-size:.75rem; line-height:1.7; }
   footer a { color:var(--soft); }
   @media (max-width:600px) {
+    .bar-in > .seg { display:none; }
+    .gear { margin-left:auto; }
+    .brand .word { font-size:1.1rem; }
+    .brand .mark { width:30px; height:30px; }
     .tabs a { padding:6px 11px; }
     .rwrap { padding:12px 12px 24px; }
     .cities { padding:12px 12px 0; }
@@ -361,6 +390,7 @@
   <button class="iconbtn gear" id="gearBtn" aria-label="Settings">⚙️</button>
 </div></div>
 
+<button class="updbanner" id="updBanner" onclick="location.reload()">✨ SkyCast was updated. Tap to refresh.</button>
 <div class="cities" id="cities"></div>
 <div class="toast" id="toast"></div>
 
@@ -413,7 +443,7 @@
 </div>
 
 <div class="view rview" id="viewR"><div class="rwrap">
-  <section class="panel">
+  <section class="panel radarpanel" id="radarPanel">
     <div class="layers">
       <button data-layer="radar" class="on">🌧️ Radar</button>
       <button data-layer="sat">🛰️ Satellite</button>
@@ -424,7 +454,9 @@
     </div>
 
     <div class="layers sub" id="subopts" style="display:none"></div>
-    <div class="mapwrap"><div id="radar"></div><div class="badge live" id="badge"><small>RADAR</small>—</div></div>
+    <div class="mapwrap"><div id="radar"></div><div class="badge live" id="badge"><small>RADAR</small>—</div>
+      <button class="fsbtn" id="fsBtn" aria-label="Full screen">⛶</button>
+      <button class="mylocbtn" id="recenterBtn" aria-label="Center on my city">◎</button></div>
     <div class="radar-ctrl">
       <button class="playbtn" id="play" aria-label="Play">▶</button>
       <div class="track"><input type="range" id="slider" min="0" max="0" value="0"><div class="ticks" id="ticks"></div></div>
@@ -444,6 +476,7 @@
   <div class="sh-top"><b>Settings</b><button class="mini-btn" id="sheetClose">Done</button></div>
   <div class="sh-row"><span>Language</span><div class="seg"><button data-pref="lang:en">English</button><button data-pref="lang:es">Español</button></div></div>
   <div class="sh-note">Weather Service forecasts, discussions and warnings stay in English.</div>
+  <div class="sh-row"><span>Units</span><div class="seg"><button data-unit="F">°F</button><button data-unit="C">°C</button></div></div>
   <div class="sh-row"><span>Theme</span><div class="seg"><button data-pref="theme:dark">Dark</button><button data-pref="theme:light">Light</button><button data-pref="theme:auto">Auto</button></div></div>
   <div class="sh-row"><span>Text size</span><div class="seg"><button data-pref="textSize:normal">Normal</button><button data-pref="textSize:large">Large</button></div></div>
   <div class="sh-h">Warning notifications</div>
@@ -897,7 +930,7 @@ function loadSaved() {
     return c;
   } catch(e) { return null; }
 }
-let offline = false, savedAt = null;
+let offline = false, savedAt = null, lastSig = "";
 async function load(silent) {
   if (!silent) {
     const c = loadSaved();
@@ -909,9 +942,12 @@ async function load(silent) {
     }
   }
   try {
-    data = await fetchNWS(place.latitude, place.longitude);
+    const fresh = await fetchNWS(place.latitude, place.longitude);
+    const sig = JSON.stringify([fresh.current.temperature_2m, fresh.current.condition_text, fresh.current.wind_speed_10m, fresh.current.relative_humidity_2m, fresh.hourly.time[0], fresh.hourly.temperature_2m.slice(0, 30), fresh.hourly.precipitation_probability.slice(0, 30), fresh.daily, unit, lang]);
+    const changed = sig !== lastSig || !silent || offline;
+    data = fresh; lastSig = sig;
     offline = false; savedAt = null;
-    render();
+    if (changed) render();
     lastUpdate = new Date();
     setUpdated();
     saveWeather();
@@ -1135,16 +1171,25 @@ function renderTiles() {
 const sky = (() => {
   const cv = $("sky"), ctx = cv.getContext("2d");
   let kind = "day", parts = [], w = 0, h = 0, t = 0;
-  function size() { const r = cv.getBoundingClientRect(); w = cv.width = r.width * devicePixelRatio; h = cv.height = r.height * devicePixelRatio; seed(); }
+  const DPR = Math.min(devicePixelRatio || 1, 1.25);
+  let visible = true, last = 0, running = false;
+  function size() { const r = cv.getBoundingClientRect(); w = cv.width = Math.round(r.width * DPR); h = cv.height = Math.round(r.height * DPR); seed(); }
   function seed() {
     parts = [];
-    const n = kind === "rain" || kind === "storm" ? 140 : kind === "snow" ? 90 : kind === "night" ? 70 : kind === "cloudy" || kind === "fog" ? 6 : 0;
+    const n = kind === "rain" || kind === "storm" ? 70 : kind === "snow" ? 55 : kind === "night" ? 50 : kind === "cloudy" || kind === "fog" ? 5 : 0;
     for (let i = 0; i < n; i++) parts.push({ x: Math.random() * w, y: Math.random() * h, s: Math.random(), p: Math.random() * 6.28 });
   }
-  function frame() {
+  new IntersectionObserver(es => { visible = es[0].isIntersecting; if (visible) start(); }).observe(cv);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) start(); });
+  function start() { if (!running) { running = true; requestAnimationFrame(frame); } }
+  function frame(ts) {
+    if (!visible || document.hidden || location.hash === "#radar") { running = false; return; }
+    requestAnimationFrame(frame);
+    if (ts - last < 33) return;            // about 30 frames a second is plenty and saves battery
+    last = ts;
     t += 1;
     ctx.clearRect(0, 0, w, h);
-    const d = devicePixelRatio;
+    const d = DPR;
     if (kind === "day") {
       const gx = w * .82, gy = h * .2, g = ctx.createRadialGradient(gx, gy, 0, gx, gy, h * .9);
       g.addColorStop(0, "rgba(255,220,130,.55)"); g.addColorStop(.25, "rgba(255,200,110,.15)"); g.addColorStop(1, "rgba(255,200,110,0)");
@@ -1164,11 +1209,10 @@ const sky = (() => {
       ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.fillRect(p.x - r, p.y * .6 - r, r * 2, r * 2);
     });
     ctx.globalAlpha = 1;
-    requestAnimationFrame(frame);
   }
   addEventListener("resize", size);
-  setTimeout(() => { size(); frame(); }, 0);
-  return { set(k) { if (k !== kind) { kind = k; seed(); } } };
+  setTimeout(() => { size(); start(); }, 0);
+  return { set(k) { if (k !== kind) { kind = k; seed(); } start(); } };
 })();
 
 /* ---------- Radar ----------
@@ -1212,10 +1256,15 @@ const ROWS = 13, COLS = 15, D_LAT = 3.2, D_LON = 4.6, SCALE = 12;
 
 function initMap() {
   if (!window.L) { $("radar").innerHTML = '<div class="msg">Radar map couldn\'t load.</div>'; return; }
-  map = L.map("radar", { zoomControl: true, attributionControl: true, minZoom: 4, maxZoom: 10 }).setView([place.latitude, place.longitude], 7);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 10, className: "basemap", attribution: "© OpenStreetMap" }).addTo(map);
+  map = L.map("radar", { zoomControl: true, attributionControl: true, minZoom: 3, maxZoom: 10, fadeAnimation: false, markerZoomAnimation: false,
+    zoomSnap: 0.5, wheelPxPerZoomLevel: 90, tap: false, inertia: true, inertiaDeceleration: 2500 }).setView([place.latitude, place.longitude], 7);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 10, attribution: "© OpenStreetMap", keepBuffer: 3, updateWhenIdle: true }).addTo(map);
+  map.createPane("tint"); map.getPane("tint").style.zIndex = 250; map.getPane("tint").style.pointerEvents = "none";
+  map.getPane("tint").innerHTML = '<div class="maptint"></div>';
   labelGroup = L.layerGroup().addTo(map);
   map.on("click", mapAlertPopup);
+  map.on("zoomstart", () => $("radar").classList.add("zooming"));
+  map.on("zoomend", () => setTimeout(() => $("radar").classList.remove("zooming"), 60));
   marker = L.circleMarker([place.latitude, place.longitude], { radius: 7, color: "#fff", weight: 3, fillColor: "#ff5a5a", fillOpacity: 1, pane: "markerPane" }).addTo(map);
   renderModels();
   loadRadar();
@@ -1367,6 +1416,13 @@ function ensureLayer(f) {
   return ne;
 }
 const shownLayer = e => e ? (e.ready ? e.layer : e.old) : null;
+// Only the current frame, the one before it and the next 3 stay on the map. The rest come back instantly from the browser's cache.
+function pruneLayers() {
+  const keep = new Set();
+  for (let k = -1; k <= 3; k++) { const f = frames[(frameIdx + k + frames.length) % frames.length]; if (f) keep.add(f.key); }
+  if (visibleKey) keep.add(visibleKey);
+  Object.keys(layers).forEach(k => { if (!keep.has(k)) { dropEntry(layers[k]); delete layers[k]; } });
+}
 function display(f) {
   if (typeof mapMode !== "undefined" && mapMode !== "radar") return true;
   const e = layers[f.key], target = shownLayer(e);
@@ -1400,8 +1456,8 @@ function showFrame(i) {
     Object.values(layers).forEach(x => [x.layer, x.old].forEach(l => { if (l && l !== e.layer) l.setOpacity(0); }));
     e.layer.setOpacity(0.8); visibleKey = f.key;
   }
-  const nx = frames[(frameIdx + 1) % frames.length];
-  if (nx) ensureLayer(nx);                      // get the next frame ready
+  for (let k = 1; k <= 3; k++) { const nx = frames[(frameIdx + k) % frames.length]; if (nx) ensureLayer(nx); }   // get the next frames ready
+  pruneLayers();
   $("slider").value = frameIdx;
   delete $("rtime").dataset.loading;
   if (mapMode !== "radar") return;
@@ -1485,7 +1541,7 @@ function setSpeed(v) {
 function stopPlay() { clearInterval(playTimer); playTimer = null; $("play").textContent = "▶"; }
 $("play").onclick = () => {
   if (playTimer) { stopPlay(); return; }
-  frames.forEach(ensureLayer);                  // load every frame first
+  for (let k = 0; k <= 3; k++) { const f = frames[(frameIdx + k) % frames.length]; if (f) ensureLayer(f); }
   if (frameIdx >= frames.length - 1) showFrame(0);
   $("play").textContent = "❚❚";
   $("rtime").dataset.loading = "1"; updateProgress();
@@ -1504,7 +1560,12 @@ $("play").onclick = () => {
 };
 document.querySelectorAll("[data-speed]").forEach(b => b.onclick = () => setSpeed(+b.dataset.speed));
 setSpeed(speed);
-$("slider").oninput = e => { if (playTimer) stopPlay(); showFrame(+e.target.value); };
+let slideRAF = 0, slideTo = 0;
+$("slider").oninput = e => {
+  if (playTimer) stopPlay();
+  slideTo = +e.target.value;
+  if (!slideRAF) slideRAF = requestAnimationFrame(() => { slideRAF = 0; showFrame(slideTo); });
+};
 $("warnBtn").onclick = () => toggleWarnings(!warnLayer);
 
 
@@ -1732,8 +1793,8 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114003016";
-async function checkForUpdate() {
+const BUILD = "20261114004017";
+async function checkForUpdate(opts) {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
     if (!r.ok) return;
@@ -1743,13 +1804,20 @@ async function checkForUpdate() {
     if (tried >= 2) return;                      // don't loop if the new page isn't ready yet
     sessionStorage.setItem("skycast_upd_" + v, tried + 1);
     if (swReg) { try { await swReg.update(); } catch(e) {} }
-    location.reload();
+    if (opts && opts.now) { location.reload(); return; }
+    updateReady = true;
+    $("updBanner").classList.add("show");
   } catch(e) {}
 }
-document.addEventListener("visibilitychange", () => { if (!document.hidden) { checkForUpdate(); load(true); } });
-addEventListener("pageshow", e => { if (e.persisted) checkForUpdate(); });
-setInterval(checkForUpdate, 5 * 60000);
-setTimeout(checkForUpdate, 3000);
+let updateReady = false;
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return;
+  if (updateReady) { location.reload(); return; }
+  checkForUpdate({ now: true }); load(true);
+});
+addEventListener("pageshow", e => { if (e.persisted) checkForUpdate({ now: true }); });
+setInterval(() => checkForUpdate(), 5 * 60000);
+setTimeout(() => checkForUpdate({ now: true }), 2500);
 
 /* ---------- Saved cities & current location ---------- */
 let saved = [];
@@ -1879,13 +1947,14 @@ const ES = {
   "Notifications": "Notificaciones", "Install SkyCast as an app": "Instalar SkyCast como app"
 };
 const ES_KEYS = Object.keys(ES).sort((a, b) => b.length - a.length);
-const ES_RE = new RegExp(ES_KEYS.map(k => "(?<![A-Za-zÀ-ÿ])" + k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![A-Za-zÀ-ÿ])").join("|"), "g");
+// (written without "lookbehind" so it also works on older iPhones / Safari before 16.4)
+const ES_RE = new RegExp("(^|[^A-Za-zÀ-ÿ])(" + ES_KEYS.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")(?![A-Za-zÀ-ÿ])", "g");
 const SKIP = ".nws-raw, .nwstext, .alert .ad, .alert .as, .alert .ah, script, style, svg.mark, input, .word";
 function translateNode(root) {
   if (lang !== "es" || !root) return;
   const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement && n.parentElement.closest(SKIP) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
   const nodes = []; while (walk.nextNode()) nodes.push(walk.currentNode);
-  nodes.forEach(n => { const t = n.nodeValue; if (!/[A-Za-z]/.test(t)) return; const r = t.replace(ES_RE, m => ES[m]); if (r !== t) n.nodeValue = r; });
+  nodes.forEach(n => { const t = n.nodeValue; if (!/[A-Za-z]/.test(t)) return; const r = t.replace(ES_RE, (m, pre, key) => pre + ES[key]); if (r !== t) n.nodeValue = r; });
 }
 const translator = new MutationObserver(muts => { if (lang !== "es") return; muts.forEach(m => m.addedNodes.forEach(n => translateNode(n.nodeType === 3 ? n.parentElement : n))); });
 
@@ -1951,7 +2020,10 @@ async function shareCard() {
   x.fillText(`H ${cvtT(d.temperature_2m_max[0])}°  ·  L ${cvtT(d.temperature_2m_min[0])}°  ·  ☔ ${d.precipitation_probability_max[0]}%`, 70, 805);
   // 5-day strip
   const n = Math.min(5, d.time.length), bw = (W - 140) / n;
-  x.fillStyle = "rgba(0,0,0,.25)"; x.beginPath(); x.roundRect(70, 880, W - 140, 270, 36); x.fill();
+  x.fillStyle = "rgba(0,0,0,.25)"; x.beginPath();
+  if (x.roundRect) x.roundRect(70, 880, W - 140, 270, 36);
+  else { const rx = 70, ry = 880, rw = W - 140, rh = 270, rr = 36; x.moveTo(rx + rr, ry); x.arcTo(rx + rw, ry, rx + rw, ry + rh, rr); x.arcTo(rx + rw, ry + rh, rx, ry + rh, rr); x.arcTo(rx, ry + rh, rx, ry, rr); x.arcTo(rx, ry, rx + rw, ry, rr); x.closePath(); }
+  x.fill();
   for (let i = 0; i < n; i++) {
     const cx = 70 + bw * i + bw / 2; x.textAlign = "center";
     x.fillStyle = "rgba(255,255,255,.8)"; x.font = font(700, 34);
@@ -2021,6 +2093,24 @@ function checkWeatherNotifs() {
 }
 renderNotifToggles();
 
+
+/* ---------- Full-screen radar ---------- */
+function setFullscreen(on) {
+  const pnl = $("radarPanel");
+  if (on === pnl.classList.contains("fs")) return;
+  pnl.classList.toggle("fs", on);
+  document.documentElement.classList.toggle("fsopen", on);
+  $("fsBtn").textContent = on ? "✕" : "⛶";
+  $("fsBtn").setAttribute("aria-label", on ? "Exit full screen" : "Full screen");
+  if (on) { try { history.pushState({ fs: 1 }, ""); } catch(e) {} }
+  if (map) { map.invalidateSize({ pan: false }); setTimeout(() => map.invalidateSize({ pan: false }), 250); }
+}
+$("fsBtn").onclick = () => { const on = !$("radarPanel").classList.contains("fs"); if (!on && history.state && history.state.fs) history.back(); else setFullscreen(on); };
+addEventListener("popstate", () => setFullscreen(false));
+addEventListener("keydown", e => { if (e.key === "Escape") setFullscreen(false); });
+$("recenterBtn").onclick = () => { if (map) map.setView([place.latitude, place.longitude], Math.max(map.getZoom(), 7), { animate: true }); };
+addEventListener("hashchange", () => { if (location.hash !== "#radar") setFullscreen(false); });
+
 /* ---------- Search & controls ---------- */
 let timer;
 // City search: OpenStreetMap Nominatim, US places only. Runs when you press Search/Enter (their rules don't allow search-as-you-type).
@@ -2059,11 +2149,13 @@ document.addEventListener("click", e => { if (!e.target.closest(".search")) $("r
 
 function setUnit(u) {
   unit = u; save();
+  document.querySelectorAll("[data-unit]").forEach(b => b.classList.toggle("on", b.dataset.unit === u));
   $("uF").classList.toggle("on", u === "F");
   $("uC").classList.toggle("on", u === "C");
   if (data) render();
   if (map) rebuild();
 }
+document.querySelectorAll("[data-unit]").forEach(b => b.onclick = () => setUnit(b.dataset.unit));
 $("uF").onclick = () => setUnit("F");
 $("uC").onclick = () => setUnit("C");
 setUnit(unit);
