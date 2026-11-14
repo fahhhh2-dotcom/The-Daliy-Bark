@@ -539,7 +539,7 @@
   .onb-in + .onb-in { margin-top:8px; }
   .onb-in.left { text-align:left; }
   .onb-google { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:13px; border:0; border-radius:16px; background:#fff; color:#1f1f1f; font:inherit; font-weight:700; font-size:.98rem; cursor:pointer; }
-  .onb-google[hidden] { display:none; }
+  .onb-google[hidden], .onb-swap[hidden] { display:none; }
   .onb-google svg { width:20px; height:20px; flex:0 0 auto; }
   #onbGsi { display:flex; justify-content:center; min-height:0; }
   #onbGsi:empty { display:none; }
@@ -850,7 +850,6 @@
       <div class="onb-ic">🌤️</div>
       <h2 id="onbTitle">Welcome to SkyCast</h2>
       <p id="onbLead">Make your SkyCast account to get started.</p>
-      <div id="onbGsi"></div>
       <button class="onb-google" id="onbGoogle" type="button"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span id="onbGoogleTx">Sign up with Google</span></button>
       <div class="onb-or">or use your email</div>
       <form id="onbAuth" novalidate>
@@ -859,8 +858,9 @@
         <div class="onb-err" id="onbErr"></div>
         <button class="onb-go" id="onbGo" type="submit" style="margin-top:8px">Sign up</button>
       </form>
+      <button class="onb-swap" id="onbForgot" type="button" hidden style="color:var(--soft);margin-top:4px">Forgot password?</button>
       <button class="onb-swap" id="onbSwap" type="button">Already have an account? Sign in</button>
-      <div class="sh-note">Your account is saved on this device.</div>
+      <div class="sh-note">Your account works on any phone or computer you sign in on.</div>
     </section>
     <section class="onb-step" data-step="1">
       <div class="onb-ic">🔔</div>
@@ -897,7 +897,7 @@
   <button class="sh-btn" id="acctSetup">🔁 Run the setup again</button>
   <button class="sh-btn" id="acctLogout">🚪 Log out</button>
   <button class="sh-btn out" id="acctDelete">🗑️ Delete account</button>
-  <div class="sh-note">Your account is saved on this device only. It isn't uploaded anywhere.</div>
+  <div class="sh-note">Your cities and settings are saved to your account, so they show up on any device you sign in on.</div>
 </div></div>
 <div class="sheet" id="sheet14"><div class="sheet-in wide14">
   <div class="sh-top"><b>14-day forecast</b><button class="mini-btn" id="close14">Done</button></div>
@@ -2676,21 +2676,77 @@ $("siriTest").onclick = () => {
   speechSynthesis.speak(u);
 };
 
-/* ---------- Account (saved on this device) ---------- */
-// To turn on real "Sign up with Google", paste your Google OAuth Web client ID here
-// (console.cloud.google.com → APIs & Services → Credentials → Create OAuth client ID → Web application,
-//  and add https://fahhhh2-dotcom.github.io as an Authorized JavaScript origin).
-const GOOGLE_CLIENT_ID = "22824472007-pi2v7a3ddlck27337ibhs2pc3v9k13od.apps.googleusercontent.com";
+/* ---------- Account (Firebase: works on every device you sign in on) ---------- */
+const FB_CONFIG = {
+  apiKey: "AIzaSyCZWdgqgqt04-8olhaB0aLDqtYM0BQZ8_A",
+  authDomain: "celestial-now-514716-d4.firebaseapp.com",
+  projectId: "celestial-now-514716-d4",
+  storageBucket: "celestial-now-514716-d4.firebasestorage.app",
+  messagingSenderId: "22824472007",
+  appId: "1:22824472007:web:da68fec7c7776bb764dde2"
+};
+const FBV = "https://www.gstatic.com/firebasejs/10.12.2/";
+let FB = null;
+const fbReady = (async () => {
+  const [a, au, fs] = await Promise.all([import(FBV + "firebase-app.js"), import(FBV + "firebase-auth.js"), import(FBV + "firebase-firestore.js")]);
+  const app = a.initializeApp(FB_CONFIG);
+  FB = { au, fs, auth: au.getAuth(app), db: fs.getFirestore(app) };
+  return FB;
+})();
+fbReady.catch(e => console.warn("Firebase didn't load", e));
+
 let account = {};
-try { account = JSON.parse(localStorage.getItem("skycast_account") || "{}"); } catch(e) {}
+try { account = JSON.parse(localStorage.getItem("skycast_account") || "{}"); delete account.pw; } catch(e) {}
 const signedIn = () => { try { return !!localStorage.getItem("skycast_session") && !!account.email; } catch(e) { return false; } };
 function saveAccount(a) { account = { ...account, ...a }; try { localStorage.setItem("skycast_account", JSON.stringify(account)); } catch(e) {} paintAccount(); }
 function displayName() { return account.name || (account.email ? account.email.split("@")[0] : ""); }
-async function hashPw(pw) {
-  const txt = "skycast:" + (account.email || "") + ":" + pw;
-  try { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(txt)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join(""); }
-  catch(e) { let h = 5381; for (const c of txt) h = (h * 33 ^ c.charCodeAt(0)) >>> 0; return "d" + h.toString(16); }
+
+/* settings that follow your account to other devices */
+const SYNC_KEYS = ["skycast", "skycast_saved", "skycast_prefs", "skycast_bg", "skycast_notif", "skycast_onboarded", "skycast_layer", "skycast_range", "skycast_speed"];
+const snapLocal = () => { const o = {}; SYNC_KEYS.forEach(k => { try { const v = localStorage.getItem(k); if (v != null) o[k] = v; } catch(e) {} }); return o; };
+let syncUid = null, lastPushed = "";
+async function pushCloud(force) {
+  if (!FB || !syncUid) return;
+  const data = snapLocal(), j = JSON.stringify(data);
+  if (!force && j === lastPushed) return;
+  lastPushed = j;
+  try { await FB.fs.setDoc(FB.fs.doc(FB.db, "users", syncUid), { email: account.email || "", name: account.name || "", data, updated: Date.now() }); }
+  catch(e) { lastPushed = ""; console.warn("SkyCast sync", e); }
 }
+// returns true if settings came down from the cloud and the page should reload to show them
+async function pullCloud(uid) {
+  syncUid = uid;
+  try {
+    const d = await FB.fs.getDoc(FB.fs.doc(FB.db, "users", uid));
+    const cloud = d.exists() ? (d.data().data || {}) : null;
+    if (cloud && Object.keys(cloud).length) {
+      const local = snapLocal(); let changed = false;
+      SYNC_KEYS.forEach(k => { if (cloud[k] != null && cloud[k] !== local[k]) { try { localStorage.setItem(k, cloud[k]); changed = true; } catch(e) {} } });
+      if (!account.name && d.data().name) saveAccount({ name: d.data().name });
+      lastPushed = JSON.stringify(snapLocal());
+      return changed;
+    }
+    await pushCloud(true);
+  } catch(e) { console.warn("SkyCast sync", e); }
+  return false;
+}
+setInterval(() => pushCloud(), 5000);
+document.addEventListener("visibilitychange", () => { if (document.hidden) pushCloud(); });
+
+fbReady.then(F => F.au.onAuthStateChanged(F.auth, async u => {
+  if (u) {
+    const google = (u.providerData || []).some(p => p.providerId === "google.com");
+    if (account.uid && account.uid !== u.uid) account = {};
+    saveAccount({ uid: u.uid, email: u.email || "", provider: google ? "google" : "email", name: account.name || (u.displayName || "").split(" ")[0] });
+    try { localStorage.setItem("skycast_session", "1"); } catch(e) {}
+    if (await pullCloud(u.uid)) { location.reload(); return; }
+    if (window.onSignedIn) window.onSignedIn();
+  } else {
+    syncUid = null;
+    if (signedIn()) { try { localStorage.removeItem("skycast_session"); } catch(e) {} paintAccount(); if (window.showOnb) window.showOnb(); }
+  }
+})).catch(() => {});
+
 function paintAccount() {
   const on = signedIn(), n = on ? displayName() : "", ini = n ? n.trim().charAt(0).toUpperCase() : "👤";
   $("acctAv").textContent = ini; $("acctAv2").textContent = ini;
@@ -2698,7 +2754,7 @@ function paintAccount() {
   $("acctSub").textContent = n ? (lang === "es" ? "Tu cuenta" : "Your account") + " · " + (place.name === "Current location" ? (lang === "es" ? "Ubicación actual" : "Current location") : place.name) : (lang === "es" ? "Configura tu cuenta" : "Set up your account");
 }
 function openAccount() {
-  if (!signedIn()) { showOnb(); return; }
+  if (!signedIn()) { if (window.showOnb) window.showOnb(); return; }
   $("sheet").classList.remove("open"); $("acctView").classList.add("open");
   $("acctEmail").textContent = account.email || "—";
   $("acctVia").textContent = account.provider === "google" ? "Google" : "Email";
@@ -2712,17 +2768,33 @@ $("acctClose").onclick = () => $("acctView").classList.remove("open");
 $("acctView").onclick = e => { if (e.target.id === "acctView") $("acctView").classList.remove("open"); };
 $("acctCityBtn").onclick = () => { $("acctView").classList.remove("open"); location.hash = "#weather"; setTimeout(() => $("q").focus(), 200); };
 $("acctNotifBtn").onclick = () => { $("acctView").classList.remove("open"); $("sheet").classList.add("open"); };
-$("acctSetup").onclick = () => { try { localStorage.removeItem("skycast_onboarded"); } catch(e) {} location.reload(); };
-// Log out: keeps the account on this device so you can sign back in
-$("acctLogout").onclick = () => {
+$("acctSetup").onclick = () => { try { localStorage.removeItem("skycast_onboarded"); } catch(e) {} pushCloud(true).finally(() => location.reload()); };
+// Log out: your settings stay saved in your account, so signing back in brings them back
+$("acctLogout").onclick = async () => {
+  $("acctLogout").textContent = "Logging out…";
+  try { await pushCloud(true); } catch(e) {}
+  syncUid = null;
+  try { if (FB) await FB.au.signOut(FB.auth); } catch(e) {}
   try { localStorage.removeItem("skycast_session"); } catch(e) {}
-  try { window.google && google.accounts && google.accounts.id.disableAutoSelect(); } catch(e) {}
   location.reload();
 };
-// Delete account: tap twice, then everything about the account is wiped and the sign-up screen comes back
-$("acctDelete").onclick = () => {
+// Delete account: tap twice, then the account and its saved data are erased everywhere
+$("acctDelete").onclick = async () => {
   const b = $("acctDelete");
   if (!b.dataset.sure) { b.dataset.sure = "1"; b.textContent = "⚠️ Tap again to delete your account"; return; }
+  b.textContent = "Deleting…";
+  const u = FB && FB.auth.currentUser;
+  if (u) {
+    const keep = syncUid; syncUid = null;
+    try { await FB.fs.deleteDoc(FB.fs.doc(FB.db, "users", u.uid)); } catch(e) {}
+    try { await u.delete(); }
+    catch(e) {
+      syncUid = keep; lastPushed = ""; pushCloud(true);
+      b.textContent = "🗑️ Delete account"; delete b.dataset.sure;
+      toast(e.code === "auth/requires-recent-login" ? "For safety, log out, sign back in, then delete your account." : "Couldn't delete right now. Check your internet and try again.");
+      return;
+    }
+  }
   try { ["skycast_account", "skycast_session", "skycast_onboarded"].forEach(k => localStorage.removeItem(k)); } catch(e) {}
   location.reload();
 };
@@ -2753,9 +2825,9 @@ setTimeout(() => {   // runs once the whole script has loaded
     try { localStorage.setItem("skycast_notif", JSON.stringify(notifPrefs)); } catch(e) {}
     renderNotifToggles(); paint();
   });
-  // ---- step 1: sign up / sign in ----
+  // ---- step 1: sign up / sign in (Firebase) ----
   let mode = account.email ? "in" : "up";
-  const err = t => $("onbErr").textContent = t || "";
+  const err = (t, ok) => { $("onbErr").textContent = t || ""; $("onbErr").style.color = ok ? "#b8f5c8" : ""; };
   const paintMode = () => {
     const up = mode === "up";
     $("onbTitle").textContent = up ? "Welcome to SkyCast" : "Welcome back";
@@ -2765,60 +2837,66 @@ setTimeout(() => {   // runs once the whole script has loaded
     $("onbPw").autocomplete = up ? "new-password" : "current-password";
     $("onbGo").textContent = up ? "Sign up" : "Sign in";
     $("onbSwap").textContent = up ? "Already have an account? Sign in" : "New here? Make an account";
+    $("onbForgot").hidden = up;
     if (!up && account.email && !$("onbEmail").value) $("onbEmail").value = account.email;
     err("");
   };
-  // after signing in: a returning person goes straight to the weather, a new one continues the setup
-  const signedInNow = () => {
-    try { localStorage.setItem("skycast_session", "1"); } catch(e) {}
-    paintAccount();
+  const busy = b => { $("onbGo").disabled = b; $("onbGoogle").disabled = b; $("onbGo").style.opacity = b ? .6 : ""; };
+  const nice = e => {
+    const m = {
+      "auth/email-already-in-use": "There's already an account with that email. Tap \"Sign in\" below.",
+      "auth/invalid-email": "Type a real email, like you@gmail.com",
+      "auth/weak-password": "Make your password at least 6 letters or numbers",
+      "auth/invalid-credential": "That email or password isn't right. Try again.",
+      "auth/invalid-login-credentials": "That email or password isn't right. Try again.",
+      "auth/wrong-password": "That password isn't right. Try again.",
+      "auth/user-not-found": "There's no account with that email. Tap \"Make an account\".",
+      "auth/too-many-requests": "Too many tries. Wait a minute and try again.",
+      "auth/network-request-failed": "No internet connection. Check it and try again.",
+      "auth/popup-closed-by-user": "", "auth/cancelled-popup-request": "",
+      "auth/unauthorized-domain": "Sign-in isn't allowed on this website address yet."
+    };
+    return e && e.code in m ? m[e.code] : "Something went wrong. Try again.";
+  };
+  const getFB = async () => { try { return await fbReady; } catch(e) { err("Sign-in isn't loading. Check your internet and try again."); return null; } };
+  // called once Firebase confirms you're signed in (and your saved settings are loaded)
+  window.onSignedIn = () => {
+    if (o.hidden || step !== 0) return;
+    busy(false);
     let onboarded = false; try { onboarded = !!localStorage.getItem("skycast_onboarded"); } catch(e) {}
     if (onboarded) { o.hidden = true; toast("Signed in as " + account.email); } else go(1);
   };
   $("onbSwap").onclick = () => { mode = mode === "up" ? "in" : "up"; paintMode(); };
   $("onbAuth").onsubmit = async e => {
     e.preventDefault();
-    const email = $("onbEmail").value.trim().toLowerCase(), pw = $("onbPw").value;
+    const email = $("onbEmail").value.trim(), pw = $("onbPw").value;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err("Type a real email, like you@gmail.com");
-    if (mode === "up") {
-      if (pw.length < 6) return err("Make your password at least 6 letters or numbers");
-      if (account.email === email && account.pw) { mode = "in"; paintMode(); $("onbEmail").value = email; return err("You already have an account. Type your password to sign in."); }
-      try { ["skycast_account", "skycast_onboarded"].forEach(k => localStorage.removeItem(k)); } catch(e2) {}
-      account = { email };
-      saveAccount({ email, provider: "email", pw: await hashPw(pw), name: "" });
-      signedInNow();
-    } else {
-      if (!pw) return err("Type your password");
-      if (account.email !== email || !account.pw) return err("There's no account with that email on this device. Tap \"Make an account\".");
-      if (await hashPw(pw) !== account.pw) return err("That password isn't right. Try again.");
-      signedInNow();
-    }
-  };
-  // Google
-  const googleDone = r => {
+    if (mode === "up" && pw.length < 6) return err("Make your password at least 6 letters or numbers");
+    if (!pw) return err("Type your password");
+    err(); busy(true);
+    const F = await getFB(); if (!F) return busy(false);
     try {
-      const b = r.credential.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-      const info = JSON.parse(decodeURIComponent(atob(b).split("").map(c => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")).join("")));
-      const email = (info.email || "").toLowerCase(); if (!email) throw 0;
-      if (account.email !== email) { try { localStorage.removeItem("skycast_onboarded"); } catch(e2) {} account = {}; }
-      saveAccount({ email, provider: "google", name: info.given_name || info.name || "", pw: account.pw });
-      signedInNow();
-    } catch(e) { err("Google sign-in didn't work. Try again or use your email."); }
+      if (mode === "up") await F.au.createUserWithEmailAndPassword(F.auth, email, pw);
+      else await F.au.signInWithEmailAndPassword(F.auth, email, pw);
+      err("Signing you in…", true);
+    } catch(ex) { busy(false); err(nice(ex)); }
   };
-  if (GOOGLE_CLIENT_ID) {
-    const sc = document.createElement("script"); sc.src = "https://accounts.google.com/gsi/client"; sc.async = true;
-    sc.onload = () => {
-      try {
-        google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: googleDone });
-        $("onbGoogle").hidden = true;
-        google.accounts.id.renderButton($("onbGsi"), { theme: "outline", size: "large", shape: "pill", text: "continue_with", width: Math.min(360, $("onbGsi").clientWidth || 320) });
-      } catch(e) {}
-    };
-    document.head.appendChild(sc);
-  }
-  $("onbGoogle").onclick = () => {
-    if (window.google && google.accounts) { google.accounts.id.prompt(); return; }
-    err(GOOGLE_CLIENT_ID ? "Google is still loading. Try again in a second." : "Google sign-in is coming soon. Use your email for now.");
+  $("onbForgot").onclick = async () => {
+    const email = $("onbEmail").value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err("Type your email first, then tap \"Forgot password?\"");
+    const F = await getFB(); if (!F) return;
+    try { await F.au.sendPasswordResetEmail(F.auth, email); err("We sent a link to " + email + " to make a new password.", true); }
+    catch(ex) { err(nice(ex)); }
+  };
+  $("onbGoogle").onclick = async () => {
+    err(); busy(true);
+    const F = await getFB(); if (!F) return busy(false);
+    const p = new F.au.GoogleAuthProvider(); p.setCustomParameters({ prompt: "select_account" });
+    try { await F.au.signInWithPopup(F.auth, p); err("Signing you in…", true); }
+    catch(ex) {
+      if (ex.code === "auth/popup-blocked" || ex.code === "auth/operation-not-supported-in-this-environment") { try { await F.au.signInWithRedirect(F.auth, p); return; } catch(ex2) { ex = ex2; } }
+      busy(false); err(nice(ex));
+    }
   };
   paintMode();
   o.querySelectorAll("[data-next]").forEach(b => b.onclick = () => go(step + 1));
