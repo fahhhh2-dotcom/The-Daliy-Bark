@@ -675,6 +675,20 @@
   .sw-rose { background: linear-gradient(160deg, #ff6f91, #4a1530); }
   .sw-midnight { background: linear-gradient(160deg, #26334d, #000); }
   .sw-photo { background: rgba(255,255,255,.06); border-style:dashed !important; }
+  /* ===== Radar screen fixes ===== */
+  /* buttons positioned with transform keep their place (and rotation) when tapped */
+  .locpill:active, .torpill:active { transform: translateX(-50%) scale(.97); }
+  .legtab:active { transform: rotate(180deg) scale(.97); }
+  /* full screen button sits in the top-left corner so it never ends up under the layer buttons or the bottom panel on shorter phones */
+  .radarpanel .toolbtn.fsb, .radarpanel.fs .toolbtn.fsb { top:12px; left: max(12px, env(safe-area-inset-left)); right:auto; }
+  .radarpanel.fs .toolbtn.fsb { top: calc(12px + env(safe-area-inset-top)); }
+  @media (max-width:600px) { .radarpanel .toolbtn.fsb { width:48px; height:48px; border-radius:16px; } }
+  /* layer buttons always stop above the bottom panel; if there isn't room they scroll */
+  .radarpanel .tools { max-height: calc(100% - var(--sheeth, 190px) - 110px); overflow-y:auto; scrollbar-width:none; overscroll-behavior:contain; }
+  .radarpanel .tools::-webkit-scrollbar { display:none; }
+  .radarpanel .tools button { flex:0 0 auto; }
+  .radarpanel .legtab { top:auto; bottom: calc(var(--sheeth, 190px) + 40px); }
+  @media (max-height:720px) { .radarpanel .tools { gap:2px; padding:5px; } .radarpanel .tools button { width:38px; height:38px; border-radius:11px; } .radarpanel .tools button svg { width:21px; height:21px; } }
 </style>
 </head>
 <body class="t-day">
@@ -2521,7 +2535,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114195531";   // kept equal to version.json on every publish
+const BUILD = "20261114223340";   // kept equal to version.json on every publish
 async function checkForUpdate(opts) {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
