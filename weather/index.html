@@ -660,6 +660,15 @@
   .sw-fxsnow { background: linear-gradient(160deg, #a9bfdc, #2b3c56); }
   .sw-fxstars { background: radial-gradient(circle at 30% 30%, #fff 1px, transparent 2px) 0 0/14px 14px, linear-gradient(160deg, #2a3a7a, #02040d); }
   .acct-plus { margin-left:6px; }
+  .plus-code { margin-top:10px; text-align:left; }
+  .plus-code[hidden] { display:none; }
+  .pc-row { display:flex; gap:8px; }
+  .pc-row input { flex:1; min-width:0; padding:12px 14px; border-radius:14px; border:1px solid var(--line); background:var(--panel2); color:var(--text); font:inherit; font-size:16px; letter-spacing:1px; text-transform:uppercase; outline:none; }
+  .pc-row input::placeholder { text-transform:none; letter-spacing:0; color:var(--faint); }
+  .pc-row button { border:0; border-radius:14px; padding:0 16px; background:var(--text); color:#0b1424; font:inherit; font-weight:800; cursor:pointer; }
+  html.light .pc-row button { background:#0e1d38; color:#fff; }
+  .onb .pc-row button { background:#fff; color:#0b1424; }
+  .plus-codemsg { font-size:.8rem; color:#ffb4b4; margin-top:6px; min-height:0; }
   /* ===== Custom backgrounds (Settings → Background) ===== */
   html[data-bg] body::before { background: var(--bgx); }
   html[data-bg="ocean"]    { --bgx: radial-gradient(1200px 700px at 15% -10%, #12b5c9, transparent 70%), linear-gradient(180deg, #073b55, #031420 90%); }
@@ -1001,6 +1010,7 @@
       <ul class="plus-list" data-plus-list></ul>
       <div class="sh-note" data-plus-note></div>
       <button class="onb-go" data-plus-buy>Subscribe for 99¢/month</button>
+      <form class="plus-code" data-plus-code hidden><div class="pc-row"><input type="text" placeholder="Have a Plus code?" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24"><button type="submit">Unlock</button></div><div class="plus-codemsg"></div></form>
       <button class="onb-skip" data-next>Maybe later</button>
     </section>
     <section class="onb-step" data-step="3">
@@ -1020,6 +1030,7 @@
   <ul class="plus-list" data-plus-list></ul>
   <div class="sh-note" data-plus-note></div>
   <button class="sh-btn plus-buy" data-plus-buy>Subscribe for 99¢/month</button>
+  <form class="plus-code" data-plus-code hidden><div class="pc-row"><input type="text" placeholder="Have a Plus code?" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24"><button type="submit">Unlock</button></div><div class="plus-codemsg"></div></form>
 </div></div>
 <div class="sheet" id="acctView"><div class="sheet-in">
   <div class="sh-top"><b>Account</b><button class="mini-btn" id="acctClose">Done</button></div>
@@ -2616,7 +2627,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114225521";   // kept equal to version.json on every publish
+const BUILD = "20261114232216";   // kept equal to version.json on every publish
 async function checkForUpdate(opts) {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
@@ -3047,9 +3058,17 @@ $("acctDelete").onclick = async () => {
 paintAccount();
 
 /* ---------- SkyCast Plus (99¢/month subscription through Stripe) ----------
-   To turn on payments: paste your Stripe Payment Link between the quotes below.
-   Until then, the Subscribe buttons say subscriptions are coming soon. */
-const PLUS_LINK = "https://buy.stripe.com/test_28E7sNcmzebh1XcacU93y00";   // TEST link (Stripe sandbox). Swap for the live link when going live.
+   Payments now go through Buy Me a Coffee Memberships:
+   1. Paste your Buy Me a Coffee page link into BMC_LINK.
+   2. Members get the current Plus code from a members-only post and type it into SkyCast.
+   3. To change the code, add the new code's fingerprint to PLUS_CODE_HASHES and remove the old one
+      (people with an old code lose Plus until they enter the new one).
+   To switch back to Stripe, set PLUS_PROVIDER to "stripe". */
+const PLUS_PROVIDER = "bmc";
+const BMC_LINK = "";   // e.g. https://buymeacoffee.com/yourname/membership
+const PLUS_CODE_HASHES = ["0a4de97f7a5128de8d3c4a74bb22df94b5db0a169c041c97bf114de883e38144"];   // SHA-256 of the current Plus code(s) with dashes/spaces removed, so the code itself isn't in the page
+const STRIPE_LINK = "https://buy.stripe.com/test_28E7sNcmzebh1XcacU93y00";   // Stripe sandbox (test) link, kept for later
+const PLUS_LINK = PLUS_PROVIDER === "bmc" ? BMC_LINK : STRIPE_LINK;
 const PLUS_PORTAL = "";   // optional: your Stripe customer portal link, so members can cancel or update their card
 const PLUS_FEATURES = [
   ["📈", "Hour-by-hour for all 7 days", "Every hour of the week, not just the next 24."],
@@ -3062,12 +3081,17 @@ const PLUS_FEATURES = [
 function paintPlus() {
   document.querySelectorAll("[data-plus-list]").forEach(ul => ul.innerHTML = PLUS_FEATURES.map(([i, t, d]) => `<li><span>${i}</span><div><b>${t}</b>${d}</div></li>`).join(""));
   const on = isPlus();
-  document.querySelectorAll("[data-plus-buy]").forEach(b => { b.disabled = on ? !PLUS_PORTAL : !PLUS_LINK; b.textContent = on ? (PLUS_PORTAL ? "Manage subscription" : "✓ You're a Plus member") : PLUS_LINK ? "Subscribe for 99¢/month" : "Coming soon"; });
+  const bmc = PLUS_PROVIDER === "bmc";
+  document.querySelectorAll("[data-plus-buy]").forEach(b => { b.disabled = on ? (bmc ? !BMC_LINK : !PLUS_PORTAL) : !PLUS_LINK;
+    b.textContent = on ? (bmc ? (BMC_LINK ? "Manage membership on Buy Me a Coffee" : "✓ You're a Plus member") : PLUS_PORTAL ? "Manage subscription" : "✓ You're a Plus member") : PLUS_LINK ? (bmc ? "☕ Join on Buy Me a Coffee" : "Subscribe for 99¢/month") : "Coming soon"; });
+  document.querySelectorAll("[data-plus-code]").forEach(f => f.hidden = on || !bmc);
   document.querySelectorAll("[data-plus-note]").forEach(n => n.textContent = on ? ((typeof plusTest !== "undefined" && plusTest && !plusActive) ? "Test mode: Plus is on for this device so you can try it. Real members are checked through Stripe." : "Thanks for supporting SkyCast! Everything below is unlocked.")
+    : PLUS_PROVIDER === "bmc" ? (BMC_LINK ? "Join SkyCast Plus on Buy Me a Coffee. Your Plus code is in the members-only post there. Type it below to unlock Plus." : "Memberships aren't open yet. Already have a Plus code? Type it below.")
     : PLUS_LINK ? (signedIn() ? "Payments are handled securely by Stripe. Cancel anytime." : "Sign in first so your Plus membership follows your account.") : "Subscriptions aren't open yet. We'll let you know when Plus is ready.");
   if ($("plusSub")) $("plusSub").textContent = on ? "You're a member ✓" : "99¢ a month · see what's included";
 }
 function buyPlus() {
+  if (PLUS_PROVIDER === "bmc") { if (BMC_LINK) window.open(BMC_LINK, "_blank", "noopener"); return; }   // opens in a new tab so SkyCast stays open for the code
   if (isPlus()) { if (PLUS_PORTAL) location.href = PLUS_PORTAL; return; }
   if (!PLUS_LINK) return;
   const q = new URLSearchParams();
@@ -3076,6 +3100,18 @@ function buyPlus() {
   location.href = PLUS_LINK + (q.toString() ? (PLUS_LINK.includes("?") ? "&" : "?") + q : "");
 }
 document.querySelectorAll("[data-plus-buy]").forEach(b => b.addEventListener("click", buyPlus));
+async function sha256(t) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join(""); }
+document.querySelectorAll("[data-plus-code]").forEach(f => f.addEventListener("submit", async e => {
+  e.preventDefault();
+  const inp = f.querySelector("input"), msg = f.querySelector(".plus-codemsg"), code = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, "");   // dashes and spaces don't matter
+  if (!code) return;
+  let h = ""; try { h = await sha256(code); } catch(err) { msg.textContent = "This browser can't check codes. Try Safari or Chrome."; return; }
+  if (!PLUS_CODE_HASHES.includes(h)) { msg.textContent = "That code didn't work. Check the members-only post for the current code."; return; }
+  try { localStorage.setItem("skycast_plus_code", h); } catch(err) {}
+  inp.value = ""; msg.textContent = "";
+  paintPlus(); paintAccount(); applyBg(); if (data) renderPlusPanels();
+  toast("⭐ Welcome to SkyCast Plus!");
+}));
 $("plusBtn").onclick = () => { $("sheet").classList.remove("open"); $("plusView").classList.add("open"); };
 $("plusClose").onclick = () => $("plusView").classList.remove("open");
 $("plusView").onclick = e => { if (e.target.id === "plusView") $("plusView").classList.remove("open"); };
@@ -3088,7 +3124,8 @@ paintPlus();
 var plusActive = false, plusTest = false, PLUS_TESTMODE = false;
 try { plusActive = localStorage.getItem("skycast_plus") === "1"; plusTest = localStorage.getItem("skycast_plus_test") === "1"; } catch(e) {}
 PLUS_TESTMODE = /buy\.stripe\.com\/test_/.test(PLUS_LINK);
-function isPlus() { return !!(plusActive || (PLUS_TESTMODE && plusTest)); }   // a function declaration so earlier code can call it safely
+function plusCodeOK() { try { return PLUS_CODE_HASHES.includes(localStorage.getItem("skycast_plus_code") || ""); } catch(e) { return false; } }
+function isPlus() { return !!(plusActive || (PLUS_TESTMODE && plusTest) || plusCodeOK()); }   // a function declaration so earlier code can call it safely
 (() => {
   const u = new URL(location.href);
   if (u.searchParams.get("plus") === "thanks") {
@@ -3332,7 +3369,8 @@ setTimeout(() => {   // runs once the whole script has loaded
   };
   paintMode();
   o.querySelectorAll("[data-next]").forEach(b => b.onclick = () => go(step + 1));
-  o.querySelector("[data-plus-buy]").addEventListener("click", () => { if (PLUS_LINK) go(3); });
+  o.querySelector("[data-plus-buy]").addEventListener("click", () => { if (PLUS_LINK && PLUS_PROVIDER !== "bmc") go(3); });
+  o.querySelector("[data-plus-code]").addEventListener("submit", () => setTimeout(() => { if (isPlus()) go(3); }, 300));
   $("onbDone").onclick = done;
   $("onbHere").onclick = () => { done(); useMyLocation(); };
   let last = 0;
