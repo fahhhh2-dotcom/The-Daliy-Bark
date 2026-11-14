@@ -81,7 +81,7 @@
   /* phones & tablets: one column, most-used things first */
   @media (max-width: 959px) {
     .col { display:contents; }
-    #alerts { order:1; } .hero { order:2; } #tips { order:3; } .o-hourly { order:4; } .o-days { order:5; }
+    .hero { order:1; } #alerts { order:2; } #tips { order:3; } .o-hourly { order:4; } .o-days { order:5; }
     .radar-teaser { order:6; } .o-cond { order:7; } .news-teaser { order:8; } #afdPanel { order:9; } #comparePanel { order:10; } .notify { order:11; }
   }
   .panel { background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:20px; min-width:0; }
@@ -508,6 +508,40 @@
   html[data-bg="photo"] .panel { background: rgba(10,18,36,.8); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
   html.light[data-bg="photo"] .panel { background: rgba(255,255,255,.88); }
   html.light[data-bg="photo"] .hero { background: linear-gradient(160deg, var(--bg1), var(--bg2)); }
+  /* background presets also tint the top of the screen to match */
+  html[data-bg="ocean"] body { --bg1:#12b5c9; --bg2:#073b55; }
+  html[data-bg="sunset"] body { --bg1:#e8706a; --bg2:#3a1d4f; }
+  html[data-bg="aurora"] body { --bg1:#2a9fb0; --bg2:#2b2466; }
+  html[data-bg="lavender"] body { --bg1:#8a6cf0; --bg2:#2a1d5c; }
+  html[data-bg="forest"] body { --bg1:#3a9d62; --bg2:#123825; }
+  html[data-bg="rose"] body { --bg1:#e8607f; --bg2:#4a1530; }
+  html[data-bg="midnight"] body { --bg1:#26334d; --bg2:#0b0f18; }
+
+  /* ===== Phones & tablets: one big blue top section (search bar + current weather), edge to edge ===== */
+  @media (max-width: 959px) {
+    body { --top: var(--bg1); }
+    @supports (color: color-mix(in srgb, red, blue)) { body { --top: color-mix(in srgb, var(--bg1) 72%, var(--bg2)); } }
+    .bar, html.light .bar { background: var(--top); border-bottom: 0; -webkit-backdrop-filter:none; backdrop-filter:none;
+      --text:#fff; --soft: rgba(255,255,255,.78); --faint: rgba(255,255,255,.6); --line: rgba(255,255,255,.2); }
+    .bar .search input { background-color: rgba(255,255,255,.14); color:#fff; }
+    .bar .search input::placeholder { color: rgba(255,255,255,.7); }
+    html.light .bar .brand .word { color:#fff; }
+    html.light .bar .tabs a.on { background:#fff; color:#0e1d38; }
+    html:not(.onradar):not(.onnews) .cities, html:not(.onradar):not(.onnews) .toast { background: var(--top); max-width:none; margin:0; }
+    html:not(.onradar):not(.onnews) .toast { padding-top:6px; }
+    .cities .city:not(.on) { background: rgba(255,255,255,.14); color:#fff; border-color: rgba(255,255,255,.25); }
+    .cities .city.on { background:#fff; color:#0e1d38; }
+    .cities .city.add { color: rgba(255,255,255,.85); }
+    #viewW main { padding-top:0; }
+    .panel.hero, html.light .panel.hero { margin: 0 -18px; border:0; border-radius: 0 0 32px 32px;
+      background: linear-gradient(180deg, var(--top) 0%, var(--bg2) 100%);
+      box-shadow: 0 18px 40px rgba(0,0,0,.28);
+      color:#fff; --text:#fff; --soft: rgba(255,255,255,.78); --faint: rgba(255,255,255,.58); --line: rgba(255,255,255,.18); }
+    html[data-bg="photo"] .panel.hero { -webkit-backdrop-filter:none; backdrop-filter:none; }
+    .hero-in { padding-left:24px; padding-right:24px; padding-bottom:26px; }
+    .panel.hero #sky { -webkit-mask-image: linear-gradient(180deg, transparent, #000 120px); mask-image: linear-gradient(180deg, transparent, #000 120px); }
+  }
+  @media (max-width: 600px) { .panel.hero, html.light .panel.hero { margin: 0 -12px; } }
   .bgs { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; }
   .bgs button { display:flex; flex-direction:column; align-items:center; gap:6px; border:0; background:none; color:var(--soft); font:inherit; font-size:.75rem; font-weight:700; cursor:pointer; padding:0; }
   .bgs .sw { width:100%; aspect-ratio: 1 / 1; max-width:72px; border-radius:18px; border:2px solid var(--line); background-size:cover; background-position:center; display:grid; place-items:center; font-size:1.3rem; }
@@ -2117,7 +2151,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114160857";
+const BUILD = "20261114161547";
 async function checkForUpdate(opts) {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
