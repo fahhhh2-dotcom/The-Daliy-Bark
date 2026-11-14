@@ -1230,6 +1230,7 @@ function renderModels() {}
 const IEM = "https://mesonet{s}.agron.iastate.edu/cache/tile.py/1.0.0/";
 const pad = (n, w) => String(n).padStart(w, "0");
 const utcStamp = d => d.getUTCFullYear() + pad(d.getUTCMonth() + 1, 2) + pad(d.getUTCDate(), 2) + pad(d.getUTCHours(), 2) + pad(d.getUTCMinutes(), 2);
+const PAST_FRAMES = 36, FUTURE_FRAMES = 63;   // 36 past + now + 63 future = 100 radar pictures
 async function loadHRRR() {
   // NOAA HRRR simulated radar with precipitation type, from Iowa Environmental Mesonet
   let init = null;
@@ -1243,7 +1244,7 @@ async function loadHRRR() {
   if (!init) { init = new Date(Math.floor((Date.now() - 100 * 60000) / 3600000) * 3600000); }
   const q = 15 * 60000, start = Math.ceil(Date.now() / q) * q;
   hrrrFrames = [];
-  for (let k = 0; k < 24; k++) {
+  for (let k = 0; k < FUTURE_FRAMES; k++) {
     const target = start + k * q;
     const fmin = Math.round((target - init.getTime()) / q) * 15;
     if (fmin < 0 || fmin > 1080) continue;
@@ -1287,12 +1288,14 @@ async function loadRadar() {
   if (inUS()) {
     await loadHRRR();
     const bucket = Math.floor(Date.now() / 300000);
+    const latest = Math.floor((Date.now() - 8 * 60000) / 300000) * 300000;   // newest archived picture (they appear a few minutes late)
     pastFrames = [];
-    for (let m = 50; m >= 0; m -= 5) {
-      const suffix = m ? `-m${String(m).padStart(2,"0")}m` : "";
-      pastFrames.push({ key: `us${m}`, minsAgo: m,
-        url: `${IEM}nexrad-n0q-900913${suffix}/{z}/{x}/{y}.png?_=${bucket}` });
+    for (let k = PAST_FRAMES - 1; k >= 0; k--) {
+      const t = latest - k * 300000;
+      pastFrames.push({ key: `p${k}`, time: t, minsAgo: Math.max(5, Math.round((Date.now() - t) / 60000)),
+        url: `https://mesonet{s}.agron.iastate.edu/c/tile.py/1.0.0/ridge::USCOMP-N0Q-${utcStamp(new Date(t))}/{z}/{x}/{y}.png` });
     }
+    pastFrames.push({ key: "now", time: Date.now(), minsAgo: 0, url: `${IEM}nexrad-n0q-900913/{z}/{x}/{y}.png?_=${bucket}` });
   } else {
     hrrrFrames = []; pastFrames = [];
   }
@@ -1473,28 +1476,29 @@ function showFrame(i) {
     $("badge").className = "badge future";
     $("badge").innerHTML = `<small>${rel === "Now" ? "FORECAST" : "FUTURE RADAR"}</small>${clock(f.time)}`;
   } else {
-    $("rtime").innerHTML = `<b>${f.minsAgo === 0 ? "Now" : f.minsAgo + " min ago"}</b> · live radar (NWS NEXRAD)`;
+    const ago = f.minsAgo >= 60 ? Math.floor(f.minsAgo / 60) + "h " + (f.minsAgo % 60 ? f.minsAgo % 60 + "m " : "") + "ago" : f.minsAgo + " min ago";
+    $("rtime").innerHTML = `<b>${f.minsAgo === 0 ? "Now" : ago}</b> · ${f.minsAgo === 0 ? "live radar" : "radar"} (NWS NEXRAD)`;
     $("badge").className = "badge live";
-    $("badge").innerHTML = `<small>${f.minsAgo === 0 ? "LIVE RADAR" : "PAST RADAR"}</small>${clock(Date.now() - f.minsAgo * 60000)}`;
+    $("badge").innerHTML = `<small>${f.minsAgo === 0 ? "LIVE RADAR" : "PAST RADAR"}</small>${clock(f.time || Date.now() - f.minsAgo * 60000)}`;
   }
   renderTicks();
 }
 function renderTicks() {
   const n = frames.length; if (n < 2) { $("ticks").innerHTML = ""; return; }
   const pos = i => (i / (n - 1) * 100) + "%";
-  let html = "";
+  let html = "", used = new Set();
   frames.forEach((f, i) => {
     let lab = null;
-    if (!f.model && !f.hrrr && i === 0) lab = "-" + f.minsAgo + "m";
-    if (!f.model && !f.hrrr && f.minsAgo === 0) lab = "Now";
-    if (f.model || f.hrrr) {
+    if (!f.hrrr) {
+      if (f.minsAgo === 0) lab = "Now";
+      else [180, 120, 60].forEach(m => { if (Math.abs(f.minsAgo - m) <= 2) lab = "-" + m / 60 + "h"; });
+    } else {
       const mins = Math.round((f.time - Date.now()) / 60000);
-      [120, 240, 360].forEach(m => { if (Math.abs(mins - m) < 8) lab = "+" + m / 60 + "h"; });
-      if (radarLayer !== "precip" && i === 0) lab = "Now";
+      [240, 480, 720, 960].forEach(m => { if (Math.abs(mins - m) <= 7) lab = "+" + m / 60 + "h"; });
     }
-    if (lab) html += `<span style="left:${pos(i)}">${lab}</span>`;
+    if (lab && !used.has(lab)) { used.add(lab); html += `<span style="left:${pos(i)}">${lab}</span>`; }
   });
-  const nowIdx = frames.findIndex(f => !f.model && !f.hrrr && f.minsAgo === 0);
+  const nowIdx = frames.findIndex(f => !f.hrrr && f.minsAgo === 0);
   if (nowIdx >= 0 && nowIdx < n - 1) html += `<i style="left:${pos(nowIdx)};width:calc(100% - ${pos(nowIdx)})"></i>`;
   $("ticks").innerHTML = html;
 }
@@ -1511,7 +1515,7 @@ function renderLegend() {
   };
   $("legendBox").innerHTML = L_[radarLayer];
   $("radarNote").textContent = hrrrFrames.length
-    ? "The past hour is real National Weather Service radar. The future part is NOAA's HRRR model simulated radar, which is a prediction. Future frames color precipitation by type: rain, snow, freezing rain and ice."
+    ? "100 radar pictures: the past 3 hours of real National Weather Service radar (every 5 minutes), then about 16 hours of NOAA's HRRR future radar (every 15 minutes), which is a prediction. Future frames color precipitation by type: rain, snow, freezing rain and ice."
     : "Live National Weather Service radar. The future radar will appear here when NOAA's latest HRRR run is available.";
 }
 function setRadarLayer(l) {
@@ -1793,7 +1797,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114004017";
+const BUILD = "20261114004315";
 async function checkForUpdate(opts) {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
