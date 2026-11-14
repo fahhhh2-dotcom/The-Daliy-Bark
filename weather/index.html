@@ -224,7 +224,12 @@
   .badge small { display:block; font-size:.62rem; letter-spacing:1.4px; font-weight:800; }
   .badge.live small { color:#4dff94; }
   .badge.future small { color:var(--accent); }
-  .radar-tiles { transition: opacity .35s ease; will-change: opacity; }
+  .radar-tiles { transition: opacity var(--fade, .35s) ease; will-change: opacity; }
+  .speeds { display:flex; align-items:center; gap:6px; margin-top:10px; }
+  .speeds span { font-size:.72rem; text-transform:uppercase; letter-spacing:1.2px; color:var(--soft); font-weight:700; margin-right:4px; }
+  .speeds button { border:1px solid var(--line); background:transparent; color:var(--soft); font:inherit; font-weight:700; font-size:.8rem; padding:5px 11px; border-radius:999px; cursor:pointer; }
+  .speeds button.on { background:var(--accent); color:#0b1424; border-color:var(--accent); }
+  #slider { touch-action: none; height: 28px; }
   .track { flex:1; min-width:0; position:relative; padding-bottom:18px; }
   .track input { width:100%; }
   .ticks { position:absolute; left:8px; right:8px; bottom:0; height:16px; font-size:.68rem; color:var(--soft); }
@@ -339,6 +344,7 @@
       <button class="playbtn" id="play" aria-label="Play">▶</button>
       <div class="track"><input type="range" id="slider" min="0" max="0" value="0"><div class="ticks" id="ticks"></div></div>
     </div>
+    <div class="speeds"><span>Speed</span><button data-speed="0.5">½×</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button><button data-speed="8">8×</button></div>
     <div class="rtime" id="rtime">—</div>
     <div class="lgrow" id="legendBox"></div>
     <div class="nextrain" id="nextRain"></div>
@@ -1043,6 +1049,7 @@ function ensureLayer(f) {
   const ne = { layer, url: f.url, ready: false, old: e ? (e.ready ? e.layer : e.old) : null };
   if (e && e.layer && e.layer !== ne.old) map.removeLayer(e.layer);
   layer.on("loading", () => { ne.loading = true; });
+  layer.on("tileerror", () => { ne.errors = (ne.errors || 0) + 1; if (ne.errors > 6 && f.hrrr) $("futureNote").textContent = "Some future radar pictures didn't load. NOAA's newest model run may still be processing; try again in a few minutes."; });
   layer.on("load", () => {
     ne.ready = true; ne.loading = false;
     if (ne.old) {   // new picture is in: retire the old one smoothly
@@ -1085,8 +1092,11 @@ function showFrame(i) {
   if (!frames.length) return;
   frameIdx = (i + frames.length) % frames.length;
   const f = frames[frameIdx];
-  ensureLayer(f);
-  display(f);                                   // if it isn't loaded yet, the last picture stays up until it is
+  const e = ensureLayer(f);
+  if (!display(f) && !playTimer) {             // dragging the slider: show it right away, rain fills in as it loads
+    Object.values(layers).forEach(x => [x.layer, x.old].forEach(l => { if (l && l !== e.layer) l.setOpacity(0); }));
+    e.layer.setOpacity(0.8); visibleKey = f.key;
+  }
   const nx = frames[(frameIdx + 1) % frames.length];
   if (nx) ensureLayer(nx);                      // get the next frame ready
   $("slider").value = frameIdx;
@@ -1159,7 +1169,15 @@ function toggleWarnings(on) {
   $("warnBtn").classList.toggle("on", !!warnLayer);
   if (warnLayer) $("futureNote").textContent = "Tap anywhere on a colored warning area to see what the warning is.";
 }
-let hold = 0;
+let hold = 0, speed = 1;
+try { speed = +localStorage.getItem("skycast_speed") || 1; } catch(e) {}
+function setSpeed(v) {
+  speed = v;
+  try { localStorage.setItem("skycast_speed", v); } catch(e) {}
+  document.querySelectorAll("[data-speed]").forEach(b => b.classList.toggle("on", +b.dataset.speed === v));
+  document.documentElement.style.setProperty("--fade", (0.35 / v).toFixed(2) + "s");
+  if (playTimer) { stopPlay(); $("play").click(); }
+}
 function stopPlay() { clearInterval(playTimer); playTimer = null; $("play").textContent = "▶"; }
 $("play").onclick = () => {
   if (playTimer) { stopPlay(); return; }
@@ -1172,14 +1190,16 @@ $("play").onclick = () => {
   playTimer = setInterval(() => {
     if (hold > 0) { hold -= 1; return; }
     const ni = (frameIdx + 1) % frames.length, nf = frames[ni];
-    if (!shownLayer(layers[nf.key]) && waited < 4) { waited += 1; return; }   // wait (up to ~2 s) for the next frame to load
+    if (!shownLayer(layers[nf.key]) && waited < 4 * speed) { waited += 1; return; }   // wait (up to ~2 s) for the next frame to load
     waited = 0;
     showFrame(ni);
     const f = frames[ni];
-    if (ni === frames.length - 1) hold = 3;              // linger on the last frame
-    else if (!f.hrrr && f.minsAgo === 0) hold = 2;       // short pause on "Now"
-  }, 500);
+    if (ni === frames.length - 1) hold = 3 * speed;              // linger on the last frame
+    else if (!f.hrrr && f.minsAgo === 0) hold = 2 * speed;       // short pause on "Now"
+  }, 500 / speed);
 };
+document.querySelectorAll("[data-speed]").forEach(b => b.onclick = () => setSpeed(+b.dataset.speed));
+setSpeed(speed);
 $("slider").oninput = e => { if (playTimer) stopPlay(); showFrame(+e.target.value); };
 document.querySelectorAll("[data-layer]").forEach(b => b.onclick = () => setRadarLayer(b.dataset.layer));
 $("warnBtn").onclick = () => toggleWarnings(!warnLayer);
@@ -1288,7 +1308,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114001535";
+const BUILD = "20261114001726";
 async function checkForUpdate() {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
