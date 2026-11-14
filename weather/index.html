@@ -350,6 +350,17 @@
   .tools { position:absolute; right:12px; top:76px; z-index:650; display:flex; flex-direction:column; gap:2px; padding:6px; border-radius:18px; }
   .tools button { width:40px; height:40px; border:0; border-radius:12px; background:transparent; font-size:1.25rem; cursor:pointer; display:grid; place-items:center; color:#fff; opacity:.75; }
   .tools button.on { background:rgba(255,255,255,.22); opacity:1; }
+  .tools button svg { width:24px; height:24px; }
+  .toolbtn svg { width:26px; height:26px; }
+  @media (max-width:600px) {
+    .tools { gap:4px; padding:6px; border-radius:20px; }
+    .tools button { width:44px; height:44px; border-radius:14px; }
+    .toolbtn { width:56px; height:56px; border-radius:18px; }
+    .tools { top:80px; }
+    .radarpanel.fs .tools { top: calc(80px + env(safe-area-inset-top)); }
+    .radarpanel .fsb { top:444px; }
+    .radarpanel.fs .fsb { top: calc(444px + env(safe-area-inset-top)); }
+  }
   .tools .warn.on { background:#2f9e4f; }
   .fsb { top:410px; font-size:1.35rem; }
   .shearpt { display:grid; place-items:center; }
@@ -801,17 +812,17 @@
         <div class="legend" id="futureNote"></div>
         <a class="twc" id="twc" href="https://weather.com/weather/radar/interactive" target="_blank" rel="noopener">Open The Weather Channel radar ↗</a>
       </div>
-      <button class="toolbtn" id="recenterBtn" aria-label="Center on my city">◎</button>
+      <button class="toolbtn" id="recenterBtn" aria-label="Center on my city"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22"/></svg></button>
       <div class="tools">
-        <button data-layer="radar" class="on" aria-label="Radar" title="Radar">🌧️</button>
-        <button data-layer="sat" aria-label="Satellite" title="Satellite">🛰️</button>
-        <button data-layer="totals" aria-label="Rain totals" title="Rain totals">💧</button>
-        <button data-layer="outlook" aria-label="Storm outlook" title="Storm outlook">⛈️</button>
-        <button data-layer="storms" aria-label="Hurricanes" title="Hurricanes">🌀</button>
-        <button data-layer="shear" aria-label="Wind shear" title="Wind shear">🌬️</button>
-        <button id="warnBtn" class="warn" aria-label="Warnings" title="Warnings">⚠️</button>
+        <button data-layer="radar" class="on" aria-label="Radar" title="Radar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12l6.4-6.4"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></button>
+        <button data-layer="sat" aria-label="Satellite" title="Satellite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="6" height="6" rx="1" transform="rotate(45 12 12)"/><path d="M7 7L4 4M17 17l3 3M6.5 13.5l-3 3 4 4 3-3M17.5 10.5l3-3-4-4-3 3"/></svg></button>
+        <button data-layer="totals" aria-label="Rain totals" title="Rain totals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z"/></svg></button>
+        <button data-layer="outlook" aria-label="Storm outlook" title="Storm outlook"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 16a4 4 0 0 1-.6-8A6 6 0 0 1 18 9a3.5 3.5 0 0 1 0 7"/><path d="M13 13l-2 4h3l-2 4"/></svg></button>
+        <button data-layer="storms" aria-label="Hurricanes" title="Hurricanes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2.5"/><path d="M12 3c-5 0-8 3-8 6 3-2 5-1.5 6 .5M12 21c5 0 8-3 8-6-3 2-5 1.5-6-.5"/></svg></button>
+        <button data-layer="shear" aria-label="Wind shear" title="Wind shear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h7"/></svg></button>
+        <button id="warnBtn" class="warn" aria-label="Warnings" title="Warnings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><circle cx="12" cy="16.5" r=".6" fill="currentColor"/></svg></button>
       </div>
-      <button class="toolbtn fsb" id="fsBtn" aria-label="Full screen">⤢</button>
+      <button class="toolbtn fsb" id="fsBtn" aria-label="Full screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg></button>
       <div class="layerpill" id="layerPill"></div>
       <button class="torpill" id="torPill"></button>
     </div>
@@ -2510,7 +2521,7 @@ addEventListener("online", () => load(true));
 
 
 /* ---------- Auto-update: reload when a newer version of SkyCast is published ---------- */
-const BUILD = "20261114185506";   // kept equal to version.json on every publish
+const BUILD = "20261114195531";   // kept equal to version.json on every publish
 async function checkForUpdate(opts) {
   try {
     const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
@@ -3258,7 +3269,7 @@ function setFullscreen(on) {
   if (on === pnl.classList.contains("fs")) return;
   pnl.classList.toggle("fs", on);
   document.documentElement.classList.toggle("fsopen", on);
-  $("fsBtn").textContent = on ? "✕" : "⤢";
+  $("fsBtn").innerHTML = on ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>';
   $("fsBtn").setAttribute("aria-label", on ? "Exit full screen" : "Full screen");
   if (on) { try { history.pushState({ fs: 1 }, ""); } catch(e) {} }
   if (map) { map.invalidateSize({ pan: false }); setTimeout(() => map.invalidateSize({ pan: false }), 250); }
