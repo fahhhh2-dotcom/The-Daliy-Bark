@@ -1,0 +1,41 @@
+# Copies the SkyCast app (weather/) to the fahhhh2-dotcom/skycast repository,
+# which serves it at https://skycastweather.com
+# Needs a repository secret named SKYCAST_TOKEN (a fine-grained token with
+# "Contents: Read and write" on fahhhh2-dotcom/skycast). Until it exists, this does nothing.
+name: Publish SkyCast to skycastweather.com
+on:
+  push:
+    branches: [main]
+    paths: ["weather/**", ".github/workflows/skycast-mirror.yml"]
+  workflow_dispatch:
+concurrency: skycast-mirror
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for token
+        id: tok
+        env:
+          T: ${{ secrets.SKYCAST_TOKEN }}
+        run: if [ -n "$T" ]; then echo "ok=1" >> "$GITHUB_OUTPUT"; else echo "SKYCAST_TOKEN not set yet, skipping."; fi
+      - uses: actions/checkout@v4
+        if: steps.tok.outputs.ok == '1'
+      - name: Push weather/ to the skycast repository
+        if: steps.tok.outputs.ok == '1'
+        env:
+          T: ${{ secrets.SKYCAST_TOKEN }}
+        run: |
+          set -e
+          git clone --depth 1 "https://x-access-token:${T}@github.com/fahhhh2-dotcom/skycast.git" dest || (mkdir dest && cd dest && git init -q && git remote add origin "https://x-access-token:${T}@github.com/fahhhh2-dotcom/skycast.git")
+          cd dest
+          git checkout -B main
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -r ../weather/. .
+          echo "skycastweather.com" > CNAME
+          touch .nojekyll
+          git config user.name "SkyCast Publisher"
+          git config user.email "skycast-publisher@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "No changes."; exit 0; fi
+          git commit -qm "Publish SkyCast from The-Daliy-Bark@${GITHUB_SHA::7}"
+          git push origin main
