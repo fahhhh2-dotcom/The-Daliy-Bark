@@ -9,10 +9,29 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{
+  :root,body[data-theme=mix]{
     --glass:rgba(255,255,255,.12); --glass-2:rgba(255,255,255,.2);
     --line:rgba(255,255,255,.22); --text:#fff; --muted:rgba(255,255,255,.72);
-    --soft:rgba(255,255,255,.08); --accent:#ffd36e; --rain:#9fd4ff;
+    --soft:rgba(255,255,255,.08); --soft-line:rgba(255,255,255,.1); --track:rgba(0,0,0,.18);
+    --accent:#ffd36e; --rain:#9fd4ff; --on-bg:#fff; --on-fg:#16305f;
+    --menu:rgba(14,24,48,.9); --cloud:#ffffff; --cloud-dk:#cfd8e6; --storm:#9aa6b8; --snow:#ffffff; --fog:#e6ebf2;
+    --blur:blur(22px) saturate(150%); --shadow:0 10px 40px rgba(0,0,0,.12);
+  }
+  body[data-theme=light]{
+    --glass:rgba(255,255,255,.96); --glass-2:#e9f0f9;
+    --line:rgba(20,40,80,.08); --text:#132039; --muted:#5d6c86;
+    --soft:#f3f6fb; --soft-line:rgba(20,40,80,.06); --track:#e2e8f1;
+    --rain:#2a7bd6; --on-bg:#132039; --on-fg:#fff;
+    --menu:rgba(255,255,255,.98); --cloud:#c3cfdf; --cloud-dk:#a3b2c6; --storm:#8392a8; --snow:#a9bdd3; --fog:#a9b4c2;
+    --shadow:0 10px 40px rgba(10,30,70,.18);
+  }
+  body[data-theme=dark]{
+    --glass:rgba(8,10,15,.92); --glass-2:#222833;
+    --line:rgba(255,255,255,.07); --text:#f1f4f9; --muted:#8c97ab;
+    --soft:#151921; --soft-line:rgba(255,255,255,.05); --track:#2a303b;
+    --rain:#6cb6ff; --on-bg:#fff; --on-fg:#000;
+    --menu:rgba(12,14,20,.98); --cloud:#e9eef5; --cloud-dk:#aeb9c9; --storm:#7d899b; --snow:#ffffff; --fog:#b9c2ce;
+    --shadow:0 10px 40px rgba(0,0,0,.4);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{min-height:100%}
@@ -26,7 +45,7 @@
 
   /* header */
   header{display:flex;align-items:center;gap:10px;margin-bottom:22px;flex-wrap:wrap}
-  .logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:1.25rem;letter-spacing:.3px;margin-right:auto}
+  .logo{color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.15);display:flex;align-items:center;gap:8px;font-weight:600;font-size:1.25rem;letter-spacing:.3px;margin-right:auto}
   .logo svg{width:30px;height:30px}
   .search{position:relative;flex:1 1 240px;max-width:400px}
   .search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;opacity:.7;pointer-events:none}
@@ -35,25 +54,28 @@
     background:var(--glass);color:var(--text);font:inherit;font-size:1rem;outline:none;
     backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);transition:border-color .2s,background .2s
   }
-  .search input:focus{border-color:rgba(255,255,255,.55);background:var(--glass-2)}
+  .search input:focus{border-color:var(--muted);background:var(--glass-2)}
   .search input::placeholder{color:var(--muted)}
   .search input::-webkit-search-cancel-button{display:none}
   .results{position:absolute;top:calc(100% + 8px);left:0;right:0;z-index:20;display:none;
-    background:rgba(14,24,48,.9);border:1px solid var(--line);border-radius:18px;overflow:hidden;
+    background:var(--menu);border:1px solid var(--line);border-radius:18px;overflow:hidden;
     backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 20px 50px rgba(0,0,0,.35)}
   .results button{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;padding:12px 16px;background:none;
-    border:0;color:#fff;font:inherit;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.07)}
+    border:0;color:var(--text);font:inherit;cursor:pointer;border-bottom:1px solid var(--soft-line)}
   .results button:last-child{border-bottom:0}
-  .results button:hover,.results button:focus{background:rgba(255,255,255,.1);outline:none}
+  .results button:hover,.results button:focus{background:var(--soft);outline:none}
   .results small{color:var(--muted)}
-  .pill{height:46px;min-width:46px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--glass);
-    color:var(--text);font:inherit;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  .pill{color:var(--text);height:46px;min-width:46px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--glass);
+    font:inherit;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;
     backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);transition:background .2s,transform .1s}
   .pill:hover{background:var(--glass-2)} .pill:active{transform:scale(.96)}
   .pill svg{width:18px;height:18px}
   .units{display:flex;padding:3px;gap:2px}
+  .units button{color:var(--muted)}
   .units button{border:0;background:none;color:var(--muted);font:inherit;font-weight:600;padding:8px 11px;border-radius:999px;cursor:pointer}
-  .units button.on{background:#fff;color:#16305f}
+  .units button.on{background:var(--on-bg);color:var(--on-fg)}
+  .units button svg{width:16px;height:16px;display:block}
+  .themes button{padding:7px 9px}
 
   /* layout */
   .grid{display:grid;grid-template-columns:1.25fr 1fr;gap:14px}
@@ -61,8 +83,8 @@
   .grid>*{min-width:0}
   @media(max-width:760px){.grid{grid-template-columns:1fr}}
   .card{background:var(--glass);border:1px solid var(--line);border-radius:26px;padding:20px;
-    backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);
-    box-shadow:0 10px 40px rgba(0,0,0,.12);animation:rise .6s cubic-bezier(.2,.8,.2,1) both}
+    backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    box-shadow:var(--shadow);color:var(--text);transition:background .4s,color .4s,border-color .4s;animation:rise .6s cubic-bezier(.2,.8,.2,1) both}
   .card:nth-child(2){animation-delay:.05s}.card:nth-child(3){animation-delay:.1s}.card:nth-child(4){animation-delay:.15s}.card:nth-child(5){animation-delay:.2s}
   @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
   h2{display:flex;align-items:center;gap:7px;font-size:.78rem;text-transform:uppercase;letter-spacing:1.4px;color:var(--muted);margin-bottom:14px;font-weight:500}
@@ -70,6 +92,8 @@
 
   /* hero */
   .hero{padding:4px 6px 18px;display:flex;flex-direction:column;align-items:center;text-align:center;animation:rise .6s both}
+  body[data-theme=light] .hero,body[data-theme=dark] .hero{background:var(--glass);border:1px solid var(--line);border-radius:26px;
+    padding:20px 16px 22px;margin-bottom:14px;box-shadow:var(--shadow);color:var(--text);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur)}
   .place{font-size:1.9rem;font-weight:500;display:flex;align-items:center;gap:8px}
   .region{color:var(--muted);font-size:.95rem;margin-top:2px}
   .hero-main{display:flex;align-items:center;justify-content:center;gap:4px;margin:6px 0 0}
@@ -78,9 +102,9 @@
   .temp sup{font-size:3rem;font-weight:300;position:absolute;top:10px;letter-spacing:0}
   .cond{font-size:1.35rem;font-weight:400}
   .hilo{color:var(--muted);margin-top:6px;font-size:1rem}
-  .hilo b{color:#fff;font-weight:500}
-  .summary{margin-top:12px;font-size:.95rem;max-width:520px;color:rgba(255,255,255,.9);
-    background:var(--soft);border:1px solid rgba(255,255,255,.12);padding:9px 16px;border-radius:999px}
+  .hilo b{color:var(--text);font-weight:500}
+  .summary{margin-top:12px;font-size:.95rem;max-width:520px;color:var(--text);
+    background:var(--soft);border:1px solid var(--soft-line);padding:9px 16px;border-radius:999px}
   @media(max-width:520px){.temp{font-size:5.8rem}.hero-icon{width:92px;height:92px}.place{font-size:1.55rem}}
 
   /* hourly */
@@ -90,7 +114,7 @@
   .hourly svg.curve{position:absolute;left:0;top:0;pointer-events:none}
   .hcol{position:absolute;top:0;width:58px;height:100%;text-align:center;display:flex;flex-direction:column;align-items:center}
   .hcol .t{font-size:.8rem;color:var(--muted);height:18px}
-  .hcol.now .t{color:#fff;font-weight:600}
+  .hcol.now .t{color:var(--text);font-weight:600}
   .hcol .ic{width:32px;height:32px;margin-top:4px}
   .hcol .p{font-size:.72rem;color:var(--rain);height:14px;margin-top:2px}
   .hcol .tv{position:absolute;font-size:.92rem;font-weight:500;transform:translateY(-26px)}
@@ -98,7 +122,7 @@
   /* daily */
   .day{display:grid;grid-template-columns:62px 34px 46px 1fr 18px;align-items:center;gap:10px;width:100%;
     padding:10px 8px;border-radius:14px;cursor:pointer;background:none;border:0;color:inherit;font:inherit;text-align:left;transition:background .2s}
-  .day+.day,.detail+.day{border-top:1px solid rgba(255,255,255,.08)}
+  .day+.day,.detail+.day{border-top:1px solid var(--soft-line)}
   .day:hover{background:var(--soft)}
   .day.sel{background:var(--glass-2)}
   .day .n{font-weight:500}
@@ -109,7 +133,7 @@
   .range{display:flex;align-items:center;gap:8px}
   .range .lo{color:var(--muted);width:32px;text-align:right;font-size:.95rem}
   .range .hi{width:32px;font-weight:500;font-size:.95rem}
-  .bar{flex:1;height:6px;border-radius:6px;background:rgba(0,0,0,.18);position:relative;overflow:hidden}
+  .bar{flex:1;height:6px;border-radius:6px;background:var(--track);position:relative;overflow:hidden}
   .bar i{position:absolute;top:0;bottom:0;border-radius:6px}
   .bar .dot{position:absolute;top:50%;width:8px;height:8px;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,.25);transform:translate(-50%,-50%)}
   .detail{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s ease}
@@ -117,14 +141,14 @@
   .detail>div{overflow:hidden}
   .detail-in{padding:6px 4px 14px}
   .detail-title{font-size:.95rem;margin:4px 0 10px;color:var(--muted)}
-  .detail-title b{color:#fff;font-weight:500}
+  .detail-title b{color:var(--text);font-weight:500}
 
   @media(max-width:520px){.day{grid-template-columns:42px 28px 32px 1fr;gap:6px;padding:10px 4px}.day .chev{display:none}.range{gap:6px}.range .lo,.range .hi{width:28px}.search{flex-basis:100%;max-width:none;order:3}}
   /* tiles */
   .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
   .tiles.four{grid-template-columns:repeat(4,1fr)}
   @media(max-width:520px){.tiles.four{grid-template-columns:repeat(2,1fr)}}
-  .tile{background:var(--soft);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:13px 14px;min-height:92px;display:flex;flex-direction:column}
+  .tile{background:var(--soft);border:1px solid var(--soft-line);border-radius:18px;padding:13px 14px;min-height:92px;display:flex;flex-direction:column}
   .tile .k{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:1px}
   .tile .k svg{width:13px;height:13px}
   .tile .v{font-size:1.55rem;font-weight:400;margin-top:6px}
@@ -138,13 +162,13 @@
   /* sun arc */
   .sun>svg{width:100%;height:auto;display:block;max-height:170px}
   .sun-times{display:flex;justify-content:space-between;color:var(--muted);font-size:.85rem;margin-top:4px}
-  .sun-times b{display:block;color:#fff;font-size:1.05rem;font-weight:500}
+  .sun-times b{display:block;color:var(--text);font-size:1.05rem;font-weight:500}
 
   .msg{text-align:center;padding:60px 20px;color:var(--muted)}
   .msg .pill{margin-top:16px}
-  .spinner{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;animation:spin 1s linear infinite;margin:0 auto 14px}
+  .spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--track);border-top-color:var(--text);animation:spin 1s linear infinite;margin:0 auto 14px}
   @keyframes spin{to{transform:rotate(360deg)}}
-  footer{text-align:center;color:var(--muted);font-size:.78rem;margin-top:26px}
+  footer{text-align:center;color:rgba(255,255,255,.85);text-shadow:0 1px 6px rgba(0,0,0,.25);font-size:.78rem;margin-top:26px}
   footer a{color:inherit}
 
   /* icon animations */
@@ -167,15 +191,20 @@
       Nimbus
     </div>
     <div class="search">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="color:var(--text)" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="q" type="search" placeholder="Search any city" autocomplete="off" aria-label="Search city">
       <div class="results" id="results" role="listbox"></div>
     </div>
     <button class="pill" id="locBtn" title="Use my location" aria-label="Use my location">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5" fill="#fff"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>
     </button>
     <div class="pill units" role="group" aria-label="Units">
       <button data-u="F">°F</button><button data-u="C">°C</button>
+    </div>
+    <div class="pill units themes" role="group" aria-label="Theme">
+      <button data-t="light" title="White mode" aria-label="White mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.4 1.4M17.6 17.6 19 19M5 19l1.4-1.4M17.6 6.4 19 5"/></svg></button>
+      <button data-t="dark" title="Black mode" aria-label="Black mode"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg></button>
+      <button data-t="mix" title="Mix mode: matches the sky" aria-label="Mix mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/></svg></button>
     </div>
   </header>
 
@@ -186,13 +215,13 @@
 
 <script>
 /* ---------- icons ---------- */
-const C = {sun:"#ffd36e", sunCore:"#ffb938", cloud:"#ffffff", cloudDk:"#cfd8e6", rain:"#8fd0ff", snow:"#ffffff", bolt:"#ffe066", moon:"#f4eccd"};
+const C = {sun:"#ffd36e", sunCore:"#ffb938", cloud:"var(--cloud)", cloudDk:"var(--cloud-dk)", rain:"var(--rain)", snow:"var(--snow)", bolt:"#ffcc33", moon:"#f4dc8a"};
 const sunSVG = (cx=32,cy=32,r=11) => `<g class="spin-slow">${[...Array(8)].map((_,i)=>{const a=i*Math.PI/4,x1=cx+Math.cos(a)*(r+5),y1=cy+Math.sin(a)*(r+5),x2=cx+Math.cos(a)*(r+10),y2=cy+Math.sin(a)*(r+10);return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${C.sun}" stroke-width="3.2" stroke-linecap="round"/>`}).join("")}</g><circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#sg)"/>`;
 const moonSVG = (cx=30,cy=30) => `<path d="M${cx+8} ${cy+12}a14 14 0 1 1 -2-26a11 11 0 0 0 2 26z" transform="translate(-4 -2)" fill="${C.moon}"/>`;
-const cloudSVG = (dx=0,dy=0,fill=C.cloud,s=1) => `<g class="drift" transform="translate(${dx} ${dy}) scale(${s})"><path d="M18 50h28a10 10 0 0 0 1-19.95A13 13 0 0 0 21.6 33 8.5 8.5 0 0 0 18 50z" fill="${fill}"/></g>`;
+const cloudSVG = (dx=0,dy=0,fill=C.cloud,s=1) => `<g class="drift" transform="translate(${dx} ${dy}) scale(${s})"><path d="M18 50h28a10 10 0 0 0 1-19.95A13 13 0 0 0 21.6 33 8.5 8.5 0 0 0 18 50z" style="fill:${fill}"/></g>`;
 const defs = `<defs><radialGradient id="sg" cx="40%" cy="35%"><stop offset="0" stop-color="#fff3c4"/><stop offset=".55" stop-color="${C.sun}"/><stop offset="1" stop-color="${C.sunCore}"/></radialGradient></defs>`;
-const drops = (n=3, color=C.rain) => [...Array(n)].map((_,i)=>`<line class="fall" style="animation-delay:${i*.35}s" x1="${24+i*9}" y1="53" x2="${21+i*9}" y2="60" stroke="${color}" stroke-width="3" stroke-linecap="round"/>`).join("");
-const flakes = (n=3) => [...Array(n)].map((_,i)=>`<circle class="fall" style="animation-delay:${i*.4}s" cx="${24+i*9}" cy="57" r="2.4" fill="${C.snow}"/>`).join("");
+const drops = (n=3, color=C.rain) => [...Array(n)].map((_,i)=>`<line class="fall" style="animation-delay:${i*.35}s" x1="${24+i*9}" y1="53" x2="${21+i*9}" y2="60" style="stroke:${color}" stroke-width="3" stroke-linecap="round"/>`).join("");
+const flakes = (n=3) => [...Array(n)].map((_,i)=>`<circle class="fall" style="animation-delay:${i*.4}s" cx="${24+i*9}" cy="57" r="2.4" style="fill:${C.snow}"/>`).join("");
 function iconSVG(kind, day){
   let g = "";
   const orb = day ? sunSVG(24,24,9) : moonSVG(26,26);
@@ -200,11 +229,11 @@ function iconSVG(kind, day){
     case "clear": g = day ? sunSVG() : moonSVG(); break;
     case "partly": g = orb + cloudSVG(4,4); break;
     case "cloud": g = cloudSVG(-6,-6,C.cloudDk,.9) + cloudSVG(2,2); break;
-    case "fog": g = cloudSVG(0,-6) + [44,50,56].map((y,i)=>`<line class="drift" x1="${14+i*3}" y1="${y}" x2="${50-i*2}" y2="${y}" stroke="#e6ebf2" stroke-width="3" stroke-linecap="round"/>`).join(""); break;
+    case "fog": g = cloudSVG(0,-6) + [44,50,56].map((y,i)=>`<line class="drift" x1="${14+i*3}" y1="${y}" x2="${50-i*2}" y2="${y}" style="stroke:var(--fog)" stroke-width="3" stroke-linecap="round"/>`).join(""); break;
     case "drizzle": g = (day?sunSVG(22,22,7):"") + cloudSVG(2,-4) + drops(2); break;
     case "rain": g = cloudSVG(-5,-9,C.cloudDk,.85) + cloudSVG(1,-4) + drops(3); break;
     case "snow": g = cloudSVG(0,-6) + flakes(3); break;
-    case "storm": g = cloudSVG(-5,-10,"#9aa6b8",.85) + cloudSVG(1,-6,"#dfe5ee") + `<path class="flash" d="M34 44l-7 11h6l-3 9 10-13h-6l4-7z" fill="${C.bolt}"/>` + drops(2); break;
+    case "storm": g = cloudSVG(-5,-10,"var(--storm)",.85) + cloudSVG(1,-6,"var(--cloud-dk)") + `<path class="flash" d="M34 44l-7 11h6l-3 9 10-13h-6l4-7z" fill="${C.bolt}"/>` + drops(2); break;
     default: g = cloudSVG();
   }
   return `<svg viewBox="0 0 64 64" aria-hidden="true">${defs}${g}</svg>`;
@@ -236,8 +265,8 @@ const ico = {
   leaf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15M5 19l7-7"/></svg>',
   clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
-  pin:'<svg viewBox="0 0 24 24" fill="#fff" width="18" height="18"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>',
-  chev:'<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>'
+  pin:'<svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>',
+  chev:'<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>'
 };
 const tempColor = (f) => { // f in °F
   const stops = [[0,"#a78bfa"],[32,"#7dd3fc"],[50,"#5eead4"],[65,"#a3e635"],[78,"#fcd34d"],[90,"#fb923c"],[105,"#ef4444"]];
@@ -249,11 +278,18 @@ const aqiText = a => a<=50?"Good":a<=100?"Moderate":a<=150?"Unhealthy for some":
 
 /* ---------- state ---------- */
 let unit = store.get("nimbus-unit","F");
+let theme = store.get("nimbus-theme","mix");
+function applyTheme(){
+  document.body.dataset.theme = theme;
+  document.querySelectorAll(".themes button").forEach(b => b.classList.toggle("on", b.dataset.t === theme));
+}
+applyTheme();
+document.querySelectorAll(".themes button").forEach(b => b.onclick = () => { theme = b.dataset.t; store.set("nimbus-theme", theme); applyTheme(); });
 let place = store.get("nimbus-place", {name:"New York", region:"New York, United States", lat:40.7128, lon:-74.006});
 let data = null, aqi = null, selDay = null;
 const toF = v => unit === "F" ? v : v*9/5+32;
 
-function setUnitButtons(){ document.querySelectorAll(".units button").forEach(b => b.classList.toggle("on", b.dataset.u === unit)); }
+function setUnitButtons(){ document.querySelectorAll(".units button[data-u]").forEach(b => b.classList.toggle("on", b.dataset.u === unit)); }
 setUnitButtons();
 
 /* ---------- data ---------- */
@@ -314,10 +350,10 @@ function render(){
       <div class="tv" style="top:${pts[i][1]}px">${T(temps[i])}</div></div>`;
   }
   const hourly = `<div class="hourly" style="width:${N*colW}px">
-    <svg class="curve" width="${N*colW}" height="${H}" viewBox="0 0 ${N*colW} ${H}">
-      <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
-      <path d="${area}" fill="url(#ag)"/><path d="${path}" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
-      ${pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${i===0?5:3}" fill="#fff" ${i===0?'stroke="rgba(255,255,255,.4)" stroke-width="6"':''}/>`).join("")}
+    <svg class="curve" style="color:var(--text)" width="${N*colW}" height="${H}" viewBox="0 0 ${N*colW} ${H}">
+      <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".22"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>
+      <path d="${area}" fill="url(#ag)"/><path d="${path}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      ${pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${i===0?5:3}" fill="currentColor" ${i===0?'stroke="currentColor" stroke-opacity=".3" stroke-width="6"':''}/>`).join("")}
     </svg>${hcols}</div>`;
 
   // daily
@@ -353,17 +389,17 @@ function render(){
   const ang = Math.PI * (1 - frac), sx = 150 + Math.cos(ang)*120, sy = 130 - Math.sin(ang)*110;
   const daylen = Math.round((set - rise)/60000), dlh = Math.floor(daylen/60), dlm = daylen%60;
   const sunArc = `<svg viewBox="0 0 300 150">
-      <path d="M30 130 A120 110 0 0 1 270 130" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="2" stroke-dasharray="4 6"/>
+      <path d="M30 130 A120 110 0 0 1 270 130" fill="none" style="stroke:var(--muted)" stroke-opacity=".6" stroke-width="2" stroke-dasharray="4 6"/>
       <path d="M30 130 A120 110 0 0 1 ${sx.toFixed(1)} ${sy.toFixed(1)}" fill="none" stroke="${C.sun}" stroke-width="3" ${frac<=0?'opacity="0"':''}/>
-      <line x1="10" y1="130" x2="290" y2="130" stroke="rgba(255,255,255,.25)"/>
+      <line x1="10" y1="130" x2="290" y2="130" style="stroke:var(--track)" stroke-width="2"/>
       ${c.is_day ? `<circle cx="${sx}" cy="${sy}" r="16" fill="${C.sun}" opacity=".25"/><circle cx="${sx}" cy="${sy}" r="9" fill="${C.sun}"/>`
-                 : `<text x="150" y="105" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="14" font-family="Outfit">Sun is down</text>`}
+                 : `<text x="150" y="105" text-anchor="middle" style="fill:var(--muted)" font-size="14" font-family="Outfit">Sun is down</text>`}
     </svg>
     <div class="sun-times"><div>Sunrise<b>${tm(d.sunrise[0])}</b></div><div style="text-align:center">Daylight<b>${dlh}h ${dlm}m</b></div><div style="text-align:right">Sunset<b>${tm(d.sunset[0])}</b></div></div>`;
 
   const vis = c.visibility != null ? (unit === "F" ? (c.visibility/1609).toFixed(c.visibility>16000?0:1) : (c.visibility/1000).toFixed(c.visibility>10000?0:1)) : "—";
   const uv = d.uv_index_max[0] ?? 0;
-  const compass = `<svg class="compass" viewBox="0 0 44 44"><circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,.3)"/><text x="22" y="9" text-anchor="middle" font-size="7" fill="rgba(255,255,255,.7)" font-family="Outfit">N</text><g transform="rotate(${c.wind_direction_10m+180} 22 22)"><path d="M22 8l4 14h-8z" fill="#fff"/><path d="M22 36l-4-14h8z" fill="rgba(255,255,255,.35)"/></g></svg>`;
+  const compass = `<svg class="compass" viewBox="0 0 44 44"><circle cx="22" cy="22" r="20" fill="none" style="stroke:var(--muted)" stroke-opacity=".5"/><text x="22" y="9" text-anchor="middle" font-size="7" style="fill:var(--muted)" font-family="Outfit">N</text><g transform="rotate(${c.wind_direction_10m+180} 22 22)"><path d="M22 8l4 14h-8z" style="fill:var(--text)"/><path d="M22 36l-4-14h8z" style="fill:var(--muted)" opacity=".5"/></g></svg>`;
 
   $("#app").innerHTML = `
     <section class="hero">
@@ -394,7 +430,7 @@ function render(){
         <section class="card sun"><h2>${ico.sun}Sun</h2>${sunArc}</section>
       </div>
     </div>
-    <div style="text-align:center;color:var(--muted);font-size:.8rem;margin-top:14px">Updated ${data._fetched.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})}</div>`;
+    <div style="text-align:center;color:rgba(255,255,255,.85);text-shadow:0 1px 6px rgba(0,0,0,.25);font-size:.8rem;margin-top:14px">Updated ${data._fetched.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"})}</div>`;
 
   document.querySelectorAll(".day").forEach(b => b.onclick = () => { const i = +b.dataset.i; selDay = selDay === i ? null : i; render(); });
 }
@@ -512,7 +548,7 @@ $("#locBtn").onclick = () => {
   }, () => { btn.style.opacity = 1; }, {timeout:10000});
 };
 
-document.querySelectorAll(".units button").forEach(b => b.onclick = () => {
+document.querySelectorAll(".units button[data-u]").forEach(b => b.onclick = () => {
   if(unit === b.dataset.u) return;
   unit = b.dataset.u; store.set("nimbus-unit", unit); setUnitButtons(); load();
 });
