@@ -1,0 +1,72 @@
+# Deploys the SkyCast alert server (push-server/) to Cloudflare Workers, then saves
+# its address in weather/push.json so the app can use it.
+# Needs two repository secrets:
+#   CLOUDFLARE_API_TOKEN  - a Cloudflare API token made from the "Edit Cloudflare Workers" template
+#   CLOUDFLARE_ACCOUNT_ID - your Cloudflare account ID
+# Until both exist, this does nothing.
+name: Deploy SkyCast alert server
+on:
+  push:
+    branches: [main]
+    paths: ["push-server/**", ".github/workflows/skycast-push.yml"]
+  workflow_dispatch:
+concurrency: skycast-push
+permissions:
+  contents: write
+  actions: write
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for Cloudflare secrets
+        id: tok
+        env:
+          T: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          A: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: if [ -n "$T" ] && [ -n "$A" ]; then echo "ok=1" >> "$GITHUB_OUTPUT"; else echo "Cloudflare secrets not set yet, skipping."; fi
+      - uses: actions/checkout@v4
+        if: steps.tok.outputs.ok == '1'
+      - uses: actions/setup-node@v4
+        if: steps.tok.outputs.ok == '1'
+        with:
+          node-version: 22
+      - name: Deploy worker
+        if: steps.tok.outputs.ok == '1'
+        id: deploy
+        working-directory: push-server
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          npx --yes wrangler@4 deploy 2>&1 | tee deploy.log
+          URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | head -1)
+          if [ -z "$URL" ]; then
+            echo "::error::Deployed, but no workers.dev address was printed. Open Workers & Pages in the Cloudflare dashboard once to pick your workers.dev subdomain, then re-run this workflow."
+            exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+      - name: Check the server answers
+        if: steps.tok.outputs.ok == '1'
+        run: |
+          for i in 1 2 3 4 5 6; do
+            if curl -fsS "${{ steps.deploy.outputs.url }}/health"; then exit 0; fi
+            sleep 10
+          done
+          echo "::error::The alert server didn't answer at ${{ steps.deploy.outputs.url }}/health"; exit 1
+      - name: Save the server address in weather/push.json
+        if: steps.tok.outputs.ok == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NEW="{\"url\":\"${{ steps.deploy.outputs.url }}\"}"
+          if [ "$(cat weather/push.json 2>/dev/null)" = "$NEW" ]; then echo "push.json already up to date."; exit 0; fi
+          echo "$NEW" > weather/push.json
+          git config user.name "SkyCast Publisher"
+          git config user.email "skycast-publisher@users.noreply.github.com"
+          git add weather/push.json
+          git commit -m "SkyCast: connect the alert server"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          # pushes made with this token don't start other workflows, so start the site update directly
+          gh workflow run skycast-mirror.yml --ref main

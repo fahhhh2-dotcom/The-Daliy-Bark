@@ -1,0 +1,17 @@
+# SkyCast alert server: sends weather warnings to phones even when SkyCast is closed.
+# Deployed automatically by .github/workflows/skycast-push.yml (needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets).
+name = "skycast-push"
+main = "worker.js"
+compatibility_date = "2025-04-01"
+workers_dev = true
+
+[triggers]
+crons = ["* * * * *"]   # check for new warnings every minute
+
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "Hub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Hub"]
