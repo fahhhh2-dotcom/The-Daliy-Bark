@@ -1,13 +1,13 @@
 {
   "name": "The Daily Bark",
   "short_name": "Daily Bark",
-  "start_url": "/The-Daliy-Bark/",
-  "scope": "/The-Daliy-Bark/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f6e7cf",
   "theme_color": "#e0702c",
   "icons": [
-    { "src": "/The-Daliy-Bark/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/The-Daliy-Bark/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }
