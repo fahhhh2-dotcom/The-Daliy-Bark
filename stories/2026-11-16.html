@@ -3,14 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Daily Bark – Real Dog News Every Weekday</title>
+<title>The Daily Bark – Real Dog News Every Day</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v=2">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
 <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon.png?v=2">
 <link rel="manifest" href="/manifest.webmanifest?v=2">
 <meta name="apple-mobile-web-app-title" content="Daily Bark">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#e0702c"><text y='.9em' font-size='90'>🐾</text></svg>">
+<meta name="theme-color" content="#e0702c">
+<meta name="description" content="Real, true dog news written for kids and dog lovers. A fresh story every day.">
+<meta property="og:site_name" content="The Daily Bark">
+<meta property="og:title" content="The Daily Bark – Real Dog News Every Day">
+<meta property="og:description" content="Real, true dog news written for kids and dog lovers. A fresh story every day.">
+<meta property="og:image" content="https://thedailybark.dog/icon-512.png">
 <style>
   :root { --ink:#2b1d0e; --muted:#8a6a48; --paper:#fffaf1; --accent:#e0702c; --accent-dark:#b9541a; --soft:#f6e7cf; --teal:#2f8f83; }
   * { box-sizing:border-box; }
@@ -71,6 +76,20 @@
   .more { justify-self:center; }
   .posted time { font-weight:600; color:var(--ink); }
   .origdate { margin:10px 0 0 !important; font-size:.85rem !important; color:var(--muted); }
+  .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+  .btn { font:inherit; cursor:pointer; display:inline-flex; align-items:center; gap:8px; background:var(--ink); color:#fff; border:0; border-radius:10px; padding:10px 16px; font-weight:700; font-size:.92rem; text-decoration:none; transition: transform .15s, background .15s; }
+  .btn:hover { background:var(--accent); transform:translateY(-2px); }
+  .btn.ghost { background:var(--soft); color:var(--ink); }
+  .btn.ghost:hover { background:var(--accent); color:#fff; }
+  .recent { background:var(--paper); border-radius:18px; padding:20px 22px; box-shadow:0 6px 20px rgba(43,29,14,.09); }
+  .recent h3 { margin:0 0 12px; font-size:.78rem; letter-spacing:2px; text-transform:uppercase; color:var(--accent-dark); }
+  .recent ul { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+  .recent a { display:block; text-decoration:none; color:var(--ink); background:var(--soft); border-radius:12px; padding:12px 14px; border-left:5px solid var(--accent); transition: transform .15s; }
+  .recent a:hover { transform:translateX(4px); }
+  .recent .d { display:block; font-size:.78rem; color:var(--muted); margin-bottom:3px; }
+  .recent .t { font-weight:700; line-height:1.3; }
+  .toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 18px; border-radius:30px; font-size:.9rem; opacity:0; pointer-events:none; transition:opacity .2s; }
+  .toast.show { opacity:1; }
   footer { text-align:center; color:var(--muted); font-size:.85rem; padding:6px 16px 34px; }
   footer .paws { letter-spacing:6px; opacity:.6; }
 
@@ -102,6 +121,7 @@
         </div>
         <div class="fact sans"><span class="icon">💡</span><div><strong>Fun fact:</strong> The first guide dog school in the United States, The Seeing Eye, opened in 1929 and is still training guide dogs today.</div></div>
         <p class="origdate sans">Source: <span class="src">ABC6 (WSYX Columbus)</span>, published <span class="od">November 16, 2026</span></p>
+        <div class="actions sans"><button class="btn" id="shareBtn" type="button">📤 Share this story</button><a class="btn ghost" href="/archive.html">📚 All past stories</a></div>
       </div>
     </article>
 
@@ -114,12 +134,12 @@
       </div>
     </section>
 
-    <a class="more sans" href="/archive.html">📚 Read past stories →</a>
+    <section class="recent sans" id="recent" hidden><h3>🐶 More dog stories</h3><ul></ul></section>
 
     <section class="info sans">
       <div><b>📰</b>Every story is real news from a trusted source</div>
       <div><b>⏰</b>A fresh story every morning</div>
-      <div><b>🔗</b>Tap the link to read the full original article</div>
+      <div><b>📚</b>Every past story is saved in Past Stories</div>
     </section>
   </main>
 
@@ -127,5 +147,53 @@
     <div class="paws">🐾 🐾 🐾</div>
     The Daily Bark · Made with love for dogs everywhere
   </footer>
+  <div class="toast sans" role="status" aria-live="polite"></div>
+<script>
+(function () {
+  var t = document.querySelector('.posted time');
+  var day = t ? (t.getAttribute('datetime') || '').slice(0, 10) : '';
+  var isHome = !/\/stories\//.test(location.pathname);
+  var storyUrl = location.origin + '/stories/' + day + '.html';
+  var toast = document.querySelector('.toast');
+  function say(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2200); }
+  var share = document.getElementById('shareBtn');
+  if (share) share.addEventListener('click', function () {
+    var title = document.querySelector('.story h2').textContent;
+    if (navigator.share) { navigator.share({ title: title + ' – The Daily Bark', url: storyUrl }).catch(function () {}); }
+    else if (navigator.clipboard) { navigator.clipboard.writeText(storyUrl).then(function () { say('Link copied! 🐾'); }); }
+    else { prompt('Copy this link:', storyUrl); }
+  });
+  var box = document.getElementById('recent');
+  fetch('/archive.html').then(function (r) { return r.text(); }).then(function (html) {
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    var items = Array.prototype.map.call(doc.querySelectorAll('.list a'), function (a) {
+      var href = a.getAttribute('href');
+      return { href: href, day: (href.match(/(\d{4}-\d{2}-\d{2})/) || [])[1], html: a.innerHTML };
+    });
+    var idx = items.findIndex(function (s) { return s.day === day; });
+    var pick, heading;
+    if (isHome) {
+      pick = items.filter(function (s) { return s.day !== day; }).slice(0, 3);
+      heading = '🐶 More dog stories';
+    } else {
+      pick = [];
+      if (idx > 0) pick.push(Object.assign({ label: 'Newer story →' }, items[idx - 1]));
+      if (idx >= 0 && idx < items.length - 1) pick.push(Object.assign({ label: '← Older story' }, items[idx + 1]));
+      heading = '🐶 Keep reading';
+    }
+    if (!pick.length) return;
+    box.querySelector('h3').textContent = heading;
+    var ul = box.querySelector('ul');
+    pick.forEach(function (s) {
+      var li = document.createElement('li'), a = document.createElement('a');
+      a.href = s.href; a.innerHTML = s.html;
+      if (s.label) { var d = a.querySelector('.d'); if (d) d.insertAdjacentText('afterbegin', s.label + ' · '); }
+      var tag = a.querySelector('.tag'); if (tag) tag.remove();
+      li.appendChild(a); ul.appendChild(li);
+    });
+    box.hidden = false;
+  }).catch(function () {});
+})();
+</script>
 </body>
 </html>

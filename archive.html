@@ -10,7 +10,12 @@
 <link rel="manifest" href="/manifest.webmanifest?v=2">
 <meta name="apple-mobile-web-app-title" content="Daily Bark">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#e0702c"><text y='.9em' font-size='90'>🐾</text></svg>">
+<meta name="theme-color" content="#e0702c">
+<meta name="description" content="Real, true dog news written for kids and dog lovers. A fresh story every day.">
+<meta property="og:site_name" content="The Daily Bark">
+<meta property="og:title" content="Past Stories – The Daily Bark">
+<meta property="og:description" content="Real, true dog news written for kids and dog lovers. A fresh story every day.">
+<meta property="og:image" content="https://thedailybark.dog/icon-512.png">
 <style>
   :root { --ink:#2b1d0e; --muted:#8a6a48; --paper:#fffaf1; --accent:#e0702c; --accent-dark:#b9541a; --soft:#f6e7cf; }
   * { box-sizing:border-box; }
@@ -39,6 +44,14 @@
   .list .d { display:block; font-size:.8rem; color:var(--muted); margin-bottom:4px; }
   .list .t { font-size:1.15rem; font-weight:700; line-height:1.3; }
   .list .tag { display:inline-block; background:var(--soft); color:var(--accent-dark); font-weight:700; text-transform:uppercase; letter-spacing:1px; font-size:.68rem; padding:3px 9px; border-radius:20px; margin-left:6px; vertical-align:middle; }
+  .tools { display:grid; gap:12px; margin:0 0 16px; }
+  .search { width:100%; font:inherit; font-size:1rem; padding:12px 16px; border-radius:30px; border:2px solid var(--ink); background:var(--paper); color:var(--ink); }
+  .search:focus { outline:3px solid var(--accent); outline-offset:1px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { font:inherit; cursor:pointer; background:var(--paper); color:var(--ink); border:2px solid var(--ink); border-radius:30px; padding:5px 13px; font-weight:700; font-size:.82rem; }
+  .chip[aria-pressed="true"] { background:var(--ink); color:#fff; }
+  .count { color:var(--muted); font-size:.9rem; margin:0 0 12px; }
+  .empty { text-align:center; color:var(--muted); padding:20px; }
   footer { text-align:center; color:var(--muted); font-size:.85rem; padding:6px 16px 34px; }
   footer .paws { letter-spacing:6px; opacity:.6; }
   @keyframes wiggle { 0%,100% { transform:rotate(0) } 10% { transform:rotate(-14deg) } 20% { transform:rotate(12deg) } 30% { transform:rotate(0) } }
@@ -55,6 +68,11 @@
   </header>
   <main>
     <h2>📚 Past Stories</h2>
+    <div class="tools sans">
+      <input class="search" id="q" type="search" placeholder="🔍 Search stories, like “rescue”" aria-label="Search stories">
+      <div class="chips" id="chips"></div>
+    </div>
+    <p class="count sans" id="count"></p>
     <ul class="list sans">
       <!-- NEW STORIES GO HERE -->
       <li><a href="/stories/2026-11-18.html"><span class="d">Wednesday, November 18, 2026<span class="tag">Shelter Dogs</span></span><span class="t">Big Shelter Dogs Get Foster Helpers and a Second Chance in California</span></a></li>
@@ -63,10 +81,38 @@
       <li><a href="/stories/2026-11-14.html"><span class="d">Saturday, November 14, 2026<span class="tag">Reunions</span></span><span class="t">Lost Hiking Dog Tucker Comes Home After Three Weeks in the Mountains</span></a></li>
       <li><a href="/stories/2026-11-13.html"><span class="d">Friday, November 13, 2026<span class="tag">Dog Shows</span></span><span class="t">Thousands of Dogs Head to Mexico City for a Big Four-Day Dog Show</span></a></li>
     </ul>
+    <p class="empty sans" id="empty" hidden>No stories match. Try another word! 🐕</p>
   </main>
   <footer class="sans">
     <div class="paws">🐾 🐾 🐾</div>
     The Daily Bark · Made with love for dogs everywhere
   </footer>
+<script>
+(function () {
+  var items = Array.prototype.slice.call(document.querySelectorAll('.list li'));
+  var q = document.getElementById('q'), chips = document.getElementById('chips');
+  var count = document.getElementById('count'), empty = document.getElementById('empty');
+  var active = 'All';
+  var tags = ['All'];
+  items.forEach(function (li) { var t = li.querySelector('.tag'); var v = t ? t.textContent.trim() : ''; li.dataset.tag = v; if (v && tags.indexOf(v) < 0) tags.push(v); });
+  tags.forEach(function (t) {
+    var b = document.createElement('button'); b.className = 'chip'; b.type = 'button'; b.textContent = t;
+    b.setAttribute('aria-pressed', t === active ? 'true' : 'false');
+    b.addEventListener('click', function () { active = t; Array.prototype.forEach.call(chips.children, function (c) { c.setAttribute('aria-pressed', c === b ? 'true' : 'false'); }); update(); });
+    chips.appendChild(b);
+  });
+  function update() {
+    var words = q.value.toLowerCase().trim(), shown = 0;
+    items.forEach(function (li) {
+      var ok = (active === 'All' || li.dataset.tag === active) && (!words || li.textContent.toLowerCase().indexOf(words) >= 0);
+      li.hidden = !ok; if (ok) shown++;
+    });
+    count.textContent = shown === items.length ? items.length + ' stories so far 🐾' : 'Showing ' + shown + ' of ' + items.length + ' stories';
+    empty.hidden = shown > 0;
+  }
+  q.addEventListener('input', update);
+  update();
+})();
+</script>
 </body>
 </html>
