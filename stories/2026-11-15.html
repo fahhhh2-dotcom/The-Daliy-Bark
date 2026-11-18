@@ -173,8 +173,7 @@
     var idx = items.findIndex(function (s) { return s.day === day; });
     var pick, heading;
     if (isHome) {
-      pick = items.filter(function (s) { return s.day !== day; }).slice(0, 3);
-      heading = '🐶 More dog stories';
+      return;
     } else {
       pick = [];
       if (idx > 0) pick.push(Object.assign({ label: 'Newer story →' }, items[idx - 1]));
