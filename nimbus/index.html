@@ -215,6 +215,8 @@
   .legend{display:flex;align-items:center;gap:8px;padding:0 16px 12px;color:var(--muted);font-size:.75rem}
   .legend i{flex:1;height:8px;border-radius:4px;background:linear-gradient(90deg,#a8e6ff,#4fb3ff,#1e6fe0,#0a3a9e,#f5d800,#ff7a00,#e0001b)}
   .leaflet-container{font-family:inherit}
+  .map-dark{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9) saturate(.6)}
+  .map-light{filter:saturate(.55) brightness(1.03)}
   .leaflet-control-attribution{font-size:9px!important}
   .me-dot{width:16px;height:16px;border-radius:50%;background:#2f80ed;border:3px solid #fff;box-shadow:0 0 0 6px rgba(47,128,237,.3)}
 
@@ -464,14 +466,12 @@ const radar = {
     if(!this.map) return;
     const dark = theme === "dark" || (theme === "mix" && data && !data.current.is_day);
     if(this.base) this.map.removeLayer(this.base);
-    if(!this.map.getPane("labels")){ const pn = this.map.createPane("labels"); pn.style.zIndex = 450; pn.style.pointerEvents = "none"; }
-    const esri = n => `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${n}/MapServer/tile/{z}/{y}/{x}`;
-    this.base = L.layerGroup([
-      L.tileLayer(esri(dark ? "World_Dark_Gray_Base" : "World_Light_Gray_Base"), {maxZoom:12, maxNativeZoom:16,
-        attribution:'Map &copy; <a href="https://www.esri.com/">Esri</a>, HERE, Garmin, &copy; OpenStreetMap contributors · Radar <a href="https://www.rainviewer.com/">RainViewer</a>'}),
-      L.tileLayer(esri(dark ? "World_Dark_Gray_Reference" : "World_Light_Gray_Reference"), {maxZoom:12, maxNativeZoom:16, pane:"labels"})
-    ]).addTo(this.map);
-    this.base.eachLayer(l => l.bringToBack && l.options.pane !== "labels" && l.bringToBack());
+    // OpenStreetMap tiles: free, no API key. Dark look is made with a CSS filter.
+    this.base = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom:12, className: dark ? "map-dark" : "map-light",
+      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · Radar <a href="https://www.rainviewer.com/">RainViewer</a>'
+    }).addTo(this.map);
+    this.base.bringToBack();
   },
   center(){
     if(!this.map) return;
