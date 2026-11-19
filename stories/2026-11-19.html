@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Daily Bark – Real Dog News Every Day</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
+<link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon.png?v=2">
+<link rel="manifest" href="/manifest.webmanifest?v=2">
+<meta name="apple-mobile-web-app-title" content="Daily Bark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#e0702c">
+<meta name="description" content="Real, true dog news written for kids and dog lovers. A fresh story every day.">
+<meta property="og:site_name" content="The Daily Bark">
+<meta property="og:title" content="The Daily Bark – Real Dog News Every Day">
+<meta property="og:description" content="Real, true dog news written for kids and dog lovers. A fresh story every day.">
+<meta property="og:image" content="https://thedailybark.dog/icon-512.png">
+<style>
+  :root { --ink:#2b1d0e; --muted:#8a6a48; --paper:#fffaf1; --accent:#e0702c; --accent-dark:#b9541a; --soft:#f6e7cf; --teal:#2f8f83; }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; color:var(--ink); font-family: Georgia, "Times New Roman", serif;
+    background-color:var(--soft);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='%23e0702c' fill-opacity='0.07'%3E%3Cellipse cx='30' cy='38' rx='9' ry='7'/%3E%3Ccircle cx='19' cy='26' r='4'/%3E%3Ccircle cx='26' cy='20' r='4'/%3E%3Ccircle cx='35' cy='20' r='4'/%3E%3Ccircle cx='42' cy='26' r='4'/%3E%3Cellipse cx='88' cy='98' rx='9' ry='7'/%3E%3Ccircle cx='77' cy='86' r='4'/%3E%3Ccircle cx='84' cy='80' r='4'/%3E%3Ccircle cx='93' cy='80' r='4'/%3E%3Ccircle cx='100' cy='86' r='4'/%3E%3C/g%3E%3C/svg%3E");
+  }
+  .sans { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+
+  /* Top strip */
+  .strip { background:var(--ink); color:#f6e7cf; text-align:center; font-size:.78rem; letter-spacing:2px; text-transform:uppercase; padding:7px 10px; }
+
+  /* Masthead */
+  .masthead { text-align:center; padding:30px 16px 18px; max-width:760px; margin:0 auto; }
+  .logo { display:inline-flex; align-items:center; gap:12px; }
+  .logo .paw { font-size:2.6rem; display:inline-block; animation: wiggle 2.8s ease-in-out infinite; transform-origin:50% 80%; }
+  .masthead h1 { margin:0; font-size:clamp(2.4rem, 8vw, 3.8rem); letter-spacing:1px; line-height:1; }
+  .masthead h1 span { color:var(--accent); }
+  .tagline { margin:10px 0 0; color:var(--muted); font-size:1rem; font-style:italic; }
+  .rule { border:0; height:6px; margin:18px 0 0; border-top:3px solid var(--ink); border-bottom:1px solid var(--ink); }
+
+  main { max-width:760px; margin:0 auto 40px; padding:0 14px; display:grid; gap:22px; }
+
+  /* Story card */
+  .story { background:var(--paper); border-radius:18px; overflow:hidden; box-shadow:0 8px 28px rgba(43,29,14,.12); animation: rise .6s ease-out both; }
+  .banner { background:linear-gradient(135deg, var(--accent) 0%, #f2a24b 100%); padding:12px 16px; }
+  .banner .label { display:inline-block; background:#fff; color:var(--accent-dark); font-size:.72rem; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; padding:5px 11px; border-radius:20px; }
+  .body { padding:24px 24px 26px; }
+  .meta { display:flex; flex-wrap:wrap; gap:10px; align-items:center; color:var(--muted); font-size:.85rem; }
+  .tag { background:var(--soft); color:var(--accent-dark); font-weight:700; text-transform:uppercase; letter-spacing:1px; font-size:.72rem; padding:4px 10px; border-radius:20px; }
+  .story h2 { font-size:clamp(1.6rem, 5vw, 2.1rem); line-height:1.2; margin:12px 0 16px; }
+  .story p { font-size:1.13rem; line-height:1.7; margin:0 0 14px; }
+  .story .text p:first-child::first-letter { float:left; font-size:3.4rem; line-height:.9; padding:6px 8px 0 0; color:var(--accent); font-weight:700; }
+
+  .fact { display:flex; gap:14px; align-items:flex-start; background:#fff3e3; border:2px dashed #f0b27a; border-radius:14px; padding:14px 16px; margin:20px 0 18px; font-size:1rem; line-height:1.5; }
+  .fact .icon { font-size:1.8rem; line-height:1; }
+  .fact strong { color:var(--accent-dark); }
+
+  .source a { display:inline-flex; align-items:center; gap:8px; background:var(--ink); color:#fff; text-decoration:none; font-weight:600; font-size:.92rem; padding:10px 16px; border-radius:10px; transition: transform .15s, background .15s; }
+  .source a:hover { background:var(--accent); transform:translateY(-2px); }
+
+  /* Breed spotlight */
+  .breed { background:var(--paper); border-radius:18px; padding:20px 22px; box-shadow:0 6px 20px rgba(43,29,14,.09); border-left:8px solid var(--teal); display:flex; gap:16px; align-items:center; animation: rise .6s .15s ease-out both; }
+  .breed .badge { flex:none; width:64px; height:64px; border-radius:50%; background:#dff1ee; display:flex; align-items:center; justify-content:center; font-size:2.1rem; }
+  .breed h3 { margin:0 0 4px; font-size:.78rem; letter-spacing:2px; text-transform:uppercase; color:var(--teal); }
+  .breed .name { font-size:1.35rem; font-weight:700; margin:0 0 4px; }
+  .breed p { margin:0; line-height:1.55; font-size:1rem; }
+
+  /* Info row */
+  .info { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; animation: rise .6s .3s ease-out both; }
+  .info div { background:rgba(255,250,241,.85); border-radius:14px; padding:14px 16px; text-align:center; font-size:.92rem; line-height:1.45; color:var(--ink); }
+  .info b { display:block; font-size:1.4rem; margin-bottom:4px; }
+
+  .nav { display:flex; justify-content:center; gap:10px; margin-top:16px; flex-wrap:wrap; }
+  .nav a, .more { text-decoration:none; color:var(--ink); background:var(--paper); border:2px solid var(--ink); border-radius:30px; padding:7px 16px; font-weight:700; font-size:.9rem; transition: background .15s, color .15s; }
+  .nav a:hover, .more:hover { background:var(--ink); color:#fff; }
+  .more { justify-self:center; }
+  .posted time { font-weight:600; color:var(--ink); }
+  .origdate { margin:10px 0 0 !important; font-size:.85rem !important; color:var(--muted); }
+  .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+  .btn { font:inherit; cursor:pointer; display:inline-flex; align-items:center; gap:8px; background:var(--ink); color:#fff; border:0; border-radius:10px; padding:10px 16px; font-weight:700; font-size:.92rem; text-decoration:none; transition: transform .15s, background .15s; }
+  .btn:hover { background:var(--accent); transform:translateY(-2px); }
+  .btn.ghost { background:var(--soft); color:var(--ink); }
+  .btn.ghost:hover { background:var(--accent); color:#fff; }
+  .recent { background:var(--paper); border-radius:18px; padding:20px 22px; box-shadow:0 6px 20px rgba(43,29,14,.09); }
+  .recent h3 { margin:0 0 12px; font-size:.78rem; letter-spacing:2px; text-transform:uppercase; color:var(--accent-dark); }
+  .recent ul { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+  .recent a { display:block; text-decoration:none; color:var(--ink); background:var(--soft); border-radius:12px; padding:12px 14px; border-left:5px solid var(--accent); transition: transform .15s; }
+  .recent a:hover { transform:translateX(4px); }
+  .recent .d { display:block; font-size:.78rem; color:var(--muted); margin-bottom:3px; }
+  .recent .t { font-weight:700; line-height:1.3; }
+  .toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 18px; border-radius:30px; font-size:.9rem; opacity:0; pointer-events:none; transition:opacity .2s; }
+  .toast.show { opacity:1; }
+  footer { text-align:center; color:var(--muted); font-size:.85rem; padding:6px 16px 34px; }
+  footer .paws { letter-spacing:6px; opacity:.6; }
+
+  @keyframes wiggle { 0%,100% { transform:rotate(0) } 10% { transform:rotate(-14deg) } 20% { transform:rotate(12deg) } 30% { transform:rotate(0) } }
+  @keyframes rise { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:none } }
+  @media (prefers-reduced-motion: reduce) { * { animation:none !important; } }
+</style>
+</head>
+<body>
+  <div class="strip sans">Real dog news · New story every day</div>
+
+  <header class="masthead">
+    <div class="logo"><span class="paw">🐾</span><h1>The Daily <span>Bark</span></h1></div>
+    <p class="tagline">All the news that's fit to fetch</p>
+    <nav class="nav sans"><a href="/">🏠 Latest Story</a><a href="/archive.html">📚 Past Stories</a></nav>
+    <hr class="rule">
+  </header>
+
+  <main>
+    <article class="story">
+      <div class="banner"><span class="label sans">Top Story</span></div>
+      <div class="body">
+        <div class="meta sans"><span class="tag">Rescues</span><span class="posted">🕒 Posted <time datetime="2026-11-19T15:25-06:00">Thursday, November 19, 2026 at 3:25 PM CT</time></span><span>⏱️ 2 min read</span></div>
+        <h2>Animal Officers Build a Bridge From an Old Bed Frame to Save Two Dogs</h2>
+        <div class="text">
+          <p>In Jacksonville, Florida, a kind person spotted two dogs alone in the woods and called for help. One dog was tied to a tree, and the other was wandering close by. Both looked too skinny and had likely gone days without food or clean water.</p>
+          <p>There was a big problem: recent flooding had cut off the path into the woods! So two animal services officers, Specialty Investigator Officer Lowery and Senior Animal Services Officer Cooper, got creative. They built a bridge out of things they found nearby, including an old bed frame, and crossed the flooded area.</p>
+          <p>The officers brought both dogs to Jacksonville Animal Care &amp; Protective Services. Now the pups are safe and getting care from veterinarians.</p>
+        </div>
+        <div class="fact sans"><span class="icon">💡</span><div><strong>Fun fact:</strong> Most dogs can swim using the "doggy paddle," but some breeds with heavy chests and short legs, like Bulldogs, have a hard time staying afloat, which is why many need life jackets near water.</div></div>
+        <p class="origdate sans">Source: <span class="src">News4JAX</span>, published <span class="od">November 19, 2026</span></p>
+        <div class="actions sans"><button class="btn" id="shareBtn" type="button">📤 Share this story</button><a class="btn ghost" href="/archive.html">📚 All past stories</a></div>
+      </div>
+    </article>
+
+    <section class="breed sans">
+      <div class="badge">🐕</div>
+      <div>
+        <h3>Breed Spotlight</h3>
+        <p class="name">Newfoundland</p>
+        <p>Newfoundlands are huge, gentle dogs from Canada with webbed feet and thick, water-resistant coats. They are famous swimmers and have helped rescue people from the water for hundreds of years.</p>
+      </div>
+    </section>
+
+    <section class="recent sans" id="recent" hidden><h3>🐶 More dog stories</h3><ul></ul></section>
+
+    <section class="info sans">
+      <div><b>📰</b>Every story is real news from a trusted source</div>
+      <div><b>⏰</b>A fresh story every morning</div>
+      <div><b>📚</b>Every past story is saved in Past Stories</div>
+    </section>
+  </main>
+
+  <footer class="sans">
+    <div class="paws">🐾 🐾 🐾</div>
+    The Daily Bark · Made with love for dogs everywhere
+  </footer>
+  <div class="toast sans" role="status" aria-live="polite"></div>
+<script>
+(function () {
+  var t = document.querySelector('.posted time');
+  var day = t ? (t.getAttribute('datetime') || '').slice(0, 10) : '';
+  var isHome = !/\/stories\//.test(location.pathname);
+  var storyUrl = location.origin + '/stories/' + day + '.html';
+  var toast = document.querySelector('.toast');
+  function say(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2200); }
+  var share = document.getElementById('shareBtn');
+  if (share) share.addEventListener('click', function () {
+    var title = document.querySelector('.story h2').textContent;
+    if (navigator.share) { navigator.share({ title: title + ' – The Daily Bark', url: storyUrl }).catch(function () {}); }
+    else if (navigator.clipboard) { navigator.clipboard.writeText(storyUrl).then(function () { say('Link copied! 🐾'); }); }
+    else { prompt('Copy this link:', storyUrl); }
+  });
+  var box = document.getElementById('recent');
+  fetch('/archive.html').then(function (r) { return r.text(); }).then(function (html) {
+    var doc = new DOMParser().parseFromString(html, 'text/html');
+    var items = Array.prototype.map.call(doc.querySelectorAll('.list a'), function (a) {
+      var href = a.getAttribute('href');
+      return { href: href, day: (href.match(/(\d{4}-\d{2}-\d{2})/) || [])[1], html: a.innerHTML };
+    });
+    var idx = items.findIndex(function (s) { return s.day === day; });
+    var pick, heading;
+    if (isHome) {
+      return;
+    } else {
+      pick = [];
+      if (idx > 0) pick.push(Object.assign({ label: 'Newer story →' }, items[idx - 1]));
+      if (idx >= 0 && idx < items.length - 1) pick.push(Object.assign({ label: '← Older story' }, items[idx + 1]));
+      heading = '🐶 Keep reading';
+    }
+    if (!pick.length) return;
+    box.querySelector('h3').textContent = heading;
+    var ul = box.querySelector('ul');
+    pick.forEach(function (s) {
+      var li = document.createElement('li'), a = document.createElement('a');
+      a.href = s.href; a.innerHTML = s.html;
+      if (s.label) { var d = a.querySelector('.d'); if (d) d.insertAdjacentText('afterbegin', s.label + ' · '); }
+      var tag = a.querySelector('.tag'); if (tag) tag.remove();
+      li.appendChild(a); ul.appendChild(li);
+    });
+    box.hidden = false;
+  }).catch(function () {});
+})();
+</script>
+</body>
+</html>
