@@ -464,10 +464,14 @@ const radar = {
     if(!this.map) return;
     const dark = theme === "dark" || (theme === "mix" && data && !data.current.is_day);
     if(this.base) this.map.removeLayer(this.base);
-    this.base = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark?"dark_all":"rastertiles/voyager"}/{z}/{x}/{y}{r}.png`, {
-      maxZoom:12, subdomains:"abcd", attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a> · Radar <a href="https://www.rainviewer.com/">RainViewer</a>'
-    }).addTo(this.map);
-    this.base.bringToBack();
+    if(!this.map.getPane("labels")){ const pn = this.map.createPane("labels"); pn.style.zIndex = 450; pn.style.pointerEvents = "none"; }
+    const esri = n => `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${n}/MapServer/tile/{z}/{y}/{x}`;
+    this.base = L.layerGroup([
+      L.tileLayer(esri(dark ? "World_Dark_Gray_Base" : "World_Light_Gray_Base"), {maxZoom:12, maxNativeZoom:16,
+        attribution:'Map &copy; <a href="https://www.esri.com/">Esri</a>, HERE, Garmin, &copy; OpenStreetMap contributors · Radar <a href="https://www.rainviewer.com/">RainViewer</a>'}),
+      L.tileLayer(esri(dark ? "World_Dark_Gray_Reference" : "World_Light_Gray_Reference"), {maxZoom:12, maxNativeZoom:16, pane:"labels"})
+    ]).addTo(this.map);
+    this.base.eachLayer(l => l.bringToBack && l.options.pane !== "labels" && l.bringToBack());
   },
   center(){
     if(!this.map) return;

@@ -1,6 +1,6 @@
 // Nimbus service worker: lets the app install and open offline.
 // Always tries the network first so weather is never stale; falls back to the last saved copy.
-const CACHE = "nimbus-v2";
+const CACHE = "nimbus-v3";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./favicon.png"];
 
 self.addEventListener("install", e => {
