@@ -90,6 +90,24 @@
   .recent .t { font-weight:700; line-height:1.3; }
   .toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 18px; border-radius:30px; font-size:.9rem; opacity:0; pointer-events:none; transition:opacity .2s; }
   .toast.show { opacity:1; }
+  .countdown { margin:12px 0 0; font-size:.9rem; color:var(--muted); }
+  .countdown b { color:var(--accent-dark); }
+  .fun { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; }
+  .card { background:var(--paper); border-radius:18px; padding:20px 22px; box-shadow:0 6px 20px rgba(43,29,14,.09); border-top:6px solid var(--accent); }
+  .card.joke { border-top-color:#e6b422; }
+  .card h3 { margin:0 0 10px; font-size:.78rem; letter-spacing:2px; text-transform:uppercase; color:var(--accent-dark); }
+  .card .q { font-weight:700; font-size:1.05rem; line-height:1.4; margin:0 0 12px; }
+  .opts { display:grid; gap:8px; }
+  .opt { font:inherit; text-align:left; cursor:pointer; background:var(--soft); color:var(--ink); border:2px solid transparent; border-radius:12px; padding:10px 14px; font-weight:600; transition: border-color .15s, transform .1s; }
+  .opt:hover:not(:disabled) { border-color:var(--accent); }
+  .opt:active:not(:disabled) { transform:scale(.98); }
+  .opt.right { background:#dff1ee; border-color:var(--teal); }
+  .opt.wrong { background:#fbe1dc; border-color:#d9534f; }
+  .opt:disabled { cursor:default; }
+  .result { margin:12px 0 0; font-size:.95rem; line-height:1.5; }
+  .reveal { font:inherit; cursor:pointer; background:var(--ink); color:#fff; border:0; border-radius:10px; padding:9px 15px; font-weight:700; font-size:.9rem; }
+  .reveal:hover { background:var(--accent); }
+  .punch { margin:10px 0 0; font-size:1.05rem; font-weight:700; color:var(--accent-dark); }
   footer { text-align:center; color:var(--muted); font-size:.85rem; padding:6px 16px 34px; }
   footer .paws { letter-spacing:6px; opacity:.6; }
 
@@ -105,6 +123,7 @@
     <div class="logo"><span class="paw">🐾</span><h1>The Daily <span>Bark</span></h1></div>
     <p class="tagline">All the news that's fit to fetch</p>
     <nav class="nav sans"><a href="/">🏠 Latest Story</a><a href="/archive.html">📚 Past Stories</a></nav>
+    <p class="countdown sans" id="countdown" hidden></p>
     <hr class="rule">
   </header>
 
@@ -131,6 +150,21 @@
         <h3>Breed Spotlight</h3>
         <p class="name">Newfoundland</p>
         <p>Newfoundlands are huge, gentle dogs from Canada with webbed feet and thick, water-resistant coats. They are famous swimmers and have helped rescue people from the water for hundreds of years.</p>
+      </div>
+    </section>
+
+    <section class="fun sans" id="fun">
+      <div class="card">
+        <h3>🧠 Dog Trivia of the Day</h3>
+        <p class="q" id="triviaQ"></p>
+        <div class="opts" id="triviaOpts"></div>
+        <p class="result" id="triviaResult" hidden></p>
+      </div>
+      <div class="card joke">
+        <h3>😂 Dog Joke of the Day</h3>
+        <p class="q" id="jokeQ"></p>
+        <button class="reveal" id="jokeBtn" type="button">Tell me! 🐶</button>
+        <p class="punch" id="jokeA" hidden></p>
       </div>
     </section>
 
@@ -192,6 +226,96 @@
     });
     box.hidden = false;
   }).catch(function () {});
+})();
+</script>
+<script>
+(function () {
+  var TRIVIA = [
+    ["How many teeth does a grown-up dog have?", ["42", "32", "28"], 0, "Adult dogs have 42 teeth. Puppies have 28 baby teeth first."],
+    ["Which dog breed is known for yodeling instead of barking?", ["Beagle", "Basenji", "Pug"], 1, "Basenjis from Africa almost never bark. They make a yodel-like sound instead!"],
+    ["What color are Dalmatian puppies when they are born?", ["All white", "Black with white spots", "Brown"], 0, "Dalmatian puppies are born pure white. Their spots show up after a couple of weeks."],
+    ["Which breed has a blue-black tongue?", ["Golden Retriever", "Chow Chow", "Boxer"], 1, "Chow Chows (and Shar-Peis) have blue-black tongues."],
+    ["Which breed has webbed feet that make it a super swimmer?", ["Newfoundland", "Chihuahua", "Greyhound"], 0, "Newfoundlands have webbed feet and water-resistant coats, so they're amazing swimmers."],
+    ["What is the smallest dog breed?", ["Pomeranian", "Chihuahua", "Yorkshire Terrier"], 1, "The Chihuahua is the smallest dog breed in the world."],
+    ["About how fast can a Greyhound run?", ["15 mph", "25 mph", "45 mph"], 2, "Greyhounds can run about 45 miles per hour. They're the fastest dog breed!"],
+    ["How do dogs mostly cool down when they're hot?", ["Sweating all over", "Panting", "Sneezing"], 1, "Dogs cool off mostly by panting. They only sweat a little, through their paw pads."],
+    ["How many eyelids does a dog have on each eye?", ["One", "Two", "Three"], 2, "Dogs have three eyelids. The third one helps keep their eyes clean and moist."],
+    ["What does the German word “Dachshund” mean?", ["Badger dog", "Hot dog", "Long dog"], 0, "Dachshund means “badger dog.” They were bred to dig after badgers."],
+    ["Which colors can dogs see best?", ["Red and green", "Blue and yellow", "Only black and white"], 1, "Dogs aren't color-blind! They see blues and yellows best, but not reds and greens."],
+    ["What makes every dog's nose print special?", ["It changes every day", "It's unique, like a fingerprint", "It's always the same shape"], 1, "No two dogs have the same nose print, just like human fingerprints."],
+    ["Which country does the Shiba Inu come from?", ["China", "Japan", "Australia"], 1, "The Shiba Inu is an ancient breed from Japan."],
+    ["What did the famous sled dog Balto help do in 1925?", ["Win a race", "Deliver medicine to Nome, Alaska", "Find gold"], 1, "Balto led a sled team that helped bring medicine to sick kids in Nome. He has a statue in New York's Central Park!"],
+    ["How many words did a Border Collie named Chaser learn?", ["About 50", "About 200", "More than 1,000"], 2, "Chaser learned the names of more than 1,000 toys!"],
+    ["When are puppies' eyes open for the first time?", ["Right at birth", "At about 2 weeks old", "At 2 months old"], 1, "Puppies are born with their eyes closed. They open at about 2 weeks old."],
+    ["What do dogs use their whiskers for?", ["Sensing things around them", "Tasting food", "Keeping warm"], 0, "Whiskers help dogs feel things nearby, even tiny changes in the air."],
+    ["Which breed is famous for following smells to find lost people?", ["Bloodhound", "Poodle", "Bulldog"], 0, "Bloodhounds have one of the best noses of any dog and are famous trackers."],
+    ["Which animal are dogs related to?", ["Wolves", "Bears", "Foxes only"], 0, "Dogs came from wolves a very long time ago."],
+    ["Saint Bernards are famous for rescuing people where?", ["In the ocean", "In the Swiss Alps", "In the desert"], 1, "Saint Bernards helped monks rescue travelers lost in the snowy Swiss Alps."],
+    ["Poodles were first bred to do what?", ["Herd sheep", "Fetch birds from water", "Guard castles"], 1, "Poodles were bred to retrieve birds from the water. Their fancy haircut started as a way to help them swim!"],
+    ["About how much better is a dog's sense of smell than a person's?", ["2 times better", "100 times better", "10,000 times better or more"], 2, "Scientists think dogs smell somewhere between 10,000 and 100,000 times better than we do!"],
+    ["Which breed holds the record for the world's tallest dog?", ["Great Dane", "Labrador", "Husky"], 0, "The tallest dogs ever recorded by Guinness World Records have been Great Danes."],
+    ["Do dogs dream?", ["Yes", "No", "Only puppies"], 0, "Yes! Dogs have the same kind of sleep where people dream. That's why they sometimes twitch or “run” in their sleep."]
+  ];
+  var JOKES = [
+    ["What do you call a dog magician?", "A labracadabrador! ✨"],
+    ["Why did the dog sit in the shade?", "Because he didn't want to be a hot dog! 🌭"],
+    ["What kind of dog loves taking baths?", "A shampoodle! 🛁"],
+    ["What do you call a dog that does science?", "A lab partner! 🔬"],
+    ["Why are dogs bad dancers?", "They have two left feet! 🐾"],
+    ["What do dogs eat at the movies?", "Pup-corn! 🍿"],
+    ["What's a dog's favorite pizza?", "Pupperoni! 🍕"],
+    ["What did the dog say when it sat on sandpaper?", "Ruff! 😂"],
+    ["Where do dogs park their cars?", "In the barking lot! 🚗"],
+    ["What do you call a cold puppy?", "A pupsicle! 🥶"],
+    ["Why did the puppy get a good grade?", "Because he was the teacher's pet! 🍎"],
+    ["What do you call a dog that tells time?", "A watchdog! ⌚"],
+    ["What's a dog's favorite instrument?", "The trom-bone! 🎺"],
+    ["What do you get when you cross a dog and a calculator?", "A friend you can count on! 🧮"],
+    ["Which dog breed is great at keeping secrets?", "A hush puppy! 🤫"],
+    ["What do you call a dog in winter?", "A chili dog! ❄️"],
+    ["What kind of dog does a vampire have?", "A bloodhound! 🧛"],
+    ["What do you call a sleeping dog?", "A bull-dozer! 😴"],
+    ["What did the dog say to the tree?", "Bark! 🌳"],
+    ["Why do dogs run in circles?", "Because it's hard to run in squares! 🟦"]
+  ];
+  // Pick by the story's date so each day (and each saved story page) keeps its own trivia and joke.
+  var t = document.querySelector('.posted time');
+  var day = t ? (t.getAttribute('datetime') || '').slice(0, 10) : '';
+  var n = Math.floor(Date.parse(day + 'T12:00:00Z') / 86400000) || 0;
+  var tr = TRIVIA[n % TRIVIA.length], jk = JOKES[(n * 7) % JOKES.length];
+
+  document.getElementById('triviaQ').textContent = tr[0];
+  var opts = document.getElementById('triviaOpts'), res = document.getElementById('triviaResult');
+  tr[1].forEach(function (label, i) {
+    var b = document.createElement('button'); b.className = 'opt'; b.type = 'button'; b.textContent = label;
+    b.addEventListener('click', function () {
+      Array.prototype.forEach.call(opts.children, function (c, j) { c.disabled = true; if (j === tr[2]) c.classList.add('right'); });
+      if (i !== tr[2]) b.classList.add('wrong');
+      res.textContent = (i === tr[2] ? '🎉 You got it! ' : '🐾 Good try! ') + tr[3];
+      res.hidden = false;
+    });
+    opts.appendChild(b);
+  });
+  document.getElementById('jokeQ').textContent = jk[0];
+  document.getElementById('jokeBtn').addEventListener('click', function () {
+    var a = document.getElementById('jokeA'); a.textContent = jk[1]; a.hidden = false; this.hidden = true;
+  });
+
+  // Countdown to the next story (homepage only). Stories post around 8 AM Central Time.
+  var cd = document.getElementById('countdown');
+  if (cd && !/\/stories\//.test(location.pathname)) {
+    var tick = function () {
+      var parts = {};
+      new Intl.DateTimeFormat('en-US', { timeZone: 'America/Chicago', hour12: false, hour: 'numeric', minute: 'numeric' })
+        .formatToParts(new Date()).forEach(function (p) { parts[p.type] = p.value; });
+      var mins = (parseInt(parts.hour, 10) % 24) * 60 + parseInt(parts.minute, 10);
+      var left = (8 * 60 - mins + 1440) % 1440 || 1440;
+      var h = Math.floor(left / 60), m = left % 60;
+      cd.innerHTML = '🕗 Next story in <b>' + (h ? h + ' hr ' : '') + m + ' min</b>';
+      cd.hidden = false;
+    };
+    tick(); setInterval(tick, 30000);
+  }
 })();
 </script>
 </body>
