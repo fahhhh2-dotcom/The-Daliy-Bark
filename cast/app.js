@@ -372,10 +372,13 @@ function canvasToMedia(c){
 // target: 'post' | 'story' | null (ask)
 const LONG_MAX=()=>S.fb?.st?20*60:5*60;
 const fmtDur=t=>{t=Math.round(t||0);const m=Math.floor(t/60),s=t%60;return m>=60?`${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${m}:${String(s).padStart(2,'0')}`};
+// vertical -> Short, horizontal -> Long video
+const autoForm=m=>(m.h>m.w&&(!m.duration||m.duration<=61))?'short':(m.w||m.h||m.duration>61)?'long':'short';
+const orientOf=m=>!m.w||!m.h?'':m.h>m.w*1.05?'vertical':m.w>m.h*1.05?'horizontal':'square';
 function setVideoMedia(blob,filter){
   const C=S.compose;if(C.media?.url?.startsWith('blob:'))URL.revokeObjectURL(C.media.url);
   C.media={kind:'video',blob,url:URL.createObjectURL(blob),thumb:'',filter:filter||'none',duration:0,w:0,h:0,form:'short',title:''};C.poll=null;render();
-  probeVideo(blob).then(m=>{if(C.media?.blob!==blob)return;Object.assign(C.media,m);C.media.form=m.duration>61?'long':'short';render()});
+  probeVideo(blob).then(m=>{if(C.media?.blob!==blob)return;Object.assign(C.media,m);C.media.form=autoForm(m);C.media.auto=true;render()});
   makeThumb(C.media.url).then(t=>{if(C.media?.blob===blob&&!C.media.thumb)C.media.thumb=t});
 }
 async function useCamera(target='post'){
@@ -459,10 +462,10 @@ function countView(pid){
 const viewsLabel=p=>`${fmtNum(p.views||0)} view${(p.views||0)===1?'':'s'}`;
 function videoBox(p,cls='pimg'){
   const src=videoSrc(p);
-  const fs=validFilter(p.media.filter)?filterStyle(p.media.filter):'';
-  if(src)return`<video class="${cls}" data-pid="${esc(p.id)}" data-vid="${esc(p.media.vid||'')}" src="${esc(src)}" controls playsinline preload="metadata" ${p.media.thumb?`poster="${esc(p.media.thumb)}"`:''} style="${fs}"></video>`;
+  const fs=(validFilter(p.media.filter)?filterStyle(p.media.filter):'')+(cls==='pimg'&&p.media.w&&p.media.h?`aspect-ratio:${p.media.w}/${p.media.h};`:'');
+  if(src)return`<video class="${cls}${p.media.h>p.media.w?' tall':''}" data-pid="${esc(p.id)}" data-vid="${esc(p.media.vid||'')}" src="${esc(src)}" controls playsinline preload="metadata" ${p.media.thumb?`poster="${esc(p.media.thumb)}"`:''} style="${fs}"></video>`;
   const loading=VLOADING.has(p.media.vid);
-  return`<button class="vposter ${cls}" data-act="playvid" data-id="${esc(p.id)}" style="${p.media.thumb?`background-image:url('${esc(p.media.thumb)}');`:''}${fs}">
+  return`<button class="vposter ${cls}${p.media.h>p.media.w?' tall':''}" data-act="playvid" data-id="${esc(p.id)}" style="${p.media.thumb?`background-image:url('${esc(p.media.thumb)}');`:''}${fs}">
     <span class="vplay">${loading?'Loading…':'▶'}</span><span class="vsize">👁 ${viewsLabel(p)}</span></button>`;
 }
 
@@ -645,8 +648,12 @@ function composerHTML(){
   return`<div class="card composer">${av(S.uid)}<div style="flex:1;min-width:0">
     <textarea data-key="compose" placeholder="What’s happening? Use #tags and @mentions" rows="2" maxlength="${MAX+50}">${esc(C.text)}</textarea>
     ${C.media?`<div class="preview"><button class="x" data-act="rmmedia" aria-label="Remove">✕</button>${C.media.kind==='video'?`<video src="${esc(C.media.url)}" controls playsinline style="${filterStyle(C.media.filter)}"></video>`:`<img src="${esc(C.media.url)}" alt="">`}</div>
-      ${C.media.kind==='video'?`<div class="vform"><button class="chipbtn ${C.media.form!=='long'?'on':''}" data-vform="short">📱 Short</button><button class="chipbtn ${C.media.form==='long'?'on':''}" data-vform="long">🎬 Long video</button><span class="muted" style="font-size:13px">${C.media.duration?fmtDur(C.media.duration):''}${C.media.form==='long'?` · up to ${Math.round(LONG_MAX()/60)} min`:' · up to 60s'}</span></div>
-        ${C.media.form==='long'?`<input class="vtitle" data-key="vtitle" maxlength="100" placeholder="Video title" value="${esc(C.media.title||'')}">`:''}`:''}
+      ${C.media.kind==='video'?`<div class="vchoose">
+        <button class="vopt ${C.media.form!=='long'?'on':''}" data-vform="short"><span class="vshape tall"></span><span><b>Short</b><small>Vertical · up to 60s · shows in Shorts</small></span></button>
+        <button class="vopt ${C.media.form==='long'?'on':''}" data-vform="long"><span class="vshape wide"></span><span><b>Long video</b><small>Horizontal · up to ${Math.round(LONG_MAX()/60)} min · shows in Videos</small></span></button>
+      </div>
+      <div class="muted vnote2">${C.media.duration?`${fmtDur(C.media.duration)} · `:''}${orientOf(C.media)?`${orientOf(C.media)} video`:'checking video…'}${C.media.auto&&orientOf(C.media)?` — we picked <b>${C.media.form==='long'?'Long video':'Short'}</b> for you`:''}${C.media.form!=='long'&&C.media.duration>61?' · <span style="color:#ff6b81">too long for a Short</span>':''}</div>
+        ${C.media.form==='long'?`<input class="vtitle" data-key="vtitle" maxlength="100" placeholder="Give your video a title" value="${esc(C.media.title||'')}">`:''}`:''}
       ${C.media.kind==='video'?`<div class="vfilters">${FILTERS.map(f=>`<button class="chipbtn ${C.media.filter===f.id?'on':''}" data-vfilter="${f.id}">${f.name}</button>`).join('')}</div>`
         :`<button class="iconbtn" data-act="reedit" style="margin-top:6px">\u2728 Filters & stickers</button>`}`:''}
     ${C.poll?`<div class="pollin">${C.poll.map((o,i)=>`<input data-key="poll:${i}" data-poll="${i}" maxlength="40" placeholder="Option ${i+1}" value="${esc(o)}">`).join('')}
@@ -1014,7 +1021,7 @@ document.addEventListener('click',async e=>{
   const gpub=e.target.closest('[data-gpub]');if(gpub&&S.groupForm){S.groupForm.pub=gpub.dataset.gpub==='1';S.groupForm.err='';return render()}
   const gp=e.target.closest('[data-gpick]');if(gp&&S.groupForm){if(gp.tagName==='INPUT'){gp.checked?S.groupForm.picked.add(gp.dataset.gpick):S.groupForm.picked.delete(gp.dataset.gpick)}else S.groupForm.picked.delete(gp.dataset.gpick);S.groupForm.err='';return render()}
   if(e.target.closest('.gp'))return;
-  const vfm=e.target.closest('[data-vform]');if(vfm&&S.compose.media){S.compose.media.form=vfm.dataset.vform;return render()}
+  const vfm=e.target.closest('[data-vform]');if(vfm&&S.compose.media){S.compose.media.form=vfm.dataset.vform;S.compose.media.auto=false;return render()}
   const sst=e.target.closest('[data-set]');if(sst){const k=sst.dataset.set,v=sst.dataset.val;saveSettings({[k]:v==='true'?true:v==='false'?false:v});return}
   const vf=e.target.closest('[data-vfilter]');if(vf&&S.compose.media){S.compose.media.filter=vf.dataset.vfilter;return render()}
   const t=e.target.closest('[data-view],[data-tab],[data-ptab],[data-act],[data-profile],[data-tag],[data-color]');if(!t)return;
