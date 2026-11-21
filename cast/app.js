@@ -1,5 +1,6 @@
 // Cast — a little social network (Firebase edition)
 import { firebaseConfig, storageEnabled } from './firebase-config.js';
+import { checkText, checkImage, warmUpImageCheck } from './moderation.js';
 import { FILTERS, filterStyle, validFilter, openEditor, openCamera, chooseTarget, compressVideo, canCompress, probeVideo } from './editor.js';
 
 const FB = 'https://www.gstatic.com/firebasejs/10.12.2/';
@@ -56,13 +57,13 @@ const VCACHE=new Map(), VLOADING=new Set();
 
 const S={
   fb:null,uid:null,authReady:false,isAdmin:false,loading:true,profilesReady:false,
-  posts:[],likes:[],comments:[],follows:[],counts:{},stories:[],convos:[],publicGroups:[],chat:null,msgs:[],chatDraft:'',reposts:[],votes:[],profiles:{},me:{seenAt:0,bookmarks:[]},
+  posts:[],likes:[],comments:[],follows:[],counts:{},stories:[],convos:[],reports:[],bannedList:[],banned:false,publicGroups:[],chat:null,msgs:[],chatDraft:'',reposts:[],votes:[],profiles:{},me:{seenAt:0,bookmarks:[]},
   view:'home',tab:'all',ptab:'posts',profileId:null,query:'',tag:null,
   open:new Set(),drafts:{},
   compose:{text:'',media:null,poll:null,busy:false,progress:0},
   editing:false,edit:{},onboard:null,viewer:null,notifSeenSnapshot:null
 };
-const canWrite=()=>!!S.uid&&!!S.profiles[S.uid]?.handle;
+const canWrite=()=>!!S.uid&&!!S.profiles[S.uid]?.handle&&!S.banned;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const hash=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))|0;return Math.abs(h)};
@@ -241,14 +242,19 @@ const setBtn=t=>{const b=$('[data-act="post"]');if(b)b.textContent=t};
 async function prepareVideo(C){
   const M=C.media,long=M.form==='long',lim=S.fb.st?VIDEO_MAX:DB_VIDEO_MAX,maxSec=long?LONG_MAX():60;
   if(M.duration&&M.duration>maxSec+1)throw new Error(long?`Long videos can be up to ${Math.round(maxSec/60)} minutes`:'Shorts can be up to 60 seconds — switch to Long video');
-  const hq=SET.quality!=='saver';
-  const opt=long?(S.fb.st?{maxDim:hq?1280:854,vbps:hq?1800000:900000,abps:128000}:{maxDim:hq?854:640,vbps:hq?600000:400000,abps:64000})
-                :{maxDim:hq?1280:720,vbps:hq?1500000:700000,abps:hq?128000:64000};
-  if(canCompress()&&M.blob.size>1.5*1024*1024&&!M.compressed){
-    setBtn('Compressing…');
+  const saver=SET.quality==='saver',isMov=/quicktime/.test(M.blob.type)||/\.mov$/i.test(M.blob.name||'');
+  // best quality: if the original already fits (and plays everywhere), upload it untouched
+  const fits=M.blob.size<=lim*.97&&!isMov&&(!saver||M.blob.size<=4*1024*1024);
+  if(!fits&&canCompress()&&!M.compressed){
+    const dur=Math.max(1,M.duration||maxSec),abps=saver?64000:128000;
+    // pick the highest bitrate that still fits the space we have
+    let vbps=Math.floor((lim*.9*8)/dur)-abps;
+    vbps=Math.max(350000,Math.min(saver?900000:(long?4000000:5000000),vbps));
+    const maxDim=vbps>=2500000?1920:vbps>=1100000?1280:vbps>=600000?960:720;
+    setBtn('Preparing video…');
     try{
-      const out=await compressVideo(M.blob,{maxSeconds:maxSec,...opt,onProgress:f=>setBtn(`Compressing ${Math.round(f*100)}%`)});
-      if(out.size&&out.size<M.blob.size){M.blob=out;M.compressed=true}
+      const out=await compressVideo(M.blob,{maxSeconds:maxSec,maxDim,vbps,abps,onProgress:f=>setBtn(`Preparing ${Math.round(f*100)}%`)});
+      if(out.size&&(out.size<M.blob.size||isMov)){M.blob=out;M.compressed=true}
       if(out.thumb)M.thumb=out.thumb;
     }catch(e){if(/seconds|minutes/.test(e.message||''))throw e;console.warn('compress failed',e)}
   }
@@ -261,7 +267,9 @@ async function createPost(){
   if(C.poll&&(!opts||opts.length<2)){toast('A poll needs at least 2 options');return}
   if(!text&&!C.media&&!opts)return;
   if(text.length>MAX||C.busy)return;
+  if(!guardTexts([text,C.media?.title||'',...(opts||[])]))return;
   C.busy=true;C.progress=0;render();
+  if(C.media){setBtn('🛡️ Checking…');const okPic=await guardPicture(C.media.kind==='image'?(C.media.dataUrl||C.media.url):(C.media.thumb||await makeThumb(C.media.url)));if(!okPic){C.busy=false;return render()}}
   const ok=await guard(async()=>{
     if(C.media?.kind==='video')await prepareVideo(C);
     const data={author:S.uid,text,createdAt:Date.now()};
@@ -284,6 +292,74 @@ async function createPost(){
   if(ok){if(C.media?.url?.startsWith('blob:'))URL.revokeObjectURL(C.media.url);S.compose={text:'',media:null,poll:null,busy:false,progress:0};toast('Posted')}
   render();
 }
+/* ---------- Cast Guard (safety bot) ---------- */
+function guardSay(msg){toast('🛡️ '+msg);try{const n=+(localStorage.getItem('cast_guard_blocks')||0)+1;localStorage.setItem('cast_guard_blocks',n)}catch{}return false}
+function guardTexts(list,kind='public'){for(const t of list){const r=checkText(t,kind);if(r)return guardSay(r)}return true}
+async function guardPicture(src){if(!src)return true;const r=await checkImage(src);return r?guardSay(r):true}
+const REPORT_HIDE=3;
+const reportsFor=id=>S.reports.filter(r=>r.target===id);
+const isHidden=id=>!S.isAdmin&&!SHOWN.has(id)&&new Set(reportsFor(id).map(r=>r.reporter)).size>=REPORT_HIDE;
+const iReported=id=>S.reports.some(r=>r.target===id&&r.reporter===S.uid);
+const SHOWN=new Set();
+function openReport(type,id){
+  if(!S.uid)return signIn();
+  if(iReported(id))return toast('You already reported this — thanks!');
+  S.reportForm={type,id};render();
+}
+async function sendReport(reason){
+  const F=S.reportForm;if(!F)return;S.reportForm=null;
+  let author='',text='',post='';
+  if(F.type==='post'){const p=postById(F.id);author=p?.author||'';text=(p?.title||p?.text||'').slice(0,300);post=F.id}
+  else if(F.type==='comment'){const c=S.comments.find(x=>x.id===F.id);author=c?.author||'';text=(c?.text||'').slice(0,300);post=c?.post||''}
+  else if(F.type==='user'){author=F.id;text=(prof(F.id).bio||'').slice(0,300)}
+  else if(F.type==='message'){author=F.id;text=(F.text||'').slice(0,300)}
+  const ok=await guard(()=>put('reports',F.id+'__'+S.uid,{type:F.type,target:F.id,post,author,text,reason,reporter:S.uid,createdAt:Date.now()}));
+  if(ok)toast('🛡️ Thanks — Cast Guard will take a look');
+  render();
+}
+function reportFormHTML(){
+  const F=S.reportForm;if(!F)return'';
+  const R=[['bullying','😠 Bullying or mean'],['inappropriate','🔞 Inappropriate or gross'],['unsafe','⚠️ Unsafe or scary'],['spam','📢 Spam or fake'],['other','❓ Something else']];
+  return`<div class="modal" data-act="closereport"><div class="card"><h2>🛡️ Report</h2><p class="muted" style="margin:4px 0 14px">What’s wrong with this ${F.type==='user'?'account':F.type}? Nobody will know you reported it.</p>
+    <div class="rlist">${R.map(([k,l])=>`<button class="rbtn" data-report="${k}">${l}</button>`).join('')}</div>
+    <button class="btn ghost" data-act="closereport" style="width:100%;margin-top:10px">Cancel</button></div></div>`;
+}
+// admin: delete reported thing, ban, dismiss
+async function modDelete(target,type){
+  if(type==='post')await deletePost(target);
+  else if(type==='comment')await deleteComment(target);
+  await modDismiss(target,true);
+}
+async function modDismiss(target,quiet){
+  await guard(async()=>{for(const r of reportsFor(target))await remove('reports',r.id)});
+  if(!quiet)toast('Report dismissed');render();
+}
+async function modBan(uid,on=true){
+  if(!uid||uid===S.uid)return;
+  const ok=await guard(()=>on?put('banned',uid,{by:S.uid,at:Date.now()}):remove('banned',uid));
+  if(ok)toast(on?`${nameOf(uid)} is banned from posting`:`${nameOf(uid)} can post again`);render();
+}
+function modView(){
+  if(!S.isAdmin)return`<div class="empty"><div class="big">Admins only</div></div>`;
+  const by=new Map();for(const r of S.reports){const g=by.get(r.target)||{target:r.target,type:r.type,author:r.author,text:r.text,post:r.post,reasons:{},n:0,last:0};g.reasons[r.reason]=(g.reasons[r.reason]||0)+1;g.n++;g.last=Math.max(g.last,r.createdAt||0);by.set(r.target,g)}
+  const list=[...by.values()].sort((a,b)=>b.n-a.n||b.last-a.last);
+  let blocks=0;try{blocks=+(localStorage.getItem('cast_guard_blocks')||0)}catch{}
+  return`<div class="top"><h1>🛡️ Cast Guard</h1></div>
+  <div class="card box guardstat"><div><b>${list.length}</b><small>things reported</small></div><div><b>${S.bannedList.length}</b><small>people banned</small></div><div><b>${blocks}</b><small>blocked on this device</small></div></div>
+  <p class="muted" style="margin:0 2px 12px;font-size:13px">Cast Guard checks every post, comment, message, name and picture before it goes up. Anything reported by ${REPORT_HIDE}+ people is hidden automatically until you decide.</p>
+  ${list.length?list.map(g=>{const p=g.type==='post'?postById(g.target):null;
+    return`<div class="card box modcard" data-mkey="mod-${esc(g.target)}"><div class="modhead"><span class="gtag">${esc(g.type)}</span><b>${g.n} report${g.n>1?'s':''}</b><span class="muted">· ${ago(g.last)}</span></div>
+      <div class="modreasons">${Object.entries(g.reasons).map(([k,v])=>`<span class="chipbtn">${esc(k)} ×${v}</span>`).join('')}</div>
+      ${g.author?`<div class="person" style="padding:6px 0">${av(g.author,'sm')}<div class="n" data-profile="${esc(g.author)}">${esc(nameOf(g.author))}<small>@${esc(handleOf(g.author))}${S.bannedList.includes(g.author)?' · banned':''}</small></div></div>`:''}
+      ${g.text?`<div class="modtext">${esc(g.text)}</div>`:''}
+      ${p&&(p.media||p.image)?`<div class="muted" style="font-size:13px">Has a ${isVideo(p)?'video':'photo'} — <a href="#p-${esc(p.id)}" data-act="gopost" data-id="${esc(p.id)}">open post</a></div>`:''}
+      <div class="modbtns">${g.type==='post'||g.type==='comment'?`<button class="btn small" data-act="moddel" data-id="${esc(g.target)}" data-type="${esc(g.type)}">🗑 Delete it</button>`:''}
+        ${g.author&&g.author!==S.uid?(S.bannedList.includes(g.author)?`<button class="btn ghost small" data-act="modunban" data-id="${esc(g.author)}">Unban</button>`:`<button class="btn ghost small" data-act="modban" data-id="${esc(g.author)}">⛔ Ban ${esc(nameOf(g.author).split(' ')[0])}</button>`):''}
+        <button class="btn ghost small" data-act="moddismiss" data-id="${esc(g.target)}">✓ It’s fine</button></div></div>`}).join('')
+  :`<div class="empty"><div class="big">All clear ✨</div>Nothing has been reported.</div>`}
+  ${S.bannedList.length?`<h3 class="sect">Banned people</h3><div class="card box">${S.bannedList.map(u=>`<div class="person">${av(u,'sm')}<div class="n" data-profile="${esc(u)}">${esc(nameOf(u))}<small>@${esc(handleOf(u))}</small></div><button class="btn ghost small" data-act="modunban" data-id="${esc(u)}">Unban</button></div>`).join('')}</div>`:''}`;
+}
+
 const pairId=(a,b)=>a+'__'+b;
 const toggleLike=pid=>guard(()=>iLike(pid)?remove('likes',pairId(pid,S.uid)):put('likes',pairId(pid,S.uid),{post:pid,user:S.uid,at:Date.now()}));
 const toggleRepost=pid=>guard(async()=>{if(iRepost(pid))await remove('reposts',pairId(pid,S.uid));else{await put('reposts',pairId(pid,S.uid),{post:pid,user:S.uid,at:Date.now()});toast('Reposted')}});
@@ -291,6 +367,7 @@ const vote=(pid,i)=>guard(()=>put('votes',pairId(pid,S.uid),{post:pid,user:S.uid
 function toggleSave(pid){if(!S.uid)return signIn();const b=new Set(S.me.bookmarks||[]);b.has(pid)?b.delete(pid):b.add(pid);saveMe({bookmarks:[...b]});toast(b.has(pid)?'Saved to bookmarks':'Removed from bookmarks')}
 async function addComment(pid){
   const text=(S.drafts[pid]||'').trim();if(!text)return;
+  if(!guardTexts([text]))return;
   if(await guard(()=>put('comments',newId(),{post:pid,author:S.uid,text:text.slice(0,500),createdAt:Date.now()}))){S.drafts[pid]='';render();focusKey('c:'+pid)}
 }
 async function deletePost(pid){
@@ -321,6 +398,7 @@ async function saveAccount(f,isNew){
   if(!name)return 'Pick a display name';
   const web=String(f.website||'').trim().slice(0,100);
   if(web&&!/^https?:\/\//.test(web))return 'Website must start with http:// or https://';
+  for(const t of [h,name,f.bio||'']){const r=checkText(t);if(r)return '🛡️ '+r}
   const old=handleOf(S.uid);let err=null;
   const {fs,db}=S.fb;
   const ok=await guard(async()=>{
@@ -347,8 +425,9 @@ function pickFile(file,kind){
   if(!file)return;
   const C=S.compose;
   if(kind==='video'){
-    if(/quicktime/.test(file.type)||/\.mov$/i.test(file.name)){toast('.mov isn’t supported — export as MP4');return}
-    if(!/^video\/(mp4|webm)$/.test(file.type)&&!/\.(mp4|webm)$/i.test(file.name)){toast('Pick an MP4 or WebM video');return}
+    const isMov=/quicktime/.test(file.type)||/\.mov$/i.test(file.name);
+    if(isMov&&!canCompress()){toast('.mov isn’t supported here — export as MP4');return}
+    if(!isMov&&!/^video\/(mp4|webm)$/.test(file.type)&&!/\.(mp4|webm)$/i.test(file.name)){toast('Pick an MP4, MOV or WebM video');return}
     const lim=canCompress()?RAW_VIDEO_MAX:(S.fb?.st?VIDEO_MAX:DB_VIDEO_MAX);
     if(file.size>lim){toast(`Videos must be under ${Math.round(lim/1048576)} MB`);return}
     if(C.media?.url?.startsWith('blob:'))URL.revokeObjectURL(C.media.url);
@@ -364,6 +443,7 @@ async function editPhoto(src,filter){
   }catch(e){toast(e.message||'Couldn\u2019t open that photo')}
 }
 function canvasToMedia(c){
+  warmUpImageCheck();
   const C=S.compose;
   const finish=(blob,dataUrl)=>{if(C.media?.url?.startsWith('blob:'))URL.revokeObjectURL(C.media.url);C.media={kind:'image',blob,dataUrl,url:blob?URL.createObjectURL(blob):dataUrl};C.poll=null;render()};
   if(S.fb?.st)c.toBlob(b=>finish(b,null),'image/jpeg',.88);
@@ -376,6 +456,7 @@ const fmtDur=t=>{t=Math.round(t||0);const m=Math.floor(t/60),s=t%60;return m>=60
 const autoForm=m=>(m.h>m.w&&(!m.duration||m.duration<=61))?'short':(m.w||m.h||m.duration>61)?'long':'short';
 const orientOf=m=>!m.w||!m.h?'':m.h>m.w*1.05?'vertical':m.w>m.h*1.05?'horizontal':'square';
 function setVideoMedia(blob,filter){
+  warmUpImageCheck();
   const C=S.compose;if(C.media?.url?.startsWith('blob:'))URL.revokeObjectURL(C.media.url);
   C.media={kind:'video',blob,url:URL.createObjectURL(blob),thumb:'',filter:filter||'none',duration:0,w:0,h:0,form:'short',title:''};C.poll=null;render();
   probeVideo(blob).then(m=>{if(C.media?.blob!==blob)return;Object.assign(C.media,m);C.media.form=autoForm(m);C.media.auto=true;render()});
@@ -434,21 +515,28 @@ const isVideo=p=>p.media?.kind==='video'&&(okURL(p.media.url)||isDbVideo(p.media
 const isLong=p=>isVideo(p)&&p.media.form==='long';
 const isShort=p=>isVideo(p)&&p.media.form!=='long';
 const videoSrc=p=>okURL(p.media?.url)?p.media.url:VCACHE.get(p.media?.vid)||'';
+const VPROG={};
 async function chunkURL(m){
   if(VCACHE.has(m.vid))return VCACHE.get(m.vid);
-  const parts=await Promise.all(Array.from({length:m.chunks},(_,i)=>S.fb.fs.getDoc(dref('videoChunks',m.vid+'_'+i))));
+  if(CHUNK_JOBS[m.vid])return CHUNK_JOBS[m.vid];
+  return CHUNK_JOBS[m.vid]=(async()=>{
+  let done=0;VPROG[m.vid]=0;
+  const parts=await Promise.all(Array.from({length:m.chunks},(_,i)=>S.fb.fs.getDoc(dref('videoChunks',m.vid+'_'+i)).then(d=>{done++;VPROG[m.vid]=Math.round(done*100/m.chunks);const el=document.querySelector(`[data-prog="${CSS.escape(m.vid)}"]`);if(el)el.textContent=VPROG[m.vid]+'%';return d})));
   const bytes=parts.map(d=>{if(!d.exists())throw new Error('missing');const b=atob(d.data().data);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u});
   const url=URL.createObjectURL(new Blob(bytes,{type:m.type==='video/webm'?'video/webm':'video/mp4'}));
-  VCACHE.set(m.vid,url);return url;
+  VCACHE.set(m.vid,url);delete CHUNK_JOBS[m.vid];return url;
+  })().catch(e=>{delete CHUNK_JOBS[m.vid];throw e});
+}
+const CHUNK_JOBS={};
+// quietly load the next few Shorts so swiping doesn't wait
+function prefetchShorts(fromId){
+  const list=S.posts.filter(isShort).sort((a,b)=>b.createdAt-a.createdAt);const i=list.findIndex(p=>p.id===fromId);
+  list.slice(i+1,i+3).forEach(p=>{if(isDbVideo(p.media)&&!VCACHE.has(p.media.vid))chunkURL(p.media).then(()=>soon()).catch(()=>{})});
 }
 async function loadVideo(p,autoplay=true){
   const m=p.media;if(!isDbVideo(m)||VCACHE.has(m.vid)||VLOADING.has(m.vid))return;
   VLOADING.add(m.vid);render();
-  try{
-    const parts=await Promise.all(Array.from({length:m.chunks},(_,i)=>S.fb.fs.getDoc(dref('videoChunks',m.vid+'_'+i))));
-    const bytes=parts.map(d=>{if(!d.exists())throw new Error('missing');const b=atob(d.data().data);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u});
-    VCACHE.set(m.vid,URL.createObjectURL(new Blob(bytes,{type:m.type==='video/webm'?'video/webm':'video/mp4'})));
-  }catch(e){console.warn(e);toast('Couldn’t load that video')}
+  try{await chunkURL(m)}catch(e){console.warn(e);toast('Couldn’t load that video')}
   VLOADING.delete(m.vid);render();
   if(autoplay){const v=document.querySelector(`main [data-vid="${CSS.escape(m.vid)}"]`);v?.play().catch(()=>{})}
 }
@@ -466,7 +554,7 @@ function videoBox(p,cls='pimg'){
   if(src)return`<video class="${cls}${p.media.h>p.media.w?' tall':''}" data-pid="${esc(p.id)}" data-vid="${esc(p.media.vid||'')}" src="${esc(src)}" controls playsinline preload="metadata" ${p.media.thumb?`poster="${esc(p.media.thumb)}"`:''} style="${fs}"></video>`;
   const loading=VLOADING.has(p.media.vid);
   return`<button class="vposter ${cls}${p.media.h>p.media.w?' tall':''}" data-act="playvid" data-id="${esc(p.id)}" style="${p.media.thumb?`background-image:url('${esc(p.media.thumb)}');`:''}${fs}">
-    <span class="vplay">${loading?'Loading…':'▶'}</span><span class="vsize">👁 ${viewsLabel(p)}</span></button>`;
+    <span class="vplay">${loading?`<span class="spin sm"></span><b data-prog="${esc(p.media.vid)}">${VPROG[p.media.vid]||0}%</b>`:'▶'}</span><span class="vsize">👁 ${viewsLabel(p)}</span></button>`;
 }
 
 function thumbBox(p,cls){
@@ -489,7 +577,7 @@ function shortItem(p){
     <div class="short-media" data-act="shorttap" data-id="${esc(p.id)}">
       ${src?`<video data-pid="${esc(p.id)}" data-vid="${esc(p.media.vid||'')}" src="${esc(src)}" loop playsinline preload="metadata" ${p.media.thumb?`poster="${esc(p.media.thumb)}"`:''} style="${fs}"></video>`
         :`<div class="short-poster" style="${p.media.thumb?`background-image:url('${esc(p.media.thumb)}');`:''}${fs}"></div>`}
-      <div class="short-play">${loading?'<span class="spin"></span>':'▶'}</div>
+      <div class="short-play">${loading?`<span class="spin"></span><b class="sprog" data-prog="${esc(p.media.vid)}">${VPROG[p.media.vid]||0}%</b>`:'▶'}</div>
     </div>
     <div class="short-side">
       <button class="${iLike(p.id)?'on':''}" data-act="like" data-id="${esc(p.id)}"><i>❤</i><span>${fmtNum(likesFor(p.id).length)}</span></button>
@@ -502,7 +590,7 @@ function shortItem(p){
   </section>`;
 }
 async function playShort(p,el){
-  shortsStarted=true;
+  shortsStarted=true;prefetchShorts(p.id);
   if(!videoSrc(p)){await loadVideo(p,false)}
   const v=(el||document.querySelector(`.short[data-post="${CSS.escape(p.id)}"]`))?.querySelector('video');
   if(v)v.play().catch(()=>{});
@@ -555,6 +643,7 @@ function settingsView(){
     <div class="setrow"><div><b>Accent color</b><small>Buttons, links and highlights</small></div><div class="swatches">${Object.entries(ACCENTS).map(([k,[a,b]])=>`<button class="${SET.accent===k?'on':''}" data-set="accent" data-val="${k}" style="background:linear-gradient(135deg,${b},${a})" aria-label="${k}"></button>`).join('')}</div></div>
     ${tog('motion','Animations','Smooth motion and effects')}
   </div>
+  ${S.isAdmin?`<div class="card box setcard"><h3>🛡️ Cast Guard</h3><div class="setrow"><div><b>Moderation</b><small>Review reports and banned people</small></div><button class="btn small" data-view="mod">Open</button></div></div>`:''}
   <div class="card box setcard"><h3>🔔 Notifications</h3>
     <div class="setrow"><div><b>Pop-up notifications</b><small>Get a pop-up for likes, replies, mentions, friends and messages${isIOS()&&!isStandalone()?' — on iPhone, install Cast first':''}</small></div><button class="switch ${SET.popups&&('Notification' in window)&&Notification.permission==='granted'?'on':''}" data-act="togglepopups" aria-label="Pop-up notifications"><i></i></button></div>
     ${tog('sounds','Sounds','Play a little sound for new notifications')}
@@ -595,6 +684,7 @@ function pollHTML(p){
 }
 const SEEN=new Set();
 function postHTML(p,why){
+  if(isHidden(p.id))return`<article class="card post hiddenpost" data-post="${esc(p.id)}"><div class="body"><b>🛡️ Hidden by Cast Guard</b><div class="muted" style="font-size:13px">People reported this post. <button class="linkbtn" data-act="showhidden" data-id="${esc(p.id)}">Show anyway</button></div></div></article>`;
   const likes=likesFor(p.id).length,cmts=commentsFor(p.id),reps=repostsFor(p.id).length,open=S.open.has(p.id);
   const canDel=S.uid&&(p.author===S.uid||S.isAdmin),h=handleOf(p.author);
   const fresh=!SEEN.has(p.id);SEEN.add(p.id);
@@ -610,12 +700,12 @@ function postHTML(p,why){
       <button class="iconbtn ${iSaved(p.id)?'saved':''}" data-act="save" data-id="${esc(p.id)}" title="Bookmark">${ICON.bookmark}</button>
       <button class="iconbtn" data-act="copy" data-id="${esc(p.id)}" title="Copy link">${ICON.share}</button>
       ${isVideo(p)?`<span class="iconbtn views" title="Views">👁 ${fmtNum(p.views||0)}</span>`:''}
-      ${canDel?`<button class="iconbtn del" data-act="del" data-id="${esc(p.id)}" title="Delete">${ICON.trash}</button>`:''}
+      ${canDel?`<button class="iconbtn del" data-act="del" data-id="${esc(p.id)}" title="Delete">${ICON.trash}</button>`:(S.uid?`<button class="iconbtn del" data-act="report" data-type="post" data-id="${esc(p.id)}" title="Report">🚩</button>`:'')}
     </div>
     ${open?`<div class="thread">
       ${cmts.map(c=>`<div class="cmt">${av(c.author,'sm')}<div class="bub"><span class="who" data-profile="${esc(c.author)}">${esc(nameOf(c.author))}${badge(c.author)}</span> <span class="muted" style="font-size:12px">${ago(c.createdAt)}</span>
-        ${S.uid&&(c.author===S.uid||S.isAdmin||p.author===S.uid)?`<button class="muted" style="float:right;font-size:12px" data-act="delc" data-id="${esc(c.id)}">delete</button>`:''}
-        <p>${fmt(c.text)}</p></div></div>`).join('')}
+        ${S.uid&&(c.author===S.uid||S.isAdmin||p.author===S.uid)?`<button class="muted" style="float:right;font-size:12px" data-act="delc" data-id="${esc(c.id)}">delete</button>`:(S.uid?`<button class="muted" style="float:right;font-size:12px" data-act="report" data-type="comment" data-id="${esc(c.id)}">report</button>`:'')}
+        <p>${isHidden(c.id)?'<i class="muted">🛡️ Hidden after reports</i>':fmt(c.text)}</p></div></div>`).join('')}
       ${canWrite()?`<form class="cform" data-form="c" data-id="${esc(p.id)}">${av(S.uid,'sm')}<input data-key="c:${esc(p.id)}" data-draft="${esc(p.id)}" placeholder="Write a reply…" maxlength="500" value="${esc(S.drafts[p.id]||'')}"><button class="btn small" type="submit">Reply</button></form>`
         :`<button class="btn ghost small" data-act="signin" style="align-self:flex-start">Sign in to reply</button>`}
     </div>`:''}
@@ -689,20 +779,29 @@ function scorePost(p,I,now){
   if(iLike(p.id))sc*=.7;
   return sc;
 }
+const FY={order:null,uid:null,stripS:null,stripL:null};
 function forYouHTML(){
   const now=Date.now(),I=interests();
-  const all=S.posts.map(p=>({p,sc:scorePost(p,I,now)})).sort((a,b)=>b.sc-a.sc);
+  let all=S.posts.map(p=>({p,sc:scorePost(p,I,now)})).sort((a,b)=>b.sc-a.sc);
+  // keep the order steady while you scroll: new posts go on top, everything else stays where it was
+  const ids=new Set(all.map(x=>x.p.id));
+  if(!FY.order||FY.uid!==S.uid){FY.order=all.map(x=>x.p.id);FY.uid=S.uid}
+  else{const known=new Set(FY.order);const fresh=all.filter(x=>!known.has(x.p.id)).map(x=>x.p.id);FY.order=[...fresh,...FY.order.filter(id=>ids.has(id))]}
+  const pos=new Map(FY.order.map((id,i)=>[id,i]));all=all.sort((a,b)=>pos.get(a.p.id)-pos.get(b.p.id));
   if(!all.length)return S.loading?`<div class="empty">Loading…</div>`:`<div class="empty"><div class="big">Be the first to post</div>Share a photo, a Short, a video or a poll.</div>`;
   const shorts=all.filter(x=>isShort(x.p)).slice(0,10).map(x=>x.p);
   const longs=all.filter(x=>isLong(x.p)).slice(0,8).map(x=>x.p);
   const inStrip=new Set([...(shorts.length>=2?shorts:[]),...(longs.length>=2?longs:[])].map(p=>p.id));
   // pick posts so the feed keeps changing: no same person twice in a row, no 3 of the same kind in a row
   let pool=all.filter(x=>!inStrip.has(x.p.id));const out=[];
+  const sig=pool.map(x=>x.p.id).join(',');
+  if(FY.sig===sig&&FY.out){FY.out.forEach(id=>{const p=postById(id);if(p)out.push(p)});pool=[]}
   while(pool.length){
     const last=out[out.length-1],prev=out[out.length-2];
     let i=pool.findIndex(x=>(!last||x.p.author!==last.author)&&!(last&&prev&&kindOf(last)===kindOf(prev)&&kindOf(x.p)===kindOf(last)));
     if(i<0)i=0;out.push(pool[i].p);pool.splice(i,1);
   }
+  if(FY.sig!==sig){FY.sig=sig;FY.out=out.map(p=>p.id)}
   const reposted=new Map();for(const r of S.reposts)if(r.user!==S.uid&&(following(r.user)||isFriend(r.user)))reposted.set(r.post,r.user);
   const card=p=>postHTML(p,reposted.has(p.id)?`${esc(nameOf(reposted.get(p.id)))} reposted`:'');
   const shortStrip=shorts.length>=2?`<div class="strip" data-mkey="strip-shorts"><div class="strip-head"><h3>📱 Shorts for you</h3><button class="muted" data-view="shorts">See all</button></div><div class="strip-row">${shorts.map(p=>`<div class="strip-short" data-act="openshort" data-id="${esc(p.id)}" data-mkey="ss-${esc(p.id)}"><div class="tb-img" style="${p.media.thumb?`background-image:url('${esc(p.media.thumb)}');`:''}${validFilter(p.media.filter)?filterStyle(p.media.filter):''}"></div><span class="ss-views">▶ ${fmtNum(p.views||0)}</span><span class="ss-cap">${esc((p.text||nameOf(p.author)).slice(0,40))}</span></div>`).join('')}</div></div>`:'';
@@ -716,7 +815,7 @@ function homeView(){
   let set=null;
   if(S.tab==='following'&&S.uid){set=new Set(S.follows.filter(f=>f.from===S.uid).map(f=>f.to));set.add(S.uid)}
   if(S.tab==='friends'&&S.uid){set=new Set(myFriends());set.add(S.uid)}
-  return`${installBanner()}${storiesBar()}<div class="top"><h1>Home</h1>${S.uid?`<div class="tabs"><button data-tab="all" class="${S.tab==='all'?'on':''}">For you</button><button data-tab="following" class="${S.tab==='following'?'on':''}">Following</button><button data-tab="friends" class="${S.tab==='friends'?'on':''}">Friends</button></div>`:''}</div>
+  return`${S.banned?`<div class="banner" style="margin:10px 12px">⛔ Cast Guard: your account can’t post right now because it broke the rules.</div>`:''}${installBanner()}${storiesBar()}<div class="top"><h1>Home</h1>${S.uid?`<div class="tabs"><button data-tab="all" class="${S.tab==='all'?'on':''}">For you</button><button data-tab="following" class="${S.tab==='following'?'on':''}">Following</button><button data-tab="friends" class="${S.tab==='friends'?'on':''}">Friends</button></div>`:''}</div>
   ${composerHTML()}
   ${S.tab==='all'?forYouHTML():feedList(feedItems(set),S.tab!=='all'?'Nothing here yet':'Be the first to post',S.tab==='friends'?'Add friends to fill this feed.':S.tab==='following'?'Follow people to fill this feed.':'Say hi — post some text, a photo, a video or a poll.')}`;
 }
@@ -770,7 +869,7 @@ function profileView(){
   const E=S.edit;
   return`<div class="card phead"><div class="cover" style="background:linear-gradient(120deg,${esc(col)},${esc(col)}88 60%,var(--soft))"></div>
   <div class="pinfo"><div class="row">${av(id,'lg')}
-    ${me?(canWrite()&&!S.editing?`<div style="display:flex;gap:8px"><button class="btn ghost small" data-act="edit">Edit profile</button><button class="btn ghost small" data-view="settings" aria-label="Settings">${ICON.gear}</button></div>`:''):(canWrite()?`<div style="display:flex;gap:8px"><button class="btn ghost small" data-act="dm" data-id="${esc(id)}">${ICON.msg} Message</button>${followBtn(id)}</div>`:'')}
+    ${me?(canWrite()&&!S.editing?`<div style="display:flex;gap:8px"><button class="btn ghost small" data-act="edit">Edit profile</button><button class="btn ghost small" data-view="settings" aria-label="Settings">${ICON.gear}</button></div>`:''):(canWrite()?`<div style="display:flex;gap:8px"><button class="btn ghost small" data-act="report" data-type="user" data-id="${esc(id)}" title="Report">🚩</button><button class="btn ghost small" data-act="dm" data-id="${esc(id)}">${ICON.msg} Message</button>${followBtn(id)}</div>`:'')}
   </div>
   <h2>${esc(nameOf(id))}${badge(id)}</h2>${verified(id)?'<div class="vnote">Verified \u00b7 1,000+ followers</div>':''}${pr.handle?`<div class="handle">@${esc(pr.handle)}</div>`:''}
   ${pr.bio?`<p class="bio">${fmt(pr.bio)}</p>`:(me?`<p class="bio muted">Add a bio so people know who you are.</p>`:'')}
@@ -815,6 +914,7 @@ function overlayHTML(){
     return`<div class="viewer" data-act="closeviewer"><button class="x" data-act="closeviewer" aria-label="Close">✕</button>
       ${src?`<video data-pid="${esc(p.id)}" src="${esc(src)}" controls autoplay playsinline onclick="event.stopPropagation()" style="${validFilter(p.media.filter)?filterStyle(p.media.filter):''}"></video>`:`<div style="color:#fff;font-size:18px">Loading video…</div>`}
       <div class="info"><b>${esc(nameOf(p.author))}</b> ${esc(p.text||'')}<div class="vrow"><button class="vlike ${iLike(p.id)?'on':''}" data-act="like" data-id="${esc(p.id)}">❤ ${fmtNum(likesFor(p.id).length)}</button><span>👁 ${viewsLabel(p)}</span><button class="btn small" data-act="gopost" data-id="${esc(p.id)}">💬 ${commentsFor(p.id).length} · Open post</button></div></div></div>`}
+  if(S.reportForm)return reportFormHTML();
   if(S.installHelp)return installHelpHTML();
   if(S.groupForm)return groupFormHTML();
   if(S.onboard){const E=S.onboard;
@@ -922,6 +1022,7 @@ function render(){
   morph($('#nav'),`<div class="brand"><span class="dot"></span>Cast</div>
     ${items.map(([v,l])=>`<button class="navbtn ${isOn(v)?'on':''}" data-view="${v}">${ICON[icon[v]]}${v==='notifications'?'Notifications':v==='bookmarks'?'Bookmarks':v==='messages'?'Messages':l}${v==='notifications'&&n?`<span class="badge">${n>99?'99+':n}</span>`:''}${v==='messages'&&um?`<span class="badge">${um}</span>`:''}${v==='friends'&&friendRequests().length?`<span class="badge">${friendRequests().length}</span>`:''}</button>`).join('')}
     ${S.uid?`<button class="btn navpost" data-act="fab">${ICON.camera} Snap</button>`:''}
+    ${S.isAdmin?`<button class="navbtn ${S.view==='mod'?'on':''}" data-view="mod">🛡️ Cast Guard${new Set(S.reports.map(r=>r.target)).size?`<span class="badge">${new Set(S.reports.map(r=>r.target)).size}</span>`:''}</button>`:''}
     ${canInstall()?`<button class="navbtn" data-act="install" style="margin-top:6px">⬇︎ Install app</button>`:''}
     ${S.uid?`<div class="mecard" data-profile="${esc(S.uid)}">${av(S.uid,'sm')}<div style="min-width:0;flex:1"><div class="n">${esc(nameOf(S.uid))}${badge(S.uid)}</div><div class="s">${h?'@'+esc(h):'Setting up…'}</div></div></div>`
       :S.authReady?`<div style="margin-top:16px">${signInBtn('Sign in')}</div>`:''}`);
@@ -935,7 +1036,7 @@ function render(){
     ${S.uid?`<button data-view="profile" aria-label="Profile" class="mtop-me ${isOn('profile')?'on':''}">${av(S.uid,'sm',false)}</button>`:`<button data-view="settings" aria-label="Settings" class="${S.view==='settings'?'on':''}">${ICON.gear}</button>`}</div>`);
   document.body.classList.toggle('in-shorts',S.view==='shorts');
   {const f=S.uid&&canWrite()&&S.view!=='shorts'&&S.view!=='watch'?`<button class="fab" data-act="fab" aria-label="Open camera">${ICON.camera}</button>`:'';if($('#fab').dataset.h!==f){$('#fab').innerHTML=f;$('#fab').dataset.h=f}}
-  const V={explore:exploreView,profile:profileView,shorts:shortsView,videos:videosView,watch:watchView,settings:settingsView,notifications:notifView,bookmarks:bookmarksView,messages:messagesView,friends:friendsView}[S.view]||homeView;
+  const V={mod:modView,explore:exploreView,profile:profileView,shorts:shortsView,videos:videosView,watch:watchView,settings:settingsView,notifications:notifView,bookmarks:bookmarksView,messages:messagesView,friends:friendsView}[S.view]||homeView;
   const vt=S.view+'|'+(S.view==='profile'?S.profileId:S.view==='watch'?S.watchId:'');
   morph($('#main'),V());
   if($('#main').dataset.vt!==vt){$('#main').dataset.vt=vt;const m=$('#main');m.classList.remove('vt');void m.offsetWidth;m.classList.add('vt')}
@@ -1011,13 +1112,14 @@ function installHelpHTML(){
     :safariMac?['In the menu bar, click <b>File</b>','Click <b>Add to Dock</b>','Cast opens from your Dock like any app']
     :firefox?['Firefox can’t install web apps','Open this page in <b>Chrome</b> or <b>Edge</b>','Then click the install icon ⊕ in the address bar']
     :['Look for the <b>install icon</b> ⊕ at the right end of the address bar','Or open the <b>⋮ menu</b> → <b>Cast → Install</b>','Cast gets its own window and a desktop/Start menu icon'];
-  return`<div class="modal" data-act="closeinstall"><div class="card" onclick="event.stopPropagation()"><div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><img src="icon-192.png" alt="" style="width:52px;height:52px;border-radius:14px"><h2>Install Cast</h2></div>
+  return`<div class="modal" data-act="closeinstall"><div class="card"><div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><img src="icon-192.png" alt="" style="width:52px;height:52px;border-radius:14px"><h2>Install Cast</h2></div>
     <ol class="isteps">${steps.map(x=>`<li>${x}</li>`).join('')}</ol>
     <button class="btn" data-act="closeinstall" style="width:100%">Got it</button></div></div>`;
 }
 
 /* ---------- events ---------- */
 document.addEventListener('click',async e=>{
+  const rp=e.target.closest('[data-report]');if(rp)return sendReport(rp.dataset.report);
   const gpub=e.target.closest('[data-gpub]');if(gpub&&S.groupForm){S.groupForm.pub=gpub.dataset.gpub==='1';S.groupForm.err='';return render()}
   const gp=e.target.closest('[data-gpick]');if(gp&&S.groupForm){if(gp.tagName==='INPUT'){gp.checked?S.groupForm.picked.add(gp.dataset.gpick):S.groupForm.picked.delete(gp.dataset.gpick)}else S.groupForm.picked.delete(gp.dataset.gpick);S.groupForm.err='';return render()}
   if(e.target.closest('.gp'))return;
@@ -1027,11 +1129,12 @@ document.addEventListener('click',async e=>{
   const t=e.target.closest('[data-view],[data-tab],[data-ptab],[data-act],[data-profile],[data-tag],[data-color]');if(!t)return;
   if(t.tagName==='LABEL')return;
   if(t.dataset.view)return go(t.dataset.view,{profileId:t.dataset.view==='profile'?S.uid:S.profileId});
-  if(t.dataset.tab){S.tab=t.dataset.tab;return render()}
+  if(t.dataset.tab){if(t.dataset.tab==='all'&&S.tab==='all'){FY.order=null;FY.sig=null;window.scrollTo({top:0,behavior:'smooth'})}S.tab=t.dataset.tab;return render()}
   if(t.dataset.ptab){S.ptab=t.dataset.ptab;return render()}
   if(t.dataset.color){const E=S.onboard||S.edit;E.color=t.dataset.color;return render()}
   if(t.dataset.profile){S.viewer=null;return go('profile',{profileId:t.dataset.profile,ptab:'posts'})}
   if(t.dataset.tag)return go('explore',{tag:t.dataset.tag.toLowerCase(),query:''});
+  if(t.classList.contains('modal')&&e.target!==t)return; // clicks inside a pop-up don't close it
   const id=t.dataset.id,C=S.compose;
   switch(t.dataset.act){
     case'signin':return signIn();
@@ -1048,6 +1151,14 @@ document.addEventListener('click',async e=>{
     case'savegroup':return saveGroup();
     case'groupinfo':S.groupInfo=!S.groupInfo;return render();
     case'leavegroup':return leaveGroup(id);
+    case'report':return openReport(t.dataset.type,id);
+    case'reportchat':{const last=[...S.msgs].reverse().find(m=>m.from===id);S.reportForm={type:'message',id,text:last?.text||''};return render()}
+    case'closereport':S.reportForm=null;return render();
+    case'showhidden':SHOWN.add(id);return render();
+    case'moddel':return modDelete(id,t.dataset.type);
+    case'moddismiss':return modDismiss(id);
+    case'modban':return modBan(id,true);
+    case'modunban':return modBan(id,false);
     case'install':return doInstall();
     case'closeinstall':S.installHelp=false;return render();
     case'hideinstall':installHidden=true;try{localStorage.setItem('cast_install_hide','1')}catch{};return render();
@@ -1107,7 +1218,7 @@ document.addEventListener('keydown',e=>{
 });
 document.addEventListener('change',e=>{const k=e.target.dataset.file;if(k){pickFile(e.target.files[0],k);e.target.value=''}});
 document.addEventListener('submit',e=>{e.preventDefault();if(e.target.dataset.form==='c')addComment(e.target.dataset.id)});
-const VIEWS=['shorts','videos','explore','notifications','bookmarks','profile','messages','friends','settings'];
+const VIEWS=['mod','shorts','videos','explore','notifications','bookmarks','profile','messages','friends','settings'];
 let pendingHash=null;
 function fromHash(){
   const h=decodeURIComponent(location.hash.slice(1));
@@ -1148,6 +1259,9 @@ function storiesBar(){
 }
 async function postStory({canvas,video,filter}){
   if(!canWrite())return;
+  toast('🛡️ Checking…');
+  if(canvas&&!(await guardPicture(canvas)))return;
+  if(video){const u=URL.createObjectURL(video);const th=await makeThumb(u);URL.revokeObjectURL(u);if(!(await guardPicture(th)))return}
   toast('Posting your story…');
   const ok=await guard(async()=>{
     const data={author:S.uid,createdAt:Date.now()};
@@ -1258,6 +1372,7 @@ function markRead(cid){
 }
 async function sendMsg(){
   const text=(S.chatDraft||'').trim();if(!text||!S.chat)return;
+  if(!guardTexts([text],'private'))return;
   const {cid,other}=S.chat,{fs,db}=S.fb,now=Date.now(),c=convoById(cid);
   S.chatDraft='';const inp=$('[data-key="chat"]');if(inp)inp.value='';
   const ok=await guard(async()=>{
@@ -1286,6 +1401,7 @@ function groupCandidates(q){
 }
 async function saveGroup(){
   const G=S.groupForm;const name=G.name.trim().slice(0,40);
+  {const r=checkText(name);if(r){G.err='🛡️ '+r;return render()}}
   if(!G.cid&&!name){G.err='Give your group a name';return render()}
   if(G.picked.size<1&&!G.pub){G.err='Pick at least one person (or make it a public group)';return render()}
   if(G.picked.size>99){G.err="You can add up to 100 people at once";return render()}
@@ -1345,7 +1461,7 @@ function messagesView(){
     return`<div class="card chat">
       <div class="chat-head"><button class="iconbtn" data-act="closechat" aria-label="Back">←</button>
         ${grp?`${convoAvatar(c)}<div class="chat-who" data-act="groupinfo"><b>${esc(c.name||'Group')}</b><small>${c.public?'🌍 Public':'🔒 Private'} · ${mem.length} members · tap for info</small></div>`
-        :`${av(o,'sm')}<div class="chat-who" data-profile="${esc(o)}"><b>${esc(nameOf(o))}${badge(o)}</b>${handleOf(o)?`<small>@${esc(handleOf(o))}</small>`:''}</div>`}</div>
+        :`${av(o,'sm')}<div class="chat-who" data-profile="${esc(o)}"><b>${esc(nameOf(o))}${badge(o)}</b>${handleOf(o)?`<small>@${esc(handleOf(o))}</small>`:''}</div><button class="iconbtn" style="margin-left:auto" data-act="reportchat" data-id="${esc(o)}" title="Report">🚩</button>`}</div>
       ${grp&&S.groupInfo?`<div class="ginfo"><div class="gmem">${mem.map(m=>`<span class="chipbtn" data-profile="${esc(m)}">${esc(m===S.uid?'You':nameOf(m))}${m===c.owner?' (owner)':''}</span>`).join('')}</div>
         <div style="display:flex;gap:8px;margin-top:10px">${c.owner===S.uid?`<button class="btn small" data-act="editgroup" data-id="${esc(cid)}">Add / remove people</button>`:''}${amMember(c)?`<button class="btn ghost small" data-act="leavegroup" data-id="${esc(cid)}">Leave group</button>`:''}</div></div>`:''}
       <div class="chat-body">${S.msgs.length?S.msgs.map((m,k)=>{const mine=m.from===S.uid,prevSame=k>0&&S.msgs[k-1].from===m.from&&m.createdAt-S.msgs[k-1].createdAt<300000;
@@ -1380,9 +1496,10 @@ if(CONFIGURED)(async()=>{
   listen(fs.query(col('stories'),fs.where('createdAt','>',Date.now()-DAY),fs.orderBy('createdAt','asc'),fs.limit(500)),rows=>{S.stories=rows.filter(r=>typeof r.author==='string'&&typeof r.createdAt==='number');cleanupStories()});
   setTimeout(()=>{if(S.loading){S.loading=false;render()}},10000);
 
-  let unsubMe=null,unsubAdmin=null,unsubF1=null,unsubF2=null,unsubC=null,unsubPG=null,fA=[],fB=[];
+  let unsubR=null,unsubB=null,unsubMyBan=null,unsubMe=null,unsubAdmin=null,unsubF1=null,unsubF2=null,unsubC=null,unsubPG=null,fA=[],fB=[];
   try{await auth.getRedirectResult(authI)}catch{}
   auth.onAuthStateChanged(authI,user=>{
+    unsubR?.();unsubB?.();unsubMyBan?.();S.reports=[];S.bannedList=[];S.banned=false;
     unsubMe?.();unsubAdmin?.();unsubF1?.();unsubF2?.();unsubC?.();fA=[];fB=[];S.follows=[];S.convos=[];if(!user){unsubPG?.();unsubPG=null;S.publicGroups=[]}S.chat=null;stopChat();
     notifyBase=null;
     S.uid=user?.uid||null;S.googleName=user?.displayName||'';S.photoURL=user?.photoURL||'';
@@ -1390,6 +1507,9 @@ if(CONFIGURED)(async()=>{
     if(user){
       unsubMe=fs.onSnapshot(dref('private',user.uid),d=>{if(d.exists()){const v=d.data();S.me={seenAt:+v.seenAt||0,bookmarks:Array.isArray(v.bookmarks)?v.bookmarks:[]}}soon()},()=>{});
       unsubAdmin=fs.onSnapshot(dref('admins',user.uid),d=>{S.isAdmin=d.exists();soon()},()=>{});
+      unsubR=fs.onSnapshot(fs.query(col('reports'),fs.limit(2000)),s=>{S.reports=s.docs.map(d=>({id:d.id,...d.data()}));soon()},e=>console.warn(e));
+      unsubB=fs.onSnapshot(fs.query(col('banned'),fs.limit(500)),s=>{S.bannedList=s.docs.map(d=>d.id);soon()},e=>console.warn(e));
+      unsubMyBan=fs.onSnapshot(dref('banned',user.uid),d=>{S.banned=d.exists();soon()},()=>{});
       const mergeF=()=>{const m=new Map();[...fA,...fB].forEach(f=>m.set(f.id,f));S.follows=[...m.values()];soon()};
       unsubF1=fs.onSnapshot(fs.query(col('follows'),fs.where('from','==',user.uid),fs.limit(5000)),s=>{fA=s.docs.map(d=>({id:d.id,...d.data()}));mergeF()},e=>console.warn(e));
       unsubPG?.();unsubPG=fs.onSnapshot(fs.query(col('convos'),fs.where('public','==',true),fs.limit(100)),s=>{S.publicGroups=s.docs.map(d=>({id:d.id,...d.data()}));soon()},e=>console.warn(e));

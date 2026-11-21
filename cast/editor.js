@@ -287,8 +287,8 @@ export async function compressVideo(file,{maxSeconds=60,maxDim=720,vbps=1200000,
     if(v.duration>maxSeconds+1) throw new Error(`Videos can be up to ${maxSeconds>=120?Math.round(maxSeconds/60)+' minutes':maxSeconds+' seconds'}`);
     const sc=Math.min(1,maxDim/Math.max(v.videoWidth,v.videoHeight));
     const w=Math.max(2,Math.round(v.videoWidth*sc/2)*2), h=Math.max(2,Math.round(v.videoHeight*sc/2)*2);
-    const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d');
-    ctx.drawImage(v,0,0,w,h);
+    const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d',{alpha:false});
+    ctx.imageSmoothingQuality='high';ctx.drawImage(v,0,0,w,h);
     const stream=c.captureStream(30);
     let ac=null;
     try{ ac=new (window.AudioContext||window.webkitAudioContext)(); const src=ac.createMediaElementSource(v); const dst=ac.createMediaStreamDestination(); src.connect(dst); dst.stream.getAudioTracks().forEach(t=>stream.addTrack(t)); }catch{ ac=null; }
@@ -300,10 +300,14 @@ export async function compressVideo(file,{maxSeconds=60,maxDim=720,vbps=1200000,
     rec.start(1000);
     try{ await v.play(); }catch{ v.muted=true; await v.play(); }
     let thumb='';
-    const tick=setInterval(()=>{ctx.drawImage(v,0,0,w,h);onProgress(Math.min(1,v.currentTime/(v.duration||1)));
-      if(!thumb&&v.currentTime>=Math.min(1,(v.duration||2)/3)){try{const tc=document.createElement('canvas');const k=Math.min(1,480/Math.max(w,h));tc.width=Math.round(w*k);tc.height=Math.round(h*k);tc.getContext('2d').drawImage(c,0,0,tc.width,tc.height);thumb=tc.toDataURL('image/jpeg',.72)}catch{}}},1000/30);
+    // draw every real video frame (smooth), instead of guessing with a timer
+    const drawFrame=()=>{ctx.drawImage(v,0,0,w,h);onProgress(Math.min(1,v.currentTime/(v.duration||1)));
+      if(!thumb&&v.currentTime>=Math.min(1,(v.duration||2)/3)){try{const tc=document.createElement('canvas');const k=Math.min(1,540/Math.max(w,h));tc.width=Math.round(w*k);tc.height=Math.round(h*k);tc.getContext('2d').drawImage(c,0,0,tc.width,tc.height);thumb=tc.toDataURL('image/jpeg',.78)}catch{}}};
+    let ended=false,tick=null;
+    if('requestVideoFrameCallback' in HTMLVideoElement.prototype){const loop=()=>{if(ended)return;drawFrame();v.requestVideoFrameCallback(loop)};v.requestVideoFrameCallback(loop)}
+    else tick=setInterval(drawFrame,1000/30);
     await new Promise(r=>{v.onended=r;});
-    clearInterval(tick); ctx.drawImage(v,0,0,w,h);
+    ended=true;clearInterval(tick); ctx.drawImage(v,0,0,w,h);
     rec.stop(); await stopped; stream.getTracks().forEach(t=>t.stop()); try{ac?.close()}catch{}
     const out=new Blob(parts,{type:type.split(';')[0]}); out.thumb=thumb; out.duration=v.duration; out.w=w; out.h=h;
     return out;

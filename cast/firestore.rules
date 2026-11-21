@@ -15,6 +15,9 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/posts/$(pid)).data.author == me();
     }
     function str(v, max) { return v is string && v.size() <= max; }
+    // Cast Guard: banned people can't post, and blocked words are refused by the database too
+    function notBanned() { return !exists(/databases/$(database)/documents/banned/$(me())); }
+    function clean(t) { return !(t.lower().matches('(?s).*(^|[^a-z])(fuck|fucking|fucker|fucked|motherfucker|shit|bullshit|bitch|bastard|asshole|dick|dickhead|cock|pussy|cunt|twat|whore|slut|fag|faggot|nigger|nigga|retard|retarded|tranny|chink|spic|kike|porn|porno|nudes|onlyfans|hentai|rape|rapist|pedo|pedophile|kys|kill ?yourself|kill ?urself|neck ?yourself)([^a-z]|$).*')); }
 
     // Usernames: one owner each, first come first served
     match /handles/{h} {
@@ -29,6 +32,7 @@ service cloud.firestore {
       allow write: if signedIn() && uid == me() && data().user == me()
         && str(data().handle, 20) && str(data().displayName, 40)
         && str(data().bio, 160) && str(data().website, 100)
+        && clean(data().handle) && clean(data().displayName) && clean(data().bio)
         && getAfter(/databases/$(database)/documents/handles/$(data().handle)).data.user == me();
       allow delete: if isAdmin();
     }
@@ -36,11 +40,11 @@ service cloud.firestore {
     // Posts: create your own (280 chars max); delete your own; no editing
     match /posts/{pid} {
       allow read: if true;
-      allow create: if signedIn() && data().author == me()
-        && str(data().text, 280)
+      allow create: if signedIn() && data().author == me() && notBanned()
+        && str(data().text, 280) && clean(data().text)
         && data().createdAt is number
         && (!('image' in data()) || str(data().image, 400000))
-        && (!('title' in data()) || str(data().title, 100));
+        && (!('title' in data()) || (str(data().title, 100) && clean(data().title)));
       // video views: anyone can add exactly one view at a time
       allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views'])
         && request.resource.data.views == resource.data.get('views', 0) + 1;
@@ -49,7 +53,7 @@ service cloud.firestore {
 
     match /comments/{cid} {
       allow read: if true;
-      allow create: if signedIn() && data().author == me() && str(data().text, 500);
+      allow create: if signedIn() && data().author == me() && notBanned() && str(data().text, 500) && clean(data().text);
       allow delete: if signedIn() && (resource.data.author == me() || isAdmin() || postAuthor(resource.data.post));
     }
 
@@ -90,7 +94,7 @@ service cloud.firestore {
     // Stories: disappear from the app after 24 hours
     match /stories/{sid} {
       allow read: if true;
-      allow create: if signedIn() && data().author == me() && data().createdAt is number
+      allow create: if signedIn() && data().author == me() && notBanned() && data().createdAt is number
         && (!('image' in data()) || str(data().image, 400000));
       allow delete: if signedIn() && (resource.data.author == me() || isAdmin());
     }
@@ -106,7 +110,7 @@ service cloud.firestore {
         (!isGroup(request.resource.data) && newM().size() == 2 && newM()[0] < newM()[1]
           && cid == newM()[0] + '__' + newM()[1])
         || (isGroup(request.resource.data) && (newM().size() >= 2 || isPublic(request.resource.data)) && newM().size() <= 101
-          && request.resource.data.owner == me() && str(request.resource.data.name, 40)));
+          && request.resource.data.owner == me() && str(request.resource.data.name, 40) && clean(request.resource.data.name)));
       // join a public group: add only yourself
       allow update: if signedIn() && isGroup(resource.data) && isPublic(resource.data) && !(me() in resource.data.members)
         && newM().hasAll(resource.data.members) && newM().size() == resource.data.members.size() + 1
@@ -123,7 +127,7 @@ service cloud.firestore {
       match /messages/{mid} {
         allow read: if signedIn() && (me() in get(/databases/$(database)/documents/convos/$(cid)).data.members
           || get(/databases/$(database)/documents/convos/$(cid)).data.get('public', false) == true);
-        allow create: if signedIn() && data().from == me() && str(data().text, 1000)
+        allow create: if signedIn() && data().from == me() && notBanned() && str(data().text, 1000) && clean(data().text)
           && me() in get(/databases/$(database)/documents/convos/$(cid)).data.members;
       }
     }
@@ -131,6 +135,20 @@ service cloud.firestore {
     // Bookmarks & "last seen" — private to each person
     match /private/{uid} {
       allow read, write: if signedIn() && uid == me();
+    }
+
+    // Cast Guard reports: one report per person per thing; admins review them
+    match /reports/{rid} {
+      allow read: if signedIn();
+      allow create: if signedIn() && data().reporter == me() && rid == data().target + '__' + me()
+        && str(data().reason, 40) && str(data().type, 20) && (!('text' in data()) || str(data().text, 300));
+      allow delete: if signedIn() && (isAdmin() || resource.data.reporter == me());
+    }
+
+    // Banned people (only admins can ban or unban)
+    match /banned/{uid} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
     }
 
     // Admin list — you add yourself here by hand in the console
