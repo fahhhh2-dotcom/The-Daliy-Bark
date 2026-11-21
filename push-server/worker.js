@@ -76,13 +76,14 @@ export default {
   async fetch(req, env) {
     if (req.method === "OPTIONS") return cors(new Response(null, { status: 204 }), req);
     const path = new URL(req.url).pathname;
-    if (!["/vapid", "/subscribe", "/unsubscribe", "/test", "/health"].includes(path)) return cors(new Response("SkyCast alert server", { status: 200 }), req);
+    if (!["/vapid", "/subscribe", "/unsubscribe", "/test", "/health", "/email/subscribe", "/email/confirm", "/email/unsubscribe"].includes(path)) return cors(new Response("SkyCast alert server", { status: 200 }), req);
     const hub = env.HUB.get(env.HUB.idFromName("main"));
     return cors(await hub.fetch(req), req);
   },
   async scheduled(event, env, ctx) {
     const hub = env.HUB.get(env.HUB.idFromName("main"));
     ctx.waitUntil(hub.fetch("https://hub/tick", { method: "POST" }));
+    ctx.waitUntil(hub.fetch("https://hub/emailtick", { method: "POST" }));
   }
 };
 
@@ -94,6 +95,10 @@ export class Hub extends DurableObject {
       lat REAL NOT NULL, lon REAL NOT NULL, name TEXT, lang TEXT, created INTEGER, updated INTEGER, fails INTEGER DEFAULT 0, last_test INTEGER DEFAULT 0)`);
     this.sql.exec(`CREATE TABLE IF NOT EXISTS sent (sub_id TEXT NOT NULL, alert_id TEXT NOT NULL, t INTEGER NOT NULL, PRIMARY KEY (sub_id, alert_id))`);
     this.sql.exec(`CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)`);
+    // email updates: daily forecast and weather news (double opt-in, one-click unsubscribe)
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS emails (email TEXT PRIMARY KEY, token TEXT NOT NULL, confirmed INTEGER DEFAULT 0,
+      lat REAL NOT NULL, lon REAL NOT NULL, name TEXT, lang TEXT, forecast INTEGER DEFAULT 1, news INTEGER DEFAULT 1,
+      fc_url TEXT, tz TEXT, last_day TEXT, last_news INTEGER DEFAULT 0, created INTEGER, confirm_sent INTEGER DEFAULT 0, fails INTEGER DEFAULT 0)`);
   }
   get(k) { const r = this.sql.exec("SELECT v FROM kv WHERE k = ?", k).toArray(); return r.length ? r[0].v : null; }
   set(k, v) { this.sql.exec("INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", k, String(v)); }
@@ -109,7 +114,10 @@ export class Hub extends DurableObject {
     const path = new URL(req.url).pathname;
     if (path === "/tick") { await this.tick(); return new Response("ok"); }
     if (path === "/vapid") return json({ key: (await this.keys()).pub });
-    if (path === "/health") return json({ ok: true, subscribers: this.sql.exec("SELECT COUNT(*) AS n FROM subs").one().n, lastCheck: this.get("last_tick") });
+    if (path === "/emailtick") { await this.emailTick(); return new Response("ok"); }
+    if (path === "/health") return json({ ok: true, subscribers: this.sql.exec("SELECT COUNT(*) AS n FROM subs").one().n, lastCheck: this.get("last_tick"),
+      email: emailReady(this.env), emailSubscribers: this.sql.exec("SELECT COUNT(*) AS n FROM emails WHERE confirmed = 1").one().n });
+    if (path === "/email/confirm" || path === "/email/unsubscribe") return this.emailLink(req, path);
     if (req.method !== "POST") return json({ error: "Use POST" }, 405);
     if (+(req.headers.get("Content-Length") || 0) > 16384) return json({ error: "Too large" }, 413);
     let b; try { b = await req.json(); } catch (e) { return json({ error: "Bad JSON" }, 400); }
@@ -132,6 +140,7 @@ export class Hub extends DurableObject {
         this.sql.exec("INSERT OR IGNORE INTO sent (sub_id, alert_id, t) VALUES (?, ?, ?)", id, a, now);
       return json({ ok: true });
     }
+    if (path === "/email/subscribe") return this.emailSubscribe(b, req);
     if (path === "/unsubscribe") {
       if (typeof b.endpoint === "string") this.dropSub(await sha(b.endpoint));
       return json({ ok: true });
@@ -211,4 +220,153 @@ export class Hub extends DurableObject {
     }
     this.set("cursor", (start + done) % points.length);
   }
+
+  /* ---------- Email updates ---------- */
+  async emailSubscribe(b, req) {
+    if (!emailReady(this.env)) return json({ error: "Email isn't set up yet" }, 503);
+    const email = String(b.email || "").trim().toLowerCase();
+    if (email.length > 120 || !/^[^\s@<>"']+@[^\s@<>"']+\.[a-z]{2,}$/i.test(email)) return json({ error: "Bad email" }, 400);
+    const lat = +b.lat, lon = +b.lon;
+    if (!(lat > 17 && lat < 72 && lon > -180 && lon < -60)) return json({ error: "US locations only" }, 400);
+    const forecast = b.forecast === false ? 0 : 1, news = b.news === false ? 0 : 1;
+    if (!forecast && !news) return json({ error: "Pick at least one" }, 400);
+    const name = String(b.name || "your city").replace(/[<>]/g, "").slice(0, 60), lang = b.lang === "es" ? "es" : "en", now = Date.now();
+    // simple limits so nobody can use the form to flood an inbox
+    const ip = req.headers.get("CF-Connecting-IP") || "?", ipKey = "ip:" + await sha(ip), ipHits = JSON.parse(this.get(ipKey) || "[]").filter(t => now - t < 3600000);
+    if (ipHits.length >= 5) return json({ error: "Too many tries. Try again later." }, 429);
+    this.set(ipKey, JSON.stringify([...ipHits, now]));
+    if (this.sql.exec("SELECT COUNT(*) AS n FROM emails").one().n >= MAX_SUBS) return json({ error: "Full" }, 503);
+    const old = this.sql.exec("SELECT * FROM emails WHERE email = ?", email).toArray()[0];
+    if (old && now - (old.confirm_sent || 0) < 10 * 60000 && !old.confirmed) return json({ ok: true, pending: true });
+    // look up the forecast address and time zone for this place once
+    let fc_url = null, tz = "America/New_York";
+    try {
+      const r = await fetch(`https://api.weather.gov/points/${lat.toFixed(4)},${lon.toFixed(4)}`, { headers: { Accept: "application/geo+json", "User-Agent": UA } });
+      if (r.ok) { const P = (await r.json()).properties; fc_url = P.forecast; tz = P.timeZone || tz; }
+    } catch (e) {}
+    const token = old ? old.token : b64u(crypto.getRandomValues(new Uint8Array(24)));
+    this.sql.exec(`INSERT INTO emails (email, token, confirmed, lat, lon, name, lang, forecast, news, fc_url, tz, created, confirm_sent) VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(email) DO UPDATE SET lat = excluded.lat, lon = excluded.lon, name = excluded.name, lang = excluded.lang, forecast = excluded.forecast,
+      news = excluded.news, fc_url = excluded.fc_url, tz = excluded.tz, confirm_sent = excluded.confirm_sent`,
+      email, token, lat, lon, name, lang, forecast, news, fc_url, tz, now, now);
+    const es = lang === "es", base = new URL(req.url).origin;
+    this.set("base", base);
+    const link = `${base}/email/confirm?t=${token}`;
+    const what = [forecast && (es ? "el pronóstico de cada mañana" : "a forecast every morning"), news && (es ? "noticias del clima" : "weather news")].filter(Boolean).join(es ? " y " : " and ");
+    const r = await this.sendEmail(email, es ? "Confirma tus correos de SkyCast" : "Confirm your SkyCast emails", emailPage(
+      es ? "Un paso más" : "One more step",
+      `<p>${es ? `Toca el botón para recibir ${what} para <b>${esc(name)}</b>.` : `Tap the button to get ${what} for <b>${esc(name)}</b>.`}</p>
+       <p style="margin:24px 0"><a href="${link}" style="background:#ffd36b;color:#0b1424;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:12px;display:inline-block">${es ? "Sí, envíenme correos" : "Yes, send me emails"}</a></p>
+       <p style="color:#667085;font-size:13px">${es ? "Si no pediste esto, ignora este correo y no recibirás nada más." : "If you didn't ask for this, ignore this email and you won't get anything else."}</p>`, null),
+      `${es ? "Confirma aquí" : "Confirm here"}: ${link}`, null);
+    if (!r.ok) return json({ error: "Couldn't send the email" }, 502);
+    return json({ ok: true });
+  }
+
+  emailLink(req, path) {
+    const u = new URL(req.url), t = u.searchParams.get("t") || "";
+    const row = t ? this.sql.exec("SELECT * FROM emails WHERE token = ?", t).toArray()[0] : null;
+    const es = row && row.lang === "es";
+    const page = (title, msg) => new Response(emailPage(title, `<p>${msg}</p><p style="margin-top:24px"><a href="https://skycastweather.com" style="color:#2563eb">${es ? "Abrir SkyCast" : "Open SkyCast"}</a></p>`, null),
+      { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    if (path === "/email/confirm") {
+      if (!row) return page("Link expired", "This link doesn't work anymore. Sign up again in SkyCast.");
+      this.sql.exec("UPDATE emails SET confirmed = 1 WHERE token = ?", t);
+      return page(es ? "¡Listo!" : "You're all set!", es ? `Recibirás correos de SkyCast para ${esc(row.name)}.` : `You'll get SkyCast emails for ${esc(row.name)}. The first one arrives in the morning (between 6 and 11 AM).`);
+    }
+    // unsubscribe works with a click (GET) and with the email app's one-click button (POST)
+    if (row) this.sql.exec("DELETE FROM emails WHERE token = ?", t);
+    return page(es ? "Cancelado" : "Unsubscribed", es ? "Ya no recibirás correos de SkyCast." : "You won't get any more SkyCast emails.");
+  }
+
+  async sendEmail(to, subject, html, text, unsubUrl) {
+    try {
+      const headers = unsubUrl ? { "List-Unsubscribe": `<${unsubUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } : undefined;
+      const r = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${this.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ from: this.env.EMAIL_FROM || "SkyCast <weather@skycastweather.com>", to: [to], subject, html, text, headers })
+      });
+      return { ok: r.ok, status: r.status };
+    } catch (e) { return { ok: false, status: 0 }; }
+  }
+
+  // every minute: send the morning email to anyone whose local time is between 6 and 11 AM and who hasn't had today's yet
+  async emailTick() {
+    if (!emailReady(this.env)) return;
+    const now = Date.now();
+    this.sql.exec("DELETE FROM emails WHERE confirmed = 0 AND created < ?", now - 7 * 86400000);
+    this.sql.exec("DELETE FROM emails WHERE fails >= 10");
+    const rows = this.sql.exec("SELECT * FROM emails WHERE confirmed = 1 ORDER BY email").toArray();
+    const due = rows.filter(r => { const l = localParts(now, r.tz); return l.hour >= 6 && l.hour < 11 && r.last_day !== l.day; });
+    if (!due.length) return;
+    let budget = 40, news = null;
+    if (due.some(r => r.news)) {
+      budget--;
+      try { const j = await (await fetch("https://skycastweather.com/news.json?t=" + Math.floor(now / 600000), { headers: { "User-Agent": UA } })).json(); news = Array.isArray(j.articles) ? j.articles : []; } catch (e) { news = []; }
+    }
+    const alertCache = new Map(), fcCache = new Map();
+    for (const r of due) {
+      if (budget < 4) break;
+      const day = localParts(now, r.tz).day, es = r.lang === "es";
+      const unsub = `${this.get("base")}/email/unsubscribe?t=${r.token}`;
+      const parts = [], textParts = [];
+      if (r.forecast && r.fc_url) {
+        let periods = fcCache.get(r.fc_url);
+        if (!periods) { budget--; try { const f = await fetch(r.fc_url, { headers: { Accept: "application/geo+json", "User-Agent": UA } }); periods = f.ok ? ((await f.json()).properties.periods || []) : []; } catch (e) { periods = []; } fcCache.set(r.fc_url, periods); }
+        const pt = r.lat.toFixed(2) + "," + r.lon.toFixed(2);
+        let alerts = alertCache.get(pt);
+        if (!alerts) { budget--; try { const a = await fetch(`https://api.weather.gov/alerts/active?point=${pt}`, { headers: { Accept: "application/geo+json", "User-Agent": UA } }); alerts = a.ok ? ((await a.json()).features || []).map(x => x.properties).filter(x => x && x.status === "Actual") : []; } catch (e) { alerts = []; } alertCache.set(pt, alerts); }
+        if (alerts.length) {
+          parts.push(`<div style="background:#fde8ea;border:1px solid #f5b5bd;border-radius:14px;padding:14px 16px;margin:0 0 18px"><b style="color:#a0001a">⚠️ ${es ? "Avisos activos" : "Active warnings"}</b>${alerts.slice(0, 4).map(a => `<div style="margin-top:6px">${esc(a.event)}${a.ends || a.expires ? ` · ${es ? "hasta" : "until"} ${fmtTime(a.ends || a.expires, r.tz, es)}` : ""}</div>`).join("")}</div>`);
+          textParts.push((es ? "AVISOS: " : "WARNINGS: ") + alerts.slice(0, 4).map(a => a.event).join(", "));
+        }
+        const ps = periods.slice(0, 3);
+        if (ps.length) {
+          parts.push(`<h2 style="font-size:18px;margin:0 0 10px">${es ? "Pronóstico" : "Forecast"} · ${esc(r.name)}</h2>` + ps.map(p =>
+            `<div style="padding:12px 0;border-top:1px solid #e4e7ec"><b>${esc(p.name)}</b> · ${p.temperature}°${esc(p.temperatureUnit)}<div style="color:#475467;margin-top:4px">${esc(p.detailedForecast || p.shortForecast)}</div></div>`).join(""));
+          textParts.push(ps.map(p => `${p.name}: ${p.temperature}°${p.temperatureUnit}. ${p.detailedForecast || p.shortForecast}`).join("\n"));
+        }
+      }
+      let newest = r.last_news;
+      if (r.news && news) {
+        const fresh = news.filter(a => Date.parse(a.published) > (r.last_news || now - 36 * 3600000)).slice(0, 3);
+        if (fresh.length) {
+          newest = Math.max(...fresh.map(a => Date.parse(a.published)));
+          parts.push(`<h2 style="font-size:18px;margin:26px 0 10px">${es ? "Noticias del clima" : "Weather news"}</h2>` + fresh.map(a =>
+            `<div style="padding:12px 0;border-top:1px solid #e4e7ec"><a href="${esc(a.url)}" style="color:#0e1d38;font-weight:700;text-decoration:none">${esc(a.icon || "")} ${esc(a.title)}</a><div style="color:#475467;margin-top:4px">${esc(a.summary)}</div><div style="color:#98a2b3;font-size:13px;margin-top:4px">${esc(a.source)}</div></div>`).join(""));
+          textParts.push(fresh.map(a => `${a.title} (${a.source}) ${a.url}`).join("\n"));
+        }
+      }
+      if (!parts.length) { this.sql.exec("UPDATE emails SET last_day = ? WHERE email = ?", day, r.email); continue; }
+      budget--;
+      const subject = r.forecast && fcCache.get(r.fc_url) && fcCache.get(r.fc_url)[0]
+        ? `${es ? "Hoy en" : "Today in"} ${r.name}: ${fcCache.get(r.fc_url)[0].temperature}°, ${fcCache.get(r.fc_url)[0].shortForecast}`
+        : (es ? "Noticias del clima de SkyCast" : "SkyCast weather news");
+      const res = await this.sendEmail(r.email, subject.slice(0, 120), emailPage(es ? "Tu clima de hoy" : "Your weather today", parts.join(""), unsub, es),
+        textParts.join("\n\n") + `\n\n${es ? "Cancelar" : "Unsubscribe"}: ${unsub}`, unsub);
+      if (res.ok) this.sql.exec("UPDATE emails SET last_day = ?, last_news = ?, fails = 0 WHERE email = ?", day, newest || 0, r.email);
+      else this.sql.exec("UPDATE emails SET fails = fails + 1 WHERE email = ?", r.email);
+    }
+  }
+}
+
+const emailReady = env => !!(env && env.RESEND_API_KEY);
+const esc = t => String(t ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function localParts(ms, tz) {
+  const p = {};
+  try { new Intl.DateTimeFormat("en-CA", { timeZone: tz || "America/New_York", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" }).formatToParts(new Date(ms)).forEach(x => p[x.type] = x.value); }
+  catch (e) { return localParts(ms, "America/New_York"); }
+  return { day: `${p.year}-${p.month}-${p.day}`, hour: +p.hour };
+}
+const fmtTime = (iso, tz, es) => { try { return new Date(iso).toLocaleString(es ? "es-US" : "en-US", { timeZone: tz, weekday: "short", hour: "numeric", minute: "2-digit" }); } catch (e) { return ""; } };
+function emailPage(title, body, unsub, es) {
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title></head>
+<body style="margin:0;background:#eef3fb;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0e1d38">
+<div style="max-width:560px;margin:0 auto;padding:24px 16px">
+<div style="font-size:22px;font-weight:800;margin-bottom:14px">☀️ Sky<span style="color:#f59e0b">Cast</span></div>
+<div style="background:#fff;border-radius:20px;padding:24px 22px;line-height:1.5;font-size:15px">
+<h1 style="font-size:22px;margin:0 0 14px">${esc(title)}</h1>${body}</div>
+<p style="color:#667085;font-size:12px;text-align:center;margin-top:18px">SkyCast · <a href="https://skycastweather.com" style="color:#667085">skycastweather.com</a> · ${es ? "Datos del Servicio Meteorológico Nacional" : "Forecasts from the National Weather Service"}${unsub ? ` · <a href="${unsub}" style="color:#667085">${es ? "Cancelar correos" : "Unsubscribe"}</a>` : ""}</p>
+</div></body></html>`;
 }
