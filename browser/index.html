@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orbit Browser</title>
+<style>
+  :root{
+    --bg:#0f1220; --chrome:#171b2e; --tab:#20253d; --tab-active:#2b3152;
+    --text:#e8eaf6; --muted:#9aa1c4; --accent:#7c8cff; --accent2:#4fd1c5;
+    --border:#2c3256; --danger:#ff6b81;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  .app{display:flex;flex-direction:column;height:100vh}
+
+  /* Tabs */
+  .tabbar{display:flex;align-items:flex-end;gap:4px;padding:8px 8px 0;background:var(--chrome);overflow-x:auto}
+  .tab{display:flex;align-items:center;gap:8px;min-width:120px;max-width:220px;flex:0 1 200px;
+    padding:8px 10px;background:var(--tab);border-radius:10px 10px 0 0;cursor:pointer;
+    font-size:13px;color:var(--muted);user-select:none}
+  .tab.active{background:var(--tab-active);color:var(--text)}
+  .tab .fav{width:16px;height:16px;border-radius:4px;flex:none;display:grid;place-items:center;
+    font-size:10px;font-weight:700;background:var(--accent);color:#fff}
+  .tab .title{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tab .x{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:13px;opacity:.6}
+  .tab .x:hover{background:#ffffff22;opacity:1}
+  .newtab{width:30px;height:30px;border-radius:8px;font-size:20px;color:var(--muted);margin-bottom:3px;flex:none}
+  .newtab:hover{background:#ffffff14;color:var(--text)}
+
+  /* Toolbar */
+  .toolbar{display:flex;align-items:center;gap:6px;padding:8px;background:var(--tab-active);border-bottom:1px solid var(--border)}
+  .icon-btn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:16px;color:var(--muted);flex:none}
+  .icon-btn:hover:not(:disabled){background:#ffffff14;color:var(--text)}
+  .icon-btn:disabled{opacity:.3;cursor:default}
+  .icon-btn.on{color:#ffd166}
+  .omnibox{flex:1;display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);
+    border-radius:20px;padding:0 14px;height:36px}
+  .omnibox:focus-within{border-color:var(--accent)}
+  .omnibox .lock{font-size:12px;color:var(--muted)}
+  .omnibox input{flex:1;background:none;border:0;outline:0;color:var(--text);font-size:14px}
+
+  /* Bookmarks bar */
+  .bookbar{display:flex;gap:4px;padding:4px 8px;background:var(--tab-active);border-bottom:1px solid var(--border);
+    overflow-x:auto;min-height:32px;align-items:center}
+  .bookbar .bm{font-size:12px;padding:4px 10px;border-radius:12px;color:var(--muted);white-space:nowrap}
+  .bookbar .bm:hover{background:#ffffff14;color:var(--text)}
+  .bookbar .empty{font-size:12px;color:var(--muted);opacity:.6;padding-left:4px}
+
+  /* Notice */
+  .notice{display:none;align-items:center;gap:10px;padding:6px 12px;font-size:12px;
+    background:#2a2440;color:#d9d2ff;border-bottom:1px solid var(--border)}
+  .notice.show{display:flex}
+  .notice a{color:var(--accent2);font-weight:600}
+  .notice .spacer{flex:1}
+
+  /* Content */
+  .content{flex:1;position:relative;background:#fff}
+  .content iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
+  .page{position:absolute;inset:0;overflow:auto;background:var(--bg);color:var(--text);padding:40px 24px}
+  .hidden{display:none!important}
+
+  /* Home page */
+  .home{max-width:760px;margin:6vh auto 0;text-align:center}
+  .logo{font-size:56px;font-weight:800;letter-spacing:-2px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .clock{color:var(--muted);margin:4px 0 28px;font-size:15px}
+  .bigsearch{display:flex;gap:8px;max-width:600px;margin:0 auto 36px}
+  .bigsearch input{flex:1;height:48px;border-radius:24px;border:1px solid var(--border);background:var(--chrome);
+    color:var(--text);padding:0 20px;font-size:16px;outline:0}
+  .bigsearch input:focus{border-color:var(--accent)}
+  .bigsearch button{height:48px;padding:0 22px;border-radius:24px;background:var(--accent);color:#fff;font-weight:600}
+  .dial{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:14px}
+  .tile{background:var(--chrome);border:1px solid var(--border);border-radius:14px;padding:16px 8px;
+    display:flex;flex-direction:column;align-items:center;gap:10px;font-size:13px;position:relative}
+  .tile:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .tile .badge{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:20px;font-weight:800;color:#fff}
+  .tile .rm{position:absolute;top:4px;right:6px;font-size:12px;opacity:0;color:var(--muted)}
+  .tile:hover .rm{opacity:1}
+  .tile.add .badge{background:transparent;border:2px dashed var(--border);color:var(--muted)}
+
+  /* List pages */
+  .listpage{max-width:760px;margin:0 auto}
+  .listpage h1{margin:0 0 6px;font-size:28px}
+  .listpage p.sub{color:var(--muted);margin:0 0 20px}
+  .row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;border:1px solid transparent}
+  .row:hover{background:var(--chrome);border-color:var(--border)}
+  .row .t{flex:1;min-width:0}
+  .row .t b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .t span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .row .when{font-size:12px;color:var(--muted)}
+  .pill{padding:6px 12px;border-radius:14px;background:var(--chrome);border:1px solid var(--border);font-size:13px}
+  .pill:hover{border-color:var(--accent)}
+  .pill.danger:hover{border-color:var(--danger);color:var(--danger)}
+
+  /* Modal */
+  .modal-bg{position:fixed;inset:0;background:#0008;display:grid;place-items:center;z-index:10}
+  .modal{background:var(--chrome);border:1px solid var(--border);border-radius:16px;padding:22px;width:min(380px,92vw)}
+  .modal h3{margin:0 0 14px}
+  .modal input{width:100%;height:38px;margin-bottom:10px;border-radius:8px;border:1px solid var(--border);
+    background:var(--bg);color:var(--text);padding:0 12px;outline:0}
+  .modal .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+  .modal .primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="tabbar" id="tabbar"></div>
+
+  <div class="toolbar">
+    <button class="icon-btn" id="back" title="Back (Alt+←)">←</button>
+    <button class="icon-btn" id="fwd" title="Forward (Alt+→)">→</button>
+    <button class="icon-btn" id="reload" title="Reload">⟳</button>
+    <button class="icon-btn" id="home" title="Home">⌂</button>
+    <form class="omnibox" id="omniForm">
+      <span class="lock" id="lock">🔍</span>
+      <input id="omni" autocomplete="off" spellcheck="false" placeholder="Search Wikipedia or type a web address">
+    </form>
+    <button class="icon-btn" id="star" title="Bookmark this page">☆</button>
+    <button class="icon-btn" id="openReal" title="Open in a real tab">↗</button>
+    <button class="icon-btn" id="menuBm" title="Bookmarks">📑</button>
+    <button class="icon-btn" id="menuHist" title="History">🕘</button>
+  </div>
+
+  <div class="bookbar" id="bookbar"></div>
+
+  <div class="notice" id="notice">
+    <span>Page blank? Some sites (like Google, YouTube's main site or Instagram) won't show inside another page.</span>
+    <span class="spacer"></span>
+    <a id="noticeLink" href="#" target="_blank" rel="noopener">Open it directly ↗</a>
+    <button id="noticeX" title="Hide">✕</button>
+  </div>
+
+  <div class="content" id="content"></div>
+</div>
+
+<script>
+(() => {
+  // ---------- Storage (safe) ----------
+  const store = {
+    get(k, d){ try{ const v = localStorage.getItem('orbit:'+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+    set(k, v){ try{ localStorage.setItem('orbit:'+k, JSON.stringify(v)); }catch(e){} }
+  };
+
+  const DEFAULT_DIAL = [
+    {title:'Wikipedia', url:'https://en.wikipedia.org/wiki/Main_Page'},
+    {title:'OpenStreetMap', url:'https://www.openstreetmap.org/export/embed.html?bbox=-98,29,-94,33&layer=mapnik'},
+    {title:'Bing', url:'https://www.bing.com/'},
+    {title:'Archive.org', url:'https://archive.org/'},
+    {title:'Example', url:'https://example.com/'},
+    {title:'Weather', url:'https://wttr.in/?format=v2'},
+  ];
+  let dial = store.get('dial', DEFAULT_DIAL);
+  let bookmarks = store.get('bookmarks', [{title:'Wikipedia', url:'https://en.wikipedia.org/wiki/Main_Page'}]);
+  let history = store.get('history', []);
+  let noticeHidden = false;
+
+  const COLORS = ['#7c8cff','#4fd1c5','#f6ad55','#fc8181','#b794f4','#68d391','#63b3ed','#f687b3'];
+  const colorFor = s => { let h=0; for(const c of s) h=(h*31+c.charCodeAt(0))>>>0; return COLORS[h%COLORS.length]; };
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const isInternal = u => u.startsWith('orbit://');
+  // When Orbit itself runs inside another page (like a hosted preview), sites can't load inside it,
+  // so each site gets a launch card instead of an embedded view.
+  const FRAMED = (() => { try{ return window.top !== window; }catch(e){ return true; } })();
+  const usesPage = u => isInternal(u) || FRAMED;
+  const hostOf = u => { try{ return new URL(u).hostname.replace(/^www\./,''); }catch(e){ return u; } };
+
+  // ---------- URL handling ----------
+  function normalize(input){
+    const q = input.trim();
+    if(!q) return 'orbit://home';
+    if(isInternal(q)) return q;
+    if(/^https?:\/\//i.test(q)) return q;
+    if(/^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(q) && !q.includes(' ')) return 'https://' + q;
+    return 'https://en.wikipedia.org/w/index.php?search=' + encodeURIComponent(q);
+  }
+  // Turn a YouTube watch link into an embeddable player
+  function frameable(u){
+    try{
+      const url = new URL(u);
+      if(/(^|\.)youtube\.com$/.test(url.hostname) && url.pathname === '/watch' && url.searchParams.get('v'))
+        return 'https://www.youtube.com/embed/' + url.searchParams.get('v');
+      if(url.hostname === 'youtu.be') return 'https://www.youtube.com/embed' + url.pathname;
+    }catch(e){}
+    return u;
+  }
+
+  // ---------- Tabs ----------
+  let tabs = [];
+  let activeId = null;
+  let nextId = 1;
+
+  function newTab(url='orbit://home', activate=true){
+    const id = nextId++;
+    const frame = document.createElement('iframe');
+    frame.className = 'hidden';
+    frame.setAttribute('referrerpolicy','no-referrer');
+    frame.setAttribute('allow','fullscreen; autoplay; encrypted-media; picture-in-picture');
+    const page = document.createElement('div');
+    page.className = 'page hidden';
+    content.append(frame, page);
+    const tab = {id, stack:[], idx:-1, frame, page, title:'New Tab'};
+    tabs.push(tab);
+    navigate(tab, url);
+    if(activate) activate_(id); else renderTabs();
+    return tab;
+  }
+
+  function closeTab(id){
+    const i = tabs.findIndex(t => t.id === id);
+    if(i < 0) return;
+    const [t] = tabs.splice(i,1);
+    t.frame.remove(); t.page.remove();
+    if(!tabs.length){ newTab(); return; }
+    if(activeId === id) activate_(tabs[Math.min(i, tabs.length-1)].id);
+    else renderTabs();
+  }
+
+  function activate_(id){
+    activeId = id;
+    tabs.forEach(t => {
+      const on = t.id === id;
+      const url = t.stack[t.idx] || '';
+      t.frame.classList.toggle('hidden', !on || usesPage(url));
+      t.page.classList.toggle('hidden', !on || !usesPage(url));
+    });
+    renderTabs(); syncToolbar();
+  }
+
+  const cur = () => tabs.find(t => t.id === activeId);
+
+  function navigate(tab, input, push=true){
+    const url = normalize(input);
+    if(push){
+      tab.stack = tab.stack.slice(0, tab.idx+1);
+      tab.stack.push(url); tab.idx = tab.stack.length-1;
+    }
+    load(tab);
+    if(!isInternal(url)){
+      history.unshift({url, title: titleFor(url), at: Date.now()});
+      history = history.slice(0, 300); store.set('history', history);
+    }
+  }
+
+  function titleFor(url){
+    if(url === 'orbit://home') return 'New Tab';
+    if(url === 'orbit://bookmarks') return 'Bookmarks';
+    if(url === 'orbit://history') return 'History';
+    try{
+      const u = new URL(url);
+      const s = u.searchParams.get('search');
+      if(s) return s + ' – Search';
+      if(u.hostname.endsWith('wikipedia.org') && u.pathname.startsWith('/wiki/'))
+        return decodeURIComponent(u.pathname.slice(6)).replace(/_/g,' ');
+    }catch(e){}
+    return hostOf(url);
+  }
+
+  function load(tab){
+    const url = tab.stack[tab.idx];
+    tab.title = titleFor(url);
+    if(isInternal(url)){
+      tab.frame.removeAttribute('src');
+      renderInternal(tab, url);
+    } else if(FRAMED){
+      renderLaunch(tab, url);
+    } else {
+      tab.frame.src = frameable(url);
+    }
+    if(tab.id === activeId) activate_(tab.id); else renderTabs();
+  }
+
+  // ---------- Rendering ----------
+  function renderTabs(){
+    tabbar.innerHTML = '';
+    tabs.forEach(t => {
+      const url = t.stack[t.idx] || '';
+      const el = document.createElement('div');
+      el.className = 'tab' + (t.id === activeId ? ' active' : '');
+      const letter = isInternal(url) ? '◎' : (hostOf(url)[0]||'?').toUpperCase();
+      el.innerHTML = `<span class="fav" style="background:${isInternal(url)?'var(--accent)':colorFor(hostOf(url))}">${esc(letter)}</span>
+        <span class="title">${esc(t.title)}</span><button class="x" title="Close tab">✕</button>`;
+      el.onclick = () => activate_(t.id);
+      el.onauxclick = e => { if(e.button===1) closeTab(t.id); };
+      el.querySelector('.x').onclick = e => { e.stopPropagation(); closeTab(t.id); };
+      tabbar.append(el);
+    });
+    const plus = document.createElement('button');
+    plus.className = 'newtab'; plus.textContent = '+'; plus.title = 'New tab (Ctrl+T)';
+    plus.onclick = () => { newTab(); omni.focus(); };
+    tabbar.append(plus);
+  }
+
+  function syncToolbar(){
+    const t = cur(); if(!t) return;
+    const url = t.stack[t.idx] || '';
+    omni.value = isInternal(url) ? '' : url;
+    lock.textContent = isInternal(url) ? '🔍' : (url.startsWith('https') ? '🔒' : '⚠');
+    back.disabled = t.idx <= 0;
+    fwd.disabled = t.idx >= t.stack.length-1;
+    const marked = bookmarks.some(b => b.url === url);
+    star.textContent = marked ? '★' : '☆';
+    star.classList.toggle('on', marked);
+    star.disabled = isInternal(url);
+    openReal.disabled = isInternal(url);
+    const ext = !isInternal(url) && !FRAMED;
+    notice.classList.toggle('show', ext && !noticeHidden);
+    if(ext) noticeLink.href = url;
+    document.title = t.title + ' – Orbit';
+  }
+
+  function renderBookbar(){
+    bookbar.innerHTML = '';
+    if(!bookmarks.length){ bookbar.innerHTML = '<span class="empty">Click ☆ to bookmark a page and it shows up here.</span>'; return; }
+    bookmarks.forEach(b => {
+      const el = document.createElement('button');
+      el.className = 'bm'; el.textContent = b.title; el.title = b.url;
+      el.onclick = () => navigate(cur(), b.url);
+      bookbar.append(el);
+    });
+  }
+
+  function renderInternal(tab, url){
+    const p = tab.page;
+    if(url === 'orbit://home'){
+      p.innerHTML = `<div class="home">
+        <div class="logo">Orbit</div>
+        <div class="clock" data-clock></div>
+        <form class="bigsearch"><input placeholder="Search Wikipedia or type a web address" autofocus><button>Go</button></form>
+        <div class="dial"></div></div>`;
+      const f = p.querySelector('form'), inp = f.querySelector('input');
+      f.onsubmit = e => { e.preventDefault(); if(inp.value.trim()) navigate(tab, inp.value); };
+      const d = p.querySelector('.dial');
+      dial.forEach((s, i) => {
+        const el = document.createElement('div');
+        el.className = 'tile';
+        el.innerHTML = `<span class="badge" style="background:${colorFor(hostOf(s.url))}">${esc(s.title[0].toUpperCase())}</span>
+          <span>${esc(s.title)}</span><button class="rm" title="Remove">✕</button>`;
+        el.onclick = () => navigate(tab, s.url);
+        el.querySelector('.rm').onclick = e => { e.stopPropagation(); dial.splice(i,1); store.set('dial', dial); renderInternal(tab, url); };
+        d.append(el);
+      });
+      const add = document.createElement('div');
+      add.className = 'tile add';
+      add.innerHTML = '<span class="badge">+</span><span>Add site</span>';
+      add.onclick = () => askSite(s => { dial.push(s); store.set('dial', dial); renderInternal(tab, url); });
+      d.append(add);
+      tickClock();
+    }
+    else if(url === 'orbit://bookmarks'){
+      p.innerHTML = `<div class="listpage"><h1>Bookmarks</h1><p class="sub">${bookmarks.length} saved</p><div class="list"></div></div>`;
+      const list = p.querySelector('.list');
+      if(!bookmarks.length) list.innerHTML = '<p class="sub">No bookmarks yet.</p>';
+      bookmarks.forEach((b, i) => {
+        const r = document.createElement('div'); r.className = 'row';
+        r.innerHTML = `<span class="fav" style="width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-weight:700;background:${colorFor(hostOf(b.url))}">${esc(b.title[0].toUpperCase())}</span>
+          <div class="t"><b>${esc(b.title)}</b><span>${esc(b.url)}</span></div>
+          <button class="pill">Open</button><button class="pill danger">Remove</button>`;
+        const [o, rm] = r.querySelectorAll('button');
+        o.onclick = () => navigate(tab, b.url);
+        rm.onclick = () => { bookmarks.splice(i,1); store.set('bookmarks', bookmarks); renderBookbar(); renderInternal(tab, url); };
+        list.append(r);
+      });
+    }
+    else if(url === 'orbit://history'){
+      p.innerHTML = `<div class="listpage"><h1>History</h1>
+        <p class="sub">${history.length} pages visited &nbsp; <button class="pill danger" id="clearH">Clear history</button></p><div class="list"></div></div>`;
+      p.querySelector('#clearH').onclick = () => { history = []; store.set('history', history); renderInternal(tab, url); };
+      const list = p.querySelector('.list');
+      history.slice(0,150).forEach(h => {
+        const r = document.createElement('div'); r.className = 'row'; r.style.cursor = 'pointer';
+        r.innerHTML = `<div class="t"><b>${esc(h.title)}</b><span>${esc(h.url)}</span></div>
+          <span class="when">${new Date(h.at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</span>`;
+        r.onclick = () => navigate(tab, h.url);
+        list.append(r);
+      });
+    }
+    else {
+      p.innerHTML = `<div class="listpage"><h1>Page not found</h1><p class="sub">${esc(url)}</p></div>`;
+    }
+  }
+
+  function renderLaunch(tab, url){
+    const h = hostOf(url);
+    tab.page.innerHTML = `<div class="home" style="margin-top:10vh">
+      <span class="badge" style="width:88px;height:88px;border-radius:22px;display:inline-grid;place-items:center;font-size:40px;font-weight:800;color:#fff;background:${colorFor(h)}">${esc(h[0].toUpperCase())}</span>
+      <h1 style="margin:18px 0 6px;font-size:30px">${esc(tab.title)}</h1>
+      <p class="sub" style="color:var(--muted);word-break:break-all;margin:0 0 26px">${esc(url)}</p>
+      <a href="${esc(url)}" target="_blank" rel="noopener" style="display:inline-block;padding:14px 28px;border-radius:26px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none;font-size:16px">Open ${esc(h)} ↗</a>
+      <p style="color:var(--muted);font-size:13px;margin-top:22px">The site opens in a new tab. Your bookmarks and history stay saved here in Orbit.</p></div>`;
+  }
+
+  function tickClock(){
+    const now = new Date();
+    document.querySelectorAll('[data-clock]').forEach(el => {
+      el.textContent = now.toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'}) + ' · ' +
+                       now.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+    });
+  }
+  setInterval(tickClock, 15000);
+
+  // ---------- Modal for adding a site ----------
+  function askSite(done, preset={}){
+    const bg = document.createElement('div'); bg.className = 'modal-bg';
+    bg.innerHTML = `<form class="modal"><h3>Add a site</h3>
+      <input name="title" placeholder="Name (e.g. Wikipedia)" value="${esc(preset.title||'')}" required>
+      <input name="url" placeholder="Address (e.g. wikipedia.org)" value="${esc(preset.url||'')}" required>
+      <div class="acts"><button type="button" class="pill">Cancel</button><button class="pill primary">Add</button></div></form>`;
+    document.body.append(bg);
+    const f = bg.querySelector('form');
+    f.title.focus();
+    bg.querySelector('button[type=button]').onclick = () => bg.remove();
+    bg.onclick = e => { if(e.target === bg) bg.remove(); };
+    f.onsubmit = e => {
+      e.preventDefault();
+      done({title: f.title.value.trim(), url: normalize(f.url.value)});
+      bg.remove();
+    };
+  }
+
+  // ---------- Elements & events ----------
+  const $ = id => document.getElementById(id);
+  const tabbar=$('tabbar'), content=$('content'), omni=$('omni'), lock=$('lock'), back=$('back'), fwd=$('fwd'),
+        star=$('star'), openReal=$('openReal'), bookbar=$('bookbar'), notice=$('notice'), noticeLink=$('noticeLink');
+
+  $('omniForm').onsubmit = e => { e.preventDefault(); navigate(cur(), omni.value); omni.blur(); };
+  omni.onfocus = () => omni.select();
+  back.onclick = () => { const t = cur(); if(t.idx > 0){ t.idx--; load(t); } };
+  fwd.onclick = () => { const t = cur(); if(t.idx < t.stack.length-1){ t.idx++; load(t); } };
+  $('reload').onclick = () => { const t = cur(); const u = t.stack[t.idx]; if(isInternal(u)) load(t); else { t.frame.src = 'about:blank'; setTimeout(() => t.frame.src = frameable(u), 30); } };
+  $('home').onclick = () => navigate(cur(), 'orbit://home');
+  $('menuBm').onclick = () => navigate(cur(), 'orbit://bookmarks');
+  $('menuHist').onclick = () => navigate(cur(), 'orbit://history');
+  $('noticeX').onclick = () => { noticeHidden = true; notice.classList.remove('show'); };
+  openReal.onclick = () => {
+    const u = cur().stack[cur().idx];
+    const a = document.createElement('a'); a.href = u; a.target = '_blank'; a.rel = 'noopener'; a.click();
+  };
+  star.onclick = () => {
+    const t = cur(), u = t.stack[t.idx];
+    const i = bookmarks.findIndex(b => b.url === u);
+    if(i >= 0) bookmarks.splice(i,1); else bookmarks.push({title: t.title, url: u});
+    store.set('bookmarks', bookmarks); renderBookbar(); syncToolbar();
+  };
+
+  document.addEventListener('keydown', e => {
+    const mod = e.ctrlKey || e.metaKey;
+    if(mod && e.key.toLowerCase() === 't'){ e.preventDefault(); newTab(); omni.focus(); }
+    else if(mod && e.key.toLowerCase() === 'w'){ e.preventDefault(); closeTab(activeId); }
+    else if(mod && e.key.toLowerCase() === 'l'){ e.preventDefault(); omni.focus(); }
+    else if(mod && e.key.toLowerCase() === 'd'){ e.preventDefault(); star.click(); }
+    else if(mod && e.key === 'Tab'){
+      e.preventDefault();
+      const i = tabs.findIndex(t => t.id === activeId);
+      activate_(tabs[(i + (e.shiftKey ? -1 : 1) + tabs.length) % tabs.length].id);
+    }
+    else if(e.altKey && e.key === 'ArrowLeft'){ back.click(); }
+    else if(e.altKey && e.key === 'ArrowRight'){ fwd.click(); }
+  });
+
+  renderBookbar();
+  newTab('orbit://home');
+})();
+</script>
+</body>
+</html>
