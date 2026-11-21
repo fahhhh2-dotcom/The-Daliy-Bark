@@ -39,7 +39,8 @@ service cloud.firestore {
       allow create: if signedIn() && data().author == me()
         && str(data().text, 280)
         && data().createdAt is number
-        && (!('image' in data()) || str(data().image, 400000));
+        && (!('image' in data()) || str(data().image, 400000))
+        && (!('title' in data()) || str(data().title, 100));
       // video views: anyone can add exactly one view at a time
       allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views'])
         && request.resource.data.views == resource.data.get('views', 0) + 1;
@@ -80,7 +81,7 @@ service cloud.firestore {
     match /videoChunks/{id} {
       allow read: if true;
       allow create: if signedIn() && data().owner == me()
-        && data().i is int && data().i >= 0 && data().i < 20
+        && data().i is int && data().i >= 0 && data().i < 40
         && id == data().vid + '_' + string(data().i)
         && str(data().data, 1000000);
       allow delete: if signedIn() && (resource.data.owner == me() || isAdmin());

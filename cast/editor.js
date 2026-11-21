@@ -225,7 +225,7 @@ export async function openCamera({title='Camera', maxSeconds=30}={}){
     const startRec=()=>{
       if(!camStream||typeof MediaRecorder==='undefined')return;
       const type=REC_TYPES.find(t=>MediaRecorder.isTypeSupported(t));
-      try{ rec=new MediaRecorder(camStream,type?{mimeType:type,videoBitsPerSecond:900000,audioBitsPerSecond:64000}:undefined); }catch{ rec=null; return; }
+      try{ rec=new MediaRecorder(camStream,type?{mimeType:type,videoBitsPerSecond:2000000,audioBitsPerSecond:96000}:undefined); }catch{ rec=null; return; }
       recParts=[]; rec.ondataavailable=e=>{if(e.data&&e.data.size)recParts.push(e.data)};
       rec.onstop=()=>{ const t=(rec.mimeType||type||'video/webm').split(';')[0]; const blob=new Blob(recParts,{type:t}); if(blob.size)finish({videoBlob:blob,filter}); };
       rec.start(500); recStart=Date.now();
@@ -273,13 +273,19 @@ export const canCompress = () => typeof MediaRecorder!=='undefined' && !!HTMLCan
  * Re-encode a video smaller (max 640px, ~0.7 Mbps). Plays through once, so it takes as long as the video.
  * Resolves with a Blob. Throws if the video is too long or can't be read.
  */
-export async function compressVideo(file,{maxSeconds=60,onProgress=()=>{}}={}){
+export async function probeVideo(file){
+  const url=URL.createObjectURL(file);const v=document.createElement('video');v.preload='metadata';v.muted=true;v.src=url;
+  try{ return await new Promise(res=>{const t=setTimeout(()=>res({duration:0,w:0,h:0}),8000);
+    v.onloadedmetadata=()=>{clearTimeout(t);res({duration:isFinite(v.duration)?v.duration:0,w:v.videoWidth,h:v.videoHeight})};v.onerror=()=>{clearTimeout(t);res({duration:0,w:0,h:0})}}); }
+  finally{ URL.revokeObjectURL(url); }
+}
+export async function compressVideo(file,{maxSeconds=60,maxDim=720,vbps=1200000,abps=96000,onProgress=()=>{}}={}){
   const url=URL.createObjectURL(file);
   const v=document.createElement('video'); v.src=url; v.playsInline=true; v.preload='auto';
   try{
     await new Promise((res,rej)=>{v.onloadedmetadata=res;v.onerror=()=>rej(new Error('Couldn’t read that video'))});
-    if(v.duration>maxSeconds+1) throw new Error(`Videos can be up to ${maxSeconds} seconds`);
-    const sc=Math.min(1,640/Math.max(v.videoWidth,v.videoHeight));
+    if(v.duration>maxSeconds+1) throw new Error(`Videos can be up to ${maxSeconds>=120?Math.round(maxSeconds/60)+' minutes':maxSeconds+' seconds'}`);
+    const sc=Math.min(1,maxDim/Math.max(v.videoWidth,v.videoHeight));
     const w=Math.max(2,Math.round(v.videoWidth*sc/2)*2), h=Math.max(2,Math.round(v.videoHeight*sc/2)*2);
     const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d');
     ctx.drawImage(v,0,0,w,h);
@@ -288,15 +294,18 @@ export async function compressVideo(file,{maxSeconds=60,onProgress=()=>{}}={}){
     try{ ac=new (window.AudioContext||window.webkitAudioContext)(); const src=ac.createMediaElementSource(v); const dst=ac.createMediaStreamDestination(); src.connect(dst); dst.stream.getAudioTracks().forEach(t=>stream.addTrack(t)); }catch{ ac=null; }
     const type=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(t=>MediaRecorder.isTypeSupported(t));
     if(!type) throw new Error('compress-unsupported');
-    const rec=new MediaRecorder(stream,{mimeType:type,videoBitsPerSecond:700000,audioBitsPerSecond:64000});
+    const rec=new MediaRecorder(stream,{mimeType:type,videoBitsPerSecond:vbps,audioBitsPerSecond:abps});
     const parts=[]; rec.ondataavailable=e=>{if(e.data&&e.data.size)parts.push(e.data)};
     const stopped=new Promise(r=>rec.onstop=r);
     rec.start(1000);
     try{ await v.play(); }catch{ v.muted=true; await v.play(); }
-    const tick=setInterval(()=>{ctx.drawImage(v,0,0,w,h);onProgress(Math.min(1,v.currentTime/(v.duration||1)))},1000/30);
+    let thumb='';
+    const tick=setInterval(()=>{ctx.drawImage(v,0,0,w,h);onProgress(Math.min(1,v.currentTime/(v.duration||1)));
+      if(!thumb&&v.currentTime>=Math.min(1,(v.duration||2)/3)){try{const tc=document.createElement('canvas');const k=Math.min(1,480/Math.max(w,h));tc.width=Math.round(w*k);tc.height=Math.round(h*k);tc.getContext('2d').drawImage(c,0,0,tc.width,tc.height);thumb=tc.toDataURL('image/jpeg',.72)}catch{}}},1000/30);
     await new Promise(r=>{v.onended=r;});
     clearInterval(tick); ctx.drawImage(v,0,0,w,h);
     rec.stop(); await stopped; stream.getTracks().forEach(t=>t.stop()); try{ac?.close()}catch{}
-    return new Blob(parts,{type:type.split(';')[0]});
+    const out=new Blob(parts,{type:type.split(';')[0]}); out.thumb=thumb; out.duration=v.duration; out.w=w; out.h=h;
+    return out;
   }finally{ URL.revokeObjectURL(url); }
 }
