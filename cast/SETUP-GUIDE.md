@@ -1,6 +1,6 @@
-# Pulse setup guide
+# Cast setup guide
 
-Pulse is a social network website that you host yourself. It uses **Firebase**, a free Google service, to:
+Cast is a social network website that you host yourself. It uses **Firebase**, a free Google service, to:
 
 - sign people in with their Google account
 - save every post, profile, like, reply, follow, repost, poll vote and bookmark
@@ -15,7 +15,7 @@ Setup takes about 15 minutes. You'll need a Google account and a GitHub account.
 | File | What it is |
 |---|---|
 | `index.html` | The website page |
-| `app.js` | Everything Pulse does |
+| `app.js` | Everything Cast does |
 | `editor.js` | Filters, photo editor, camera and video compression |
 | `style.css` | How it looks |
 | `firebase-config.js` | **You edit this file:** your Firebase settings go here |
@@ -33,7 +33,7 @@ Setup takes about 15 minutes. You'll need a Google account and a GitHub account.
 ## Step 2: Add a web app and copy its settings
 
 1. On the project home page, click the **`</>`** (Web) icon.
-2. Name it `Pulse website`. Leave "Firebase Hosting" unchecked. Click **Register app**.
+2. Name it `Cast website`. Leave "Firebase Hosting" unchecked. Click **Register app**.
 3. Firebase shows a block of code with `const firebaseConfig = { ... }`.
 4. Open **`firebase-config.js`** and replace the placeholder values with yours: `apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId` and `appId`.
 
@@ -64,7 +64,7 @@ These rules let anyone *read* posts, but only signed-in people can post, and onl
 
 ## Step 6 (optional): Turn on photo and video uploads
 
-Without this step, Pulse still works: photos are saved smaller, and videos are compressed automatically and saved as pieces inside the free database (up to about 60 seconds each). Turning on Storage raises the video limit to 20 MB and saves photos at full quality.
+Without this step, Cast still works: photos are saved smaller, and videos are compressed automatically and saved as pieces inside the free database (up to about 60 seconds each). Turning on Storage raises the video limit to 20 MB and saves photos at full quality.
 
 Firebase only lets projects on the **Blaze (pay-as-you-go)** plan use file storage. Blaze still includes a free amount of usage each month, so a small site with friends usually costs **$0**, but Google requires a card on file.
 
@@ -81,7 +81,7 @@ Firebase only lets projects on the **Blaze (pay-as-you-go)** plan use file stora
 4. After a minute your site will be live at `https://yourname.github.io/pulse/`.
 5. Make sure `yourname.github.io` is in Firebase's **Authorized domains** (step 3).
 
-> Pulse must be opened from a web address (GitHub Pages or a local server). Double-clicking `index.html` won't work, because Google sign-in needs a real address.
+> Cast must be opened from a web address (GitHub Pages or a local server). Double-clicking `index.html` won't work, because Google sign-in needs a real address.
 
 ## Step 8: Make yourself the admin (so you can moderate)
 

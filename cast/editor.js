@@ -1,4 +1,4 @@
-// Pulse — Snapchat-style filters, photo editor (stickers + caption), camera, and video compression.
+// Cast — Snapchat-style filters, photo editor (stickers + caption), camera, and video compression.
 
 /* ---------------- filters ---------------- */
 // Each filter is a list of CSS-style operations (used for the live preview AND
@@ -178,50 +178,99 @@ export async function openEditor(src, {filter='none', maxSize=1600}={}){
 /* ---------------- camera ---------------- */
 let camStream=null;
 function stopCamera(){ camStream?.getTracks().forEach(t=>t.stop()); camStream=null; }
-/** Opens the camera with live filters. Resolves with {dataUrl, filter} or null. */
-export async function openCamera(){
+const REC_TYPES=['video/mp4;codecs=avc1,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+/**
+ * Opens the camera with live filters. Tap = photo, hold = record video (up to maxSeconds).
+ * Resolves with {dataUrl, filter} | {videoBlob, filter} | {file} (picked from gallery) | null.
+ */
+export async function openCamera({title='Camera', maxSeconds=30}={}){
   if(!navigator.mediaDevices?.getUserMedia) throw new Error('This browser can’t use the camera');
-  let facing='user', filter='none';
+  let facing='user', filter='none', rec=null, recParts=[], recStart=0, recTick=null, holdT=null, done=false;
   const R=ensureRoot(); R.className='open'; document.body.style.overflow='hidden';
-  const start=async()=>{ stopCamera(); camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1280},height:{ideal:1280}},audio:false}); const v=R.querySelector('video'); if(v){v.srcObject=camStream; await v.play().catch(()=>{})} };
+  const start=async()=>{
+    stopCamera();
+    const video={facingMode:facing,width:{ideal:1280},height:{ideal:1280}};
+    try{ camStream=await navigator.mediaDevices.getUserMedia({video,audio:true}); }
+    catch(e){ if(e?.name==='NotAllowedError'&&!camStream) throw e; camStream=await navigator.mediaDevices.getUserMedia({video,audio:false}); }
+    const v=R.querySelector('video'); if(v){v.srcObject=camStream; await v.play().catch(()=>{})}
+  };
   return new Promise(async(resolve,reject)=>{
+    const finish=val=>{ if(done)return; done=true; clearInterval(recTick); clearTimeout(holdT);
+      R.removeEventListener('click',onClick); R.removeEventListener('pointerdown',onDown); R.removeEventListener('change',onChange);
+      window.removeEventListener('pointerup',onUp); stopCamera(); close(); resolve(val); };
     const draw=()=>{
       const f=FMAP[filter];
       R.innerHTML=`<div class="ed cam">
-        <div class="ed-top"><button class="ed-icon" data-cam="cancel" aria-label="Close">✕</button><b>Camera</b><button class="ed-icon" data-cam="flip" aria-label="Flip camera">⟲</button></div>
+        <div class="ed-top"><button class="ed-icon" data-cam="cancel" aria-label="Close">✕</button><b>${esc(title)}</b><button class="ed-icon" data-cam="flip" aria-label="Flip camera">⟲</button></div>
         <div class="ed-stage"><div class="cam-frame"><video playsinline muted autoplay style="${filterStyle(filter)}${facing==='user'?'transform:scaleX(-1);':''}"></video>
           ${f.tint?`<div class="ed-tint" style="background:${f.tint[0]};mix-blend-mode:${f.tint[1]}"></div>`:''}
           ${f.vignette?`<div class="ed-vig" style="background:radial-gradient(circle,rgba(0,0,0,0) 45%,rgba(0,0,0,${f.vignette}) 100%)"></div>`:''}
-          <div class="ed-name">${f.name}</div></div></div>
+          <div class="ed-name">${f.name}</div><div class="cam-rec" hidden>● REC <span>0s</span></div></div></div>
         ${filterStrip(filter,'')}
-        <div class="cam-bar"><button class="cam-snap" data-cam="snap" aria-label="Take photo"></button></div>
+        <div class="cam-bar">
+          <label class="cam-side" title="Upload from gallery">🖼<input type="file" accept="image/*,video/mp4,video/webm" data-cam-file hidden></label>
+          <button class="cam-snap" data-cam="snap" aria-label="Tap for photo, hold for video"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" pathLength="100"/></svg></button>
+          <span class="cam-side ghost"></span>
+        </div>
+        <div class="ed-hint">Tap for a photo · hold to record (up to ${maxSeconds}s)</div>
       </div>`;
       const v=R.querySelector('video'); if(camStream){v.srcObject=camStream; v.play().catch(()=>{})}
     };
-    const cleanup=()=>{R.removeEventListener('click',onClick)};
+    const snapPhoto=()=>{
+      const v=R.querySelector('video'); if(!v||!v.videoWidth)return;
+      const c=document.createElement('canvas'); c.width=v.videoWidth; c.height=v.videoHeight; const ctx=c.getContext('2d');
+      if(facing==='user'){ctx.translate(c.width,0);ctx.scale(-1,1)}
+      ctx.drawImage(v,0,0); finish({dataUrl:c.toDataURL('image/jpeg',.92),filter});
+    };
+    const startRec=()=>{
+      if(!camStream||typeof MediaRecorder==='undefined')return;
+      const type=REC_TYPES.find(t=>MediaRecorder.isTypeSupported(t));
+      try{ rec=new MediaRecorder(camStream,type?{mimeType:type,videoBitsPerSecond:900000,audioBitsPerSecond:64000}:undefined); }catch{ rec=null; return; }
+      recParts=[]; rec.ondataavailable=e=>{if(e.data&&e.data.size)recParts.push(e.data)};
+      rec.onstop=()=>{ const t=(rec.mimeType||type||'video/webm').split(';')[0]; const blob=new Blob(recParts,{type:t}); if(blob.size)finish({videoBlob:blob,filter}); };
+      rec.start(500); recStart=Date.now();
+      const btn=R.querySelector('.cam-snap'), lab=R.querySelector('.cam-rec'); btn?.classList.add('rec'); if(lab)lab.hidden=false;
+      btn?.style.setProperty('--dur',maxSeconds+'s');
+      recTick=setInterval(()=>{const s=Math.floor((Date.now()-recStart)/1000); const sp=R.querySelector('.cam-rec span'); if(sp)sp.textContent=s+'s'; if(s>=maxSeconds)stopRec();},250);
+    };
+    const stopRec=()=>{ clearInterval(recTick); if(rec&&rec.state!=='inactive'){ if(Date.now()-recStart<700){ setTimeout(stopRec,700-(Date.now()-recStart)); return; } rec.stop(); } };
+    const onDown=e=>{
+      if(!e.target.closest('[data-cam="snap"]'))return;
+      e.preventDefault(); holdT=setTimeout(()=>{holdT=null;startRec()},350);
+      window.addEventListener('pointerup',onUp);
+    };
+    const onUp=()=>{ window.removeEventListener('pointerup',onUp);
+      if(holdT){clearTimeout(holdT);holdT=null;snapPhoto();} else if(rec) stopRec(); };
+    const onChange=e=>{ const f=e.target.files?.[0]; if(e.target.dataset.camFile!=null&&f) finish({file:f}); };
     const onClick=async e=>{
       const t=e.target.closest('[data-cam],[data-ed-filter]'); if(!t)return;
-      if(t.dataset.edFilter){filter=t.dataset.edFilter;return draw()}
-      if(t.dataset.cam==='cancel'){cleanup();close();return resolve(null)}
-      if(t.dataset.cam==='flip'){facing=facing==='user'?'environment':'user';draw();try{await start()}catch{}return}
-      if(t.dataset.cam==='snap'){
-        const v=R.querySelector('video'); if(!v||!v.videoWidth)return;
-        const c=document.createElement('canvas'); c.width=v.videoWidth; c.height=v.videoHeight; const ctx=c.getContext('2d');
-        if(facing==='user'){ctx.translate(c.width,0);ctx.scale(-1,1)}
-        ctx.drawImage(v,0,0); const dataUrl=c.toDataURL('image/jpeg',.92);
-        cleanup(); stopCamera(); resolve({dataUrl,filter});
-      }
+      if(t.dataset.edFilter){ if(rec)return; filter=t.dataset.edFilter; return draw(); }
+      if(t.dataset.cam==='cancel'){ if(rec&&rec.state!=='inactive'){rec.onstop=null;rec.stop()} return finish(null); }
+      if(t.dataset.cam==='flip'){ if(rec)return; facing=facing==='user'?'environment':'user'; draw(); try{await start()}catch{} }
     };
-    R.addEventListener('click',onClick);
+    R.addEventListener('click',onClick); R.addEventListener('pointerdown',onDown); R.addEventListener('change',onChange);
     draw();
-    try{await start()}catch(e){cleanup();close();reject(new Error(e?.name==='NotAllowedError'?'Camera permission was blocked':'Couldn’t start the camera'))}
+    try{await start()}catch(e){ finish(null); reject(new Error(e?.name==='NotAllowedError'?'Camera permission was blocked — allow it in your browser settings':'Couldn’t start the camera')); }
+  });
+}
+
+/* ---------------- share sheet (Post or Story) ---------------- */
+export function chooseTarget(){
+  const R=ensureRoot(); R.className='open sheet-bg'; document.body.style.overflow='hidden';
+  return new Promise(resolve=>{
+    R.innerHTML=`<div class="sheet"><b>Share to…</b>
+      <button data-t="story"><span class="sheet-ic story">◎</span><span><b>Your story</b><small>Disappears after 24 hours</small></span></button>
+      <button data-t="post"><span class="sheet-ic">＋</span><span><b>New post</b><small>Stays on your profile</small></span></button>
+      <button data-t="" class="sheet-cancel">Cancel</button></div>`;
+    const on=e=>{const b=e.target.closest('[data-t]'); if(!b&&e.target!==R)return; R.removeEventListener('click',on); close(); resolve(b?b.dataset.t||null:null);};
+    R.addEventListener('click',on);
   });
 }
 
 /* ---------------- video compression ---------------- */
 export const canCompress = () => typeof MediaRecorder!=='undefined' && !!HTMLCanvasElement.prototype.captureStream;
 /**
- * Re-encode a video smaller (max 720p, ~1 Mbps). Plays through once, so it takes as long as the video.
+ * Re-encode a video smaller (max 640px, ~0.7 Mbps). Plays through once, so it takes as long as the video.
  * Resolves with a Blob. Throws if the video is too long or can't be read.
  */
 export async function compressVideo(file,{maxSeconds=60,onProgress=()=>{}}={}){
@@ -230,7 +279,7 @@ export async function compressVideo(file,{maxSeconds=60,onProgress=()=>{}}={}){
   try{
     await new Promise((res,rej)=>{v.onloadedmetadata=res;v.onerror=()=>rej(new Error('Couldn’t read that video'))});
     if(v.duration>maxSeconds+1) throw new Error(`Videos can be up to ${maxSeconds} seconds`);
-    const sc=Math.min(1,720/Math.max(v.videoWidth,v.videoHeight));
+    const sc=Math.min(1,640/Math.max(v.videoWidth,v.videoHeight));
     const w=Math.max(2,Math.round(v.videoWidth*sc/2)*2), h=Math.max(2,Math.round(v.videoHeight*sc/2)*2);
     const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d');
     ctx.drawImage(v,0,0,w,h);
@@ -239,7 +288,7 @@ export async function compressVideo(file,{maxSeconds=60,onProgress=()=>{}}={}){
     try{ ac=new (window.AudioContext||window.webkitAudioContext)(); const src=ac.createMediaElementSource(v); const dst=ac.createMediaStreamDestination(); src.connect(dst); dst.stream.getAudioTracks().forEach(t=>stream.addTrack(t)); }catch{ ac=null; }
     const type=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(t=>MediaRecorder.isTypeSupported(t));
     if(!type) throw new Error('compress-unsupported');
-    const rec=new MediaRecorder(stream,{mimeType:type,videoBitsPerSecond:1000000,audioBitsPerSecond:96000});
+    const rec=new MediaRecorder(stream,{mimeType:type,videoBitsPerSecond:700000,audioBitsPerSecond:64000});
     const parts=[]; rec.ondataavailable=e=>{if(e.data&&e.data.size)parts.push(e.data)};
     const stopped=new Promise(r=>rec.onstop=r);
     rec.start(1000);
