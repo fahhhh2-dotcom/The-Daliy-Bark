@@ -223,6 +223,41 @@ footer a{text-decoration:underline}
 .dl:hover{border-color:#fff;background:rgba(255,255,255,.18)}
 .dl svg{width:16px;height:16px;fill:#fff}
 .dlnote{font-size:13px;color:var(--muted);margin-top:12px}
+/* Live TV */
+.live{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(280px,1fr);gap:20px;margin:0 4vw 30px;align-items:start}
+.lscreen{position:relative;aspect-ratio:16/9;background:#000;border-radius:14px;overflow:hidden;box-shadow:0 20px 70px rgba(0,0,0,.7),0 0 0 1px #222}
+.lscreen iframe,#lp{position:absolute;inset:0;width:100%;height:100%;border:0}
+.lshield{position:absolute;inset:0;z-index:2}
+.lstatic{position:absolute;inset:0;width:100%;height:100%;z-index:5;opacity:0;pointer-events:none;transition:opacity .25s}
+.lstatic.on{opacity:1;transition:none}
+.lbug{position:absolute;top:14px;left:14px;z-index:4;display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);padding:6px 12px;border-radius:6px;font-size:13px;font-weight:700;letter-spacing:1px}
+.lbug b{color:#fff;font-size:15px}.lbug span:last-child{font-weight:500;letter-spacing:0;color:#ddd}
+.ldot{width:9px;height:9px;border-radius:50%;background:#ff2d2d;box-shadow:0 0 10px #ff2d2d;animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.lthird{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:50px 20px 64px;background:linear-gradient(transparent,rgba(0,0,0,.85));transition:opacity .4s;pointer-events:none}
+.lthird small{color:var(--accent);font-weight:800;letter-spacing:2px;font-size:11px}
+.lthird b{display:block;font-size:clamp(16px,2vw,22px);margin:4px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lthird span{color:#ccc;font-size:13px}
+.lctl{position:absolute;left:0;right:0;bottom:0;z-index:4;display:flex;align-items:center;gap:4px;padding:8px 12px;transition:opacity .4s}
+.lctl .sp{flex:1}
+.lscreen.idle .lthird,.lscreen.idle .lctl,.lscreen.idle .lbug{opacity:0}.lscreen.idle{cursor:none}
+.guide{background:var(--panel);border-radius:14px;padding:10px;max-height:calc((100vw - 8vw) * .6 * 9 / 16 + 40px);overflow:auto}
+.guide h3{font-size:13px;letter-spacing:2px;color:var(--muted);padding:6px 8px 10px;text-transform:uppercase}
+.grow{display:grid;grid-template-columns:44px 34px 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;width:100%;text-align:left;padding:10px 8px;border-radius:10px;transition:background .2s}
+.grow:hover{background:var(--panel2)}
+.grow.on{background:linear-gradient(90deg,rgba(255,61,90,.25),rgba(255,61,90,.05));box-shadow:inset 3px 0 0 var(--accent)}
+.gnum{grid-row:1/3;font-family:'Bebas Neue',sans-serif;font-size:24px;color:#888}
+.grow.on .gnum{color:var(--accent)}
+.gicon{grid-row:1/3;font-size:24px}
+.gname{font-weight:700;font-size:15px}
+.gnow{font-size:12px;color:#bbb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gnow i{font-style:normal;color:#ff4d4d;font-weight:700}
+.lnote{grid-column:1/-1;color:var(--muted);font-size:13px;margin-top:-6px}
+.lcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin:0 4vw}
+.lcard{background:var(--panel);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:6px}
+.lcard .big{font-size:14px;padding:10px 16px;margin-top:8px;justify-content:center}
+nav a .rd{display:inline-block;width:7px;height:7px;border-radius:50%;background:#ff2d2d;margin-right:5px;vertical-align:1px;animation:pulse 1.4s infinite}
+@media(max-width:900px){.live{grid-template-columns:1fr}.guide{max-height:none}}
 /* Shorts */
 .shorts{display:flex;flex-direction:column;align-items:center;padding:0 4vw 30px}
 .schips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:16px}
@@ -259,6 +294,17 @@ footer a{text-decoration:underline}
 .skip{margin-top:18px;color:#aaa;text-decoration:underline;font-size:14px}
 .signp{color:#bbb;max-width:460px;text-align:center;line-height:1.6;margin:-16px 0 30px}
 .acct{font-size:12px;color:var(--muted);padding:2px 10px 8px}
+/* TV remote focus */
+.tv-nav :focus{outline:none}
+.tv-nav .card:focus,.tv-nav .mc:focus{transform:scale(1.08);box-shadow:0 0 0 4px #fff,0 14px 40px rgba(0,0,0,.7);z-index:3}
+.tv-nav .card:focus .hov{opacity:1}
+.tv-nav button:focus,.tv-nav a:focus,.tv-nav input:focus{box-shadow:0 0 0 3px #fff!important;border-radius:8px}
+.tv-nav .btn.play:focus{box-shadow:0 0 0 4px var(--accent)!important}
+.tv-nav .prof:focus{color:#fff}.tv-nav .prof:focus .av{transform:scale(1.08);box-shadow:0 0 0 5px #fff}
+.tv-nav .grow:focus{background:var(--panel2)}
+.tvhint{position:fixed;right:20px;bottom:20px;z-index:260;background:rgba(0,0,0,.8);border:1px solid #333;color:#ccc;font-size:13px;padding:8px 12px;border-radius:8px;opacity:0;transition:opacity .4s;pointer-events:none}
+.tv-nav .tvhint.on{opacity:1}
+@media(min-width:1700px){body{zoom:1.25}}
 @media(max-width:760px){
  header{gap:14px;padding:12px 4vw;flex-wrap:wrap}
  nav{order:3;width:100%;gap:18px}
@@ -274,6 +320,7 @@ footer a{text-decoration:underline}
   <div class="logo" onclick="location.hash='home'">MARQUEE</div>
   <nav>
     <a href="#home" data-v="home">Home</a>
+    <a href="#live" data-v="live"><span class="rd"></span>Live TV</a>
     <a href="#shorts" data-v="shorts">Shorts</a>
     <a href="#browse" data-v="browse">Browse</a>
     <a href="#my-list" data-v="my-list">My List</a>
@@ -377,6 +424,7 @@ footer a{text-decoration:underline}
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="tvhint" id="tvhint">Remote: ← ↑ → ↓ move · OK select · Back to go back</div>
 
 <script>
 /* Real public-domain films hosted free on the Internet Archive.
@@ -400,39 +448,60 @@ const FILMS = [
  {id:'mbblind',yt:'TJ2ifmkGGus',title:'1,000 Blind People See For The First Time',channel:'MrBeast',year:2023,genres:['MrBeast','Feel-Good'],scene:'beast',hue:170,match:96,
   desc:'MrBeast pays for cataract surgery for 1,000 people so they can see again, and films the moments they see their families.'},
 
- {id:'chmrbeast',list:'UULFX6OQ3DkcsbYNE6H8uQQuVA',title:'MrBeast — Latest Videos',channel:'MrBeast',year:'Always new',genres:['Channels','MrBeast'],scene:'beast',hue:210,match:99,
+ {id:'chmrbeast',list:'UULFX6OQ3DkcsbYNE6H8uQQuVA',tv:'v9QtM6qnG50',title:'MrBeast — Latest Videos',channel:'MrBeast',year:'Always new',genres:['Channels','MrBeast'],scene:'beast',hue:210,match:99,
   desc:'Plays MrBeast\'s newest uploads, one after another. It updates by itself every time he posts.'},
- {id:'chh1t1',list:'UULFE7spuKzxP1k8A-XucxxUAQ',title:'H1T1 — Latest Videos',channel:'John Casterline (H1T1)',year:'Always new',genres:['Channels'],scene:'synth',hue:20,match:97,teen:true,
+ {id:'chh1t1',list:'UULFE7spuKzxP1k8A-XucxxUAQ',tv:'3P-rZJbrGyg',title:'H1T1 — Latest Videos',channel:'John Casterline (H1T1)',year:'Always new',genres:['Channels'],scene:'synth',hue:20,match:97,teen:true,
   desc:'The newest long videos from H1T1, playing back to back. It updates by itself every time he posts.'},
- {id:'chhxsain',list:'UULFZfTWLrTkaoZoSx5fkrAPJA',title:'hxsain — Latest Videos',channel:'hxsain',year:'Always new',genres:['Channels'],scene:'city',hue:250,match:96,teen:true,
+ {id:'chhxsain',list:'UULFZfTWLrTkaoZoSx5fkrAPJA',tv:'HpeXGZycOZc',title:'hxsain — Latest Videos',channel:'hxsain',year:'Always new',genres:['Channels'],scene:'city',hue:250,match:96,teen:true,
   desc:'The newest long videos from hxsain, playing back to back. It updates by itself every time he posts.'},
- {id:'chdude',list:'UULFRijo3ddMTht_IHyNSNXpNQ',title:'Dude Perfect — Latest Videos',channel:'Dude Perfect',year:'Always new',genres:['Channels','Challenges'],scene:'desert',hue:200,match:96,
+ {id:'chdude',list:'UULFRijo3ddMTht_IHyNSNXpNQ',tv:'PrCiTJY6Uqg',title:'Dude Perfect — Latest Videos',channel:'Dude Perfect',year:'Always new',genres:['Channels','Challenges'],scene:'desert',hue:200,match:96,
   desc:'Trick shots, battles and stereotypes from Dude Perfect, always starting with their newest video.'},
- {id:'chrober',list:'UULFY1kMZp36IQSyNx_9h4mpCg',title:'Mark Rober — Latest Videos',channel:'Mark Rober',year:'Always new',genres:['Channels','Feel-Good'],scene:'space',hue:200,match:97,
+ {id:'chrober',list:'UULFY1kMZp36IQSyNx_9h4mpCg',tv:'gicEOsFtMxw',title:'Mark Rober — Latest Videos',channel:'Mark Rober',year:'Always new',genres:['Channels','Feel-Good'],scene:'space',hue:200,match:97,
   desc:'Giant science builds, crazy experiments and engineering pranks from Mark Rober, newest first.'},
- {id:'chminecraft',list:'UULF1sELGmy5jp5fQUugmuYlXQ',title:'Minecraft — Latest Videos',channel:'Minecraft',year:'Always new',genres:['Channels','Minecraft'],scene:'blocks',hue:205,match:96,
+ {id:'chminecraft',list:'UULF1sELGmy5jp5fQUugmuYlXQ',tv:'s0w_pTOXDBQ',title:'Minecraft — Latest Videos',channel:'Minecraft',year:'Always new',genres:['Channels','Minecraft'],scene:'blocks',hue:205,match:96,
   desc:'Every new video from the official Minecraft channel: updates, LIVE shows and behind-the-scenes, newest first.'},
 
- {id:'chmbgaming',list:'UULFIPPMRA040LQr5QPyJEbmXA',title:'MrBeast Gaming — Latest Videos',channel:'MrBeast Gaming',year:'Always new',genres:['Channels','MrBeast','Minecraft'],scene:'blocks',hue:35,match:97,
+ {id:'chmbgaming',list:'UULFIPPMRA040LQr5QPyJEbmXA',tv:'Ra6sNe8s2Hc',title:'MrBeast Gaming — Latest Videos',channel:'MrBeast Gaming',year:'Always new',genres:['Channels','MrBeast','Minecraft'],scene:'blocks',hue:35,match:97,
   desc:'MrBeast and friends compete in giant Minecraft and gaming challenges for real money. Newest videos first.'},
- {id:'chtrahan',list:'UULFnmGIkw-KdI0W5siakKPKog',title:'Ryan Trahan — Latest Videos',channel:'Ryan Trahan',year:'Always new',genres:['Channels','Challenges'],scene:'desert',hue:15,match:96,
+ {id:'chtrahan',list:'UULFnmGIkw-KdI0W5siakKPKog',tv:'VmqwfEw4UoU',title:'Ryan Trahan — Latest Videos',channel:'Ryan Trahan',year:'Always new',genres:['Channels','Challenges'],scene:'desert',hue:15,match:96,
   desc:'Wild adventures and challenges, like traveling the country with just a penny. Newest videos first.'},
- {id:'chunspeakable',list:'UULFwIWAbIeu0xI0ReKWOcw3eg',title:'Unspeakable — Latest Videos',channel:'Unspeakable',year:'Always new',genres:['Channels','Minecraft','Challenges'],scene:'blocks',hue:160,match:95,
+ {id:'chunspeakable',list:'UULFwIWAbIeu0xI0ReKWOcw3eg',tv:'RsGGOT9wZwg',title:'Unspeakable — Latest Videos',channel:'Unspeakable',year:'Always new',genres:['Channels','Minecraft','Challenges'],scene:'blocks',hue:160,match:95,
   desc:'Minecraft builds, crazy challenges and real-life stunts from Unspeakable. Newest videos first.'},
- {id:'chsidemen',list:'UULFDogdKl7t7NHzQ95aEwkdMw',title:'Sidemen — Latest Videos',channel:'Sidemen',year:'Always new',genres:['Channels','Challenges'],scene:'city',hue:0,match:93,teen:true,
+ {id:'chsidemen',list:'UULFDogdKl7t7NHzQ95aEwkdMw',tv:'fwqEB2HdY88',title:'Sidemen — Latest Videos',channel:'Sidemen',year:'Always new',genres:['Channels','Challenges'],scene:'city',hue:0,match:93,teen:true,
   desc:'The Sidemen\'s big challenge videos, like Tinder in Real Life and $100,000 vs $1,000 holidays. Newest videos first.'},
- {id:'kbluey',list:'UULFVzLLZkDuFGAE2BGdBuBNBg',title:'Bluey — Official Channel',channel:'Bluey',year:'Always new',genres:['Kids','Cartoons'],scene:'kids',hue:205,match:99,kidsOnly:true,
+ {id:'kbluey',list:'UULFVzLLZkDuFGAE2BGdBuBNBg',tv:'evYFRYX4Hyw',title:'Bluey — Official Channel',channel:'Bluey',year:'Always new',genres:['Kids','Cartoons'],scene:'kids',hue:205,match:99,kidsOnly:true,
   desc:'Full episodes, mini episodes and songs from Bluey, Bingo and the Heeler family.'},
- {id:'ksesame',list:'UULFoookXUzPciGrEZEXmh4Jjg',title:'Sesame Street',channel:'Sesame Street',year:'Always new',genres:['Kids','Cartoons','Learning'],scene:'kids',hue:45,match:98,kidsOnly:true,
+ {id:'ksesame',list:'UULFoookXUzPciGrEZEXmh4Jjg',tv:'QLC32zDmgTI',title:'Sesame Street',channel:'Sesame Street',year:'Always new',genres:['Kids','Cartoons','Learning'],scene:'kids',hue:45,match:98,kidsOnly:true,
   desc:'Elmo, Cookie Monster, Big Bird and friends sing, play and learn letters, numbers and feelings.'},
- {id:'kpbs',list:'UULFrNnk0wFBnCS1awGjq_ijGQ',title:'PBS KIDS',channel:'PBS KIDS',year:'Always new',genres:['Kids','Cartoons','Learning'],scene:'kids',hue:120,match:97,kidsOnly:true,
+ {id:'kpbs',list:'UULFrNnk0wFBnCS1awGjq_ijGQ',tv:'DVA4rAD52i0',title:'PBS KIDS',channel:'PBS KIDS',year:'Always new',genres:['Kids','Cartoons','Learning'],scene:'kids',hue:120,match:97,kidsOnly:true,
   desc:'Clips and episodes from Daniel Tiger, Wild Kratts, Curious George and more PBS KIDS shows.'},
- {id:'kblippi',list:'UULF5PYHgAzJ1wLEidB58SK6Xw',title:'Blippi',channel:'Blippi',year:'Always new',genres:['Kids','Learning'],scene:'kids',hue:25,match:98,kidsOnly:true,
+ {id:'kblippi',list:'UULF5PYHgAzJ1wLEidB58SK6Xw',tv:'nTr4DUuvgA8',title:'Blippi',channel:'Blippi',year:'Always new',genres:['Kids','Learning'],scene:'kids',hue:25,match:98,kidsOnly:true,
   desc:'Blippi explores playgrounds, trucks, animals and more while learning colors, numbers and new words.'},
- {id:'kcocomelon',list:'UULFbCmjCuTUZos6Inko4u57UQ',title:'Cocomelon — Nursery Rhymes',channel:'Cocomelon',year:'Always new',genres:['Kids','Cartoons','Songs'],scene:'kids',hue:290,match:96,kidsOnly:true,
+ {id:'kcocomelon',list:'UULFbCmjCuTUZos6Inko4u57UQ',tv:'Gm_HjftxXKY',title:'Cocomelon — Nursery Rhymes',channel:'Cocomelon',year:'Always new',genres:['Kids','Cartoons','Songs'],scene:'kids',hue:290,match:96,kidsOnly:true,
   desc:'Sing-along nursery rhymes and songs with JJ and his family. Great for little kids.'},
- {id:'kryan',list:'UULFhGJGhZ9SOOHvBB0Y4DOO_w',title:'Ryan\'s World',channel:'Ryan\'s World',year:'Always new',genres:['Kids','Learning'],scene:'kids',hue:0,match:96,kidsOnly:true,
+ {id:'kryan',list:'UULFhGJGhZ9SOOHvBB0Y4DOO_w',tv:'H7iA4Ri1H3Q',title:'Ryan\'s World',channel:'Ryan\'s World',year:'Always new',genres:['Kids','Learning'],scene:'kids',hue:0,match:96,kidsOnly:true,
   desc:'Ryan does science experiments, challenges and pretend play with his family. Newest videos first.'},
+
+ {id:'chkurz',list:'UULFsXVk37bltHxD1rDPwtNM8Q',tv:'ujkD4SxPKOI',title:'Kurzgesagt — In a Nutshell',channel:'Kurzgesagt',year:'Always new',genres:['Channels','Science & Tech'],scene:'space',hue:260,match:97,
+  desc:'Beautiful animated videos about space, science, animals and big questions, explained simply.'},
+ {id:'chveritasium',list:'UULFHnyfMqiRRG1u-2MsSQLbXA',tv:'ONAuUyml0yI',title:'Veritasium',channel:'Veritasium',year:'Always new',genres:['Channels','Science & Tech'],scene:'space',hue:30,match:96,
+  desc:'Mind-blowing science and engineering, with real experiments and surprising answers.'},
+ {id:'chwhose',list:'UULFMiJRAwDNSNzuYeN2uWa0pA',tv:'NrF4mkTmuTU',title:'Mrwhosetheboss',channel:'Mrwhosetheboss',year:'Always new',genres:['Channels','Science & Tech'],scene:'synth',hue:200,match:95,
+  desc:'The coolest phones, gadgets and tech tested and explained. Newest videos first.'},
+ {id:'chdantdm',list:'UULFS5Oz6CHmeoF7vSad0qqXfw',tv:'paML_p4sbCo',title:'DanTDM',channel:'DanTDM',year:'Always new',genres:['Channels','Minecraft'],scene:'blocks',hue:205,match:96,
+  desc:'Minecraft, Roblox and the newest games played with lots of energy. Newest videos first.'},
+ {id:'chdream',list:'UULFTkXRDQl0luXxVQrRQvWS6w',tv:'g22Z__ShvVY',title:'Dream',channel:'Dream',year:'Always new',genres:['Channels','Minecraft'],scene:'blocks',hue:140,match:95,
+  desc:'Famous Minecraft Manhunts and challenges from Dream. Newest videos first.'},
+ {id:'chairrack',list:'UULFyps-v4WNjWDnYRKmZ4BUGw',tv:'iYZ77j7v4GM',title:'Airrack',channel:'Airrack',year:'Always new',genres:['Channels','Challenges'],scene:'desert',hue:30,match:95,
+  desc:'Huge challenges and stunts with friends and famous creators. Newest videos first.'},
+ {id:'chzach',list:'UULFq8DICunczvLuJJq414110A',tv:'mlJdZftpCJc',title:'Zach King',channel:'Zach King',year:'Always new',genres:['Channels','Feel-Good'],scene:'kids',hue:200,match:96,
+  desc:'Magic video tricks that look impossible. Fun for the whole family.'},
+ {id:'chgmm',list:'UULF4PooiX37Pld1T8J5SYT-SQ',tv:'IgFpP9QfYbw',title:'Good Mythical Morning',channel:'Good Mythical Morning',year:'Always new',genres:['Channels','Challenges'],scene:'city',hue:45,match:94,
+  desc:'Rhett and Link\'s daily show of taste tests, food challenges and games. Newest episodes first.'},
+ {id:'kdiana',list:'UULFk8GzjMOrta8yxDcKfylJYw',tv:'yJ8DGLldq5s',title:'Kids Diana Show',channel:'Kids Diana Show',year:'Always new',genres:['Kids','Learning'],scene:'kids',hue:320,match:95,kidsOnly:true,
+  desc:'Diana and Roma play pretend, go on adventures and learn good habits.'},
+ {id:'kvlad',list:'UULFvlE5gTbOvjiolFlEm-c_Ow',tv:'Is_Ih3JaBgc',title:'Vlad and Niki',channel:'Vlad and Niki',year:'Always new',genres:['Kids','Learning'],scene:'kids',hue:180,match:95,kidsOnly:true,
+  desc:'Brothers Vlad and Niki play with toys, cars and superheroes in funny stories.'},
 ];
 const SHORTS=[
  {name:'H1T1',list:'UUSHE7spuKzxP1k8A-XucxxUAQ',handle:'H1T1',teen:true,hue:20},
@@ -448,7 +517,7 @@ const SHORTS=[
 ];
 FILMS.forEach((f,i)=>{f.seed=i*37+5;f.color=true});
 const byId=id=>FILMS.find(f=>f.id===id);
-const GENRES=['All','Kids','Channels','MrBeast','Challenges','Feel-Good','Minecraft','Nintendo','Live Shows'];
+const GENRES=['All','Kids','Channels','MrBeast','Challenges','Minecraft','Science & Tech','Feel-Good','Nintendo','Live Shows'];
 const ytURL=f=>f.list?`https://www.youtube.com/playlist?list=${f.list}`:`https://www.youtube.com/watch?v=${f.yt}`;
 const CAN_EMBED=/^https?:$/.test(location.protocol)&&!/(claude|anthropic|claudeusercontent)/i.test(location.hostname);
 
@@ -668,7 +737,7 @@ function syncListBtns(){$('#hList').textContent=inList(heroF.id)?'✓':'+';if(M.
 /* ---------- Rows ---------- */
 function card(f,rank){return `<div class="card" data-id="${f.id}" tabindex="0" role="button" aria-label="${f.title}"><img src="${thumb(f)}" alt="" loading="lazy">${rank?`<span class="rank">TOP ${rank}</span>`:''}
  <div class="hov"><span class="pl" data-play="${f.id}" title="Play">▶</span><div class="ci"><b>${f.title}</b><small>${f.channel} · ${f.year}</small></div></div></div>`}
-let REAL_THUMBS=false;const thumb=f=>REAL_THUMBS&&f.yt?`https://i.ytimg.com/vi/${f.yt}/hqdefault.jpg`:f.img;
+let REAL_THUMBS=false;const thumb=f=>REAL_THUMBS&&(f.yt||f.tv)?`https://i.ytimg.com/vi/${f.yt||f.tv}/hqdefault.jpg`:f.img;
 function row(title,list,ranked){if(!list.length)return'';return `<section class="row"><h2>${title}</h2><div class="rw"><button class="arr l" aria-label="Scroll left">‹</button><div class="track">${list.map((f,i)=>card(f,ranked?i+1:0)).join('')}</div><button class="arr r" aria-label="Scroll right">›</button></div></section>`}
 const G=g=>LIB().filter(f=>f.genres.includes(g));
 
@@ -676,11 +745,13 @@ let view='home',browseG='All';
 function render(){
  const main=$('#main'),q=$('#q').value.trim().toLowerCase();
  if(view!=='shorts'||q)destroyShorts();
+ if(view!=='live'||q)destroyLive();
  document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',!q&&a.dataset.v===view));
  const showHero=!q&&view==='home';$('#hero').style.display=showHero?'':'none';main.classList.toggle('flat',!showHero);
  if(q){const res=LIB().filter(f=>[f.title,f.desc,f.channel,f.year,...f.genres].join(' ').toLowerCase().includes(q));
   main.innerHTML=`<div class="ph"><h1>Results for “${q.replace(/</g,'&lt;')}”</h1><span>${res.length} title${res.length===1?'':'s'}</span></div>`+(res.length?`<div class="grid">${res.map(f=>card(f)).join('')}</div>`:`<div class="empty"><b>No matches</b>Try “MrBeast”, “Minecraft” or “challenge”.</div>`);return}
  if(view==='shorts'){renderShorts(main);return}
+ if(view==='live'){renderLive(main);return}
  if(view==='browse'){const list=browseG==='All'?LIB():G(browseG);
   main.innerHTML=`<div class="ph"><h1>Browse</h1><span>${list.length} films</span></div><div class="chips">${GENRES.map(g=>`<button class="chip ${g===browseG?'on':''}" data-g="${g}">${g}</button>`).join('')}</div><div class="grid">${list.map(f=>card(f)).join('')}</div>`;return}
  if(view==='my-list'){const list=myList.map(byId).filter(f=>f&&visible(f));
@@ -689,11 +760,11 @@ function render(){
  const ok=x=>x&&visible(x);
  if(CUR&&CUR.kids){const K=LIB();main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok))+row('My List',myList.map(byId).filter(ok))+
    row('Cartoons & Shows',K.filter(f=>f.genres.includes('Cartoons')))+row('Learn & Play',K.filter(f=>f.genres.includes('Learning')||f.genres.includes('Songs')))+
-   row('Fun for Everyone',K.filter(f=>!f.kidsOnly&&(f.genres.includes('Channels')||f.genres.includes('Feel-Good'))))+row('MrBeast',K.filter(f=>f.genres.includes('MrBeast')&&!f.list))+row('Minecraft',K.filter(f=>f.genres.includes('Minecraft')));return}
+   row('Fun for Everyone',K.filter(f=>!f.kidsOnly&&(f.genres.includes('Channels')||f.genres.includes('Feel-Good'))&&!f.genres.includes('Science & Tech')))+row('Cool Science',K.filter(f=>f.genres.includes('Science & Tech')))+row('MrBeast',K.filter(f=>f.genres.includes('MrBeast')&&!f.list))+row('Minecraft',K.filter(f=>f.genres.includes('Minecraft')));return}
  main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok))+row('My List',myList.map(byId).filter(ok))+row('Top 10 Videos',top,true)+row('New This Year',LIB().filter(f=>f.added))+
-  row('H1T1 & hxsain — Long Videos',LIB().filter(f=>f.id==='chh1t1'||f.id==='chhxsain'))+row('Latest From Your Favorite Channels',G('Channels').filter(f=>!f.kidsOnly))+row('MrBeast',G('MrBeast'))+row('Insane Challenges',G('Challenges'))+row('Minecraft',G('Minecraft'))+row('Nintendo',G('Nintendo'))+row('For Little Kids',G('Kids'))+row('Live Shows & Directs',G('Live Shows'));
+  row('H1T1 & hxsain — Long Videos',LIB().filter(f=>f.id==='chh1t1'||f.id==='chhxsain'))+row('Latest From Your Favorite Channels',G('Channels').filter(f=>!f.kidsOnly))+row('MrBeast',G('MrBeast'))+row('Insane Challenges',G('Challenges'))+row('Minecraft',G('Minecraft'))+row('Science & Tech',G('Science & Tech'))+row('Nintendo',G('Nintendo'))+row('For Little Kids',G('Kids'))+row('Live Shows & Directs',G('Live Shows'));
 }
-function route(){const v=(location.hash||'#home').slice(1);view=['home','shorts','browse','my-list'].includes(v)?v:'home';$('#q').value='';render();window.scrollTo(0,0)}
+function route(){const v=(location.hash||'#home').slice(1);view=['home','live','shorts','browse','my-list'].includes(v)?v:'home';$('#q').value='';render();window.scrollTo(0,0)}
 window.addEventListener('hashchange',route);
 $('#q').addEventListener('input',render);
 document.addEventListener('click',e=>{
@@ -724,7 +795,7 @@ function openModal(id){const f=byId(id);M.f=f;M.open=true;
  $('#mT').textContent=f.title;$('#mM').innerHTML=metaHTML(f);$('#mD').textContent=f.desc;
  $('#mS').innerHTML=`<div>Channel: <span>${f.channel}</span></div><div>Year: <span>${f.year}</span></div><div>Categories: <span>${f.genres.join(', ')}</span></div><div>Source: <span>YouTube · official channel</span></div>`;
  const more=LIB().filter(x=>x.id!==f.id&&x.genres.some(g=>f.genres.includes(g))).slice(0,6);
- $('#mMore').innerHTML=more.map(x=>`<div class="mc" data-id="${x.id}"><img src="${thumb(x)}" alt=""><div><b>${x.title}</b><small>${x.channel} · ${x.desc}</small></div></div>`).join('');
+ $('#mMore').innerHTML=more.map(x=>`<div class="mc" tabindex="0" data-id="${x.id}"><img src="${thumb(x)}" alt=""><div><b>${x.title}</b><small>${x.channel} · ${x.desc}</small></div></div>`).join('');
  syncListBtns();$('#modal').classList.add('on');document.body.style.overflow='hidden';$('#modal').scrollTop=0}
 function closeModal(){M.open=false;$('#modal').classList.remove('on');if(!P.open)document.body.style.overflow=''}
 $('#mX').onclick=closeModal;$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
@@ -830,8 +901,8 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 let managing=false;
 function showWho(manage){managing=!!manage;$('#signin').classList.remove('on');closeModal();if(P.open)closePlayer();$('#me').classList.remove('open');
  $('#whoT').textContent=managing?'Manage Profiles':"Who's watching?";$('#mng').textContent=managing?'Done':'Manage Profiles';$('#mng').classList.toggle('done',managing);
- $('#pgrid').innerHTML=profiles.map((p,i)=>`<div class="prof ${managing?'edit':''}" data-prof="${p.id}" style="animation-delay:${i*.07}s">${avHTML(p)}<div class="nm">${esc(p.name)}</div></div>`).join('')+
-  (profiles.length<5?`<div class="prof" data-prof="new" style="animation-delay:${profiles.length*.07}s"><div class="av addav">+</div><div class="nm">Add Profile</div></div>`:'');
+ $('#pgrid').innerHTML=profiles.map((p,i)=>`<div class="prof ${managing?'edit':''}" tabindex="0" data-prof="${p.id}" style="animation-delay:${i*.07}s">${avHTML(p)}<div class="nm">${esc(p.name)}</div></div>`).join('')+
+  (profiles.length<5?`<div class="prof" tabindex="0" data-prof="new" style="animation-delay:${profiles.length*.07}s"><div class="av addav">+</div><div class="nm">Add Profile</div></div>`:'');
  $('#who').classList.add('on');document.body.style.overflow='hidden'}
 function pick(id){const p=profiles.find(x=>x.id===id);if(!p)return;PID=id;CUR=p;store.set('last',id);
  myList=store.get('list_'+id,[]);recent=store.get('recent_'+id,[]);browseG='All';
@@ -948,8 +1019,109 @@ function sGo(d){if(!SP)return;const fr=$('#sframe');fr.classList.remove('slide-u
  try{d>0?SP.nextVideo():SP.previousVideo()}catch(e){}}
 function sHeart(e){const fr=$('#sframe'),r=fr.getBoundingClientRect(),h=document.createElement('div');h.className='heart';h.textContent='❤️';h.style.left=(e.clientX-r.left)+'px';h.style.top=(e.clientY-r.top)+'px';fr.appendChild(h);setTimeout(()=>h.remove(),900);$('#sLike').classList.add('liked')}
 function destroyShorts(){clearTimeout(sMuteChk);try{if(SP&&SP.destroy)SP.destroy()}catch(e){}SP=null;const m=document.getElementById('main');if(m)delete m.dataset.sc}
-document.addEventListener('keydown',e=>{if(view!=='shorts'||P.open||!SP||document.activeElement===$('#q'))return;
+document.addEventListener('keydown',e=>{if(view!=='shorts'||P.open||!SP||document.activeElement===$('#q')||(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('header')))return;
  if(e.key==='ArrowDown'||e.key==='j'){e.preventDefault();sGo(1)}else if(e.key==='ArrowUp'||e.key==='k'){e.preventDefault();sGo(-1)}else if(e.key===' '){e.preventDefault();sToggle()}});
+
+/* ---------- Live TV: always-on scheduled channels ---------- */
+const LIVE=[
+ {n:101,name:'Challenge TV',icon:'🏆',src:[['MrBeast','UULFX6OQ3DkcsbYNE6H8uQQuVA'],['Ryan Trahan','UULFnmGIkw-KdI0W5siakKPKog'],['Dude Perfect','UULFRijo3ddMTht_IHyNSNXpNQ'],['Unspeakable','UULFwIWAbIeu0xI0ReKWOcw3eg'],['Airrack','UULFyps-v4WNjWDnYRKmZ4BUGw'],['Good Mythical Morning','UULF4PooiX37Pld1T8J5SYT-SQ']]},
+ {n:102,name:'Minecraft TV',icon:'⛏️',src:[['Minecraft','UULF1sELGmy5jp5fQUugmuYlXQ'],['MrBeast Gaming','UULFIPPMRA040LQr5QPyJEbmXA'],['DanTDM','UULFS5Oz6CHmeoF7vSad0qqXfw'],['Dream','UULFTkXRDQl0luXxVQrRQvWS6w'],['Unspeakable','UULFwIWAbIeu0xI0ReKWOcw3eg']]},
+ {n:103,name:'Science TV',icon:'🚀',src:[['Mark Rober','UULFY1kMZp36IQSyNx_9h4mpCg'],['Kurzgesagt','UULFsXVk37bltHxD1rDPwtNM8Q'],['Veritasium','UULFHnyfMqiRRG1u-2MsSQLbXA'],['Mrwhosetheboss','UULFMiJRAwDNSNzuYeN2uWa0pA'],['Zach King','UULFq8DICunczvLuJJq414110A']]},
+ {n:104,name:'Shorts TV',icon:'⚡',src:[['MrBeast Shorts','UUSHX6OQ3DkcsbYNE6H8uQQuVA'],['Dude Perfect Shorts','UUSHRijo3ddMTht_IHyNSNXpNQ'],['Ryan Trahan Shorts','UUSHnmGIkw-KdI0W5siakKPKog'],['Mark Rober Shorts','UUSHY1kMZp36IQSyNx_9h4mpCg'],['Unspeakable Shorts','UUSHwIWAbIeu0xI0ReKWOcw3eg']]},
+ {n:105,name:'Creator TV',icon:'🎮',teen:true,src:[['H1T1','UULFE7spuKzxP1k8A-XucxxUAQ'],['hxsain','UULFZfTWLrTkaoZoSx5fkrAPJA'],['Sidemen','UULFDogdKl7t7NHzQ95aEwkdMw'],['H1T1 Shorts','UUSHE7spuKzxP1k8A-XucxxUAQ'],['hxsain Shorts','UUSHZfTWLrTkaoZoSx5fkrAPJA']]},
+ {n:106,name:'Kids TV',icon:'🎈',kidsOnly:true,src:[['Bluey','UULFVzLLZkDuFGAE2BGdBuBNBg'],['Sesame Street','UULFoookXUzPciGrEZEXmh4Jjg'],['PBS KIDS','UULFrNnk0wFBnCS1awGjq_ijGQ'],['Blippi','UULF5PYHgAzJ1wLEidB58SK6Xw'],['Kids Diana Show','UULFk8GzjMOrta8yxDcKfylJYw'],['Vlad and Niki','UULFvlE5gTbOvjiolFlEm-c_Ow']]},
+];
+const SLOT=20*60;
+const liveList=()=>CUR&&CUR.kids?[...LIVE.filter(c=>c.kidsOnly),...LIVE.filter(c=>!c.kidsOnly&&!c.teen)]:LIVE;
+function slotInfo(ch,at=Date.now()){const sec=Math.floor(at/1000),slot=Math.floor(sec/SLOT),i=slot%ch.src.length,round=Math.floor(slot/ch.src.length),off=sec%SLOT,src=ch.src[i],sh=src[1].startsWith('UUSH');
+ return{src,next:ch.src[(i+1)%ch.src.length],idx:sh?(round*13+Math.floor(off/50))%40:(round*3+ch.n)%12,start:sh?0:off%420,ends:(slot+1)*SLOT*1000}}
+const hhmm=t=>new Date(t).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+let LP=null,lCh=0,lCur=null,lTick=null,lIdle=null,lMuteChk=null;
+function guideHTML(L){return `<h3>Channel Guide</h3>`+L.map((c,i)=>{const s=slotInfo(c);return `<button class="grow ${i===lCh?'on':''}" data-ch="${i}"><span class="gnum">${c.n}</span><span class="gicon">${c.icon}</span><span class="gname">${esc(c.name)}</span><span class="gnow"><i>●</i> ${esc(s.src[0])} · next ${esc(s.next[0])} at ${hhmm(s.ends)}</span></button>`}).join('')}
+function renderLive(main){const L=liveList();if(lCh>=L.length)lCh=0;
+ if(document.getElementById('lscreen')&&LP)return;
+ destroyLive();
+ if(!CAN_EMBED){main.innerHTML=`<div class="ph"><h1>Live TV</h1><span>Always-on channels. Tune in anytime.</span></div><div class="lcards">${L.map(c=>{const s=slotInfo(c);return `<div class="lcard"><div style="font-size:30px">${c.icon}</div><div class="kicker" style="margin:0">Channel ${c.n} · <span style="color:#ff4d4d">● LIVE</span></div><h2 style="font-size:22px">${esc(c.name)}</h2><div style="color:#bbb;font-size:13px">On now: ${esc(s.src[0])}<br>Next: ${esc(s.next[0])} at ${hhmm(s.ends)}</div><a class="big" href="https://www.youtube.com/playlist?list=${s.src[1]}" target="_blank" rel="noopener">▶&nbsp; Watch on YouTube</a></div>`}).join('')}</div><p class="shint" style="text-align:center">On your website (thedailybark.dog/marquee) channels play live right here.</p>`;
+  main.querySelectorAll('.lcard a').forEach(a=>a.addEventListener('click',e=>e.stopPropagation()));return}
+ main.innerHTML=`<div class="ph"><h1>Live TV</h1><span>Always-on channels. Tune in anytime, like real TV.</span></div>
+ <div class="live"><div><div class="lscreen" id="lscreen"><div id="lp"></div><div class="lshield" id="lshield"></div><canvas class="lstatic on" id="lstatic"></canvas>
+   <div class="lbug"><span class="ldot"></span>LIVE <b id="lchn"></b><span id="lchname"></span></div>
+   <div class="lthird"><small>NOW PLAYING</small><b id="lnow">Tuning in…</b><span id="lsub"></span></div>
+   <div class="lctl"><button class="ib" id="lmute" title="Mute (M)">${VI.vol}</button><input type="range" class="vvol" id="lvol" min="0" max="100" value="${vVol}" aria-label="Volume" style="width:90px"><span class="sp"></span>
+    <button class="ib" id="lup" title="Channel up (↑)"><svg viewBox="0 0 24 24"><path d="M7.4 15.4L12 10.8l4.6 4.6L18 14l-6-6-6 6z"/></svg></button><button class="ib" id="ldown" title="Channel down (↓)"><svg viewBox="0 0 24 24"><path d="M7.4 8.6L12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg></button><button class="ib" id="lfs" title="Fullscreen (F)">${VI.fs}</button></div>
+   <div class="sunmute" id="lUnmute">🔇 Tap for sound</div></div>
+   <p class="shint">Channels follow a schedule: a new creator comes on every 20 minutes. Use ↑ ↓ to flip channels.</p></div>
+  <div class="guide" id="guide">${guideHTML(L)}</div></div>`;
+ vfill($('#lvol'));staticFx(900);
+ $('#guide').addEventListener('click',e=>{const b=e.target.closest('[data-ch]');if(b){e.stopPropagation();tune(+b.dataset.ch)}});
+ $('#lup').onclick=()=>tune((lCh-1+L.length)%L.length);$('#ldown').onclick=()=>tune((lCh+1)%L.length);
+ $('#lfs').onclick=()=>{const el=$('#lscreen');try{if(document.fullscreenElement)document.exitFullscreen();else{const r=(el.requestFullscreen||el.webkitRequestFullscreen).call(el);if(r&&r.catch)r.catch(()=>{})}}catch(e){}};
+ $('#lshield').ondblclick=()=>$('#lfs').click();
+ $('#lshield').onclick=()=>{if($('#lUnmute').classList.contains('on'))$('#lmute').click()};
+ $('#lUnmute').onclick=()=>$('#lmute').click();
+ $('#lmute').onclick=()=>{if(!LP||!LP.isMuted)return;const m=LP.isMuted();m?LP.unMute():LP.mute();$('#lmute').innerHTML=m?VI.vol:VI.mute;$('#lUnmute').classList.remove('on')};
+ $('#lvol').oninput=e=>{vVol=+e.target.value;store.set('vol',vVol);vfill(e.target);if(LP&&LP.setVolume){LP.setVolume(vVol);if(vVol>0&&LP.isMuted()){LP.unMute();$('#lmute').innerHTML=VI.vol;$('#lUnmute').classList.remove('on')}}};
+ const scr=$('#lscreen');scr.addEventListener('mousemove',lPoke);scr.addEventListener('touchstart',lPoke,{passive:true});
+ const ch=L[lCh],si=slotInfo(ch);lCur=si.src[1]+'|'+si.ends;setBug(ch,si);
+ ensureYT().then(()=>{if(view!=='live'||!document.getElementById('lp'))return;
+  LP=new YT.Player('lp',{host:'https://www.youtube-nocookie.com',playerVars:{listType:'playlist',list:si.src[1],index:si.idx,start:si.start,autoplay:1,controls:0,rel:0,playsinline:1,iv_load_policy:3,disablekb:1,fs:0,modestbranding:1},
+   events:{onReady:e=>{try{e.target.setVolume(vVol);e.target.playVideo()}catch(x){}
+     clearTimeout(lMuteChk);lMuteChk=setTimeout(()=>{try{if(LP&&LP.getPlayerState()!==1){LP.mute();LP.playVideo();$('#lUnmute').classList.add('on');$('#lmute').innerHTML=VI.mute}}catch(x){}},1800)},
+    onStateChange:e=>{if(e.data===1){$('#lstatic').classList.remove('on');try{const d=LP.getVideoData();if(d&&d.title)$('#lnow').textContent=d.title}catch(x){}lPoke()}},
+    onError:()=>{try{LP.nextVideo()}catch(x){}}}});
+  clearInterval(lTick);lTick=setInterval(liveTick,15000);
+ }).catch(()=>{const sc=$('#lscreen');if(sc){const f=document.createElement('iframe');f.src=`https://www.youtube-nocookie.com/embed/videoseries?list=${si.src[1]}&index=${si.idx}&autoplay=1&rel=0&playsinline=1`;f.allow='autoplay; encrypted-media; fullscreen';f.allowFullscreen=true;sc.prepend(f);$('#lstatic').classList.remove('on')}})}
+function setBug(ch,si){$('#lchn').textContent=ch.n;$('#lchname').textContent=ch.name;$('#lsub').textContent=`${si.src[0]} on ${ch.name} · next: ${si.next[0]} at ${hhmm(si.ends)}`}
+function tune(i){const L=liveList();lCh=i;const ch=L[i],si=slotInfo(ch);lCur=si.src[1]+'|'+si.ends;staticFx(700);setBug(ch,si);$('#lnow').textContent='Tuning in…';
+ $('#guide').innerHTML=guideHTML(L);
+ try{LP.loadPlaylist({list:si.src[1],listType:'playlist',index:si.idx,startSeconds:si.start})}catch(e){}}
+function liveTick(){if(view!=='live')return;const L=liveList(),ch=L[lCh],si=slotInfo(ch),key=si.src[1]+'|'+si.ends;
+ if(key!==lCur)tune(lCh);else{$('#guide').innerHTML=guideHTML(L);setBug(ch,si)}}
+function staticFx(ms){const c=$('#lstatic');if(!c)return;c.width=320;c.height=180;const x=c.getContext('2d');c.classList.add('on');const end=Date.now()+ms;
+ (function f(){const d=x.createImageData(320,180);for(let i=0;i<d.data.length;i+=4){const v=Math.random()*255;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255}x.putImageData(d,0,0);
+  if(Date.now()<end||(LP&&LP.getPlayerState&&LP.getPlayerState()!==1&&Date.now()<end+4000))requestAnimationFrame(f);else c.classList.remove('on')})()}
+function lPoke(){const s=$('#lscreen');if(!s)return;s.classList.remove('idle');clearTimeout(lIdle);lIdle=setTimeout(()=>{const t=$('#lscreen');if(t)t.classList.add('idle')},3500)}
+function destroyLive(){clearInterval(lTick);clearTimeout(lIdle);clearTimeout(lMuteChk);try{if(LP&&LP.destroy)LP.destroy()}catch(e){}LP=null;lCur=null}
+document.addEventListener('keydown',e=>{if(view!=='live'||P.open||!LP||document.activeElement===$('#q')||(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.guide,header')))return;const L=liveList();
+ if(e.key==='ArrowUp'){e.preventDefault();tune((lCh-1+L.length)%L.length)}else if(e.key==='ArrowDown'){e.preventDefault();tune((lCh+1)%L.length)}
+ else if(e.key.toLowerCase()==='m')$('#lmute').click();else if(e.key.toLowerCase()==='f')$('#lfs').click()});
+
+/* ---------- TV remote / D-pad navigation ---------- */
+const BACK_KEYS=['Escape','Backspace','GoBack','BrowserBack'],BACK_CODES=[8,27,461,10009,166];
+const PLAY_KEYS=['MediaPlayPause','MediaPlay','MediaPause',' '],PLAY_CODES=[179,415,19,10252,463];
+function tvLayer(){if($('#pe').classList.contains('on'))return $('#pe');if($('#signin').classList.contains('on'))return $('#signin');if($('#who').classList.contains('on'))return $('#who');
+ if(P.open)return $('#player');if(M.open)return $('#modal');return document.body}
+function tvItems(){const root=tvLayer();return [...root.querySelectorAll('a[href],button,input,.card,.mc,.prof,[tabindex="0"]')].filter(el=>{if(el.disabled||el.classList.contains('arr'))return false;
+ if(root===document.body&&(el.closest('#modal,#player,#who,#signin,#pe')))return false;const r=el.getBoundingClientRect();return r.width>4&&r.height>4&&getComputedStyle(el).visibility!=='hidden'&&el.offsetParent!==null})}
+function tvMove(dir){const items=tvItems();if(!items.length)return;let cur=document.activeElement;
+ if(!cur||cur===document.body||!items.includes(cur)){const first=items.find(e=>e.matches('.prof,#hPlay,#gbtn,#mPlay,.card'))||items[0];first.focus();first.scrollIntoView({block:'nearest',inline:'nearest'});return}
+ const a=cur.getBoundingClientRect(),ax=a.left+a.width/2,ay=a.top+a.height/2;let best=null,bs=1e9;
+ items.forEach(el=>{if(el===cur)return;const r=el.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,dx=x-ax,dy=y-ay;
+  let main,cross;if(dir==='right'){if(dx<=4)return;main=dx;cross=Math.abs(dy)}else if(dir==='left'){if(dx>=-4)return;main=-dx;cross=Math.abs(dy)}
+  else if(dir==='down'){if(dy<=4)return;main=dy;cross=Math.abs(dx)}else{if(dy>=-4)return;main=-dy;cross=Math.abs(dx)}
+  const sc=main+cross*(dir==='left'||dir==='right'?3:1.2);if(sc<bs){bs=sc;best=el}});
+ if(best){best.focus({preventScroll:true});best.scrollIntoView({block:(dir==='up'||dir==='down')&&tvLayer()===document.body?'center':'nearest',inline:'nearest',behavior:'smooth'});
+  if(dir==='up'&&tvLayer()===document.body&&best.closest('header,.hero'))window.scrollTo({top:0,behavior:'smooth'})}}
+function tvBack(){if($('#pe').classList.contains('on')){$('#pe').classList.remove('on');return true}
+ if(P.open){closePlayer();return true}if(M.open){closeModal();return true}if($('#me').classList.contains('open')){$('#me').classList.remove('open');return true}
+ if(!$('#who').classList.contains('on')&&!$('#signin').classList.contains('on')&&view!=='home'){location.hash='home';return true}return false}
+function tvPlayPause(){if(P.open&&YTP){vToggle();return true}if(view==='shorts'&&SP){sToggle();return true}if(view==='live'&&LP){$('#lmute').click();return true}return false}
+let tvHintT;
+document.addEventListener('keydown',e=>{
+ const k=e.key,code=e.keyCode,inInput=document.activeElement&&document.activeElement.tagName==='INPUT'&&document.activeElement.type!=='range';
+ const arrow={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'}[k];
+ if(arrow||k==='Enter'){document.documentElement.classList.add('tv-nav');const h=$('#tvhint');h.classList.add('on');clearTimeout(tvHintT);tvHintT=setTimeout(()=>h.classList.remove('on'),2500)}
+ if((BACK_KEYS.includes(k)||BACK_CODES.includes(code))&&!(inInput&&k==='Backspace')){if(k!=='Escape'&&tvBack())e.preventDefault();return}
+ if((PLAY_KEYS.includes(k)&&k!==' ')||PLAY_CODES.includes(code)&&code!==32){if(tvPlayPause())e.preventDefault();return}
+ if(k==='Enter'){const el=document.activeElement;if(el&&el.matches('.prof,.mc')){e.preventDefault();el.click()}return}
+ if(!arrow)return;
+ if(inInput&&(arrow==='left'||arrow==='right'))return;
+ if(P.open&&YTP&&(arrow==='left'||arrow==='right'))return;          // seek in the video player
+ if(view==='shorts'&&SP&&tvLayer()===document.body&&(arrow==='up'||arrow==='down')&&!(document.activeElement&&document.activeElement.closest('header')))return; // next/prev Short
+ if(view==='live'&&LP&&tvLayer()===document.body&&(arrow==='up'||arrow==='down')&&!(document.activeElement&&document.activeElement.closest('header,.guide')))return; // flip channels
+ if(document.activeElement&&document.activeElement.type==='range'&&(arrow==='left'||arrow==='right'))return;
+ e.preventDefault();tvMove(arrow)});
+document.addEventListener('mousemove',()=>document.documentElement.classList.remove('tv-nav'),{passive:true});
 
 /* ---------- Boot with splash ---------- */
 (function(){const n=document.createElement('canvas');n.width=n.height=160;const c=n.getContext('2d'),d=c.createImageData(160,160);
