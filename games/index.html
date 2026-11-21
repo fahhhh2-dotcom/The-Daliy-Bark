@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>My Game Arcade</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Arcade">
+<meta name="theme-color" content="#120f24">
 <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#120f24;--ink:#fff;--muted:#b9b3d6;--yellow:#ffd23f}
@@ -76,6 +83,62 @@
   .x{position:absolute;top:12px;right:14px;background:none;border:0;color:#fff;font-size:22px;cursor:pointer}
   header{position:relative}
   @media (max-width:520px){header{padding-top:52px}}
+
+  .gotd{display:none;position:absolute;top:26px;right:-58px;width:240px;text-align:center;z-index:2;transform:rotate(35deg);background:var(--yellow);color:#111;
+    font-weight:800;font-size:10px;letter-spacing:.12em;padding:6px 0}
+  .card.today{border-color:var(--yellow);box-shadow:0 0 0 2px #ffd23f55,0 0 40px #ffd23f40,0 18px 40px #0007}
+  .card.today .gotd{display:block}
+  .card{transform-style:preserve-3d;will-change:transform}
+  .card:hover{transform:none}
+  .card .art svg{transition:transform .4s ease}
+  .card:hover .art svg{transform:scale(1.06)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 16px}
+  .stats div{background:#ffffff0d;border-radius:12px;padding:8px 6px;text-align:center}
+  .stats b{display:block;font-size:17px}
+  .stats small{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+  .stats .new{grid-column:1/-1;color:var(--muted);font-size:13px;padding:10px}
+  .bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:#ffffff0a;border:2px solid #ffffff14;border-radius:22px;padding:16px 18px;margin:0 0 22px}
+  .lvl{flex:1;min-width:220px}
+  .lvlTop{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  .lvlTop b{font-family:'Bungee',sans-serif;font-weight:400;font-size:18px;color:var(--yellow)}
+  .lvlTop span{font-weight:800;font-size:14px}
+  .xp{height:12px;border-radius:10px;background:#ffffff14;overflow:hidden}
+  .xp i{display:block;height:100%;width:0;border-radius:10px;background:linear-gradient(90deg,#5fd4ff,#7cf29a,#ffd23f,#ff8a3d);transition:width 1s ease}
+  .lvl small{display:block;color:var(--muted);font-size:12px;margin-top:6px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .pill{border:2px solid #ffffff30;background:#ffffff10;color:#fff;font:800 15px 'Rubik',sans-serif;padding:11px 16px;border-radius:30px;cursor:pointer;text-decoration:none}
+  .pill.hot{background:var(--yellow);border-color:var(--yellow);color:#111}
+  .pill:active{transform:translateY(2px)}
+  .slot{position:fixed;inset:0;z-index:9;background:#000b;display:flex;align-items:center;justify-content:center}
+  .slot[hidden]{display:none}
+  .slotBox{background:#1c1838;border:3px solid var(--yellow);border-radius:24px;padding:28px 34px;text-align:center;min-width:280px;box-shadow:0 0 60px #ffd23f55}
+  .slotBox small{color:var(--muted);letter-spacing:.2em;font-weight:800;font-size:12px}
+  .slotBox b{display:block;font-family:'Bungee',sans-serif;font-weight:400;font-size:28px;margin-top:10px;color:var(--yellow)}
+  .badges{margin-top:40px}
+  .badges h2{font-family:'Bungee',sans-serif;font-weight:400;font-size:28px;margin:0}
+  .badges h2 span{font-family:'Rubik',sans-serif;font-size:16px;color:var(--muted);font-weight:600}
+  .hint{color:var(--muted);margin:6px 0 16px;font-size:14px}
+  .bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .badge2{background:#1c1838;border:2px solid #ffffff14;border-radius:18px;padding:14px 10px;text-align:center;cursor:pointer;transition:transform .15s}
+  .badge2:active{transform:scale(.96)}
+  .badge2 .ic{font-size:34px;line-height:1;filter:grayscale(1) brightness(.5)}
+  .badge2 b{display:block;font-size:14px;margin-top:8px}
+  .badge2 small{display:block;color:var(--muted);font-size:11px;margin-top:4px;min-height:28px}
+  .badge2.got{border-color:#ffd23f88;background:linear-gradient(180deg,#2a2350,#1c1838)}
+  .badge2.got .ic{filter:none;animation:bob 2.4s ease-in-out infinite}
+  .badge2.got b{color:var(--yellow)}
+  @keyframes bob{50%{transform:translateY(-4px)}}
+  .install{display:flex;gap:14px;align-items:center;margin-top:34px;background:#ffffff0a;border:2px dashed #ffffff24;border-radius:20px;padding:16px 18px}
+  .install>div{font-size:34px}
+  .install p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
+  .install b{color:#fff}
+  .sh{display:inline-block;border:1px solid #fff6;border-radius:6px;padding:0 5px;font-size:12px}
+  .pop{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translate(-50%,140%);z-index:11;
+    background:var(--yellow);color:#111;font-weight:800;padding:14px 20px;border-radius:20px;box-shadow:0 10px 30px #0008;transition:transform .4s cubic-bezier(.2,1.4,.4,1),opacity .3s;text-align:center;max-width:90vw;opacity:0}
+  .pop.show{transform:translate(-50%,0);opacity:1}
+  canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:12}
+  h1{animation:glow 3s ease-in-out infinite}
+  @keyframes glow{50%{filter:drop-shadow(0 5px 0 #2a1c66) drop-shadow(0 0 18px #ffd23f66)}}
 </style>
 </head>
 <body>
@@ -89,9 +152,23 @@
     <div class="saveNote" id="saveNote">Sign in to save your progress in every game, on any device.</div>
   </header>
 
+  <section class="bar">
+    <div class="lvl">
+      <div class="lvlTop"><b id="lvlName">Arcade Rookie</b><span id="lvlNum">Level 1</span></div>
+      <div class="xp"><i id="xpFill"></i></div>
+      <small id="lvlNext">Earn badges in any game to level up</small>
+    </div>
+    <div class="actions">
+      <a class="pill hot" id="cont" hidden>▶ Continue</a>
+      <button class="pill" id="surprise">🎲 Surprise me</button>
+      <button class="pill" id="snd" aria-label="Sound">🔊</button>
+    </div>
+  </section>
+  <div class="slot" id="slot" hidden><div class="slotBox"><small>PICKING YOUR GAME…</small><b id="slotName">?</b></div></div>
+
   <section class="grid">
     <!-- Deep Blue Fishing -->
-    <article class="card fish">
+    <article class="card fish" data-game="fishing"><div class="gotd">⭐ GAME OF THE DAY</div>
       <div class="art">
         <span class="badge">🎣 FISHING</span>
         <svg viewBox="0 0 400 210" preserveAspectRatio="xMidYMid slice">
@@ -120,12 +197,13 @@
         <h2>Deep Blue Fishing</h2>
         <p>Cast your line, reel in fish of every color, and explore the islands of the deep blue sea.</p>
         <div class="chips"><span>2D</span><span>Fishing</span><span>Islands</span></div>
-        <a class="play" href="fishing/">▶ PLAY</a>
+        <div class="stats" id="st-fishing"></div>
+        <a class="play" href="fishing/" data-go="fishing">▶ PLAY</a>
       </div>
     </article>
 
     <!-- Graveyard Defense -->
-    <article class="card grave">
+    <article class="card grave" data-game="graveyard"><div class="gotd">⭐ GAME OF THE DAY</div>
       <div class="art">
         <span class="badge">🎃 TOWER DEFENSE</span>
         <svg viewBox="0 0 400 210" preserveAspectRatio="xMidYMid slice">
@@ -168,12 +246,13 @@
         <h2>Graveyard Defense</h2>
         <p>Hold off waves of zombies with vampires, monsters and the mighty Headless Horseman. Upgrade in the shop between waves.</p>
         <div class="chips"><span>Tower Defense</span><span>Halloween</span><span>Shop</span></div>
-        <a class="play" href="graveyard/">▶ PLAY</a>
+        <div class="stats" id="st-graveyard"></div>
+        <a class="play" href="graveyard/" data-go="graveyard">▶ PLAY</a>
       </div>
     </article>
 
     <!-- Sandwich Sprint 3D -->
-    <article class="card run">
+    <article class="card run" data-game="runner"><div class="gotd">⭐ GAME OF THE DAY</div>
       <div class="art">
         <span class="badge">🏃 3D RUNNER</span>
         <svg viewBox="0 0 400 210" preserveAspectRatio="xMidYMid slice">
@@ -213,12 +292,13 @@
         <h2>Sandwich Sprint 3D</h2>
         <p>Dash through the sandwich shop, dodge obstacles, and grab every cookie. Spend your cookies in the shop!</p>
         <div class="chips"><span>3D</span><span>Endless Runner</span><span>Shop</span></div>
-        <a class="play" href="runner/">▶ PLAY</a>
+        <div class="stats" id="st-runner"></div>
+        <a class="play" href="runner/" data-go="runner">▶ PLAY</a>
       </div>
     </article>
 
     <!-- Wild Woods Bug Catching -->
-    <article class="card bug">
+    <article class="card bug" data-game="bugs"><div class="gotd">⭐ GAME OF THE DAY</div>
       <div class="art">
         <span class="badge">🐞 BUG CATCHING</span>
         <svg viewBox="0 0 400 210" preserveAspectRatio="xMidYMid slice">
@@ -269,12 +349,26 @@
         <h2>Wild Woods Bug Catching</h2>
         <p>Grab your net and head into the forest. Hold down the net to catch butterflies, beetles and more!</p>
         <div class="chips"><span>2D</span><span>Bug Catching</span><span>Forest</span></div>
-        <a class="play" href="bugs/">▶ PLAY</a>
+        <div class="stats" id="st-bugs"></div>
+        <a class="play" href="bugs/" data-go="bugs">▶ PLAY</a>
       </div>
     </article>
   </section>
 
+  <section class="badges">
+    <h2>🏅 Badges <span id="badgeCount"></span></h2>
+    <p class="hint">Play the games to unlock them all. Tap a badge to see how to get it.</p>
+    <div class="bgrid" id="bgrid"></div>
+  </section>
+
+  <section class="install" id="install">
+    <div>📱</div>
+    <p><b>Put the arcade on your Home Screen</b><br>On iPhone: tap the Share button <span class="sh">⬆︎</span>, then <b>Add to Home Screen</b>. It opens like a real app.</p>
+  </section>
+
   <footer>Made with ♥ — more games coming soon</footer>
+  <div class="pop" id="pop"></div>
+  <canvas id="confetti"></canvas>
 </main>
 <script>
   const s=document.getElementById('stars');
@@ -364,5 +458,6 @@
   paint();
 })();
 </script>
+<script src="hub.js"></script>
 </body>
 </html>
