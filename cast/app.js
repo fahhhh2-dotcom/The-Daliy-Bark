@@ -976,6 +976,43 @@ async function enablePopups(on){
   saveSettings({popups:true});showSystem('Cast notifications are on 🎉','You’ll get a pop-up when someone likes, replies, adds you or messages you.','notifications','welcome');
 }
 
+/* ---------- ads: every 10 minutes of watching videos ---------- */
+const AD_EVERY=10*60; // seconds of video watching between ads
+const ADS=[
+  {id:'skycast',name:'SkyCast',icon:'../weather/icon-192.png',url:'https://skycastweather.com',color1:'#38bdf8',color2:'#1d4ed8',emoji:'☀️🌤️🌧️',
+   head:'Know the weather before you go',body:'Live radar, hourly forecasts and weather news — all free on SkyCast.',cta:'Open SkyCast',site:'skycastweather.com'},
+  {id:'dailybark',name:'The Daily Bark',icon:'../icon-192.png',url:'https://thedailybark.dog',color1:'#fbbf24',color2:'#f97316',emoji:'🐶📰🐾',
+   head:'Real dog news, every single day',body:'Heartwarming stories about dogs, fresh every morning on The Daily Bark.',cta:'Read The Daily Bark',site:'thedailybark.dog'}
+];
+let watchSec=0,adShowing=false,adTurn=0;
+try{watchSec=+(localStorage.getItem('cast_watch')||0);adTurn=+(localStorage.getItem('cast_adturn')||0)}catch{}
+setInterval(()=>{
+  if(adShowing||document.hidden)return;
+  const playing=[...document.querySelectorAll('video')].find(v=>!v.paused&&!v.ended&&v.readyState>2&&v.isConnected&&!v.closest('#editor'));
+  if(!playing)return;
+  watchSec++;if(watchSec%5===0)try{localStorage.setItem('cast_watch',String(watchSec))}catch{}
+  if(watchSec>=AD_EVERY){watchSec=0;try{localStorage.setItem('cast_watch','0')}catch{};showAd(playing)}
+},1000);
+function showAd(video){
+  adShowing=true;const ad=ADS[adTurn%ADS.length];adTurn++;try{localStorage.setItem('cast_adturn',String(adTurn))}catch{}
+  const wasMuted=video?.muted;video?.pause();
+  const R=document.getElementById('adv');R.className='open';
+  let left=5;
+  R.innerHTML=`<div class="ad" style="--a1:${ad.color1};--a2:${ad.color2}">
+    <div class="ad-top"><span class="ad-tag">Ad</span><span class="ad-from">from the makers of Cast</span><button class="ad-skip" disabled>Skip in <b>${left}</b></button></div>
+    <div class="ad-card"><div class="ad-float">${[...ad.emoji].filter(c=>c.trim()&&c!=='️').map((c,i)=>`<span style="--i:${i}">${c}</span>`).join('')}</div>
+      <img class="ad-icon" src="${ad.icon}" alt="" onerror="this.style.display='none'">
+      <div class="ad-name">${ad.name}</div><h2>${ad.head}</h2><p>${ad.body}</p>
+      <a class="ad-cta" href="${ad.url}" target="_blank" rel="noopener">${ad.cta} →</a><div class="ad-site">${ad.site}</div></div>
+    <div class="ad-bar"><i></i></div></div>`;
+  const btn=R.querySelector('.ad-skip');
+  const t=setInterval(()=>{left--;if(left>0){btn.querySelector('b').textContent=left}else{clearInterval(t);btn.disabled=false;btn.innerHTML='Skip ad ✕'}},1000);
+  const close=()=>{clearInterval(t);R.className='';R.innerHTML='';adShowing=false;if(video&&video.isConnected){video.muted=wasMuted;video.play().catch(()=>{})}};
+  btn.onclick=()=>{if(!btn.disabled)close()};
+  R.querySelector('.ad-cta').onclick=()=>setTimeout(close,300);
+  setTimeout(()=>{if(adShowing&&R.className==='open')close()},15000); // ads end by themselves after 15s
+}
+
 /* ---------- render ---------- */
 // Update the page in place instead of rebuilding it, so photos and videos don't reload or jump.
 const keyOf=n=>n.nodeType===1?(n.getAttribute('data-post')||n.getAttribute('data-mkey')):null;
