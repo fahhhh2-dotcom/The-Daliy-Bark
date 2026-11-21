@@ -63,7 +63,7 @@ These rules let anyone *read* posts, but only signed-in people can post, and onl
 
 ## Step 6 (optional): Turn on photo and video uploads
 
-Without this step, Pulse still works: photos are saved small inside the database, and the Video button is hidden.
+Without this step, Pulse still works: photos are saved smaller, and videos up to **8 MB** are saved as pieces inside the free database. Turning on Storage raises the video limit to 20 MB and saves photos at full quality.
 
 Firebase only lets projects on the **Blaze (pay-as-you-go)** plan use file storage. Blaze still includes a free amount of usage each month, so a small site with friends usually costs **$0**, but Google requires a card on file.
 
@@ -109,5 +109,5 @@ Firebase's free plan includes 50,000 reads, 20,000 writes and 1 GB of database s
 | "Almost there — connect Firebase" screen | Paste your settings into `firebase-config.js` (step 2) |
 | Sign-in popup says *unauthorized domain* | Add your site's address under Authentication → Settings → Authorized domains |
 | "Not allowed — check your security rules" | Publish `firestore.rules` (step 5) and `storage.rules` (step 6) |
-| No Video button | Finish step 6 and set `storageEnabled = true` |
+| Video too big | Without Storage, videos must be under 8 MB. Trim them, or finish step 6 for 20 MB |
 | Nothing happens when you open the file directly | Open it from GitHub Pages instead (step 7) |

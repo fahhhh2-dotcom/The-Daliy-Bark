@@ -26,7 +26,8 @@ const ICON = {
 };
 const GOOGLE = '<svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
 const COLORS=['#ff5a36','#127c74','#6a4cff','#e0a100','#d63a7a','#2f7de1','#3c9a3c','#8a5a3c'];
-const MAX=280, VIDEO_MAX=20*1024*1024;
+const MAX=280, VIDEO_MAX=20*1024*1024, DB_VIDEO_MAX=8*1024*1024, CHUNK=700*1024;
+const VCACHE=new Map(), VLOADING=new Set();
 
 const S={
   fb:null,uid:null,authReady:false,isAdmin:false,loading:true,profilesReady:false,
@@ -159,9 +160,9 @@ async function createPost(){
   const ok=await guard(async()=>{
     const data={author:S.uid,text,createdAt:Date.now()};
     if(C.media){
-      if(S.fb.st)data.media=await uploadMedia(C.media.blob,C.media.kind);
+      if(S.fb.st)data.media={...(await uploadMedia(C.media.blob,C.media.kind)),...(C.media.thumb&&C.media.thumb.length<120000?{thumb:C.media.thumb}:{})};
       else if(C.media.kind==='image'&&C.media.dataUrl)data.image=C.media.dataUrl;
-      else throw new Error('Video uploads need Firebase Storage (setup step 6)');
+      else if(C.media.kind==='video'){if(!C.media.thumb)C.media.thumb=await makeThumb(C.media.url);data.media=await uploadChunks(C.media.blob,C.media.thumb)}
     }
     if(opts)data.poll={options:opts.slice(0,4)};
     await put('posts',newId(),data);
@@ -186,6 +187,7 @@ async function deletePost(pid){
     for(const c of['likes','reposts','votes'])for(const r of S[c].filter(x=>x.post===pid))await remove(c,r.id);
     for(const c of commentsFor(pid))await remove('comments',c.id);
     await remove('posts',pid);
+    if(isDbVideo(p.media)&&(p.author===S.uid||S.isAdmin)){for(let i=0;i<p.media.chunks;i++){try{await remove('videoChunks',p.media.vid+'_'+i)}catch{}}}
     if(p.media?.path&&S.fb.st&&p.author===S.uid){try{await S.fb.st.deleteObject(S.fb.st.ref(S.fb.storage,p.media.path))}catch{}}
     const b=(S.me.bookmarks||[]);if(b.includes(pid))saveMe({bookmarks:b.filter(x=>x!==pid)});
     toast('Post deleted');
@@ -230,9 +232,11 @@ function pickFile(file,kind){
   if(kind==='video'){
     if(/quicktime/.test(file.type)||/\.mov$/i.test(file.name)){toast('.mov isn’t supported — export as MP4');return}
     if(!/^video\/(mp4|webm)$/.test(file.type)&&!/\.(mp4|webm)$/i.test(file.name)){toast('Pick an MP4 or WebM video');return}
-    if(file.size>VIDEO_MAX){toast('Videos must be under 20 MB');return}
+    const lim=S.fb?.st?VIDEO_MAX:DB_VIDEO_MAX;
+    if(file.size>lim){toast(`Videos must be under ${lim/1048576} MB`);return}
     if(C.media?.url?.startsWith('blob:'))URL.revokeObjectURL(C.media.url);
-    C.media={kind:'video',blob:file,url:URL.createObjectURL(file)};C.poll=null;render();return;
+    C.media={kind:'video',blob:file,url:URL.createObjectURL(file),thumb:''};C.poll=null;render();
+    makeThumb(C.media.url).then(t=>{if(C.media?.blob===file)C.media.thumb=t});return;
   }
   if(!file.type.startsWith('image/')){toast('Pick an image');return}
   const r=new FileReader();
@@ -246,8 +250,53 @@ function pickFile(file,kind){
   r.readAsDataURL(file);
 }
 
+function makeThumb(url){
+  return new Promise(res=>{
+    const v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';v.src=url;
+    let to;const done=t=>{clearTimeout(to);res(t)};to=setTimeout(()=>done(''),6000);
+    v.onloadeddata=()=>{try{v.currentTime=Math.min(0.5,(v.duration||1)/2)}catch{done('')}};
+    v.onseeked=()=>{try{const w=Math.min(480,v.videoWidth||480),h=Math.round(w*(v.videoHeight||270)/(v.videoWidth||480));
+      const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(v,0,0,w,h);done(c.toDataURL('image/jpeg',.7))}catch{done('')}};
+    v.onerror=()=>done('');
+  });
+}
+// Free mode: a video is saved as small pieces in the database (no Storage plan needed)
+async function uploadChunks(file,thumb){
+  const buf=new Uint8Array(await file.arrayBuffer());
+  const n=Math.ceil(buf.length/CHUNK), vid=newId(), type=file.type==='video/webm'?'video/webm':'video/mp4';
+  for(let i=0;i<n;i++){
+    const part=buf.subarray(i*CHUNK,(i+1)*CHUNK);let bin='';
+    for(let j=0;j<part.length;j+=0x8000)bin+=String.fromCharCode.apply(null,part.subarray(j,j+0x8000));
+    await put('videoChunks',vid+'_'+i,{owner:S.uid,vid,i,data:btoa(bin)});
+    S.compose.progress=Math.round((i+1)*100/n);const b=$('[data-act="post"]');if(b)b.textContent=`Uploading ${S.compose.progress}%`;
+  }
+  return{kind:'video',vid,chunks:n,type,size:buf.length,thumb:/^data:image\/jpeg;base64,/.test(thumb||'')&&thumb.length<120000?thumb:''};
+}
+const isDbVideo=m=>m?.kind==='video'&&typeof m.vid==='string'&&Number.isInteger(m.chunks)&&m.chunks>0&&m.chunks<=20;
+const isVideo=p=>p.media?.kind==='video'&&(okURL(p.media.url)||isDbVideo(p.media));
+const videoSrc=p=>okURL(p.media?.url)?p.media.url:VCACHE.get(p.media?.vid)||'';
+async function loadVideo(p,autoplay=true){
+  const m=p.media;if(!isDbVideo(m)||VCACHE.has(m.vid)||VLOADING.has(m.vid))return;
+  VLOADING.add(m.vid);render();
+  try{
+    const parts=await Promise.all(Array.from({length:m.chunks},(_,i)=>S.fb.fs.getDoc(dref('videoChunks',m.vid+'_'+i))));
+    const bytes=parts.map(d=>{if(!d.exists())throw new Error('missing');const b=atob(d.data().data);const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u});
+    VCACHE.set(m.vid,URL.createObjectURL(new Blob(bytes,{type:m.type==='video/webm'?'video/webm':'video/mp4'})));
+  }catch(e){console.warn(e);toast('Couldn’t load that video')}
+  VLOADING.delete(m.vid);render();
+  if(autoplay){const v=document.querySelector(`main [data-vid="${CSS.escape(m.vid)}"]`);v?.play().catch(()=>{})}
+}
+function videoBox(p,cls='pimg'){
+  const src=videoSrc(p);
+  if(src)return`<video class="${cls}" data-vid="${esc(p.media.vid||'')}" src="${esc(src)}" controls playsinline preload="metadata" ${p.media.thumb?`poster="${esc(p.media.thumb)}"`:''}></video>`;
+  const loading=VLOADING.has(p.media.vid);
+  return`<button class="vposter ${cls}" data-act="playvid" data-id="${esc(p.id)}" style="${p.media.thumb?`background-image:url('${esc(p.media.thumb)}')`:''}">
+    <span class="vplay">${loading?'Loading…':'▶'}</span>${p.media.size?`<span class="vsize">${(p.media.size/1048576).toFixed(1)} MB</span>`:''}</button>`;
+}
+
 /* ---------- post rendering ---------- */
 function mediaHTML(p){
+  if(isVideo(p))return videoBox(p);
   if(p.media&&okURL(p.media.url)){
     const src=esc(p.media.url);
     if(p.media.kind==='video')return`<video class="pimg" src="${src}" controls playsinline preload="metadata"></video>`;
@@ -323,7 +372,7 @@ function composerHTML(){
       <div style="display:flex;gap:8px">${C.poll.length<4?`<button class="iconbtn" data-act="addopt">${ICON.plus}Add option</button>`:''}<button class="iconbtn" data-act="rmpoll">Remove poll</button></div></div>`:''}
     <div class="row"><div class="tools">
       <label class="iconbtn" title="Photo">${ICON.image}<span>Photo</span><input type="file" accept="image/*" data-file="image" hidden></label>
-      ${S.fb?.st?`<label class="iconbtn" title="Video">${ICON.video}<span>Video</span><input type="file" accept="video/mp4,video/webm" data-file="video" hidden></label>`:''}
+      <label class="iconbtn" title="Video">${ICON.video}<span>Video</span><input type="file" accept="video/mp4,video/webm" data-file="video" hidden></label>
       <button class="iconbtn ${C.poll?'on':''}" data-act="poll" title="Poll">${ICON.poll}<span>Poll</span></button>
     </div>
     <div style="display:flex;align-items:center;gap:12px"><span class="count ${left<20?'warn':''}">${left}</span><button class="btn" data-act="post" ${can?'':'disabled'}>${C.busy?(C.media?`Uploading ${C.progress}%`:'Posting…'):'Post'}</button></div></div>
@@ -337,12 +386,12 @@ function homeView(){
   ${feedList(feedItems(set),S.tab==='following'?'Nothing here yet':'Be the first to post',S.tab==='following'?'Follow people to fill this feed.':'Say hi — post some text, a photo, a video or a poll.')}`;
 }
 function clipsView(){
-  const vids=S.posts.filter(p=>p.media?.kind==='video'&&okURL(p.media.url)).sort((a,b)=>b.createdAt-a.createdAt);
+  const vids=S.posts.filter(isVideo).sort((a,b)=>b.createdAt-a.createdAt);
   return`<div class="top"><h1>Clips</h1><span class="muted">${vids.length} video${vids.length===1?'':'s'}</span></div>
   ${vids.length?`<div class="clips">${vids.map(p=>`<div class="clip" data-act="watch" data-id="${esc(p.id)}">
-    <video src="${esc(p.media.url)}#t=0.5" muted playsinline preload="metadata"></video>
+    ${p.media.thumb?`<img src="${esc(p.media.thumb)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block">`:videoSrc(p)?`<video src="${esc(videoSrc(p))}#t=0.5" muted playsinline preload="metadata"></video>`:'<div style="width:100%;height:100%;background:linear-gradient(135deg,#2a2420,#000)"></div>'}
     <span class="play">▶</span><div class="cap"><b>${esc(nameOf(p.author))}</b><div>${esc(p.text||'')}</div></div></div>`).join('')}</div>`
-  :`<div class="empty"><div class="big">No clips yet</div>${S.fb?.st?'Post a video from Home and it shows up here.':'Videos turn on once Firebase Storage is set up.'}</div>`}`;
+  :`<div class="empty"><div class="big">No clips yet</div>Post a video from Home and it shows up here.</div>`}`;
 }
 function exploreView(){
   const q=S.query.toLowerCase();
@@ -425,9 +474,10 @@ function peopleHTML(){
   return ids.slice(0,5).map(personRow).join('');
 }
 function overlayHTML(){
-  if(S.viewer){const p=postById(S.viewer);if(!p||!okURL(p.media?.url)){S.viewer=null;return''}
+  if(S.viewer){const p=postById(S.viewer);if(!p||!isVideo(p)){S.viewer=null;return''}
+    const src=videoSrc(p);
     return`<div class="viewer" data-act="closeviewer"><button class="x" data-act="closeviewer" aria-label="Close">✕</button>
-      <video src="${esc(p.media.url)}" controls autoplay playsinline onclick="event.stopPropagation()"></video>
+      ${src?`<video src="${esc(src)}" controls autoplay playsinline onclick="event.stopPropagation()"></video>`:`<div style="color:#fff;font-size:18px">Loading video…</div>`}
       <div class="info"><b>${esc(nameOf(p.author))}</b> ${esc(p.text||'')}<br><button class="btn small" style="margin-top:10px" data-act="gopost" data-id="${esc(p.id)}">Open post · ${likesFor(p.id).length} likes · ${commentsFor(p.id).length} replies</button></div></div>`}
   if(S.onboard){const E=S.onboard;
     return`<div class="modal"><div class="card"><div class="brand" style="padding:0 0 6px;font-size:22px"><span class="dot"></span>Pulse</div>
@@ -526,7 +576,8 @@ document.addEventListener('click',async e=>{
     case'saveprofile':{S.edit.err=await saveAccount(S.edit,false);if(!S.edit.err)S.editing=false;return render()}
     case'createaccount':{const E=S.onboard;E.busy=true;E.err=null;render();E.err=await saveAccount(E,true);E.busy=false;if(!E.err)S.onboard=null;return render()}
     case'cleartag':S.tag=null;return render();
-    case'watch':S.viewer=id;return render();
+    case'watch':{S.viewer=id;render();const p=postById(id);if(p&&isDbVideo(p.media)&&!VCACHE.has(p.media.vid)){await loadVideo(p,false);$('#overlay').innerHTML=''}return render()}
+    case'playvid':{const p=postById(id);if(p)loadVideo(p);return}
     case'closeviewer':if(e.target.closest('video'))return;S.viewer=null;$('#overlay').innerHTML='';return render();
     case'gopost':return goPost(id);
     case'copy':{const url=location.origin+location.pathname+'#p-'+id;

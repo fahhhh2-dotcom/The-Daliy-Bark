@@ -73,6 +73,16 @@ service cloud.firestore {
       allow delete: if signedIn() && (resource.data.from == me() || isAdmin());
     }
 
+    // Videos (free mode): each video is saved as pieces "<videoId>_<n>"
+    match /videoChunks/{id} {
+      allow read: if true;
+      allow create: if signedIn() && data().owner == me()
+        && data().i is int && data().i >= 0 && data().i < 20
+        && id == data().vid + '_' + string(data().i)
+        && str(data().data, 1000000);
+      allow delete: if signedIn() && (resource.data.owner == me() || isAdmin());
+    }
+
     // Bookmarks & "last seen" — private to each person
     match /private/{uid} {
       allow read, write: if signedIn() && uid == me();
