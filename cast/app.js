@@ -643,6 +643,7 @@ function settingsView(){
     <div class="setrow"><div><b>Accent color</b><small>Buttons, links and highlights</small></div><div class="swatches">${Object.entries(ACCENTS).map(([k,[a,b]])=>`<button class="${SET.accent===k?'on':''}" data-set="accent" data-val="${k}" style="background:linear-gradient(135deg,${b},${a})" aria-label="${k}"></button>`).join('')}</div></div>
     ${tog('motion','Animations','Smooth motion and effects')}
   </div>
+  ${S.isAdmin?`<div class="card box setcard"><h3>📊 Admin</h3><div class="setrow"><div><b>Dashboard</b><small>Who joined, activity, and play an ad for everyone</small></div><button class="btn small" data-view="dash">Open</button></div></div>`:''}
   ${S.isAdmin?`<div class="card box setcard"><h3>🛡️ Cast Guard</h3><div class="setrow"><div><b>Moderation</b><small>Review reports and banned people</small></div><button class="btn small" data-view="mod">Open</button></div></div>`:''}
   <div class="card box setcard"><h3>🔔 Notifications</h3>
     <div class="setrow"><div><b>Pop-up notifications</b><small>Get a pop-up for likes, replies, mentions, friends and messages${isIOS()&&!isStandalone()?' — on iPhone, install Cast first':''}</small></div><button class="switch ${SET.popups&&('Notification' in window)&&Notification.permission==='granted'?'on':''}" data-act="togglepopups" aria-label="Pop-up notifications"><i></i></button></div>
@@ -993,8 +994,11 @@ setInterval(()=>{
   watchSec++;if(watchSec%5===0)try{localStorage.setItem('cast_watch',String(watchSec))}catch{}
   if(watchSec>=AD_EVERY){watchSec=0;try{localStorage.setItem('cast_watch','0')}catch{};showAd(playing)}
 },1000);
-function showAd(video){
-  adShowing=true;const ad=ADS[adTurn%ADS.length];adTurn++;try{localStorage.setItem('cast_adturn',String(adTurn))}catch{}
+function showAd(video,custom){
+  if(adShowing)return;
+  if(!video)video=[...document.querySelectorAll('main video')].find(v=>!v.paused)||null;
+  adShowing=true;let ad=custom;
+  if(!ad){ad=ADS[adTurn%ADS.length];adTurn++;try{localStorage.setItem('cast_adturn',String(adTurn))}catch{}}
   const wasMuted=video?.muted;video?.pause();
   const R=document.getElementById('adv');R.className='open';
   let left=5;
@@ -1003,15 +1007,108 @@ function showAd(video){
     <div class="ad-card"><div class="ad-float">${[...ad.emoji].filter(c=>c.trim()&&c!=='️').map((c,i)=>`<span style="--i:${i}">${c}</span>`).join('')}</div>
       <img class="ad-icon" src="${ad.icon}" alt="" onerror="this.style.display='none'">
       <div class="ad-name">${ad.name}</div><h2>${ad.head}</h2><p>${ad.body}</p>
-      <a class="ad-cta" href="${ad.url}" target="_blank" rel="noopener">${ad.cta} →</a><div class="ad-site">${ad.site}</div></div>
+      ${ad.url?`<a class="ad-cta" href="${ad.url}" target="_blank" rel="noopener">${ad.cta} →</a><div class="ad-site">${ad.site}</div>`:''}</div>
     <div class="ad-bar"><i></i></div></div>`;
   const btn=R.querySelector('.ad-skip');
   const t=setInterval(()=>{left--;if(left>0){btn.querySelector('b').textContent=left}else{clearInterval(t);btn.disabled=false;btn.innerHTML='Skip ad ✕'}},1000);
   const close=()=>{clearInterval(t);R.className='';R.innerHTML='';adShowing=false;if(video&&video.isConnected){video.muted=wasMuted;video.play().catch(()=>{})}};
   btn.onclick=()=>{if(!btn.disabled)close()};
-  R.querySelector('.ad-cta').onclick=()=>setTimeout(close,300);
+  const cta=R.querySelector('.ad-cta');if(cta)cta.onclick=()=>setTimeout(close,300);
   setTimeout(()=>{if(adShowing&&R.className==='open')close()},15000); // ads end by themselves after 15s
 }
+
+/* ---------- broadcast: the admin plays an ad for everyone ---------- */
+const escA=s=>esc(String(s||''));
+function adFromBroadcast(b){
+  if(b.kind==='skycast')return ADS[0];if(b.kind==='dailybark')return ADS[1];
+  const url=/^https:\/\//.test(b.url||'')?b.url:'';
+  return{name:escA(b.name||'Cast'),icon:'icon-192.png',url:escA(url),color1:/^#[0-9a-f]{6}$/i.test(b.c1||'')?b.c1:'#00a3ff',color2:/^#[0-9a-f]{6}$/i.test(b.c2||'')?b.c2:'#1d6bff',
+    emoji:'\u2728\ud83d\udce3\u2b50',head:escA(b.title||'Announcement'),body:escA(b.body||''),cta:escA(b.cta||'Open'),site:escA(url.replace(/^https:\/\//,'').split('/')[0])};
+}
+function onBroadcast(b){
+  if(!b||!b.id)return;S.lastBroadcast=b;
+  let seen='';try{seen=localStorage.getItem('cast_bcast_seen')||''}catch{}
+  if(seen===b.id||Date.now()-(b.createdAt||0)>30*60000)return; // only fresh ones, once each
+  try{localStorage.setItem('cast_bcast_seen',b.id)}catch{}
+  const go=()=>{if(adShowing)return setTimeout(go,2000);showAd(null,adFromBroadcast(b));
+    if(S.uid&&S.fb)S.fb.fs.setDoc(dref('adViews',b.id+'__'+S.uid),{bid:b.id,user:S.uid,at:Date.now()}).catch(()=>{})};
+  go();
+}
+
+/* ---------- admin dashboard ---------- */
+const DAYMS=86400000;
+async function loadDashCounts(){
+  if(!S.fb||!S.isAdmin)return;const {fs}=S.fb;const c=n=>fs.getCountFromServer(col(n)).then(x=>x.data().count).catch(()=>null);
+  const [posts,likes,comments,follows,stories,convos]=await Promise.all(['posts','likes','comments','follows','stories','reports'].map(c));
+  S.dash={posts,likes,comments,follows,stories,reports:convos,at:Date.now()};
+  if(S.lastBroadcast?.id){try{const v=await fs.getCountFromServer(fs.query(col('adViews'),fs.where('bid','==',S.lastBroadcast.id)));S.dash.views=v.data().count}catch{}}
+  soon();
+}
+function dashView(){
+  if(!S.isAdmin)return`<div class="empty"><div class="big">Admins only</div></div>`;
+  if(!S.dash||Date.now()-S.dash.at>60000){if(!S._dashLoading){S._dashLoading=true;loadDashCounts().finally(()=>S._dashLoading=false)}}
+  const D=S.dash||{},now=Date.now(),P=Object.values(S.profiles).filter(p=>p.handle);
+  const joined=P.length,today=P.filter(p=>now-(p.createdAt||0)<DAYMS).length,week=P.filter(p=>now-(p.createdAt||0)<7*DAYMS).length;
+  const activeNow=P.filter(p=>now-(p.lastActive||0)<6*60000).length,activeToday=P.filter(p=>now-(p.lastActive||0)<DAYMS).length;
+  const vids=S.posts.filter(isVideo),shorts=vids.filter(isShort).length,longs=vids.length-shorts;
+  const views=S.posts.reduce((a,p)=>a+(p.views||0),0);
+  // sign-ups per day, last 14 days
+  const days=[...Array(14)].map((_,i)=>{const d=new Date(now-(13-i)*DAYMS);d.setHours(0,0,0,0);return d});
+  const counts=days.map(d=>P.filter(p=>(p.createdAt||0)>=d.getTime()&&(p.createdAt||0)<d.getTime()+DAYMS).length);
+  const mx=Math.max(1,...counts);
+  const stat=(n,l,ic)=>`<div class="dstat"><span>${ic}</span><b>${n==null?'\u2026':Number(n).toLocaleString()}</b><small>${l}</small></div>`;
+  const newest=[...P].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,8);
+  const top=[...S.posts].sort((a,b)=>likesFor(b.id).length-likesFor(a.id).length).slice(0,5);
+  const B=S.adForm||(S.adForm={kind:'skycast',title:'',body:'',url:'https://',cta:'Check it out',c1:'#00a3ff',c2:'#1d6bff'});
+  const lb=S.lastBroadcast;
+  return`<div class="top"><h1>\ud83d\udcca Dashboard</h1><button class="btn ghost small" data-act="dashrefresh">\u21bb Refresh</button></div>
+  <div class="dgrid">
+    ${stat(joined,'people joined','\ud83d\udc65')}${stat(today,'joined today','\ud83c\udd95')}${stat(week,'joined this week','\ud83d\udcc5')}
+    ${stat(activeNow,'online now','\ud83d\udfe2')}${stat(activeToday,'active today','\u26a1')}${stat(D.posts,'posts','\ud83d\udcdd')}
+    ${stat(shorts,'Shorts','\ud83d\udcf1')}${stat(longs,'long videos','\ud83c\udfac')}${stat(views,'video views','\ud83d\udc41')}
+    ${stat(D.likes,'likes','\u2764\ufe0f')}${stat(D.comments,'comments','\ud83d\udcac')}${stat(D.follows,'friend adds','\ud83e\udd1d')}
+  </div>
+  <div class="card box"><h3>New people \u00b7 last 14 days</h3>
+    <div class="dchart">${counts.map((n,i)=>`<div class="dbar" title="${days[i].toLocaleDateString(undefined,{month:'short',day:'numeric'})}: ${n}"><i style="height:${Math.round(n/mx*100)}%"></i><b>${n||''}</b><small>${i%2?'':days[i].toLocaleDateString(undefined,{month:'numeric',day:'numeric'})}</small></div>`).join('')}</div></div>
+
+  <div class="card box adpanel"><h3>\ud83d\udce3 Play an ad for everyone</h3>
+    <p class="muted" style="margin:0 0 12px;font-size:13px">It pops up right away on every screen that has Cast open, and for anyone who opens Cast in the next 30 minutes. Each person sees it once.</p>
+    <div class="seg" style="width:fit-content;margin-bottom:12px">${[['skycast','\u2600\ufe0f SkyCast'],['dailybark','\ud83d\udc36 Daily Bark'],['custom','\u270f\ufe0f Custom']].map(([k,l])=>`<button class="segbtn ${B.kind===k?'on':''}" data-adkind="${k}">${l}</button>`).join('')}</div>
+    ${B.kind==='custom'?`<div class="edit" style="margin:0 0 12px">
+      <label class="field">Headline<input data-key="ad:title" data-ad="title" maxlength="60" value="${esc(B.title)}" placeholder="Big news!"></label>
+      <label class="field">Message<textarea data-key="ad:body" data-ad="body" rows="2" maxlength="160" placeholder="Tell everyone something">${esc(B.body)}</textarea></label>
+      <label class="field">Link (optional)<input data-key="ad:url" data-ad="url" maxlength="200" value="${esc(B.url)}"></label>
+      <label class="field">Button text<input data-key="ad:cta" data-ad="cta" maxlength="24" value="${esc(B.cta)}"></label>
+      <div class="field">Colors<div style="display:flex;gap:10px"><input type="color" data-ad="c1" value="${esc(B.c1)}"><input type="color" data-ad="c2" value="${esc(B.c2)}"></div></div></div>`:''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="adbroadcast">\ud83d\udce3 Play for everyone</button><button class="btn ghost" data-act="adpreview">\ud83d\udc40 Preview</button></div>
+    ${lb?`<div class="muted" style="margin-top:12px;font-size:13px">Last ad: <b>${esc(lb.kind==='custom'?lb.title:lb.kind==='skycast'?'SkyCast':'The Daily Bark')}</b> \u00b7 ${ago(lb.createdAt)} \u00b7 seen by ${D.views==null?'\u2026':D.views} ${D.views===1?'person':'people'}</div>`:''}
+  </div>
+
+  <div class="dcols">
+    <div class="card box"><h3>Newest members</h3>${newest.length?newest.map(p=>`<div class="person">${av(p.user,'sm')}<div class="n" data-profile="${esc(p.user)}">${esc(p.displayName||'')}${badge(p.user)}<small>@${esc(p.handle)} \u00b7 joined ${ago(p.createdAt||0)}${now-(p.lastActive||0)<6*60000?' \u00b7 \ud83d\udfe2 online':''}</small></div></div>`).join(''):'<p class="muted">Nobody yet.</p>'}</div>
+    <div class="card box"><h3>Top posts</h3>${top.length?top.map(p=>`<div class="person" data-act="gopost" data-id="${esc(p.id)}" style="cursor:pointer"><span class="rank">\u2764 ${likesFor(p.id).length}</span><div class="n">${esc((p.title||p.text||'(photo/video)').slice(0,60))}<small>${esc(nameOf(p.author))} \u00b7 ${ago(p.createdAt)}</small></div></div>`).join(''):'<p class="muted">No posts yet.</p>'}</div>
+  </div>`;
+}
+async function broadcastAd(){
+  const B=S.adForm;if(!B)return;
+  if(B.kind==='custom'){
+    if(!B.title.trim())return toast('Add a headline');
+    if(B.url&&B.url!=='https://'&&!/^https:\/\/[^\s]+\.[^\s]+/.test(B.url))return toast('Links must start with https://');
+  }
+  const id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  const data={id,kind:B.kind,createdAt:Date.now(),by:S.uid};
+  if(B.kind==='custom')Object.assign(data,{title:B.title.trim().slice(0,60),body:B.body.trim().slice(0,160),url:B.url==='https://'?'':B.url.trim().slice(0,200),cta:B.cta.trim().slice(0,24)||'Open',c1:B.c1,c2:B.c2});
+  const ok=await guard(()=>put('config','broadcast',data));
+  if(ok){toast('\ud83d\udce3 Ad is playing for everyone');try{localStorage.setItem('cast_bcast_seen',id)}catch{};S.dash&&(S.dash.at=0)}
+}
+// let the dashboard know who's online
+let presT=null;
+function presence(){
+  if(!S.uid||!S.fb||!handleOf(S.uid)||document.hidden)return;
+  const last=prof(S.uid).lastActive||0;if(Date.now()-last<4*60000)return;
+  S.fb.fs.setDoc(dref('profiles',S.uid),{lastActive:Date.now()},{merge:true}).catch(()=>{});
+}
+setInterval(presence,60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(presence,1500)});
 
 /* ---------- render ---------- */
 // Update the page in place instead of rebuilding it, so photos and videos don't reload or jump.
@@ -1059,6 +1156,7 @@ function render(){
   morph($('#nav'),`<div class="brand"><span class="dot"></span>Cast</div>
     ${items.map(([v,l])=>`<button class="navbtn ${isOn(v)?'on':''}" data-view="${v}">${ICON[icon[v]]}${v==='notifications'?'Notifications':v==='bookmarks'?'Bookmarks':v==='messages'?'Messages':l}${v==='notifications'&&n?`<span class="badge">${n>99?'99+':n}</span>`:''}${v==='messages'&&um?`<span class="badge">${um}</span>`:''}${v==='friends'&&friendRequests().length?`<span class="badge">${friendRequests().length}</span>`:''}</button>`).join('')}
     ${S.uid?`<button class="btn navpost" data-act="fab">${ICON.camera} Snap</button>`:''}
+    ${S.isAdmin?`<button class="navbtn ${S.view==='dash'?'on':''}" data-view="dash">📊 Dashboard</button>`:''}
     ${S.isAdmin?`<button class="navbtn ${S.view==='mod'?'on':''}" data-view="mod">🛡️ Cast Guard${new Set(S.reports.map(r=>r.target)).size?`<span class="badge">${new Set(S.reports.map(r=>r.target)).size}</span>`:''}</button>`:''}
     ${canInstall()?`<button class="navbtn" data-act="install" style="margin-top:6px">⬇︎ Install app</button>`:''}
     ${S.uid?`<div class="mecard" data-profile="${esc(S.uid)}">${av(S.uid,'sm')}<div style="min-width:0;flex:1"><div class="n">${esc(nameOf(S.uid))}${badge(S.uid)}</div><div class="s">${h?'@'+esc(h):'Setting up…'}</div></div></div>`
@@ -1073,7 +1171,7 @@ function render(){
     ${S.uid?`<button data-view="profile" aria-label="Profile" class="mtop-me ${isOn('profile')?'on':''}">${av(S.uid,'sm',false)}</button>`:`<button data-view="settings" aria-label="Settings" class="${S.view==='settings'?'on':''}">${ICON.gear}</button>`}</div>`);
   document.body.classList.toggle('in-shorts',S.view==='shorts');
   {const f=S.uid&&canWrite()&&S.view!=='shorts'&&S.view!=='watch'?`<button class="fab" data-act="fab" aria-label="Open camera">${ICON.camera}</button>`:'';if($('#fab').dataset.h!==f){$('#fab').innerHTML=f;$('#fab').dataset.h=f}}
-  const V={mod:modView,explore:exploreView,profile:profileView,shorts:shortsView,videos:videosView,watch:watchView,settings:settingsView,notifications:notifView,bookmarks:bookmarksView,messages:messagesView,friends:friendsView}[S.view]||homeView;
+  const V={dash:dashView,mod:modView,explore:exploreView,profile:profileView,shorts:shortsView,videos:videosView,watch:watchView,settings:settingsView,notifications:notifView,bookmarks:bookmarksView,messages:messagesView,friends:friendsView}[S.view]||homeView;
   const vt=S.view+'|'+(S.view==='profile'?S.profileId:S.view==='watch'?S.watchId:'');
   morph($('#main'),V());
   if($('#main').dataset.vt!==vt){$('#main').dataset.vt=vt;const m=$('#main');m.classList.remove('vt');void m.offsetWidth;m.classList.add('vt')}
@@ -1156,6 +1254,7 @@ function installHelpHTML(){
 
 /* ---------- events ---------- */
 document.addEventListener('click',async e=>{
+  const ak=e.target.closest('[data-adkind]');if(ak&&S.adForm){S.adForm.kind=ak.dataset.adkind;return render()}
   const rp=e.target.closest('[data-report]');if(rp)return sendReport(rp.dataset.report);
   const gpub=e.target.closest('[data-gpub]');if(gpub&&S.groupForm){S.groupForm.pub=gpub.dataset.gpub==='1';S.groupForm.err='';return render()}
   const gp=e.target.closest('[data-gpick]');if(gp&&S.groupForm){if(gp.tagName==='INPUT'){gp.checked?S.groupForm.picked.add(gp.dataset.gpick):S.groupForm.picked.delete(gp.dataset.gpick)}else S.groupForm.picked.delete(gp.dataset.gpick);S.groupForm.err='';return render()}
@@ -1188,6 +1287,9 @@ document.addEventListener('click',async e=>{
     case'savegroup':return saveGroup();
     case'groupinfo':S.groupInfo=!S.groupInfo;return render();
     case'leavegroup':return leaveGroup(id);
+    case'dashrefresh':S.dash=null;return render();
+    case'adbroadcast':return broadcastAd();
+    case'adpreview':{const B=S.adForm;showAd(null,B.kind==='custom'?adFromBroadcast({kind:'custom',...B,url:B.url==='https://'?'':B.url}):ADS[B.kind==='skycast'?0:1]);return}
     case'report':return openReport(t.dataset.type,id);
     case'reportchat':{const last=[...S.msgs].reverse().find(m=>m.from===id);S.reportForm={type:'message',id,text:last?.text||''};return render()}
     case'closereport':S.reportForm=null;return render();
@@ -1245,6 +1347,7 @@ document.addEventListener('input',e=>{
   if(k==='q'){S.query=t.value;render();return}
   if(k==='chat'){S.chatDraft=t.value;return}
   if(k==='vtitle'&&S.compose.media){S.compose.media.title=t.value;return}
+  if(t.dataset.ad&&S.adForm){S.adForm[t.dataset.ad]=t.value;return}
   if(t.dataset.g&&S.groupForm){S.groupForm[t.dataset.g]=t.value;if(t.dataset.g==='q')render();return}
 });
 document.addEventListener('keydown',e=>{
@@ -1255,7 +1358,7 @@ document.addEventListener('keydown',e=>{
 });
 document.addEventListener('change',e=>{const k=e.target.dataset.file;if(k){pickFile(e.target.files[0],k);e.target.value=''}});
 document.addEventListener('submit',e=>{e.preventDefault();if(e.target.dataset.form==='c')addComment(e.target.dataset.id)});
-const VIEWS=['mod','shorts','videos','explore','notifications','bookmarks','profile','messages','friends','settings'];
+const VIEWS=['dash','mod','shorts','videos','explore','notifications','bookmarks','profile','messages','friends','settings'];
 let pendingHash=null;
 function fromHash(){
   const h=decodeURIComponent(location.hash.slice(1));
@@ -1532,6 +1635,7 @@ if(CONFIGURED)(async()=>{
   listen(fs.query(col('votes'),fs.limit(2000)),rows=>S.votes=rows.filter(v=>Number.isInteger(v.choice)));
   listen(fs.query(col('stories'),fs.where('createdAt','>',Date.now()-DAY),fs.orderBy('createdAt','asc'),fs.limit(500)),rows=>{S.stories=rows.filter(r=>typeof r.author==='string'&&typeof r.createdAt==='number');cleanupStories()});
   setTimeout(()=>{if(S.loading){S.loading=false;render()}},10000);
+  fs.onSnapshot(dref('config','broadcast'),d=>{if(d.exists())onBroadcast(d.data())},()=>{});
 
   let unsubR=null,unsubB=null,unsubMyBan=null,unsubMe=null,unsubAdmin=null,unsubF1=null,unsubF2=null,unsubC=null,unsubPG=null,fA=[],fB=[];
   try{await auth.getRedirectResult(authI)}catch{}
@@ -1547,6 +1651,7 @@ if(CONFIGURED)(async()=>{
       unsubR=fs.onSnapshot(fs.query(col('reports'),fs.limit(2000)),s=>{S.reports=s.docs.map(d=>({id:d.id,...d.data()}));soon()},e=>console.warn(e));
       unsubB=fs.onSnapshot(fs.query(col('banned'),fs.limit(500)),s=>{S.bannedList=s.docs.map(d=>d.id);soon()},e=>console.warn(e));
       unsubMyBan=fs.onSnapshot(dref('banned',user.uid),d=>{S.banned=d.exists();soon()},()=>{});
+      setTimeout(presence,3000);
       const mergeF=()=>{const m=new Map();[...fA,...fB].forEach(f=>m.set(f.id,f));S.follows=[...m.values()];soon()};
       unsubF1=fs.onSnapshot(fs.query(col('follows'),fs.where('from','==',user.uid),fs.limit(5000)),s=>{fA=s.docs.map(d=>({id:d.id,...d.data()}));mergeF()},e=>console.warn(e));
       unsubPG?.();unsubPG=fs.onSnapshot(fs.query(col('convos'),fs.where('public','==',true),fs.limit(100)),s=>{S.publicGroups=s.docs.map(d=>({id:d.id,...d.data()}));soon()},e=>console.warn(e));

@@ -151,6 +151,17 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Ads the admin plays for everyone
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    // Who saw each ad (so the dashboard can count)
+    match /adViews/{vid} {
+      allow read: if isAdmin();
+      allow create: if signedIn() && data().user == me() && vid == data().bid + '__' + me();
+    }
+
     // Admin list — you add yourself here by hand in the console
     match /admins/{uid} {
       allow read: if signedIn() && uid == me();

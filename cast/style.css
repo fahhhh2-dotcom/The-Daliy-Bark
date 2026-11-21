@@ -676,3 +676,20 @@ video.pimg.tall{width:min(100%,315px);height:auto;max-height:none;object-fit:con
 .ad-bar{height:4px;border-radius:4px;background:rgba(255,255,255,.2);margin-top:12px;overflow:hidden}
 .ad-bar i{display:block;height:100%;background:#fff;width:0;animation:adBar 15s linear forwards}
 @keyframes adBar{to{width:100%}}
+/* admin dashboard */
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.dstat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:2px}
+.dstat span{font-size:20px}
+.dstat b{font-family:"Bricolage Grotesque",sans-serif;font-size:26px;letter-spacing:-.02em}
+.dstat small{color:var(--muted);font-size:12.5px}
+.dchart{display:flex;align-items:flex-end;gap:6px;height:150px;padding-top:16px}
+.dbar{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;position:relative}
+.dbar i{display:block;width:100%;min-height:3px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,var(--blue2),var(--accent));transition:height .5s}
+.dbar b{position:absolute;top:-2px;font-size:11px}
+.dbar small{font-size:10px;color:var(--muted);height:14px;margin-top:4px;white-space:nowrap}
+.adpanel{margin:14px 0}
+.adpanel input[type=color]{width:48px;height:36px;border:1px solid var(--line);border-radius:10px;background:none;padding:2px}
+.dcols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.dcols .rank{width:auto;min-width:42px;font-weight:700;color:#ff4d6d;font-size:13px}
+@media (max-width:860px){.dcols{grid-template-columns:1fr}}
+@media (max-width:720px){.dgrid{grid-template-columns:repeat(2,1fr);padding:0 12px}.dcols{padding:0 0}}
