@@ -124,7 +124,7 @@
     <button class="icon-btn" id="home" title="Home">⌂</button>
     <form class="omnibox" id="omniForm">
       <span class="lock" id="lock">🔍</span>
-      <input id="omni" autocomplete="off" spellcheck="false" placeholder="Search Wikipedia or type a web address">
+      <input id="omni" autocomplete="off" spellcheck="false" placeholder="Search or type a web address">
     </form>
     <button class="icon-btn" id="star" title="Bookmark this page">☆</button>
     <button class="icon-btn" id="openReal" title="Open in a real tab">↗</button>
@@ -158,9 +158,10 @@
     {title:'Nimbus', url:'https://thedailybark.dog/nimbus/'},
     {title:'Games', url:'https://thedailybark.dog/games/'},
     {title:'Wikipedia', url:'https://en.wikipedia.org/wiki/Main_Page'},
-    {title:'Map', url:'https://www.openstreetmap.org/export/embed.html?bbox=-98,29,-94,33&layer=mapnik'},
+    {title:'YouTube', url:'https://www.youtube.com/'},
+    {title:'Google', url:'https://www.google.com/'},
   ];
-  let dial = store.get('dial2', DEFAULT_DIAL);
+  let dial = store.get('dial3', DEFAULT_DIAL);
   let bookmarks = store.get('bookmarks', [{title:'Wikipedia', url:'https://en.wikipedia.org/wiki/Main_Page'}]);
   let history = store.get('history', []);
   let noticeHidden = false;
@@ -182,7 +183,7 @@
     if(isInternal(q)) return q;
     if(/^https?:\/\//i.test(q)) return q;
     if(/^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(q) && !q.includes(' ')) return 'https://' + q;
-    return 'https://en.wikipedia.org/w/index.php?search=' + encodeURIComponent(q);
+    return 'https://duckduckgo.com/?q=' + encodeURIComponent(q);
   }
   // Turn a YouTube watch link into an embeddable player
   function frameable(u){
@@ -239,8 +240,22 @@
 
   const cur = () => tabs.find(t => t.id === activeId);
 
+  function openExternal(url){
+    const a = document.createElement('a');
+    a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    document.body.append(a); a.click(); a.remove();
+  }
+
   function navigate(tab, input, push=true){
     const url = normalize(input);
+    // Real websites open in a new browser tab (many sites refuse to be shown inside another page)
+    if(!isInternal(url) && push){
+      history.unshift({url, title: titleFor(url), at: Date.now()});
+      history = history.slice(0, 300); store.set('history', history);
+      openExternal(url);
+      omni.value = ''; omni.blur();
+      return;
+    }
     if(push){
       tab.stack = tab.stack.slice(0, tab.idx+1);
       tab.stack.push(url); tab.idx = tab.stack.length-1;
@@ -336,7 +351,7 @@
       p.innerHTML = `<div class="home">
         <div class="logo">Orbit</div>
         <div class="clock" data-clock></div>
-        <form class="bigsearch"><input placeholder="Search Wikipedia or type a web address" autofocus><button>Go</button></form>
+        <form class="bigsearch"><input placeholder="Search or type a web address" autofocus><button>Go</button></form>
         <div class="dial"></div></div>`;
       const f = p.querySelector('form'), inp = f.querySelector('input');
       f.onsubmit = e => { e.preventDefault(); if(inp.value.trim()) navigate(tab, inp.value); };
@@ -347,13 +362,13 @@
         el.innerHTML = `<span class="badge" style="background:${colorFor(hostOf(s.url))}">${esc(s.title[0].toUpperCase())}</span>
           <span>${esc(s.title)}</span><button class="rm" title="Remove">✕</button>`;
         el.onclick = () => navigate(tab, s.url);
-        el.querySelector('.rm').onclick = e => { e.stopPropagation(); dial.splice(i,1); store.set('dial2', dial); renderInternal(tab, url); };
+        el.querySelector('.rm').onclick = e => { e.stopPropagation(); dial.splice(i,1); store.set('dial3', dial); renderInternal(tab, url); };
         d.append(el);
       });
       const add = document.createElement('div');
       add.className = 'tile add';
       add.innerHTML = '<span class="badge">+</span><span>Add site</span>';
-      add.onclick = () => askSite(s => { dial.push(s); store.set('dial2', dial); renderInternal(tab, url); });
+      add.onclick = () => askSite(s => { dial.push(s); store.set('dial3', dial); renderInternal(tab, url); });
       d.append(add);
       tickClock();
     }
