@@ -660,13 +660,58 @@ function composerHTML(){
     <div style="display:flex;align-items:center;gap:12px"><span class="count ${left<20?'warn':''}">${left}</span><button class="btn" data-act="post" ${can?'':'disabled'}>${C.busy?(C.media?`Uploading ${C.progress}%`:'Posting…'):'Post'}</button></div></div>
   </div></div>`;
 }
+/* ---------- For You: a mixed, personal feed ---------- */
+function interests(){
+  const tags={},authors={};if(!S.uid)return{tags,authors};
+  const liked=new Set(S.likes.filter(l=>l.user===S.uid).map(l=>l.post));
+  S.comments.filter(c=>c.author===S.uid).forEach(c=>liked.add(c.post));
+  for(const p of S.posts){const w=p.author===S.uid?1:liked.has(p.id)?2:0;if(!w)continue;
+    for(const t of tagsIn(p.text))tags[t]=(tags[t]||0)+w;if(p.author!==S.uid)authors[p.author]=(authors[p.author]||0)+1}
+  return{tags,authors};
+}
+const kindOf=p=>isLong(p)?'long':isShort(p)?'short':(p.media||p.image)?'photo':p.poll?'poll':'text';
+function scorePost(p,I,now){
+  const age=(now-p.createdAt)/3600000;
+  const eng=likesFor(p.id).length*2+commentsFor(p.id).length*3+repostsFor(p.id).length*3+(p.views||0)*.15;
+  let sc=(10+eng)/Math.pow(age+2,1.1);
+  if(isFriend(p.author))sc*=2.2;else if(following(p.author))sc*=1.6;
+  if(I.authors[p.author])sc*=1+Math.min(1,I.authors[p.author]*.25);
+  const tg=tagsIn(p.text).reduce((a,t)=>a+(I.tags[t]||0),0);if(tg)sc*=1+Math.min(1.5,tg*.3);
+  if(kindOf(p)!=='text')sc*=1.25;
+  if(p.author===S.uid)sc*=age<1?3:.6;
+  if(iLike(p.id))sc*=.7;
+  return sc;
+}
+function forYouHTML(){
+  const now=Date.now(),I=interests();
+  const all=S.posts.map(p=>({p,sc:scorePost(p,I,now)})).sort((a,b)=>b.sc-a.sc);
+  if(!all.length)return S.loading?`<div class="empty">Loading…</div>`:`<div class="empty"><div class="big">Be the first to post</div>Share a photo, a Short, a video or a poll.</div>`;
+  const shorts=all.filter(x=>isShort(x.p)).slice(0,10).map(x=>x.p);
+  const longs=all.filter(x=>isLong(x.p)).slice(0,8).map(x=>x.p);
+  const inStrip=new Set([...(shorts.length>=2?shorts:[]),...(longs.length>=2?longs:[])].map(p=>p.id));
+  // pick posts so the feed keeps changing: no same person twice in a row, no 3 of the same kind in a row
+  let pool=all.filter(x=>!inStrip.has(x.p.id));const out=[];
+  while(pool.length){
+    const last=out[out.length-1],prev=out[out.length-2];
+    let i=pool.findIndex(x=>(!last||x.p.author!==last.author)&&!(last&&prev&&kindOf(last)===kindOf(prev)&&kindOf(x.p)===kindOf(last)));
+    if(i<0)i=0;out.push(pool[i].p);pool.splice(i,1);
+  }
+  const reposted=new Map();for(const r of S.reposts)if(r.user!==S.uid&&(following(r.user)||isFriend(r.user)))reposted.set(r.post,r.user);
+  const card=p=>postHTML(p,reposted.has(p.id)?`${esc(nameOf(reposted.get(p.id)))} reposted`:'');
+  const shortStrip=shorts.length>=2?`<div class="strip" data-mkey="strip-shorts"><div class="strip-head"><h3>📱 Shorts for you</h3><button class="muted" data-view="shorts">See all</button></div><div class="strip-row">${shorts.map(p=>`<div class="strip-short" data-act="openshort" data-id="${esc(p.id)}" data-mkey="ss-${esc(p.id)}"><div class="tb-img" style="${p.media.thumb?`background-image:url('${esc(p.media.thumb)}');`:''}${validFilter(p.media.filter)?filterStyle(p.media.filter):''}"></div><span class="ss-views">▶ ${fmtNum(p.views||0)}</span><span class="ss-cap">${esc((p.text||nameOf(p.author)).slice(0,40))}</span></div>`).join('')}</div></div>`:'';
+  const longStrip=longs.length>=2?`<div class="strip" data-mkey="strip-long"><div class="strip-head"><h3>🎬 Videos for you</h3><button class="muted" data-view="videos">See all</button></div><div class="strip-row">${longs.map(p=>`<div class="strip-long" data-mkey="sl-${esc(p.id)}">${thumbBox(p,'thumb16')}<b data-act="openwatch" data-id="${esc(p.id)}">${esc(p.title||'Untitled video')}</b><small>${esc(nameOf(p.author))} · ${viewsLabel(p)}</small></div>`).join('')}</div></div>`:'';
+  let html='';
+  out.forEach((p,i)=>{html+=card(p);if(i===2)html+=shortStrip;if(i===6)html+=longStrip});
+  if(out.length<=2)html+=shortStrip;if(out.length<=6)html+=longStrip;
+  return html;
+}
 function homeView(){
   let set=null;
   if(S.tab==='following'&&S.uid){set=new Set(S.follows.filter(f=>f.from===S.uid).map(f=>f.to));set.add(S.uid)}
   if(S.tab==='friends'&&S.uid){set=new Set(myFriends());set.add(S.uid)}
   return`${installBanner()}${storiesBar()}<div class="top"><h1>Home</h1>${S.uid?`<div class="tabs"><button data-tab="all" class="${S.tab==='all'?'on':''}">For you</button><button data-tab="following" class="${S.tab==='following'?'on':''}">Following</button><button data-tab="friends" class="${S.tab==='friends'?'on':''}">Friends</button></div>`:''}</div>
   ${composerHTML()}
-  ${feedList(feedItems(set),S.tab!=='all'?'Nothing here yet':'Be the first to post',S.tab==='friends'?'Add friends to fill this feed.':S.tab==='following'?'Follow people to fill this feed.':'Say hi — post some text, a photo, a video or a poll.')}`;
+  ${S.tab==='all'?forYouHTML():feedList(feedItems(set),S.tab!=='all'?'Nothing here yet':'Be the first to post',S.tab==='friends'?'Add friends to fill this feed.':S.tab==='following'?'Follow people to fill this feed.':'Say hi — post some text, a photo, a video or a poll.')}`;
 }
 function clipsView(){
   const vids=S.posts.filter(isVideo).sort((a,b)=>b.createdAt-a.createdAt);
@@ -873,13 +918,14 @@ function render(){
     ${canInstall()?`<button class="navbtn" data-act="install" style="margin-top:6px">⬇︎ Install app</button>`:''}
     ${S.uid?`<div class="mecard" data-profile="${esc(S.uid)}">${av(S.uid,'sm')}<div style="min-width:0;flex:1"><div class="n">${esc(nameOf(S.uid))}${badge(S.uid)}</div><div class="s">${h?'@'+esc(h):'Setting up…'}</div></div></div>`
       :S.authReady?`<div style="margin-top:16px">${signInBtn('Sign in')}</div>`:''}`);
-  morph($('#mnav'),items.filter(([v])=>['home','shorts','videos','messages','profile'].includes(v)).map(([v,l])=>`<button class="${isOn(v)?'on':''}" data-view="${v}">${ICON[icon[v]]}${l}${v==='notifications'&&n?`<span class="badge">${n>9?'9+':n}</span>`:''}${v==='messages'&&um?`<span class="badge">${um}</span>`:''}</button>`).join(''));
+  {const tab=(v,l)=>`<button class="${isOn(v)?'on':''}" data-view="${v}">${ICON[icon[v]]}<span>${l}</span>${v==='messages'&&um?`<i class="dotbadge">${um>9?'9+':um}</i>`:''}</button>`;
+   morph($('#mnav'),`${tab('home','Home')}${tab('shorts','Shorts')}${S.uid&&canWrite()?`<button class="mnav-cam" data-act="fab" aria-label="Camera">${ICON.camera}</button>`:tab('explore','Explore')}${tab('videos','Videos')}${tab('messages','Chats')}`);}
   const fr=friendRequests().length;
   morph($('#mtop'),`<div class="brand"><span class="dot"></span>Cast</div><div class="mtop-icons">
     <button data-view="explore" aria-label="Search" class="${S.view==='explore'?'on':''}">${ICON.search}</button>
     <button data-view="friends" aria-label="Friends" class="${S.view==='friends'?'on':''}">${ICON.friends}${fr?`<span class="badge">${fr}</span>`:''}</button>
     <button data-view="notifications" aria-label="Notifications" class="${S.view==='notifications'?'on':''}">${ICON.bell}${n?`<span class="badge">${n>9?'9+':n}</span>`:''}</button>
-    <button data-view="settings" aria-label="Settings" class="${S.view==='settings'?'on':''}">${ICON.gear}</button></div>`);
+    ${S.uid?`<button data-view="profile" aria-label="Profile" class="mtop-me ${isOn('profile')?'on':''}">${av(S.uid,'sm',false)}</button>`:`<button data-view="settings" aria-label="Settings" class="${S.view==='settings'?'on':''}">${ICON.gear}</button>`}</div>`);
   document.body.classList.toggle('in-shorts',S.view==='shorts');
   {const f=S.uid&&canWrite()&&S.view!=='shorts'&&S.view!=='watch'?`<button class="fab" data-act="fab" aria-label="Open camera">${ICON.camera}</button>`:'';if($('#fab').dataset.h!==f){$('#fab').innerHTML=f;$('#fab').dataset.h=f}}
   const V={explore:exploreView,profile:profileView,shorts:shortsView,videos:videosView,watch:watchView,settings:settingsView,notifications:notifView,bookmarks:bookmarksView,messages:messagesView,friends:friendsView}[S.view]||homeView;
@@ -1021,6 +1067,7 @@ document.addEventListener('click',async e=>{
     case'createaccount':{const E=S.onboard;E.busy=true;E.err=null;render();E.err=await saveAccount(E,true);E.busy=false;if(!E.err)S.onboard=null;return render()}
     case'cleartag':S.tag=null;return render();
     case'openwatch':return openWatch(id);
+    case'openshort':{go('shorts');setTimeout(()=>{const el=document.querySelector(`.short[data-post="${CSS.escape(id)}"]`);if(el){el.scrollIntoView({block:'start'});const p=postById(id);if(p)playShort(p,el)}},60);return}
     case'togglepopups':return enablePopups(!(SET.popups&&('Notification' in window)&&Notification.permission==='granted'));
     case'shorttap':{const p=postById(id);if(!p)return;const v=t.querySelector('video');if(v&&!v.paused){v.pause();return}return playShort(p,t.closest('.short'))}
     case'settingsedit':go('profile',{profileId:S.uid});setTimeout(()=>{const p=prof(S.uid);S.editing=true;S.edit={handle:p.handle||'',displayName:p.displayName||'',bio:p.bio||'',website:p.website||'',color:colorOf(S.uid),usePhoto:!!p.photo};render()},0);return;
@@ -1080,17 +1127,16 @@ let SEEN_ST=new Set();try{SEEN_ST=new Set(JSON.parse(localStorage.getItem('pulse
 function markSeen(id){SEEN_ST.add(id);try{localStorage.setItem('pulse_seen_stories',JSON.stringify([...SEEN_ST].slice(-800)))}catch{}}
 function storyAuthors(){
   const by=new Map();for(const s of liveStories()){const a=by.get(s.author)||{id:s.author,last:0,unseen:false};a.last=Math.max(a.last,s.createdAt);if(!SEEN_ST.has(s.id))a.unseen=true;by.set(s.author,a)}
-  const list=[...by.values()].filter(a=>a.id!==S.uid);
+  const list=[...by.values()].filter(a=>a.id!==S.uid&&isFriend(a.id));
   list.sort((a,b)=>(b.unseen-a.unseen)||((following(b.id)?1:0)-(following(a.id)?1:0))||(b.last-a.last));
   return list;
 }
 function storiesBar(){
   const others=storyAuthors(), mine=storiesBy(S.uid).length;
-  if(!S.uid&&!others.length)return'';
+  if(!others.length&&!mine)return'';
   return`<div class="stories">
     ${S.uid&&canWrite()?`<div class="story-item"><button class="story-ring ${mine?'mine':'add'}" data-act="${mine?'story':'addstory'}" data-id="${esc(S.uid)}">${av(S.uid,'',false)}${mine?'':'<span class="story-plus">+</span>'}</button><span>${mine?'Your story':'Add story'}</span>${mine?`<button class="story-add2" data-act="addstory" aria-label="Add to story">+</button>`:''}</div>`:''}
     ${others.map(a=>`<div class="story-item"><button class="story-ring ${a.unseen?'':'seen'}" data-act="story" data-id="${esc(a.id)}">${av(a.id,'',false)}</button><span>${esc(nameOf(a.id).split(' ')[0])}</span></div>`).join('')}
-    ${!others.length&&S.uid?`<div class="story-empty">No stories right now — be the first! Stories disappear after 24 hours.</div>`:''}
   </div>`;
 }
 async function postStory({canvas,video,filter}){
