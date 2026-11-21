@@ -17,6 +17,7 @@ Setup takes about 15 minutes. You'll need a Google account and a GitHub account.
 | `index.html` | The website page |
 | `app.js` | Everything Cast does |
 | `editor.js` | Filters, photo editor, camera and video compression |
+| `manifest.webmanifest`, `sw.js`, icons | Let people install Cast on their phone or computer |
 | `style.css` | How it looks |
 | `firebase-config.js` | **You edit this file:** your Firebase settings go here |
 | `firestore.rules` | Security rules for your data. Paste them into Firebase |

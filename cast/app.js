@@ -25,6 +25,7 @@ const ICON = {
   at:SV('<circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/>'),
   plus:SV('<path d="M12 5v14M5 12h14"/>'),
   msg:SV('<path d="M4 5h16v11H8l-4 4z"/>'),
+  friends:SV('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.6c2.6-.3 4.6 1.4 5.5 4.4"/>'),
   send:SV('<path d="M4 12 20 4l-6 16-3-7z"/>'),
   camera:SV('<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>')
 };
@@ -37,7 +38,7 @@ const VCACHE=new Map(), VLOADING=new Set();
 
 const S={
   fb:null,uid:null,authReady:false,isAdmin:false,loading:true,profilesReady:false,
-  posts:[],likes:[],comments:[],follows:[],counts:{},stories:[],convos:[],chat:null,msgs:[],chatDraft:'',reposts:[],votes:[],profiles:{},me:{seenAt:0,bookmarks:[]},
+  posts:[],likes:[],comments:[],follows:[],counts:{},stories:[],convos:[],publicGroups:[],chat:null,msgs:[],chatDraft:'',reposts:[],votes:[],profiles:{},me:{seenAt:0,bookmarks:[]},
   view:'home',tab:'all',ptab:'posts',profileId:null,query:'',tag:null,
   open:new Set(),drafts:{},
   compose:{text:'',media:null,poll:null,busy:false,progress:0},
@@ -95,6 +96,49 @@ async function ensureCounts(){
     COUNT_PENDING.delete(id);
   }));
   soon();
+}
+// friends = people who follow each other
+const followsMe=id=>S.follows.some(f=>f.from===id&&f.to===S.uid);
+const isFriend=id=>!!S.uid&&id!==S.uid&&following(id)&&followsMe(id);
+const myFriends=()=>S.uid?[...new Set(S.follows.filter(f=>f.from===S.uid).map(f=>f.to))].filter(followsMe):[];
+const friendRequests=()=>S.uid?[...new Set(S.follows.filter(f=>f.to===S.uid).map(f=>f.from))].filter(id=>!following(id)&&id!==S.uid):[];
+function followBtn(id,small=true){
+  if(!canWrite()||id===S.uid)return'';
+  const f=isFriend(id),fo=following(id),back=!fo&&followsMe(id);
+  return`<button class="btn ${small?'small':''} ${fo?'ghost':''} ${f?'friendbtn':''}" data-act="follow" data-id="${esc(id)}">${f?'✓ Friends':fo?'Following':back?'Add back':'Add friend'}</button>`;
+}
+// points: earned from activity (calculated, so nobody can fake them)
+const LEVELS=[[0,'Newbie','🌱'],[100,'Bronze','🥉'],[500,'Silver','🥈'],[2000,'Gold','🥇'],[10000,'Diamond','💎']];
+function pointsOf(id){
+  const mine=S.posts.filter(p=>p.author===id),ids=new Set(mine.map(p=>p.id));
+  const likes=S.likes.filter(l=>ids.has(l.post)&&l.user!==id).length;
+  const replies=S.comments.filter(c=>ids.has(c.post)&&c.author!==id).length;
+  const reps=S.reposts.filter(r=>ids.has(r.post)&&r.user!==id).length;
+  const stories=liveStories().filter(x=>x.author===id).length;
+  return mine.length*10+likes*2+replies*3+reps*4+stories*5+followersOf(id)*5;
+}
+const levelOf=pts=>{let L=LEVELS[0];for(const l of LEVELS)if(pts>=l[0])L=l;return L};
+const nextLevel=pts=>LEVELS.find(l=>l[0]>pts);
+function pointsPill(id){const p=pointsOf(id),L=levelOf(p);return`<span class="pts" title="${L[1]} level">${L[2]} ${p.toLocaleString()} pts</span>`}
+function leaderboard(n){
+  const ids=Object.keys(S.profiles).filter(id=>S.profiles[id]?.handle);
+  ids.slice(0,40).forEach(id=>NEED.add(id));
+  return ids.map(id=>[id,pointsOf(id)]).sort((a,b)=>b[1]-a[1]).slice(0,n);
+}
+function leaderHTML(n=5){
+  const L=leaderboard(n);if(!L.length)return`<p class="muted" style="margin:0">Post, get likes and make friends to earn points.</p>`;
+  return L.map(([id,p],i)=>`<div class="person lead"><span class="rank r${i+1}">${i+1}</span>${av(id,'sm')}<div class="n" data-profile="${esc(id)}">${esc(nameOf(id))}${badge(id)}<small>${levelOf(p)[2]} ${levelOf(p)[1]}</small></div><b class="lead-pts">${p.toLocaleString()}</b></div>`).join('');
+}
+function friendsView(){
+  if(!S.uid)return`<div class="top"><h1>Friends</h1></div><div class="card hero"><h2>Find your friends</h2><p>Sign in to add friends.</p>${signInBtn()}</div>`;
+  const fr=myFriends(),req=friendRequests();
+  const sugg=Object.keys(S.profiles).filter(id=>id!==S.uid&&S.profiles[id]?.handle&&!following(id)&&!followsMe(id)).slice(0,8);
+  const row=id=>`<div class="person">${av(id,'sm')}<div class="n" data-profile="${esc(id)}">${esc(nameOf(id))}${badge(id)}<small>@${esc(handleOf(id))} · ${pointsPill(id)}</small></div>
+    ${isFriend(id)?`<button class="btn ghost small" data-act="dm" data-id="${esc(id)}">${ICON.msg}</button>`:''}${followBtn(id)}</div>`;
+  return`<div class="top"><h1>Friends</h1><span class="muted">${fr.length} friend${fr.length===1?'':'s'}</span></div>
+    ${req.length?`<div class="card box" style="margin-bottom:14px"><h3>Friend requests <span class="badge">${req.length}</span></h3>${req.map(row).join('')}</div>`:''}
+    <div class="card box" style="margin-bottom:14px"><h3>Your friends</h3>${fr.length?fr.map(row).join(''):`<p class="muted" style="margin:0">When you and someone add each other, you become friends.</p>`}</div>
+    <div class="card box"><h3>People you may know</h3>${sugg.length?sugg.map(row).join(''):`<p class="muted" style="margin:0">Share Cast with friends — they’ll show up here.</p>`}</div>`;
 }
 function bumpCount(id,field,d){const c=S.counts[id]||{followers:0,following:0,at:Date.now()};c[field]=Math.max(0,(c[field]||0)+d);S.counts[id]=c}
 const postById=id=>S.posts.find(p=>p.id===id);
@@ -236,7 +280,7 @@ async function deletePost(pid){
 const deleteComment=cid=>guard(()=>remove('comments',cid));
 const toggleFollow=id=>guard(async()=>{
   if(following(id)){await remove('follows',pairId(S.uid,id));bumpCount(id,'followers',-1);bumpCount(S.uid,'following',-1)}
-  else{await put('follows',pairId(S.uid,id),{from:S.uid,to:id,at:Date.now()});bumpCount(id,'followers',1);bumpCount(S.uid,'following',1)}
+  else{await put('follows',pairId(S.uid,id),{from:S.uid,to:id,at:Date.now()});bumpCount(id,'followers',1);bumpCount(S.uid,'following',1);toast(followsMe(id)?`You and ${nameOf(id).split(' ')[0]} are now friends! 🎉`:'Friend request sent')}
   render();
 });
 
@@ -368,13 +412,21 @@ async function loadVideo(p,autoplay=true){
   VLOADING.delete(m.vid);render();
   if(autoplay){const v=document.querySelector(`main [data-vid="${CSS.escape(m.vid)}"]`);v?.play().catch(()=>{})}
 }
+const fmtNum=n=>n>=1e6?(n/1e6).toFixed(n>=1e7?0:1).replace(/\.0$/,'')+'M':n>=1e3?(n/1e3).toFixed(n>=1e4?0:1).replace(/\.0$/,'')+'K':String(n||0);
+let VIEWED=new Set();try{VIEWED=new Set(JSON.parse(localStorage.getItem('cast_viewed')||'[]'))}catch{}
+function countView(pid){
+  if(!pid||VIEWED.has(pid)||!S.fb)return;const p=postById(pid);if(!p||!isVideo(p))return;
+  VIEWED.add(pid);try{localStorage.setItem('cast_viewed',JSON.stringify([...VIEWED].slice(-2000)))}catch{}
+  S.fb.fs.updateDoc(dref('posts',pid),{views:S.fb.fs.increment(1)}).catch(e=>console.warn(e));
+}
+const viewsLabel=p=>`${fmtNum(p.views||0)} view${(p.views||0)===1?'':'s'}`;
 function videoBox(p,cls='pimg'){
   const src=videoSrc(p);
   const fs=validFilter(p.media.filter)?filterStyle(p.media.filter):'';
-  if(src)return`<video class="${cls}" data-vid="${esc(p.media.vid||'')}" src="${esc(src)}" controls playsinline preload="metadata" ${p.media.thumb?`poster="${esc(p.media.thumb)}"`:''} style="${fs}"></video>`;
+  if(src)return`<video class="${cls}" data-pid="${esc(p.id)}" data-vid="${esc(p.media.vid||'')}" src="${esc(src)}" controls playsinline preload="metadata" ${p.media.thumb?`poster="${esc(p.media.thumb)}"`:''} style="${fs}"></video>`;
   const loading=VLOADING.has(p.media.vid);
   return`<button class="vposter ${cls}" data-act="playvid" data-id="${esc(p.id)}" style="${p.media.thumb?`background-image:url('${esc(p.media.thumb)}');`:''}${fs}">
-    <span class="vplay">${loading?'Loading…':'▶'}</span>${p.media.size?`<span class="vsize">${(p.media.size/1048576).toFixed(1)} MB</span>`:''}</button>`;
+    <span class="vplay">${loading?'Loading…':'▶'}</span><span class="vsize">👁 ${viewsLabel(p)}</span></button>`;
 }
 
 /* ---------- post rendering ---------- */
@@ -413,6 +465,7 @@ function postHTML(p,why){
       <button class="iconbtn ${iLike(p.id)?'liked':''}" data-act="like" data-id="${esc(p.id)}" title="Like">${ICON.heart}${likes||''}</button>
       <button class="iconbtn ${iSaved(p.id)?'saved':''}" data-act="save" data-id="${esc(p.id)}" title="Bookmark">${ICON.bookmark}</button>
       <button class="iconbtn" data-act="copy" data-id="${esc(p.id)}" title="Copy link">${ICON.share}</button>
+      ${isVideo(p)?`<span class="iconbtn views" title="Views">👁 ${fmtNum(p.views||0)}</span>`:''}
       ${canDel?`<button class="iconbtn del" data-act="del" data-id="${esc(p.id)}" title="Delete">${ICON.trash}</button>`:''}
     </div>
     ${open?`<div class="thread">
@@ -467,16 +520,17 @@ function composerHTML(){
 function homeView(){
   let set=null;
   if(S.tab==='following'&&S.uid){set=new Set(S.follows.filter(f=>f.from===S.uid).map(f=>f.to));set.add(S.uid)}
-  return`${storiesBar()}<div class="top"><h1>Home</h1>${S.uid?`<div class="tabs"><button data-tab="all" class="${S.tab==='all'?'on':''}">For you</button><button data-tab="following" class="${S.tab==='following'?'on':''}">Following</button></div>`:''}</div>
+  if(S.tab==='friends'&&S.uid){set=new Set(myFriends());set.add(S.uid)}
+  return`${installBanner()}${storiesBar()}<div class="top"><h1>Home</h1>${S.uid?`<div class="tabs"><button data-tab="all" class="${S.tab==='all'?'on':''}">For you</button><button data-tab="following" class="${S.tab==='following'?'on':''}">Following</button><button data-tab="friends" class="${S.tab==='friends'?'on':''}">Friends</button></div>`:''}</div>
   ${composerHTML()}
-  ${feedList(feedItems(set),S.tab==='following'?'Nothing here yet':'Be the first to post',S.tab==='following'?'Follow people to fill this feed.':'Say hi — post some text, a photo, a video or a poll.')}`;
+  ${feedList(feedItems(set),S.tab!=='all'?'Nothing here yet':'Be the first to post',S.tab==='friends'?'Add friends to fill this feed.':S.tab==='following'?'Follow people to fill this feed.':'Say hi — post some text, a photo, a video or a poll.')}`;
 }
 function clipsView(){
   const vids=S.posts.filter(isVideo).sort((a,b)=>b.createdAt-a.createdAt);
   return`<div class="top"><h1>Clips</h1><span class="muted">${vids.length} video${vids.length===1?'':'s'}</span></div>
   ${vids.length?`<div class="clips">${vids.map(p=>`<div class="clip" data-act="watch" data-id="${esc(p.id)}">
     ${p.media.thumb?`<img src="${esc(p.media.thumb)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;${validFilter(p.media.filter)?filterStyle(p.media.filter):''}">`:videoSrc(p)?`<video src="${esc(videoSrc(p))}#t=0.5" muted playsinline preload="metadata"></video>`:'<div style="width:100%;height:100%;background:linear-gradient(135deg,#2a2420,#000)"></div>'}
-    <span class="play">▶</span><div class="cap"><b>${esc(nameOf(p.author))}</b><div>${esc(p.text||'')}</div></div></div>`).join('')}</div>`
+    <span class="play">▶</span><div class="cap"><b>${esc(nameOf(p.author))}${badge(p.author)}</b><div>${esc(p.text||'')}</div><div class="cstats">👁 ${fmtNum(p.views||0)} · ❤ ${fmtNum(likesFor(p.id).length)}</div></div></div>`).join('')}</div>`
   :`<div class="empty"><div class="big">No clips yet</div>Post a video from Home and it shows up here.</div>`}`;
 }
 function exploreView(){
@@ -489,10 +543,10 @@ function exploreView(){
   <div class="search card" style="margin-bottom:14px">${ICON.search}<input data-key="q" placeholder="Search posts, @people and #tags" value="${esc(S.query)}"></div>
   ${S.tag?`<div class="filter"><span class="chip">#${esc(S.tag)}</span><button class="muted" data-act="cleartag">clear</button></div>`:''}
   ${people.length?`<div class="card box" style="margin-bottom:14px"><h3>People</h3>${people.map(p=>personRow(p.user)).join('')}</div>`:''}
-  ${!q&&!S.tag?`<div class="card box" style="margin-bottom:14px"><h3>Trending</h3>${trendsHTML()}</div>`:''}
+  ${!q&&!S.tag?`<div class="card box" style="margin-bottom:14px"><h3>🏆 Top creators</h3>${leaderHTML(10)}</div><div class="card box" style="margin-bottom:14px"><h3>Trending</h3>${trendsHTML()}</div>`:''}
   ${feedList(list,'No matching posts','Try another word or tag.')}`;
 }
-const NK={like:['#ff5a36','heart','liked your post'],repost:['#2f8f4e','repost','reposted your post'],reply:['#127c74','chat','replied'],mention:['#6a4cff','at','mentioned you'],follow:['#2f7de1','user','followed you'],vote:['#e0a100','poll','voted in your poll']};
+const NK={like:['#ff5a36','heart','liked your post'],repost:['#2f8f4e','repost','reposted your post'],reply:['#127c74','chat','replied'],mention:['#6a4cff','at','mentioned you'],follow:['#2f7de1','user','added you as a friend'],vote:['#e0a100','poll','voted in your poll']};
 function notifView(){
   if(!S.uid)return`<div class="top"><h1>Notifications</h1></div><div class="card hero"><h2>See who’s talking to you</h2><p>Sign in to get likes, replies, mentions and new followers.</p>${signInBtn()}</div>`;
   const list=notifications(),seen=S.notifSeenSnapshot??(S.me.seenAt||0);
@@ -500,7 +554,7 @@ function notifView(){
   ${list.length?`<div class="card" style="overflow:hidden">${list.map(n=>{const[c,ic,verb]=NK[n.kind];const p=n.post&&postById(n.post);
     return`<div class="notif ${n.at>seen?'new':''}" ${n.post?`data-act="gopost" data-id="${esc(n.post)}"`:`data-profile="${esc(n.who)}"`}>
       <div class="ic" style="background:${c}">${ICON[ic]}</div><div class="txt"><div><b>${esc(nameOf(n.who))}</b>${badge(n.who)} ${verb} <span class="muted">· ${ago(n.at)}</span></div>
-      ${n.text?`<div class="snip">${esc(n.text)}</div>`:p?.text?`<div class="snip">${esc(p.text)}</div>`:''}</div></div>`}).join('')}</div>`
+      ${n.text?`<div class="snip">${esc(n.text)}</div>`:p?.text?`<div class="snip">${esc(p.text)}</div>`:''}</div>${n.kind==='follow'&&!following(n.who)?`<span onclick="event.stopPropagation()">${followBtn(n.who)}</span>`:''}</div>`}).join('')}</div>`
   :`<div class="empty"><div class="big">All quiet</div>Likes, replies, reposts, mentions and new followers show up here.</div>`}`;
 }
 function bookmarksView(){
@@ -521,12 +575,13 @@ function profileView(){
   const E=S.edit;
   return`<div class="card phead"><div class="cover" style="background:linear-gradient(120deg,${esc(col)},${esc(col)}88 60%,var(--soft))"></div>
   <div class="pinfo"><div class="row">${av(id,'lg')}
-    ${me?(canWrite()&&!S.editing?`<div style="display:flex;gap:8px"><button class="btn ghost small" data-act="edit">Edit profile</button><button class="btn ghost small" data-act="signout">Sign out</button></div>`:''):(canWrite()?`<div style="display:flex;gap:8px"><button class="btn ghost small" data-act="dm" data-id="${esc(id)}">${ICON.msg} Message</button><button class="btn small ${following(id)?'ghost':''}" data-act="follow" data-id="${esc(id)}">${following(id)?'Following':'Follow'}</button></div>`:'')}
+    ${me?(canWrite()&&!S.editing?`<div style="display:flex;gap:8px"><button class="btn ghost small" data-act="edit">Edit profile</button><button class="btn ghost small" data-act="signout">Sign out</button></div>`:''):(canWrite()?`<div style="display:flex;gap:8px"><button class="btn ghost small" data-act="dm" data-id="${esc(id)}">${ICON.msg} Message</button>${followBtn(id)}</div>`:'')}
   </div>
   <h2>${esc(nameOf(id))}${badge(id)}</h2>${verified(id)?'<div class="vnote">Verified \u00b7 1,000+ followers</div>':''}${pr.handle?`<div class="handle">@${esc(pr.handle)}</div>`:''}
   ${pr.bio?`<p class="bio">${fmt(pr.bio)}</p>`:(me?`<p class="bio muted">Add a bio so people know who you are.</p>`:'')}
   ${pr.website&&/^https?:\/\//.test(pr.website)?`<p style="margin:0 0 10px"><a href="${esc(pr.website)}" target="_blank" rel="noopener nofollow">${esc(pr.website.replace(/^https?:\/\//,''))}</a></p>`:''}
-  <div class="stats"><span><b>${list.length}</b> posts</span><span><b>${followersOf(id).toLocaleString()}</b> followers</span><span><b>${followingOf(id).toLocaleString()}</b> following</span><span><b>${likesGot}</b> likes</span>${pr.createdAt?`<span>Joined ${new Date(pr.createdAt).toLocaleDateString(undefined,{month:'short',year:'numeric'})}</span>`:''}</div>
+  <div class="pointsrow">${pointsPill(id)}<span class="lvl">${levelOf(pointsOf(id))[1]} level</span>${me&&nextLevel(pointsOf(id))?`<span class="muted" style="font-size:13px">${(nextLevel(pointsOf(id))[0]-pointsOf(id)).toLocaleString()} pts to ${nextLevel(pointsOf(id))[1]}</span>`:''}${!me&&isFriend(id)?'<span class="frtag">✓ Friends</span>':(!me&&followsMe(id)?'<span class="frtag">Added you</span>':'')}</div>
+  <div class="stats"><span><b>${list.length}</b> posts</span>${me?`<span data-view="friends" style="cursor:pointer"><b>${myFriends().length}</b> friends</span>`:''}<span><b>${followersOf(id).toLocaleString()}</b> followers</span><span><b>${followingOf(id).toLocaleString()}</b> following</span><span><b>${likesGot}</b> likes</span>${pr.createdAt?`<span>Joined ${new Date(pr.createdAt).toLocaleDateString(undefined,{month:'short',year:'numeric'})}</span>`:''}</div>
   ${me&&S.editing?`<div class="edit">${accountFields(E)}
     ${E.err?`<div class="field"><span class="err">${esc(E.err)}</span></div>`:''}
     <div style="display:flex;gap:8px"><button class="btn small" data-act="saveprofile">Save</button><button class="btn ghost small" data-act="cancel">Cancel</button></div></div>`:''}
@@ -551,7 +606,7 @@ function trendsHTML(){
 function personRow(id){
   const h=handleOf(id);
   return`<div class="person">${av(id,'sm')}<div class="n" data-profile="${esc(id)}">${esc(nameOf(id))}${badge(id)}<small>${h?'@'+esc(h)+' · ':''}${followersOf(id)} followers</small></div>
-    ${canWrite()&&id!==S.uid?`<button class="btn small ${following(id)?'ghost':''}" data-act="follow" data-id="${esc(id)}">${following(id)?'Following':'Follow'}</button>`:''}</div>`;
+    ${followBtn(id)}</div>`;
 }
 function peopleHTML(){
   const ids=Object.keys(S.profiles).filter(id=>id&&id!==S.uid&&!following(id));ids.slice(0,30).forEach(id=>NEED.add(id));
@@ -563,8 +618,9 @@ function overlayHTML(){
   if(S.viewer){const p=postById(S.viewer);if(!p||!isVideo(p)){S.viewer=null;return''}
     const src=videoSrc(p);
     return`<div class="viewer" data-act="closeviewer"><button class="x" data-act="closeviewer" aria-label="Close">✕</button>
-      ${src?`<video src="${esc(src)}" controls autoplay playsinline onclick="event.stopPropagation()" style="${validFilter(p.media.filter)?filterStyle(p.media.filter):''}"></video>`:`<div style="color:#fff;font-size:18px">Loading video…</div>`}
-      <div class="info"><b>${esc(nameOf(p.author))}</b> ${esc(p.text||'')}<br><button class="btn small" style="margin-top:10px" data-act="gopost" data-id="${esc(p.id)}">Open post · ${likesFor(p.id).length} likes · ${commentsFor(p.id).length} replies</button></div></div>`}
+      ${src?`<video data-pid="${esc(p.id)}" src="${esc(src)}" controls autoplay playsinline onclick="event.stopPropagation()" style="${validFilter(p.media.filter)?filterStyle(p.media.filter):''}"></video>`:`<div style="color:#fff;font-size:18px">Loading video…</div>`}
+      <div class="info"><b>${esc(nameOf(p.author))}</b> ${esc(p.text||'')}<div class="vrow"><button class="vlike ${iLike(p.id)?'on':''}" data-act="like" data-id="${esc(p.id)}">❤ ${fmtNum(likesFor(p.id).length)}</button><span>👁 ${viewsLabel(p)}</span><button class="btn small" data-act="gopost" data-id="${esc(p.id)}">💬 ${commentsFor(p.id).length} · Open post</button></div></div></div>`}
+  if(S.installHelp)return installHelpHTML();
   if(S.groupForm)return groupFormHTML();
   if(S.onboard){const E=S.onboard;
     return`<div class="modal"><div class="card"><div class="brand" style="padding:0 0 6px;font-size:22px"><span class="dot"></span>Cast</div>
@@ -585,7 +641,7 @@ function setupHTML(){
 /* ---------- render ---------- */
 // videos never start on their own: only one plays at a time, and it pauses when scrolled off screen
 const VIO=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting&&!e.target.paused)e.target.pause()}),{threshold:.2});
-document.addEventListener('play',e=>{if(e.target.tagName!=='VIDEO')return;document.querySelectorAll('video').forEach(v=>{if(v!==e.target&&!v.paused)v.pause()})},true);
+document.addEventListener('play',e=>{if(e.target.tagName!=='VIDEO')return;countView(e.target.dataset.pid);document.querySelectorAll('video').forEach(v=>{if(v!==e.target&&!v.paused)v.pause()})},true);
 function focusKey(k,caret){const el=document.querySelector(`[data-key="${CSS.escape(k)}"]`);if(el){el.focus();if(caret!=null&&el.setSelectionRange)try{el.setSelectionRange(caret,caret)}catch{}}}
 function suggestHandle(){return(S.googleName||'').toLowerCase().replace(/[^a-z0-9_]/g,'').slice(0,16)}
 function render(){
@@ -595,23 +651,25 @@ function render(){
   if(S.uid&&S.profilesReady&&!handleOf(S.uid)&&!S.onboard)S.onboard={handle:suggestHandle(),displayName:S.googleName||'',bio:'',website:'',color:colorOf(S.uid),usePhoto:!!S.photoURL};
   if(S.onboard&&(!S.uid||handleOf(S.uid)))S.onboard=null;
   const n=unread();
-  const items=[['home','Home'],['clips','Clips'],['explore','Explore'],['messages','Chats'],['notifications','Alerts'],['bookmarks','Saved'],['profile','Profile']];
-  const icon={home:'home',clips:'clips',explore:'explore',messages:'msg',notifications:'bell',bookmarks:'bookmark',profile:'user'};
+  const items=[['home','Home'],['clips','Clips'],['explore','Explore'],['messages','Chats'],['friends','Friends'],['notifications','Alerts'],['bookmarks','Saved'],['profile','Profile']];
+  const icon={home:'home',clips:'clips',explore:'explore',messages:'msg',friends:'friends',notifications:'bell',bookmarks:'bookmark',profile:'user'};
   const um=unreadChats();
   const isOn=v=>S.view===v&&(v!=='profile'||!S.profileId||S.profileId===S.uid);
   const h=handleOf(S.uid);
   $('#nav').innerHTML=`<div class="brand"><span class="dot"></span>Cast</div>
-    ${items.map(([v,l])=>`<button class="navbtn ${isOn(v)?'on':''}" data-view="${v}">${ICON[icon[v]]}${v==='notifications'?'Notifications':v==='bookmarks'?'Bookmarks':v==='messages'?'Messages':l}${v==='notifications'&&n?`<span class="badge">${n>99?'99+':n}</span>`:''}${v==='messages'&&um?`<span class="badge">${um}</span>`:''}</button>`).join('')}
+    ${items.map(([v,l])=>`<button class="navbtn ${isOn(v)?'on':''}" data-view="${v}">${ICON[icon[v]]}${v==='notifications'?'Notifications':v==='bookmarks'?'Bookmarks':v==='messages'?'Messages':l}${v==='notifications'&&n?`<span class="badge">${n>99?'99+':n}</span>`:''}${v==='messages'&&um?`<span class="badge">${um}</span>`:''}${v==='friends'&&friendRequests().length?`<span class="badge">${friendRequests().length}</span>`:''}</button>`).join('')}
     ${S.uid?`<button class="btn navpost" data-act="fab">${ICON.camera} Snap</button>`:''}
+    ${canInstall()?`<button class="navbtn" data-act="install" style="margin-top:6px">⬇︎ Install app</button>`:''}
     ${S.uid?`<div class="mecard" data-profile="${esc(S.uid)}">${av(S.uid,'sm')}<div style="min-width:0;flex:1"><div class="n">${esc(nameOf(S.uid))}${badge(S.uid)}</div><div class="s">${h?'@'+esc(h):'Setting up…'}</div></div></div>`
       :S.authReady?`<div style="margin-top:16px">${signInBtn('Sign in')}</div>`:''}`;
-  $('#mnav').innerHTML=items.filter(([v])=>v!=='bookmarks'&&v!=='explore').map(([v,l])=>`<button class="${isOn(v)?'on':''}" data-view="${v}">${ICON[icon[v]]}${l}${v==='notifications'&&n?`<span class="badge">${n>9?'9+':n}</span>`:''}${v==='messages'&&um?`<span class="badge">${um}</span>`:''}</button>`).join('');
+  $('#mnav').innerHTML=items.filter(([v])=>v!=='bookmarks'&&v!=='explore'&&v!=='friends').map(([v,l])=>`<button class="${isOn(v)?'on':''}" data-view="${v}">${ICON[icon[v]]}${l}${v==='notifications'&&n?`<span class="badge">${n>9?'9+':n}</span>`:''}${v==='messages'&&um?`<span class="badge">${um}</span>`:''}</button>`).join('');
   $('#fab').innerHTML=S.uid&&canWrite()?`<button class="fab" data-act="fab" aria-label="Open camera">${ICON.camera}</button>`:'';
-  const V={explore:exploreView,profile:profileView,clips:clipsView,notifications:notifView,bookmarks:bookmarksView,messages:messagesView}[S.view]||homeView;
+  const V={explore:exploreView,profile:profileView,clips:clipsView,notifications:notifView,bookmarks:bookmarksView,messages:messagesView,friends:friendsView}[S.view]||homeView;
   $('#main').innerHTML=V();
   $('#side').innerHTML=`<div class="search">${ICON.search}<input data-key="sq" id="sq" placeholder="Search Cast"></div>
     <div class="card box"><h3>Trending</h3>${trendsHTML()}</div>
-    <div class="card box"><h3>Who to follow</h3>${peopleHTML()}</div>
+    <div class="card box"><h3>🏆 Top creators</h3>${leaderHTML(5)}</div>
+    <div class="card box"><h3>People you may know</h3>${peopleHTML()}</div>
     <p class="muted" style="padding:0 6px;font-size:12px">Posts are public. Bookmarks are private to you.</p>`;
   const ov=overlayHTML();
   if(!(S.viewer&&$('#overlay video')))$('#overlay').innerHTML=ov;
@@ -640,8 +698,49 @@ function goPost(pid){
   setTimeout(()=>{const el=document.querySelector(`[data-post="${CSS.escape(pid)}"]`);if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.animate([{boxShadow:'0 0 0 3px var(--accent)'},{boxShadow:'0 0 0 0 transparent'}],{duration:1600})}},60);
 }
 
+/* ---------- double-tap to like ---------- */
+let lastTap={t:0,id:null};
+document.addEventListener('pointerup',e=>{
+  const m=e.target.closest('.pimg,.vposter');if(!m)return;const art=m.closest('[data-post]');if(!art||!S.uid)return;
+  const id=art.dataset.post,now=Date.now();
+  if(lastTap.id===id&&now-lastTap.t<320){lastTap={t:0,id:null};
+    const h=document.createElement('div');h.className='heartpop';h.textContent='❤';const r=m.getBoundingClientRect();h.style.left=(e.clientX-r.left)+'px';h.style.top=(e.clientY-r.top)+'px';
+    const wrap=m.parentElement;wrap.style.position='relative';wrap.appendChild(h);setTimeout(()=>h.remove(),900);
+    if(!iLike(id))toggleLike(id);
+  }else lastTap={t:now,id};
+});
+
+/* ---------- install as an app (phone home screen & computer) ---------- */
+let installEvt=null;
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvt=e;soon()});
+window.addEventListener('appinstalled',()=>{installEvt=null;toast('Cast is installed! 🎉');soon()});
+const canInstall=()=>!isStandalone();
+let installHidden=false;try{installHidden=localStorage.getItem('cast_install_hide')==='1'}catch{}
+async function doInstall(){
+  if(installEvt){installEvt.prompt();const r=await installEvt.userChoice.catch(()=>null);installEvt=null;if(r?.outcome==='accepted')toast('Installing Cast…');return render()}
+  S.installHelp=true;render();
+}
+function installBanner(){
+  if(!canInstall()||installHidden)return'';
+  return`<div class="card installbar"><img src="icon-192.png" alt=""><div><b>Get the Cast app</b><small>${isIOS()?'Add it to your home screen':'Install it on this device — opens like a real app'}</small></div><button class="btn small" data-act="install">Install</button><button class="iconbtn" data-act="hideinstall" aria-label="Dismiss">✕</button></div>`;
+}
+function installHelpHTML(){
+  const ua=navigator.userAgent,ios=isIOS(),android=/android/i.test(ua),safariMac=/Macintosh/.test(ua)&&/Safari/.test(ua)&&!/Chrome|Edg/.test(ua),firefox=/Firefox/.test(ua);
+  const steps=ios?['Tap the <b>Share</b> button <span class="kbd">⬆︎</span> at the bottom (or top) of Safari','Scroll down and tap <b>Add to Home Screen</b>','Tap <b>Add</b> — Cast appears on your home screen']
+    :android?['Tap the <b>⋮ menu</b> in the top-right of Chrome','Tap <b>Install app</b> or <b>Add to Home screen</b>','Tap <b>Install</b>']
+    :safariMac?['In the menu bar, click <b>File</b>','Click <b>Add to Dock</b>','Cast opens from your Dock like any app']
+    :firefox?['Firefox can’t install web apps','Open this page in <b>Chrome</b> or <b>Edge</b>','Then click the install icon ⊕ in the address bar']
+    :['Look for the <b>install icon</b> ⊕ at the right end of the address bar','Or open the <b>⋮ menu</b> → <b>Cast → Install</b>','Cast gets its own window and a desktop/Start menu icon'];
+  return`<div class="modal" data-act="closeinstall"><div class="card" onclick="event.stopPropagation()"><div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><img src="icon-192.png" alt="" style="width:52px;height:52px;border-radius:14px"><h2>Install Cast</h2></div>
+    <ol class="isteps">${steps.map(x=>`<li>${x}</li>`).join('')}</ol>
+    <button class="btn" data-act="closeinstall" style="width:100%">Got it</button></div></div>`;
+}
+
 /* ---------- events ---------- */
 document.addEventListener('click',async e=>{
+  const gpub=e.target.closest('[data-gpub]');if(gpub&&S.groupForm){S.groupForm.pub=gpub.dataset.gpub==='1';S.groupForm.err='';return render()}
   const gp=e.target.closest('[data-gpick]');if(gp&&S.groupForm){if(gp.tagName==='INPUT'){gp.checked?S.groupForm.picked.add(gp.dataset.gpick):S.groupForm.picked.delete(gp.dataset.gpick)}else S.groupForm.picked.delete(gp.dataset.gpick);S.groupForm.err='';return render()}
   if(e.target.closest('.gp'))return;
   const vf=e.target.closest('[data-vfilter]');if(vf&&S.compose.media){S.compose.media.filter=vf.dataset.vfilter;return render()}
@@ -669,11 +768,15 @@ document.addEventListener('click',async e=>{
     case'savegroup':return saveGroup();
     case'groupinfo':S.groupInfo=!S.groupInfo;return render();
     case'leavegroup':return leaveGroup(id);
+    case'install':return doInstall();
+    case'closeinstall':S.installHelp=false;return render();
+    case'hideinstall':installHidden=true;try{localStorage.setItem('cast_install_hide','1')}catch{};return render();
+    case'joingroup':e.stopPropagation();return joinGroup(id);
     case'sendmsg':return sendMsg();
     case'reedit':{const m=C.media;if(m?.kind==='image')editPhoto(m.dataUrl||m.url,'none');return}
     case'signout':S.onboard=null;return signOut();
     case'post':return createPost();
-    case'like':return toggleLike(id);
+    case'like':{const r=toggleLike(id);if(S.viewer){r.then(()=>{const b=$('#overlay .vlike');if(b){b.classList.toggle('on',iLike(id));b.textContent='❤ '+fmtNum(likesFor(id).length)}})}return r}
     case'repost':return toggleRepost(id);
     case'save':return toggleSave(id);
     case'vote':return vote(id,+t.dataset.i);
@@ -718,7 +821,7 @@ document.addEventListener('keydown',e=>{
 });
 document.addEventListener('change',e=>{const k=e.target.dataset.file;if(k){pickFile(e.target.files[0],k);e.target.value=''}});
 document.addEventListener('submit',e=>{e.preventDefault();if(e.target.dataset.form==='c')addComment(e.target.dataset.id)});
-const VIEWS=['clips','explore','notifications','bookmarks','profile','messages'];
+const VIEWS=['clips','explore','notifications','bookmarks','profile','messages','friends'];
 let pendingHash=null;
 function fromHash(){
   const h=decodeURIComponent(location.hash.slice(1));
@@ -832,7 +935,8 @@ function openStories(startId){
 /* ---------- private messages & group chats ---------- */
 const convoId=(a,b)=>[a,b].sort().join('__');
 const otherOf=c=>(c.members||[]).find(m=>m!==S.uid);
-const convoById=cid=>S.convos.find(c=>c.id===cid);
+const convoById=cid=>S.convos.find(c=>c.id===cid)||S.publicGroups.find(c=>c.id===cid);
+const amMember=c=>!!c&&(c.members||[]).includes(S.uid);
 const isUnread=c=>c.last&&c.last.from!==S.uid&&(c.updatedAt||0)>((c.read||{})[S.uid]||0);
 const unreadChats=()=>S.convos.filter(isUnread).length;
 const convoName=c=>c.group?(c.name||'Group'):nameOf(otherOf(c));
@@ -882,7 +986,7 @@ async function sendMsg(){
 // ---- groups ----
 function openGroupForm(cid){
   const c=cid?convoById(cid):null;
-  S.groupForm={cid:cid||null,name:c?.name||'',picked:new Set(c?(c.members||[]).filter(m=>m!==S.uid):[]),q:'',err:''};render();
+  S.groupForm={cid:cid||null,name:c?.name||'',pub:!!c?.public,picked:new Set(c?(c.members||[]).filter(m=>m!==S.uid):[]),q:'',err:''};render();
   setTimeout(()=>focusKey(cid?'gq':'gname'),50);
 }
 function groupCandidates(q){
@@ -896,17 +1000,23 @@ function groupCandidates(q){
 async function saveGroup(){
   const G=S.groupForm;const name=G.name.trim().slice(0,40);
   if(!G.cid&&!name){G.err='Give your group a name';return render()}
-  if(G.picked.size<1){G.err='Pick at least one person';return render()}
-  if(G.picked.size>31){G.err='Groups can have up to 32 people';return render()}
+  if(G.picked.size<1&&!G.pub){G.err='Pick at least one person (or make it a public group)';return render()}
+  if(G.picked.size>99){G.err="You can add up to 100 people at once";return render()}
   const {fs}=S.fb,now=Date.now();let cid=G.cid;
   const ok=await guard(async()=>{
     const members=[S.uid,...G.picked];
-    if(cid){const c=convoById(cid);await fs.setDoc(dref('convos',cid),{members,...(c.owner===S.uid&&name?{name}:{}),updatedAt:now,last:{from:S.uid,text:'updated the group'},read:{[S.uid]:now}},{merge:true})}
-    else{cid=newId();await fs.setDoc(dref('convos',cid),{group:true,name,owner:S.uid,members,updatedAt:now,last:{from:S.uid,text:'created the group'},read:{[S.uid]:now}})}
+    if(cid){const c=convoById(cid);await fs.setDoc(dref('convos',cid),{members,...(c.owner===S.uid?{public:!!G.pub,...(name?{name}:{})}:{}),updatedAt:now,last:{from:S.uid,text:'updated the group'},read:{[S.uid]:now}},{merge:true})}
+    else{cid=newId();await fs.setDoc(dref('convos',cid),{group:true,public:!!G.pub,name,owner:S.uid,members,updatedAt:now,last:{from:S.uid,text:'created the group'},read:{[S.uid]:now}})}
   });
   if(!ok)return;
   S.groupForm=null;toast(G.cid?'Group updated':'Group created');
   stopChat();S.chat={cid,other:null};setTimeout(()=>{listenChat(cid);render()},100);go('messages');
+}
+async function joinGroup(cid){
+  const c=convoById(cid);if(!c||!c.public)return;
+  const now=Date.now();
+  const ok=await guard(()=>S.fb.fs.setDoc(dref('convos',cid),{members:[...(c.members||[]).filter(m=>m!==S.uid),S.uid],read:{[S.uid]:now}},{merge:true}));
+  if(ok){toast(`You joined ${c.name||'the group'}`);setTimeout(()=>focusKey('chat'),200)}
 }
 async function leaveGroup(cid){
   const c=convoById(cid);if(!c)return;
@@ -919,15 +1029,24 @@ function groupFormHTML(){
   const list=groupCandidates(G.q);
   return`<div class="modal"><div class="card gform">
     <div style="display:flex;justify-content:space-between;align-items:center"><h2>${editing?'Group members':'New group'}</h2><button class="iconbtn" data-act="closegroup" aria-label="Close">✕</button></div>
-    ${canName?`<label class="field">Group name<input data-key="gname" data-g="name" maxlength="40" placeholder="e.g. Weekend crew" value="${esc(G.name)}"></label>`:''}
+    ${canName?`<label class="field">Group name<input data-key="gname" data-g="name" maxlength="40" placeholder="e.g. Weekend crew" value="${esc(G.name)}"></label>
+    <div class="field">Who can join?<div class="gtype">
+      <button class="${!G.pub?'on':''}" data-gpub="0"><b>🔒 Private</b><small>Only people you add can see and join</small></button>
+      <button class="${G.pub?'on':''}" data-gpub="1"><b>🌍 Public</b><small>Anyone can find it and join</small></button></div></div>`:''}
     <div class="field">Add people <span class="hint">${G.picked.size} picked</span>
       <div class="gpicked">${[...G.picked].map(id=>`<button class="chipbtn on" data-gpick="${esc(id)}">${esc(nameOf(id))} ✕</button>`).join('')}</div>
       <input data-key="gq" data-g="q" placeholder="Search people" value="${esc(G.q)}"></div>
     <div class="glist">${list.length?list.map(id=>`<label class="person gp"><input type="checkbox" data-gpick="${esc(id)}" ${G.picked.has(id)?'checked':''}>${av(id,'sm')}<div class="n">${esc(nameOf(id))}${badge(id)}<small>@${esc(handleOf(id))}${following(id)?' · you follow':''}</small></div></label>`).join('')
       :`<p class="muted">No people found. Friends need a Cast account first.</p>`}</div>
+    ${G.pub?`<p class="muted" style="margin:-4px 0 0;font-size:13px">Adding people is optional for public groups.</p>`:''}
     ${G.err?`<div class="field"><span class="err">${esc(G.err)}</span></div>`:''}
     <button class="btn" data-act="savegroup">${editing?'Save':'Create group'}</button>
   </div></div>`;
+}
+function discoverHTML(){
+  const list=S.publicGroups.filter(g=>!amMember(g)).sort((a,b)=>(b.members||[]).length-(a.members||[]).length).slice(0,20);
+  return`<h3 class="sect">🌍 Public groups</h3>${list.length?`<div class="card" style="overflow:hidden">${list.map(g=>`<div class="notif" data-act="chat" data-id="${esc(g.id)}">${convoAvatar(g)}<div class="txt"><div><b>${esc(g.name||'Group')}</b> <span class="muted">· ${(g.members||[]).length} members</span></div><div class="snip">Active ${ago(g.updatedAt||0)}</div></div><button class="btn small" data-act="joingroup" data-id="${esc(g.id)}">Join</button></div>`).join('')}</div>`
+    :`<p class="muted">No public groups to join yet. Make one with <b>New group</b> → Public.</p>`}`;
 }
 function messagesView(){
   if(!S.uid)return`<div class="top"><h1>Messages</h1></div><div class="card hero"><h2>Private messages</h2><p>Sign in to chat one-on-one or in groups.</p>${signInBtn()}</div>`;
@@ -938,22 +1057,23 @@ function messagesView(){
     const mem=grp?(c.members||[]):[];
     return`<div class="card chat">
       <div class="chat-head"><button class="iconbtn" data-act="closechat" aria-label="Back">←</button>
-        ${grp?`${convoAvatar(c)}<div class="chat-who" data-act="groupinfo"><b>${esc(c.name||'Group')}</b><small>${mem.length} members · tap for info</small></div>`
+        ${grp?`${convoAvatar(c)}<div class="chat-who" data-act="groupinfo"><b>${esc(c.name||'Group')}</b><small>${c.public?'🌍 Public':'🔒 Private'} · ${mem.length} members · tap for info</small></div>`
         :`${av(o,'sm')}<div class="chat-who" data-profile="${esc(o)}"><b>${esc(nameOf(o))}${badge(o)}</b>${handleOf(o)?`<small>@${esc(handleOf(o))}</small>`:''}</div>`}</div>
       ${grp&&S.groupInfo?`<div class="ginfo"><div class="gmem">${mem.map(m=>`<span class="chipbtn" data-profile="${esc(m)}">${esc(m===S.uid?'You':nameOf(m))}${m===c.owner?' (owner)':''}</span>`).join('')}</div>
-        <div style="display:flex;gap:8px;margin-top:10px">${c.owner===S.uid?`<button class="btn small" data-act="editgroup" data-id="${esc(cid)}">Add / remove people</button>`:''}<button class="btn ghost small" data-act="leavegroup" data-id="${esc(cid)}">Leave group</button></div></div>`:''}
+        <div style="display:flex;gap:8px;margin-top:10px">${c.owner===S.uid?`<button class="btn small" data-act="editgroup" data-id="${esc(cid)}">Add / remove people</button>`:''}${amMember(c)?`<button class="btn ghost small" data-act="leavegroup" data-id="${esc(cid)}">Leave group</button>`:''}</div></div>`:''}
       <div class="chat-body">${S.msgs.length?S.msgs.map((m,k)=>{const mine=m.from===S.uid,prevSame=k>0&&S.msgs[k-1].from===m.from&&m.createdAt-S.msgs[k-1].createdAt<300000;
         return`${!prevSame?`<div class="chat-time">${ago(m.createdAt)}</div>`:''}${grp&&!mine&&!prevSame?`<div class="bname" data-profile="${esc(m.from)}">${esc(nameOf(m.from))}</div>`:''}<div class="bubble ${mine?'me':''}">${fmt(m.text)}</div>`}).join('')
         :`<div class="empty" style="padding:40px 10px"><div class="big">Say hi 👋</div>${grp?'Only people in this group can see these messages.':'Messages are private — only you two can see them.'}</div>`}</div>
-      ${canWrite()?`<div class="chat-input"><input data-key="chat" maxlength="1000" placeholder="${grp?`Message ${esc(c.name||'the group')}`:`Message ${esc(nameOf(o).split(' ')[0])}`}…" value="${esc(S.chatDraft)}" autocomplete="off"><button class="btn" data-act="sendmsg" aria-label="Send">${ICON.send}</button></div>`:''}
+      ${grp&&!amMember(c)?`<div class="chat-input"><button class="btn" style="flex:1" data-act="joingroup" data-id="${esc(cid)}">Join ${esc(c.name||'group')}</button></div>`:canWrite()?`<div class="chat-input"><input data-key="chat" maxlength="1000" placeholder="${grp?`Message ${esc(c.name||'the group')}`:`Message ${esc(nameOf(o).split(' ')[0])}`}…" value="${esc(S.chatDraft)}" autocomplete="off"><button class="btn" data-act="sendmsg" aria-label="Send">${ICON.send}</button></div>`:''}
     </div>`;
   }
   return`<div class="top"><h1>Messages</h1>${canWrite()?`<button class="btn small" data-act="newgroup">${ICON.plus} New group</button>`:''}</div>
     <p class="muted" style="margin:-6px 0 12px">Private — only the people in a chat can read it.</p>
     ${S.convos.length?`<div class="card" style="overflow:hidden">${S.convos.map(c=>{if(!c.group&&!otherOf(c))return'';const un=isUnread(c);
       const who=c.last?.from===S.uid?'You: ':(c.group&&c.last?.from?nameOf(c.last.from).split(' ')[0]+': ':'');
-      return`<div class="notif ${un?'new':''}" data-act="chat" data-id="${esc(c.id)}">${convoAvatar(c)}<div class="txt"><div><b>${esc(convoName(c))}</b>${c.group?' <span class="gtag">group</span>':badge(otherOf(c))} <span class="muted">· ${ago(c.updatedAt||0)}</span></div><div class="snip">${esc(who)}${esc(c.last?.text||'')}</div></div>${un?'<span class="badge" style="align-self:center">new</span>':''}</div>`}).join('')}</div>`
-    :`<div class="empty"><div class="big">No messages yet</div>Open someone’s profile and tap <b>Message</b>, or start a <b>New group</b>.</div>`}`;
+      return`<div class="notif ${un?'new':''}" data-act="chat" data-id="${esc(c.id)}">${convoAvatar(c)}<div class="txt"><div><b>${esc(convoName(c))}</b>${c.group?` <span class="gtag">${c.public?'public':'private'} group</span>`:badge(otherOf(c))} <span class="muted">· ${ago(c.updatedAt||0)}</span></div><div class="snip">${esc(who)}${esc(c.last?.text||'')}</div></div>${un?'<span class="badge" style="align-self:center">new</span>':''}</div>`}).join('')}</div>`
+    :`<div class="empty"><div class="big">No messages yet</div>Open someone’s profile and tap <b>Message</b>, or start a <b>New group</b>.</div>`}
+    ${discoverHTML()}`;
 }
 
 /* ---------- boot ---------- */
@@ -973,10 +1093,10 @@ if(CONFIGURED)(async()=>{
   listen(fs.query(col('stories'),fs.where('createdAt','>',Date.now()-DAY),fs.orderBy('createdAt','asc'),fs.limit(500)),rows=>{S.stories=rows.filter(r=>typeof r.author==='string'&&typeof r.createdAt==='number');cleanupStories()});
   setTimeout(()=>{if(S.loading){S.loading=false;render()}},10000);
 
-  let unsubMe=null,unsubAdmin=null,unsubF1=null,unsubF2=null,unsubC=null,fA=[],fB=[];
+  let unsubMe=null,unsubAdmin=null,unsubF1=null,unsubF2=null,unsubC=null,unsubPG=null,fA=[],fB=[];
   try{await auth.getRedirectResult(authI)}catch{}
   auth.onAuthStateChanged(authI,user=>{
-    unsubMe?.();unsubAdmin?.();unsubF1?.();unsubF2?.();unsubC?.();fA=[];fB=[];S.follows=[];S.convos=[];S.chat=null;stopChat();
+    unsubMe?.();unsubAdmin?.();unsubF1?.();unsubF2?.();unsubC?.();fA=[];fB=[];S.follows=[];S.convos=[];if(!user){unsubPG?.();unsubPG=null;S.publicGroups=[]}S.chat=null;stopChat();
     S.uid=user?.uid||null;S.googleName=user?.displayName||'';S.photoURL=user?.photoURL||'';
     S.me={seenAt:0,bookmarks:[]};S.isAdmin=false;S.authReady=true;
     if(user){
@@ -984,6 +1104,7 @@ if(CONFIGURED)(async()=>{
       unsubAdmin=fs.onSnapshot(dref('admins',user.uid),d=>{S.isAdmin=d.exists();soon()},()=>{});
       const mergeF=()=>{const m=new Map();[...fA,...fB].forEach(f=>m.set(f.id,f));S.follows=[...m.values()];soon()};
       unsubF1=fs.onSnapshot(fs.query(col('follows'),fs.where('from','==',user.uid),fs.limit(5000)),s=>{fA=s.docs.map(d=>({id:d.id,...d.data()}));mergeF()},e=>console.warn(e));
+      unsubPG?.();unsubPG=fs.onSnapshot(fs.query(col('convos'),fs.where('public','==',true),fs.limit(100)),s=>{S.publicGroups=s.docs.map(d=>({id:d.id,...d.data()}));soon()},e=>console.warn(e));
       unsubC=fs.onSnapshot(fs.query(col('convos'),fs.where('members','array-contains',user.uid),fs.limit(200)),s=>{S.convos=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));soon()},e=>console.warn(e));
       unsubF2=fs.onSnapshot(fs.query(col('follows'),fs.where('to','==',user.uid),fs.limit(300)),s=>{fB=s.docs.map(d=>({id:d.id,...d.data()}));mergeF()},e=>console.warn(e));
     }

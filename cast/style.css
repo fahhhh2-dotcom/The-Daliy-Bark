@@ -338,3 +338,29 @@ body{background:radial-gradient(1200px 600px at 70% -10%,rgba(29,107,255,.12),tr
 @keyframes spFade{to{opacity:1}}
 @media (max-width:720px){.sp-word{font-size:52px}.toast{bottom:140px}}
 @media (prefers-reduced-motion:reduce){.sp-dot,.sp-dot i,.sp-word b,.sp-tag{animation:none;opacity:1}}
+/* friends & points */
+.pts{display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,rgba(0,163,255,.18),rgba(29,107,255,.18));border:1px solid rgba(29,107,255,.4);color:#9cc4ff;font-weight:700;font-size:12px;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pointsrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 10px}
+.pointsrow .pts{font-size:14px;padding:4px 12px}
+.lvl{font-weight:700;color:#cfe0ff;font-size:14px}
+.frtag{background:rgba(52,211,153,.15);color:#34d399;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px}
+.friendbtn{border-color:rgba(52,211,153,.5)!important;color:#34d399!important}
+.lead .rank{width:22px;text-align:center;font-weight:800;color:var(--muted);flex:none}
+.lead .r1{color:#ffd54a}.lead .r2{color:#cfd8e3}.lead .r3{color:#e3a36b}
+.lead-pts{color:#9cc4ff;font-size:14px}
+.box h3 .badge{font-size:12px;vertical-align:2px}
+.notif .btn.small{white-space:nowrap}
+/* install, views, likes */
+.installbar{display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:14px;border-color:rgba(29,107,255,.45)}
+.installbar img{width:44px;height:44px;border-radius:12px;flex:none}
+.installbar div{flex:1;min-width:0;line-height:1.25}
+.installbar small{display:block;color:var(--muted)}
+.isteps{margin:6px 0 18px;padding-left:22px;display:flex;flex-direction:column;gap:10px;line-height:1.4}
+.kbd{display:inline-block;border:1px solid var(--line);border-radius:6px;padding:0 6px}
+.views{cursor:default}.views:hover{background:none;color:var(--muted)}
+.cstats{font-size:12px;opacity:.85;margin-top:2px}
+.vrow{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px;flex-wrap:wrap}
+.vlike{background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:6px 14px;font-weight:700}
+.vlike.on{background:#ff4d6d}
+.heartpop{position:absolute;transform:translate(-50%,-50%);font-size:90px;color:#ff4d6d;pointer-events:none;text-shadow:0 0 30px rgba(255,77,109,.8);animation:hp .9s ease forwards;z-index:3}
+@keyframes hp{0%{transform:translate(-50%,-50%) scale(0);opacity:0}25%{transform:translate(-50%,-50%) scale(1.2);opacity:1}60%{transform:translate(-50%,-50%) scale(1)}100%{transform:translate(-50%,-90%) scale(1);opacity:0}}

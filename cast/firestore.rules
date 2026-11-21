@@ -40,6 +40,9 @@ service cloud.firestore {
         && str(data().text, 280)
         && data().createdAt is number
         && (!('image' in data()) || str(data().image, 400000));
+      // video views: anyone can add exactly one view at a time
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views'])
+        && request.resource.data.views == resource.data.get('views', 0) + 1;
       allow delete: if signedIn() && (resource.data.author == me() || isAdmin());
     }
 
@@ -91,25 +94,34 @@ service cloud.firestore {
       allow delete: if signedIn() && (resource.data.author == me() || isAdmin());
     }
 
-    // Private messages & group chats: only people in a chat can read or write it
+    // Private messages & group chats: only people in a chat can read or write it.
+    // Public groups can be seen and joined by anyone who is signed in.
     match /convos/{cid} {
       function newM() { return request.resource.data.members; }
       function isGroup(d) { return d.get('group', false) == true; }
-      allow read: if signedIn() && me() in resource.data.members;
+      function isPublic(d) { return d.get('public', false) == true; }
+      allow read: if signedIn() && (me() in resource.data.members || isPublic(resource.data));
       allow create: if signedIn() && newM() is list && me() in newM() && (
         (!isGroup(request.resource.data) && newM().size() == 2 && newM()[0] < newM()[1]
           && cid == newM()[0] + '__' + newM()[1])
-        || (isGroup(request.resource.data) && newM().size() >= 2 && newM().size() <= 32
+        || (isGroup(request.resource.data) && (newM().size() >= 2 || isPublic(request.resource.data)) && newM().size() <= 101
           && request.resource.data.owner == me() && str(request.resource.data.name, 40)));
+      // join a public group: add only yourself
+      allow update: if signedIn() && isGroup(resource.data) && isPublic(resource.data) && !(me() in resource.data.members)
+        && newM().hasAll(resource.data.members) && newM().size() == resource.data.members.size() + 1
+        && me() in newM() && newM().size() <= 500
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'read']);
       allow update: if signedIn() && me() in resource.data.members
         && isGroup(request.resource.data) == isGroup(resource.data)
         && request.resource.data.get('owner', '') == resource.data.get('owner', '')
+        && (isPublic(request.resource.data) == isPublic(resource.data) || resource.data.get('owner', '') == me())
         && (newM() == resource.data.members
-          || (isGroup(resource.data) && resource.data.owner == me() && newM().size() <= 32 && me() in newM())
+          || (isGroup(resource.data) && resource.data.owner == me() && newM().size() <= 500 && me() in newM())
           || (isGroup(resource.data) && resource.data.members.hasAll(newM())
               && newM().size() == resource.data.members.size() - 1 && !(me() in newM())));
       match /messages/{mid} {
-        allow read: if signedIn() && me() in get(/databases/$(database)/documents/convos/$(cid)).data.members;
+        allow read: if signedIn() && (me() in get(/databases/$(database)/documents/convos/$(cid)).data.members
+          || get(/databases/$(database)/documents/convos/$(cid)).data.get('public', false) == true);
         allow create: if signedIn() && data().from == me() && str(data().text, 1000)
           && me() in get(/databases/$(database)/documents/convos/$(cid)).data.members;
       }
