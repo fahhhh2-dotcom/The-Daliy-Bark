@@ -6,7 +6,7 @@ const FB = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const CONFIGURED = firebaseConfig && firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('PASTE');
 
 /* ---------- settings (saved on this device) ---------- */
-const SET={theme:'dark',accent:'blue',quality:'high',autoplayShorts:true,motion:true};
+const SET={theme:'dark',accent:'blue',quality:'high',autoplayShorts:true,motion:true,popups:false,sounds:true};
 try{Object.assign(SET,JSON.parse(localStorage.getItem('cast_settings')||'{}'))}catch{}
 const ACCENTS={blue:['#1d6bff','#00a3ff'],purple:['#7c4dff','#b388ff'],pink:['#ff2d87','#ff7ab6'],green:['#10b981','#34d399'],orange:['#ff7a1a','#ffb020'],red:['#ef4444','#ff7a7a']};
 function applySettings(){
@@ -552,6 +552,10 @@ function settingsView(){
     <div class="setrow"><div><b>Accent color</b><small>Buttons, links and highlights</small></div><div class="swatches">${Object.entries(ACCENTS).map(([k,[a,b]])=>`<button class="${SET.accent===k?'on':''}" data-set="accent" data-val="${k}" style="background:linear-gradient(135deg,${b},${a})" aria-label="${k}"></button>`).join('')}</div></div>
     ${tog('motion','Animations','Smooth motion and effects')}
   </div>
+  <div class="card box setcard"><h3>🔔 Notifications</h3>
+    <div class="setrow"><div><b>Pop-up notifications</b><small>Get a pop-up for likes, replies, mentions, friends and messages${isIOS()&&!isStandalone()?' — on iPhone, install Cast first':''}</small></div><button class="switch ${SET.popups&&('Notification' in window)&&Notification.permission==='granted'?'on':''}" data-act="togglepopups" aria-label="Pop-up notifications"><i></i></button></div>
+    ${tog('sounds','Sounds','Play a little sound for new notifications')}
+  </div>
   <div class="card box setcard"><h3>🎬 Videos</h3>
     <div class="setrow"><div><b>Upload quality</b><small>High looks sharper · Data saver uploads faster and fits more videos</small></div><div class="seg">${opt('quality','high','High')}${opt('quality','saver','Data saver')}</div></div>
     ${tog('autoplayShorts','Autoplay Shorts while swiping','After you tap play once, the next Short plays as you swipe')}
@@ -777,6 +781,49 @@ function setupHTML(){
   <p>Open <code>SETUP-GUIDE.md</code> and follow the steps, then paste your settings into <code>firebase-config.js</code> and reload this page.</p></div>`;
 }
 
+/* ---------- pop-up notifications ---------- */
+let notifyBase=null;
+function ding(){
+  if(!SET.sounds)return;
+  try{const A=window.__ac||(window.__ac=new (window.AudioContext||window.webkitAudioContext)());const t=A.currentTime;
+    [880,1320].forEach((f,i)=>{const o=A.createOscillator(),g=A.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t+i*.09);g.gain.linearRampToValueAtTime(.12,t+i*.09+.01);g.gain.exponentialRampToValueAtTime(.001,t+i*.09+.25);o.connect(g).connect(A.destination);o.start(t+i*.09);o.stop(t+i*.09+.3)})}catch{}
+}
+function showSystem(title,body,hash,tag){
+  if(!SET.popups||!('Notification' in window)||Notification.permission!=='granted')return false;
+  const opts={body,icon:'icon-192.png',badge:'icon-192.png',tag,data:{url:location.pathname+'#'+hash},renotify:true};
+  (navigator.serviceWorker?.getRegistration?.()||Promise.resolve(null)).then(r=>{if(r)return r.showNotification(title,opts);const n=new Notification(title,opts);n.onclick=()=>{window.focus();location.hash=hash;n.close()}}).catch(()=>{});
+  return true;
+}
+const NTXT={like:'liked your post',repost:'reposted your post',reply:'replied to you',mention:'mentioned you',follow:'added you as a friend',vote:'voted in your poll'};
+function checkPopups(){
+  if(!S.uid||!S.profilesReady||S.loading)return;
+  let saved=0;try{saved=+localStorage.getItem('cast_last_notif_'+S.uid)||0}catch{}
+  if(notifyBase===null){notifyBase=Math.max(Date.now()-3000,saved);return}
+  const items=notifications().filter(n=>n.at>notifyBase);
+  const chats=S.convos.filter(c=>c.last&&c.last.from!==S.uid&&(c.updatedAt||0)>notifyBase);
+  if(!items.length&&!chats.length)return;
+  notifyBase=Math.max(notifyBase,...items.map(n=>n.at),...chats.map(c=>c.updatedAt||0));
+  try{localStorage.setItem('cast_last_notif_'+S.uid,String(notifyBase))}catch{}
+  const out=[];
+  for(const c of chats){const inChat=S.view==='messages'&&S.chat?.cid===c.id&&!document.hidden;if(inChat)continue;
+    out.push({title:c.group?`${nameOf(c.last.from)} in ${c.name||'group'}`:nameOf(c.last.from),body:c.last.text||'Sent a message',hash:'messages',tag:'chat-'+c.id})}
+  for(const n of items){const p=n.post&&postById(n.post);
+    out.push({title:`${nameOf(n.who)} ${NTXT[n.kind]||''}`,body:n.text||p?.title||p?.text||'',hash:n.post?(p&&isLong(p)?'v-':'p-')+n.post:'u-'+handleOf(n.who),tag:n.kind+'-'+(n.post||n.who)})}
+  if(!out.length)return;
+  let sys=false;
+  if(document.hidden)for(const o of out.slice(0,3))sys=showSystem(o.title,o.body,o.hash,o.tag)||sys;
+  if(!sys){const o=out[0];if(!(S.view==='notifications'&&!o.tag.startsWith('chat-')))toast(`🔔 ${o.title}${out.length>1?` (+${out.length-1} more)`:''}`)}
+  ding();
+}
+async function enablePopups(on){
+  if(!on)return saveSettings({popups:false});
+  if(!('Notification' in window)){toast(isIOS()?'On iPhone, install Cast to your home screen first, then turn this on':'This browser doesn’t support pop-up notifications');return}
+  let perm=Notification.permission;
+  if(perm==='default')perm=await Notification.requestPermission();
+  if(perm!=='granted'){toast('Notifications are blocked — allow them in your browser’s site settings');return saveSettings({popups:false})}
+  saveSettings({popups:true});showSystem('Cast notifications are on 🎉','You’ll get a pop-up when someone likes, replies, adds you or messages you.','notifications','welcome');
+}
+
 /* ---------- render ---------- */
 // Update the page in place instead of rebuilding it, so photos and videos don't reload or jump.
 const keyOf=n=>n.nodeType===1?(n.getAttribute('data-post')||n.getAttribute('data-mkey')):null;
@@ -851,6 +898,7 @@ function render(){
   if(key)focusKey(key,caret);
   if(S.uid)NEED.add(S.uid);
   ensureCounts();
+  checkPopups();
   document.querySelectorAll('main video').forEach(v=>VIO.observe(v));
   if(playing.length)document.querySelectorAll('main video').forEach(v=>{if(playing.includes(v.src))v.play().catch(()=>{})});
 }
@@ -973,6 +1021,7 @@ document.addEventListener('click',async e=>{
     case'createaccount':{const E=S.onboard;E.busy=true;E.err=null;render();E.err=await saveAccount(E,true);E.busy=false;if(!E.err)S.onboard=null;return render()}
     case'cleartag':S.tag=null;return render();
     case'openwatch':return openWatch(id);
+    case'togglepopups':return enablePopups(!(SET.popups&&('Notification' in window)&&Notification.permission==='granted'));
     case'shorttap':{const p=postById(id);if(!p)return;const v=t.querySelector('video');if(v&&!v.paused){v.pause();return}return playShort(p,t.closest('.short'))}
     case'settingsedit':go('profile',{profileId:S.uid});setTimeout(()=>{const p=prof(S.uid);S.editing=true;S.edit={handle:p.handle||'',displayName:p.displayName||'',bio:p.bio||'',website:p.website||'',color:colorOf(S.uid),usePhoto:!!p.photo};render()},0);return;
     case'watch':{S.viewer=id;render();const p=postById(id);if(p&&isDbVideo(p.media)&&!VCACHE.has(p.media.vid)){await loadVideo(p,false);$('#overlay').innerHTML=''}return render()}
@@ -1282,6 +1331,7 @@ if(CONFIGURED)(async()=>{
   try{await auth.getRedirectResult(authI)}catch{}
   auth.onAuthStateChanged(authI,user=>{
     unsubMe?.();unsubAdmin?.();unsubF1?.();unsubF2?.();unsubC?.();fA=[];fB=[];S.follows=[];S.convos=[];if(!user){unsubPG?.();unsubPG=null;S.publicGroups=[]}S.chat=null;stopChat();
+    notifyBase=null;
     S.uid=user?.uid||null;S.googleName=user?.displayName||'';S.photoURL=user?.photoURL||'';
     S.me={seenAt:0,bookmarks:[]};S.isAdmin=false;S.authReady=true;
     if(user){
