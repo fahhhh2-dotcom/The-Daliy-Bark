@@ -524,6 +524,7 @@ FILMS.forEach((f,i)=>{f.seed=i*37+5;f.color=true});
 const byId=id=>FILMS.find(f=>f.id===id);
 const GENRES=['All','Kids','Channels','MrBeast','Challenges','Minecraft','Science & Tech','Feel-Good','Nintendo','Live Shows'];
 const ytURL=f=>f.list?`https://www.youtube.com/playlist?list=${f.list}`:`https://www.youtube.com/watch?v=${f.yt}`;
+const IN_TV_APP=/MarqueeTV/.test(navigator.userAgent);
 const CAN_EMBED=/^https?:$/.test(location.protocol)&&!/(claude|anthropic|claudeusercontent)/i.test(location.hostname);
 
 /* ---------- Backdrop scenes ---------- */
@@ -973,7 +974,7 @@ async function pullCloud(){const F=ACC.F,u=ACC.user;if(!F||!u)return;
   const keep=CUR&&profiles.find(p=>p.id===CUR.id);CUR=keep||profiles[0];PID=CUR.id;myList=store.get('list_'+PID,[]);recent=store.get('recent_'+PID,[])}
  else await pushCloud()}
 function showSignIn(){closeModal();$('#who').classList.remove('on');$('#signin').classList.add('on');document.body.style.overflow='hidden'}
-$('#gbtn').onclick=async()=>{const F=await Promise.race([ACC.ready,new Promise(r=>setTimeout(()=>r(null),4000))]);
+$('#gbtn').onclick=async()=>{if(IN_TV_APP){toast('Google sign-in doesn’t work in the TV app. Sign in on your phone or computer instead.');return}const F=await Promise.race([ACC.ready,new Promise(r=>setTimeout(()=>r(null),4000))]);
  if(!F){toast('Google sign-in works on your website: thedailybark.dog/marquee');return}
  const p=new F.au.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});
  try{await F.au.signInWithPopup(F.auth,p)}catch(e){const c=(e&&e.code)||'';
@@ -1156,7 +1157,7 @@ async function boot(){const t0=performance.now(),bar=$('#sbar'),tip=$('#stip');
  tip.textContent='Checking your account…';
  await Promise.race([ACC.ready,new Promise(r=>setTimeout(r,3500))]);
  if(ACC.user){await pullCloud();showWho(false)}
- else if(store.get('nosignin',false)||!CAN_EMBED)showWho(false);else showSignIn();
+ else if(store.get('nosignin',false)||!CAN_EMBED||IN_TV_APP)showWho(false);else showSignIn();
  $('#splash').classList.add('out');setTimeout(()=>$('#splash').remove(),900)}
 boot();
 </script>
