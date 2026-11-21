@@ -16,6 +16,7 @@ Setup takes about 15 minutes. You'll need a Google account and a GitHub account.
 |---|---|
 | `index.html` | The website page |
 | `app.js` | Everything Pulse does |
+| `editor.js` | Filters, photo editor, camera and video compression |
 | `style.css` | How it looks |
 | `firebase-config.js` | **You edit this file:** your Firebase settings go here |
 | `firestore.rules` | Security rules for your data. Paste them into Firebase |
@@ -63,7 +64,7 @@ These rules let anyone *read* posts, but only signed-in people can post, and onl
 
 ## Step 6 (optional): Turn on photo and video uploads
 
-Without this step, Pulse still works: photos are saved smaller, and videos up to **8 MB** are saved as pieces inside the free database. Turning on Storage raises the video limit to 20 MB and saves photos at full quality.
+Without this step, Pulse still works: photos are saved smaller, and videos are compressed automatically and saved as pieces inside the free database (up to about 60 seconds each). Turning on Storage raises the video limit to 20 MB and saves photos at full quality.
 
 Firebase only lets projects on the **Blaze (pay-as-you-go)** plan use file storage. Blaze still includes a free amount of usage each month, so a small site with friends usually costs **$0**, but Google requires a card on file.
 

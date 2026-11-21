@@ -1,5 +1,6 @@
 // Pulse — a little social network (Firebase edition)
 import { firebaseConfig, storageEnabled } from './firebase-config.js';
+import { FILTERS, filterStyle, validFilter, openEditor, openCamera, compressVideo, canCompress } from './editor.js';
 
 const FB = 'https://www.gstatic.com/firebasejs/10.12.2/';
 const CONFIGURED = firebaseConfig && firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('PASTE');
@@ -22,16 +23,19 @@ const ICON = {
   search:SV('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'),
   share:SV('<path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 3v13M7 8l5-5 5 5"/>'),
   at:SV('<circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/>'),
-  plus:SV('<path d="M12 5v14M5 12h14"/>')
+  plus:SV('<path d="M12 5v14M5 12h14"/>'),
+  camera:SV('<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>')
 };
 const GOOGLE = '<svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
-const COLORS=['#ff5a36','#127c74','#6a4cff','#e0a100','#d63a7a','#2f7de1','#3c9a3c','#8a5a3c'];
+const COLORS=['#1d6bff','#00a3ff','#5b4dff','#14b8a6','#ff4d8d','#f59e0b','#7c8cff','#ef4444'];
+const VERIFY_AT=1000, RAW_VIDEO_MAX=200*1024*1024;
+const BADGE='<svg class="vbadge" viewBox="0 0 24 24" aria-label="Verified"><path fill="currentColor" d="M12 1.5l2.6 1.9 3.2-.2 1 3.1 2.6 1.9-1 3.1 1 3.1-2.6 1.9-1 3.1-3.2-.2L12 22.5l-2.6-1.9-3.2.2-1-3.1-2.6-1.9 1-3.1-1-3.1 2.6-1.9 1-3.1 3.2.2z"/><path d="M7.5 12.3l3 3 6-6.2" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const MAX=280, VIDEO_MAX=20*1024*1024, DB_VIDEO_MAX=8*1024*1024, CHUNK=700*1024;
 const VCACHE=new Map(), VLOADING=new Set();
 
 const S={
   fb:null,uid:null,authReady:false,isAdmin:false,loading:true,profilesReady:false,
-  posts:[],likes:[],comments:[],follows:[],reposts:[],votes:[],profiles:{},me:{seenAt:0,bookmarks:[]},
+  posts:[],likes:[],comments:[],follows:[],counts:{},reposts:[],votes:[],profiles:{},me:{seenAt:0,bookmarks:[]},
   view:'home',tab:'all',ptab:'posts',profileId:null,query:'',tag:null,
   open:new Set(),drafts:{},
   compose:{text:'',media:null,poll:null,busy:false,progress:0},
@@ -70,8 +74,27 @@ const iLike=pid=>S.likes.some(l=>l.post===pid&&l.user===S.uid);
 const iRepost=pid=>S.reposts.some(r=>r.post===pid&&r.user===S.uid);
 const iSaved=pid=>(S.me.bookmarks||[]).includes(pid);
 const following=id=>S.follows.some(f=>f.from===S.uid&&f.to===id);
-const followersOf=id=>S.follows.filter(f=>f.to===id).length;
-const followingOf=id=>S.follows.filter(f=>f.from===id).length;
+const NEED=new Set(), COUNT_PENDING=new Set();
+const followersOf=id=>{NEED.add(id);return S.counts[id]?.followers??0};
+const followingOf=id=>{NEED.add(id);return S.counts[id]?.following??0};
+const verified=id=>followersOf(id)>=VERIFY_AT;
+const badge=id=>verified(id)?BADGE:'';
+async function ensureCounts(){
+  if(!S.fb)return;
+  const now=Date.now(), ids=[...NEED].filter(id=>id&&!COUNT_PENDING.has(id)&&(!S.counts[id]||now-S.counts[id].at>120000)).slice(0,12);
+  NEED.clear(); if(!ids.length)return;
+  ids.forEach(id=>COUNT_PENDING.add(id));
+  const {fs}=S.fb;
+  await Promise.all(ids.map(async id=>{
+    try{
+      const [a,b]=await Promise.all([fs.getCountFromServer(fs.query(col('follows'),fs.where('to','==',id))),fs.getCountFromServer(fs.query(col('follows'),fs.where('from','==',id)))]);
+      S.counts[id]={followers:a.data().count,following:b.data().count,at:Date.now()};
+    }catch(e){console.warn(e);S.counts[id]={followers:S.counts[id]?.followers||0,following:S.counts[id]?.following||0,at:Date.now()}}
+    COUNT_PENDING.delete(id);
+  }));
+  soon();
+}
+function bumpCount(id,field,d){const c=S.counts[id]||{followers:0,following:0,at:Date.now()};c[field]=Math.max(0,(c[field]||0)+d);S.counts[id]=c}
 const postById=id=>S.posts.find(p=>p.id===id);
 
 function notifications(){
@@ -150,6 +173,19 @@ function uploadMedia(blob,kind){
       reject,async()=>{try{resolve({kind,path,url:await S.fb.st.getDownloadURL(r)})}catch(e){reject(e)}});
   });
 }
+const setBtn=t=>{const b=$('[data-act="post"]');if(b)b.textContent=t};
+async function prepareVideo(C){
+  const lim=S.fb.st?VIDEO_MAX:DB_VIDEO_MAX;
+  if(!C.media.thumb)C.media.thumb=await makeThumb(C.media.url);
+  if(canCompress()&&C.media.blob.size>1.5*1024*1024&&!C.media.compressed){
+    setBtn('Compressing\u2026');
+    try{
+      const out=await compressVideo(C.media.blob,{onProgress:f=>setBtn(`Compressing ${Math.round(f*100)}%`)});
+      if(out.size&&out.size<C.media.blob.size){C.media.blob=out;C.media.compressed=true}
+    }catch(e){if(/seconds/.test(e.message||''))throw e;console.warn('compress failed',e)}
+  }
+  if(C.media.blob.size>lim)throw new Error(`That video is too long \u2014 try one under ${S.fb.st?'2 minutes':'60 seconds'}`);
+}
 async function createPost(){
   const C=S.compose;const text=C.text.trim();
   const opts=C.poll?C.poll.map(o=>o.trim()).filter(Boolean):null;
@@ -158,11 +194,13 @@ async function createPost(){
   if(text.length>MAX||C.busy)return;
   C.busy=true;C.progress=0;render();
   const ok=await guard(async()=>{
+    if(C.media?.kind==='video')await prepareVideo(C);
     const data={author:S.uid,text,createdAt:Date.now()};
     if(C.media){
       if(S.fb.st)data.media={...(await uploadMedia(C.media.blob,C.media.kind)),...(C.media.thumb&&C.media.thumb.length<120000?{thumb:C.media.thumb}:{})};
       else if(C.media.kind==='image'&&C.media.dataUrl)data.image=C.media.dataUrl;
       else if(C.media.kind==='video'){if(!C.media.thumb)C.media.thumb=await makeThumb(C.media.url);data.media=await uploadChunks(C.media.blob,C.media.thumb)}
+      if(data.media?.kind==='video'&&validFilter(C.media.filter))data.media.filter=C.media.filter;
     }
     if(opts)data.poll={options:opts.slice(0,4)};
     await put('posts',newId(),data);
@@ -194,7 +232,11 @@ async function deletePost(pid){
   });
 }
 const deleteComment=cid=>guard(()=>remove('comments',cid));
-const toggleFollow=id=>guard(()=>following(id)?remove('follows',pairId(S.uid,id)):put('follows',pairId(S.uid,id),{from:S.uid,to:id,at:Date.now()}));
+const toggleFollow=id=>guard(async()=>{
+  if(following(id)){await remove('follows',pairId(S.uid,id));bumpCount(id,'followers',-1);bumpCount(S.uid,'following',-1)}
+  else{await put('follows',pairId(S.uid,id),{from:S.uid,to:id,at:Date.now()});bumpCount(id,'followers',1);bumpCount(S.uid,'following',1)}
+  render();
+});
 
 const HANDLE_RE=/^[a-z0-9_]{3,20}$/;
 async function saveAccount(f,isNew){
@@ -232,22 +274,29 @@ function pickFile(file,kind){
   if(kind==='video'){
     if(/quicktime/.test(file.type)||/\.mov$/i.test(file.name)){toast('.mov isn’t supported — export as MP4');return}
     if(!/^video\/(mp4|webm)$/.test(file.type)&&!/\.(mp4|webm)$/i.test(file.name)){toast('Pick an MP4 or WebM video');return}
-    const lim=S.fb?.st?VIDEO_MAX:DB_VIDEO_MAX;
-    if(file.size>lim){toast(`Videos must be under ${lim/1048576} MB`);return}
+    const lim=canCompress()?RAW_VIDEO_MAX:(S.fb?.st?VIDEO_MAX:DB_VIDEO_MAX);
+    if(file.size>lim){toast(`Videos must be under ${Math.round(lim/1048576)} MB`);return}
     if(C.media?.url?.startsWith('blob:'))URL.revokeObjectURL(C.media.url);
-    C.media={kind:'video',blob:file,url:URL.createObjectURL(file),thumb:''};C.poll=null;render();
+    C.media={kind:'video',blob:file,url:URL.createObjectURL(file),thumb:'',filter:'none'};C.poll=null;render();
     makeThumb(C.media.url).then(t=>{if(C.media?.blob===file)C.media.thumb=t});return;
   }
   if(!file.type.startsWith('image/')){toast('Pick an image');return}
-  const r=new FileReader();
-  r.onload=()=>{const img=new Image();img.onload=()=>{
-    const max=S.fb?.st?1600:900;let w=img.width,h=img.height;const k=Math.min(1,max/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);
-    const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
-    const finish=(blob,dataUrl)=>{if(C.media?.url?.startsWith('blob:'))URL.revokeObjectURL(C.media.url);C.media={kind:'image',blob,dataUrl,url:blob?URL.createObjectURL(blob):dataUrl};C.poll=null;render()};
-    if(S.fb?.st)c.toBlob(b=>finish(b,null),'image/jpeg',.85);
-    else{let q=.8,url=c.toDataURL('image/jpeg',q);while(url.length>300000&&q>.3){q-=.1;url=c.toDataURL('image/jpeg',q)}finish(null,url)}
-  };img.src=r.result};
-  r.readAsDataURL(file);
+  editPhoto(file,'none');
+}
+async function editPhoto(src,filter){
+  try{
+    const c=await openEditor(src,{filter,maxSize:S.fb?.st?1600:900});
+    if(c)canvasToMedia(c);
+  }catch(e){toast(e.message||'Couldn\u2019t open that photo')}
+}
+function canvasToMedia(c){
+  const C=S.compose;
+  const finish=(blob,dataUrl)=>{if(C.media?.url?.startsWith('blob:'))URL.revokeObjectURL(C.media.url);C.media={kind:'image',blob,dataUrl,url:blob?URL.createObjectURL(blob):dataUrl};C.poll=null;render()};
+  if(S.fb?.st)c.toBlob(b=>finish(b,null),'image/jpeg',.88);
+  else{let q=.82,url=c.toDataURL('image/jpeg',q);while(url.length>300000&&q>.3){q-=.08;url=c.toDataURL('image/jpeg',q)}finish(null,url)}
+}
+async function useCamera(){
+  try{const r=await openCamera();if(r)editPhoto(r.dataUrl,r.filter)}catch(e){toast(e.message)}
 }
 
 function makeThumb(url){
@@ -288,9 +337,10 @@ async function loadVideo(p,autoplay=true){
 }
 function videoBox(p,cls='pimg'){
   const src=videoSrc(p);
-  if(src)return`<video class="${cls}" data-vid="${esc(p.media.vid||'')}" src="${esc(src)}" controls playsinline preload="metadata" ${p.media.thumb?`poster="${esc(p.media.thumb)}"`:''}></video>`;
+  const fs=validFilter(p.media.filter)?filterStyle(p.media.filter):'';
+  if(src)return`<video class="${cls}" data-vid="${esc(p.media.vid||'')}" src="${esc(src)}" controls playsinline preload="metadata" ${p.media.thumb?`poster="${esc(p.media.thumb)}"`:''} style="${fs}"></video>`;
   const loading=VLOADING.has(p.media.vid);
-  return`<button class="vposter ${cls}" data-act="playvid" data-id="${esc(p.id)}" style="${p.media.thumb?`background-image:url('${esc(p.media.thumb)}')`:''}">
+  return`<button class="vposter ${cls}" data-act="playvid" data-id="${esc(p.id)}" style="${p.media.thumb?`background-image:url('${esc(p.media.thumb)}');`:''}${fs}">
     <span class="vplay">${loading?'Loading…':'▶'}</span>${p.media.size?`<span class="vsize">${(p.media.size/1048576).toFixed(1)} MB</span>`:''}</button>`;
 }
 
@@ -321,7 +371,7 @@ function postHTML(p,why){
   return`<article class="card post${fresh?' fresh':''}" data-post="${esc(p.id)}">
     ${why?`<div class="why">${ICON.repost}${why}</div>`:''}
     ${av(p.author)}<div class="body">
-    <div class="meta"><span class="who" data-profile="${esc(p.author)}">${esc(nameOf(p.author))}</span>${h?`<span class="h">@${esc(h)}</span>`:''}<span class="when">· ${ago(p.createdAt)}</span></div>
+    <div class="meta"><span class="who" data-profile="${esc(p.author)}">${esc(nameOf(p.author))}${badge(p.author)}</span>${h?`<span class="h">@${esc(h)}</span>`:''}<span class="when">· ${ago(p.createdAt)}</span></div>
     ${p.text?`<p class="text">${fmt(p.text)}</p>`:''}
     ${mediaHTML(p)}${pollHTML(p)}
     <div class="actions">
@@ -333,7 +383,7 @@ function postHTML(p,why){
       ${canDel?`<button class="iconbtn del" data-act="del" data-id="${esc(p.id)}" title="Delete">${ICON.trash}</button>`:''}
     </div>
     ${open?`<div class="thread">
-      ${cmts.map(c=>`<div class="cmt">${av(c.author,'sm')}<div class="bub"><span class="who" data-profile="${esc(c.author)}">${esc(nameOf(c.author))}</span> <span class="muted" style="font-size:12px">${ago(c.createdAt)}</span>
+      ${cmts.map(c=>`<div class="cmt">${av(c.author,'sm')}<div class="bub"><span class="who" data-profile="${esc(c.author)}">${esc(nameOf(c.author))}${badge(c.author)}</span> <span class="muted" style="font-size:12px">${ago(c.createdAt)}</span>
         ${S.uid&&(c.author===S.uid||S.isAdmin||p.author===S.uid)?`<button class="muted" style="float:right;font-size:12px" data-act="delc" data-id="${esc(c.id)}">delete</button>`:''}
         <p>${fmt(c.text)}</p></div></div>`).join('')}
       ${canWrite()?`<form class="cform" data-form="c" data-id="${esc(p.id)}">${av(S.uid,'sm')}<input data-key="c:${esc(p.id)}" data-draft="${esc(p.id)}" placeholder="Write a reply…" maxlength="500" value="${esc(S.drafts[p.id]||'')}"><button class="btn small" type="submit">Reply</button></form>`
@@ -367,10 +417,13 @@ function composerHTML(){
   const can=!C.busy&&n<=MAX&&(C.text.trim()||C.media||(C.poll&&C.poll.filter(o=>o.trim()).length>=2));
   return`<div class="card composer">${av(S.uid)}<div style="flex:1;min-width:0">
     <textarea data-key="compose" placeholder="What’s happening? Use #tags and @mentions" rows="2" maxlength="${MAX+50}">${esc(C.text)}</textarea>
-    ${C.media?`<div class="preview"><button class="x" data-act="rmmedia" aria-label="Remove">✕</button>${C.media.kind==='video'?`<video src="${esc(C.media.url)}" controls playsinline></video>`:`<img src="${esc(C.media.url)}" alt="">`}</div>`:''}
+    ${C.media?`<div class="preview"><button class="x" data-act="rmmedia" aria-label="Remove">✕</button>${C.media.kind==='video'?`<video src="${esc(C.media.url)}" controls playsinline style="${filterStyle(C.media.filter)}"></video>`:`<img src="${esc(C.media.url)}" alt="">`}</div>
+      ${C.media.kind==='video'?`<div class="vfilters">${FILTERS.map(f=>`<button class="chipbtn ${C.media.filter===f.id?'on':''}" data-vfilter="${f.id}">${f.name}</button>`).join('')}</div>`
+        :`<button class="iconbtn" data-act="reedit" style="margin-top:6px">\u2728 Filters & stickers</button>`}`:''}
     ${C.poll?`<div class="pollin">${C.poll.map((o,i)=>`<input data-key="poll:${i}" data-poll="${i}" maxlength="40" placeholder="Option ${i+1}" value="${esc(o)}">`).join('')}
       <div style="display:flex;gap:8px">${C.poll.length<4?`<button class="iconbtn" data-act="addopt">${ICON.plus}Add option</button>`:''}<button class="iconbtn" data-act="rmpoll">Remove poll</button></div></div>`:''}
     <div class="row"><div class="tools">
+      <button class="iconbtn" data-act="camera" title="Camera">${ICON.camera}<span>Camera</span></button>
       <label class="iconbtn" title="Photo">${ICON.image}<span>Photo</span><input type="file" accept="image/*" data-file="image" hidden></label>
       <label class="iconbtn" title="Video">${ICON.video}<span>Video</span><input type="file" accept="video/mp4,video/webm" data-file="video" hidden></label>
       <button class="iconbtn ${C.poll?'on':''}" data-act="poll" title="Poll">${ICON.poll}<span>Poll</span></button>
@@ -389,7 +442,7 @@ function clipsView(){
   const vids=S.posts.filter(isVideo).sort((a,b)=>b.createdAt-a.createdAt);
   return`<div class="top"><h1>Clips</h1><span class="muted">${vids.length} video${vids.length===1?'':'s'}</span></div>
   ${vids.length?`<div class="clips">${vids.map(p=>`<div class="clip" data-act="watch" data-id="${esc(p.id)}">
-    ${p.media.thumb?`<img src="${esc(p.media.thumb)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block">`:videoSrc(p)?`<video src="${esc(videoSrc(p))}#t=0.5" muted playsinline preload="metadata"></video>`:'<div style="width:100%;height:100%;background:linear-gradient(135deg,#2a2420,#000)"></div>'}
+    ${p.media.thumb?`<img src="${esc(p.media.thumb)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;${validFilter(p.media.filter)?filterStyle(p.media.filter):''}">`:videoSrc(p)?`<video src="${esc(videoSrc(p))}#t=0.5" muted playsinline preload="metadata"></video>`:'<div style="width:100%;height:100%;background:linear-gradient(135deg,#2a2420,#000)"></div>'}
     <span class="play">▶</span><div class="cap"><b>${esc(nameOf(p.author))}</b><div>${esc(p.text||'')}</div></div></div>`).join('')}</div>`
   :`<div class="empty"><div class="big">No clips yet</div>Post a video from Home and it shows up here.</div>`}`;
 }
@@ -413,7 +466,7 @@ function notifView(){
   return`<div class="top"><h1>Notifications</h1></div>
   ${list.length?`<div class="card" style="overflow:hidden">${list.map(n=>{const[c,ic,verb]=NK[n.kind];const p=n.post&&postById(n.post);
     return`<div class="notif ${n.at>seen?'new':''}" ${n.post?`data-act="gopost" data-id="${esc(n.post)}"`:`data-profile="${esc(n.who)}"`}>
-      <div class="ic" style="background:${c}">${ICON[ic]}</div><div class="txt"><div><b>${esc(nameOf(n.who))}</b> ${verb} <span class="muted">· ${ago(n.at)}</span></div>
+      <div class="ic" style="background:${c}">${ICON[ic]}</div><div class="txt"><div><b>${esc(nameOf(n.who))}</b>${badge(n.who)} ${verb} <span class="muted">· ${ago(n.at)}</span></div>
       ${n.text?`<div class="snip">${esc(n.text)}</div>`:p?.text?`<div class="snip">${esc(p.text)}</div>`:''}</div></div>`}).join('')}</div>`
   :`<div class="empty"><div class="big">All quiet</div>Likes, replies, reposts, mentions and new followers show up here.</div>`}`;
 }
@@ -437,10 +490,10 @@ function profileView(){
   <div class="pinfo"><div class="row">${av(id,'lg')}
     ${me?(canWrite()&&!S.editing?`<div style="display:flex;gap:8px"><button class="btn ghost small" data-act="edit">Edit profile</button><button class="btn ghost small" data-act="signout">Sign out</button></div>`:''):(canWrite()?`<button class="btn small ${following(id)?'ghost':''}" data-act="follow" data-id="${esc(id)}">${following(id)?'Following':'Follow'}</button>`:'')}
   </div>
-  <h2>${esc(nameOf(id))}</h2>${pr.handle?`<div class="handle">@${esc(pr.handle)}</div>`:''}
+  <h2>${esc(nameOf(id))}${badge(id)}</h2>${verified(id)?'<div class="vnote">Verified \u00b7 1,000+ followers</div>':''}${pr.handle?`<div class="handle">@${esc(pr.handle)}</div>`:''}
   ${pr.bio?`<p class="bio">${fmt(pr.bio)}</p>`:(me?`<p class="bio muted">Add a bio so people know who you are.</p>`:'')}
   ${pr.website&&/^https?:\/\//.test(pr.website)?`<p style="margin:0 0 10px"><a href="${esc(pr.website)}" target="_blank" rel="noopener nofollow">${esc(pr.website.replace(/^https?:\/\//,''))}</a></p>`:''}
-  <div class="stats"><span><b>${list.length}</b> posts</span><span><b>${followersOf(id)}</b> followers</span><span><b>${followingOf(id)}</b> following</span><span><b>${likesGot}</b> likes</span>${pr.createdAt?`<span>Joined ${new Date(pr.createdAt).toLocaleDateString(undefined,{month:'short',year:'numeric'})}</span>`:''}</div>
+  <div class="stats"><span><b>${list.length}</b> posts</span><span><b>${followersOf(id).toLocaleString()}</b> followers</span><span><b>${followingOf(id).toLocaleString()}</b> following</span><span><b>${likesGot}</b> likes</span>${pr.createdAt?`<span>Joined ${new Date(pr.createdAt).toLocaleDateString(undefined,{month:'short',year:'numeric'})}</span>`:''}</div>
   ${me&&S.editing?`<div class="edit">${accountFields(E)}
     ${E.err?`<div class="field"><span class="err">${esc(E.err)}</span></div>`:''}
     <div style="display:flex;gap:8px"><button class="btn small" data-act="saveprofile">Save</button><button class="btn ghost small" data-act="cancel">Cancel</button></div></div>`:''}
@@ -464,11 +517,11 @@ function trendsHTML(){
 }
 function personRow(id){
   const h=handleOf(id);
-  return`<div class="person">${av(id,'sm')}<div class="n" data-profile="${esc(id)}">${esc(nameOf(id))}<small>${h?'@'+esc(h)+' · ':''}${followersOf(id)} followers</small></div>
+  return`<div class="person">${av(id,'sm')}<div class="n" data-profile="${esc(id)}">${esc(nameOf(id))}${badge(id)}<small>${h?'@'+esc(h)+' · ':''}${followersOf(id)} followers</small></div>
     ${canWrite()&&id!==S.uid?`<button class="btn small ${following(id)?'ghost':''}" data-act="follow" data-id="${esc(id)}">${following(id)?'Following':'Follow'}</button>`:''}</div>`;
 }
 function peopleHTML(){
-  const ids=Object.keys(S.profiles).filter(id=>id&&id!==S.uid&&!following(id));
+  const ids=Object.keys(S.profiles).filter(id=>id&&id!==S.uid&&!following(id));ids.slice(0,30).forEach(id=>NEED.add(id));
   ids.sort((a,b)=>followersOf(b)-followersOf(a));
   if(!ids.length)return`<p class="muted" style="margin:0">Share Pulse with friends — they’ll show up here.</p>`;
   return ids.slice(0,5).map(personRow).join('');
@@ -477,7 +530,7 @@ function overlayHTML(){
   if(S.viewer){const p=postById(S.viewer);if(!p||!isVideo(p)){S.viewer=null;return''}
     const src=videoSrc(p);
     return`<div class="viewer" data-act="closeviewer"><button class="x" data-act="closeviewer" aria-label="Close">✕</button>
-      ${src?`<video src="${esc(src)}" controls autoplay playsinline onclick="event.stopPropagation()"></video>`:`<div style="color:#fff;font-size:18px">Loading video…</div>`}
+      ${src?`<video src="${esc(src)}" controls autoplay playsinline onclick="event.stopPropagation()" style="${validFilter(p.media.filter)?filterStyle(p.media.filter):''}"></video>`:`<div style="color:#fff;font-size:18px">Loading video…</div>`}
       <div class="info"><b>${esc(nameOf(p.author))}</b> ${esc(p.text||'')}<br><button class="btn small" style="margin-top:10px" data-act="gopost" data-id="${esc(p.id)}">Open post · ${likesFor(p.id).length} likes · ${commentsFor(p.id).length} replies</button></div></div>`}
   if(S.onboard){const E=S.onboard;
     return`<div class="modal"><div class="card"><div class="brand" style="padding:0 0 6px;font-size:22px"><span class="dot"></span>Pulse</div>
@@ -511,7 +564,7 @@ function render(){
   const h=handleOf(S.uid);
   $('#nav').innerHTML=`<div class="brand"><span class="dot"></span>Pulse</div>
     ${items.map(([v,l])=>`<button class="navbtn ${isOn(v)?'on':''}" data-view="${v}">${ICON[icon[v]]}${v==='notifications'?'Notifications':v==='bookmarks'?'Bookmarks':l}${v==='notifications'&&n?`<span class="badge">${n>99?'99+':n}</span>`:''}</button>`).join('')}
-    ${S.uid?`<div class="mecard" data-profile="${esc(S.uid)}">${av(S.uid,'sm')}<div style="min-width:0;flex:1"><div class="n">${esc(nameOf(S.uid))}</div><div class="s">${h?'@'+esc(h):'Setting up…'}</div></div></div>`
+    ${S.uid?`<div class="mecard" data-profile="${esc(S.uid)}">${av(S.uid,'sm')}<div style="min-width:0;flex:1"><div class="n">${esc(nameOf(S.uid))}${badge(S.uid)}</div><div class="s">${h?'@'+esc(h):'Setting up…'}</div></div></div>`
       :S.authReady?`<div style="margin-top:16px">${signInBtn('Sign in')}</div>`:''}`;
   $('#mnav').innerHTML=items.filter(([v])=>v!=='bookmarks').map(([v,l])=>`<button class="${isOn(v)?'on':''}" data-view="${v}">${ICON[icon[v]]}${l}${v==='notifications'&&n?`<span class="badge">${n>9?'9+':n}</span>`:''}</button>`).join('');
   const V={explore:exploreView,profile:profileView,clips:clipsView,notifications:notifView,bookmarks:bookmarksView}[S.view]||homeView;
@@ -524,6 +577,8 @@ function render(){
   if(!(S.viewer&&$('#overlay video')))$('#overlay').innerHTML=ov;
   if(!ov)$('#overlay').innerHTML='';
   if(key)focusKey(key,caret);
+  if(S.uid)NEED.add(S.uid);
+  ensureCounts();
   if(playing.length)document.querySelectorAll('main video').forEach(v=>{if(playing.includes(v.src))v.play().catch(()=>{})});
 }
 let rt=null;const soon=()=>{clearTimeout(rt);rt=setTimeout(render,30)};
@@ -546,6 +601,7 @@ function goPost(pid){
 
 /* ---------- events ---------- */
 document.addEventListener('click',async e=>{
+  const vf=e.target.closest('[data-vfilter]');if(vf&&S.compose.media){S.compose.media.filter=vf.dataset.vfilter;return render()}
   const t=e.target.closest('[data-view],[data-tab],[data-ptab],[data-act],[data-profile],[data-tag],[data-color]');if(!t)return;
   if(t.tagName==='LABEL')return;
   if(t.dataset.view)return go(t.dataset.view,{profileId:t.dataset.view==='profile'?S.uid:S.profileId});
@@ -557,6 +613,8 @@ document.addEventListener('click',async e=>{
   const id=t.dataset.id,C=S.compose;
   switch(t.dataset.act){
     case'signin':return signIn();
+    case'camera':return useCamera();
+    case'reedit':{const m=C.media;if(m?.kind==='image')editPhoto(m.dataUrl||m.url,'none');return}
     case'signout':S.onboard=null;return signOut();
     case'post':return createPost();
     case'like':return toggleLike(id);
@@ -630,20 +688,22 @@ if(CONFIGURED)(async()=>{
   listen(fs.query(col('profiles'),fs.limit(1000)),(rows,s)=>{const m={};rows.forEach(r=>{m[r.user||r.id]=r});S.profiles=m;if(!s.metadata.fromCache){S.profilesReady=true;if(!S._pr){S._pr=1;mark()}}});
   listen(fs.query(col('likes'),fs.limit(2000)),rows=>S.likes=rows);
   listen(fs.query(col('comments'),fs.orderBy('createdAt','asc'),fs.limit(2000)),rows=>S.comments=rows.filter(r=>r.post&&r.author&&typeof r.text==='string'));
-  listen(fs.query(col('follows'),fs.limit(2000)),rows=>S.follows=rows);
   listen(fs.query(col('reposts'),fs.limit(2000)),rows=>S.reposts=rows);
   listen(fs.query(col('votes'),fs.limit(2000)),rows=>S.votes=rows.filter(v=>Number.isInteger(v.choice)));
   setTimeout(()=>{if(S.loading){S.loading=false;render()}},10000);
 
-  let unsubMe=null,unsubAdmin=null;
+  let unsubMe=null,unsubAdmin=null,unsubF1=null,unsubF2=null,fA=[],fB=[];
   try{await auth.getRedirectResult(authI)}catch{}
   auth.onAuthStateChanged(authI,user=>{
-    unsubMe?.();unsubAdmin?.();
+    unsubMe?.();unsubAdmin?.();unsubF1?.();unsubF2?.();fA=[];fB=[];S.follows=[];
     S.uid=user?.uid||null;S.googleName=user?.displayName||'';S.photoURL=user?.photoURL||'';
     S.me={seenAt:0,bookmarks:[]};S.isAdmin=false;S.authReady=true;
     if(user){
       unsubMe=fs.onSnapshot(dref('private',user.uid),d=>{if(d.exists()){const v=d.data();S.me={seenAt:+v.seenAt||0,bookmarks:Array.isArray(v.bookmarks)?v.bookmarks:[]}}soon()},()=>{});
       unsubAdmin=fs.onSnapshot(dref('admins',user.uid),d=>{S.isAdmin=d.exists();soon()},()=>{});
+      const mergeF=()=>{const m=new Map();[...fA,...fB].forEach(f=>m.set(f.id,f));S.follows=[...m.values()];soon()};
+      unsubF1=fs.onSnapshot(fs.query(col('follows'),fs.where('from','==',user.uid),fs.limit(5000)),s=>{fA=s.docs.map(d=>({id:d.id,...d.data()}));mergeF()},e=>console.warn(e));
+      unsubF2=fs.onSnapshot(fs.query(col('follows'),fs.where('to','==',user.uid),fs.limit(300)),s=>{fB=s.docs.map(d=>({id:d.id,...d.data()}));mergeF()},e=>console.warn(e));
     }
     render();
   });
