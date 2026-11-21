@@ -103,6 +103,14 @@
     background:var(--bg);color:var(--text);padding:0 12px;outline:0}
   .modal .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
   .modal .primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  @media (max-width:600px){
+    .toolbar{gap:2px;padding:6px 4px}
+    .icon-btn{width:30px;height:30px;font-size:15px}
+    #reload,#menuBm,#menuHist{display:none}
+    .omnibox{padding:0 10px;min-width:0}
+    .omnibox .lock{display:none}
+    .notice span:first-child{display:none}
+  }
 </style>
 </head>
 <body>
