@@ -124,7 +124,7 @@
     <button class="icon-btn" id="home" title="Home">⌂</button>
     <form class="omnibox" id="omniForm">
       <span class="lock" id="lock">🔍</span>
-      <input id="omni" autocomplete="off" spellcheck="false" placeholder="Search or type a web address">
+      <input id="omni" autocomplete="off" spellcheck="false" placeholder="Search Wikipedia or type a web address">
     </form>
     <button class="icon-btn" id="star" title="Bookmark this page">☆</button>
     <button class="icon-btn" id="openReal" title="Open in a real tab">↗</button>
@@ -158,10 +158,9 @@
     {title:'Nimbus', url:'https://thedailybark.dog/nimbus/'},
     {title:'Games', url:'https://thedailybark.dog/games/'},
     {title:'Wikipedia', url:'https://en.wikipedia.org/wiki/Main_Page'},
-    {title:'YouTube', url:'https://www.youtube.com/'},
-    {title:'Google', url:'https://www.google.com/'},
+    {title:'Map', url:'https://www.openstreetmap.org/export/embed.html?bbox=-98,29,-94,33&layer=mapnik'},
   ];
-  let dial = store.get('dial3', DEFAULT_DIAL);
+  let dial = store.get('dial4', DEFAULT_DIAL);
   let bookmarks = store.get('bookmarks', [{title:'Wikipedia', url:'https://en.wikipedia.org/wiki/Main_Page'}]);
   let history = store.get('history', []);
   let noticeHidden = false;
@@ -173,7 +172,11 @@
   // When Orbit itself runs inside another page (like a hosted preview), sites can't load inside it,
   // so each site gets a launch card instead of an embedded view.
   const FRAMED = (() => { try{ return window.top !== window; }catch(e){ return true; } })();
-  const usesPage = u => isInternal(u) || FRAMED;
+  // Big sites that refuse to be shown inside another page (YouTube video links still play via the embed player)
+  const BLOCKED = /(^|\.)(google\.[a-z.]+|youtube\.com|instagram\.com|facebook\.com|tiktok\.com|x\.com|twitter\.com|reddit\.com|amazon\.[a-z.]+|netflix\.com|bing\.com|duckduckgo\.com|github\.com|discord\.com|roblox\.com|twitch\.tv|spotify\.com|pinterest\.com|chatgpt\.com|claude\.ai)$/;
+  const isBlocked = u => { if(isInternal(u)) return false; const f = frameable(u); if(f.includes('youtube.com/embed/')) return false;
+    try{ return BLOCKED.test(new URL(f).hostname); }catch(e){ return false; } };
+  const usesPage = u => isInternal(u) || FRAMED || isBlocked(u);
   const hostOf = u => { try{ return new URL(u).hostname.replace(/^www\./,''); }catch(e){ return u; } };
 
   // ---------- URL handling ----------
@@ -183,7 +186,7 @@
     if(isInternal(q)) return q;
     if(/^https?:\/\//i.test(q)) return q;
     if(/^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(q) && !q.includes(' ')) return 'https://' + q;
-    return 'https://duckduckgo.com/?q=' + encodeURIComponent(q);
+    return 'https://en.wikipedia.org/w/index.php?search=' + encodeURIComponent(q);
   }
   // Turn a YouTube watch link into an embeddable player
   function frameable(u){
@@ -248,14 +251,6 @@
 
   function navigate(tab, input, push=true){
     const url = normalize(input);
-    // Real websites open in a new browser tab (many sites refuse to be shown inside another page)
-    if(!isInternal(url) && push){
-      history.unshift({url, title: titleFor(url), at: Date.now()});
-      history = history.slice(0, 300); store.set('history', history);
-      openExternal(url);
-      omni.value = ''; omni.blur();
-      return;
-    }
     if(push){
       tab.stack = tab.stack.slice(0, tab.idx+1);
       tab.stack.push(url); tab.idx = tab.stack.length-1;
@@ -287,7 +282,7 @@
     if(isInternal(url)){
       tab.frame.removeAttribute('src');
       renderInternal(tab, url);
-    } else if(FRAMED){
+    } else if(FRAMED || isBlocked(url)){
       renderLaunch(tab, url);
     } else {
       tab.frame.src = frameable(url);
@@ -328,7 +323,7 @@
     star.classList.toggle('on', marked);
     star.disabled = isInternal(url);
     openReal.disabled = isInternal(url);
-    const ext = !isInternal(url) && !FRAMED;
+    const ext = !isInternal(url) && !FRAMED && !isBlocked(url);
     notice.classList.toggle('show', ext && !noticeHidden);
     if(ext) noticeLink.href = url;
     document.title = t.title + ' – Orbit';
@@ -351,7 +346,7 @@
       p.innerHTML = `<div class="home">
         <div class="logo">Orbit</div>
         <div class="clock" data-clock></div>
-        <form class="bigsearch"><input placeholder="Search or type a web address" autofocus><button>Go</button></form>
+        <form class="bigsearch"><input placeholder="Search Wikipedia or type a web address" autofocus><button>Go</button></form>
         <div class="dial"></div></div>`;
       const f = p.querySelector('form'), inp = f.querySelector('input');
       f.onsubmit = e => { e.preventDefault(); if(inp.value.trim()) navigate(tab, inp.value); };
@@ -362,13 +357,13 @@
         el.innerHTML = `<span class="badge" style="background:${colorFor(hostOf(s.url))}">${esc(s.title[0].toUpperCase())}</span>
           <span>${esc(s.title)}</span><button class="rm" title="Remove">✕</button>`;
         el.onclick = () => navigate(tab, s.url);
-        el.querySelector('.rm').onclick = e => { e.stopPropagation(); dial.splice(i,1); store.set('dial3', dial); renderInternal(tab, url); };
+        el.querySelector('.rm').onclick = e => { e.stopPropagation(); dial.splice(i,1); store.set('dial4', dial); renderInternal(tab, url); };
         d.append(el);
       });
       const add = document.createElement('div');
       add.className = 'tile add';
       add.innerHTML = '<span class="badge">+</span><span>Add site</span>';
-      add.onclick = () => askSite(s => { dial.push(s); store.set('dial3', dial); renderInternal(tab, url); });
+      add.onclick = () => askSite(s => { dial.push(s); store.set('dial4', dial); renderInternal(tab, url); });
       d.append(add);
       tickClock();
     }
@@ -412,7 +407,7 @@
       <h1 style="margin:18px 0 6px;font-size:30px">${esc(tab.title)}</h1>
       <p class="sub" style="color:var(--muted);word-break:break-all;margin:0 0 26px">${esc(url)}</p>
       <a href="${esc(url)}" target="_blank" rel="noopener" style="display:inline-block;padding:14px 28px;border-radius:26px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none;font-size:16px">Open ${esc(h)} ↗</a>
-      <p style="color:var(--muted);font-size:13px;margin-top:22px">The site opens in a new tab. Your bookmarks and history stay saved here in Orbit.</p></div>`;
+      <p style="color:var(--muted);font-size:14px;margin:22px auto 0;max-width:440px;line-height:1.5">${esc(h)} doesn't allow itself to be shown inside other websites, so it can only open in its own tab. Tip: YouTube <b>video</b> links (youtube.com/watch?v=…) do play right here in Orbit.</p></div>`;
   }
 
   function tickClock(){
