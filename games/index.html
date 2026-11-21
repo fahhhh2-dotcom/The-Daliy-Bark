@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Game Arcade</title>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#120f24;--ink:#fff;--muted:#b9b3d6;--yellow:#ffd23f}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Rubik',system-ui,sans-serif}
+  body{
+    background:
+      radial-gradient(1200px 500px at 50% -10%, #3a2a8a 0%, transparent 60%),
+      radial-gradient(800px 400px at 100% 100%, #1d4f7a55 0%, transparent 60%),
+      var(--bg);
+    min-height:100vh;
+    padding:calc(env(safe-area-inset-top) + 28px) 18px calc(env(safe-area-inset-bottom) + 40px);
+  }
+  .stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+  main{position:relative;z-index:1;max-width:1080px;margin:0 auto}
+  header{text-align:center;margin:10px 0 34px}
+  .tag{display:inline-block;font-weight:800;font-size:12px;letter-spacing:.2em;color:var(--yellow);
+    border:2px solid var(--yellow);padding:6px 12px;border-radius:30px;margin-bottom:16px}
+  h1{font-family:'Bungee',sans-serif;font-size:clamp(40px,9vw,78px);line-height:.95;margin:0;
+    background:linear-gradient(180deg,#fff 0%,#ffd23f 55%,#ff8a3d 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 5px 0 #2a1c66)}
+  header p{color:var(--muted);font-size:17px;margin:16px auto 0;max-width:460px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:22px}
+  .card{position:relative;border-radius:26px;overflow:hidden;display:flex;flex-direction:column;
+    background:#1c1838;border:2px solid #ffffff14;box-shadow:0 18px 40px #0007;
+    transition:transform .18s ease, box-shadow .18s ease}
+  .card:hover{transform:translateY(-6px) rotate(-.4deg);box-shadow:0 26px 50px #000a}
+  .art{height:210px;position:relative}
+  .art svg{width:100%;height:100%;display:block}
+  .badge{position:absolute;top:14px;left:14px;font-weight:800;font-size:11px;letter-spacing:.14em;
+    background:#000a;padding:6px 10px;border-radius:20px}
+  .body{padding:20px 22px 22px;display:flex;flex-direction:column;flex:1}
+  .body h2{font-family:'Bungee',sans-serif;font-weight:400;font-size:26px;margin:0 0 8px;line-height:1.05}
+  .body p{color:var(--muted);margin:0 0 14px;line-height:1.5;font-size:15px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 18px}
+  .chips span{font-size:12px;font-weight:600;padding:5px 10px;border-radius:20px;background:#ffffff12}
+  .play{margin-top:auto;display:block;text-align:center;text-decoration:none;font:800 18px 'Rubik',sans-serif;
+    padding:15px;border-radius:40px;color:#111;transition:transform .1s}
+  .play:active{transform:translateY(3px)}
+
+  .fish h2{color:#5fd4ff} .fish .play{background:#5fd4ff;box-shadow:0 5px 0 #1a7fa8}
+  .grave h2{color:#ff8a3d} .grave .play{background:#ff8a3d;box-shadow:0 5px 0 #a8461a}
+  .run h2{color:#ffd23f} .run .play{background:#ffd23f;box-shadow:0 5px 0 #b38a00}
+  .bug h2{color:#7cf29a} .bug .play{background:#7cf29a;box-shadow:0 5px 0 #2f9a4c}
+
+  footer{text-align:center;color:#8a84ad;font-size:13px;margin-top:40px}
+</style>
+</head>
+<body>
+<svg class="stars" id="stars" aria-hidden="true"></svg>
+<main>
+  <header>
+    <div class="tag">★ INSERT COIN ★</div>
+    <h1>MY GAME<br>ARCADE</h1>
+    <p>Four games I made. Pick one and press play!</p>
+  </header>
+
+  <section class="grid">
+    <!-- Deep Blue Fishing -->
+    <article class="card fish">
+      <div class="art">
+        <span class="badge">🎣 FISHING</span>
+        <svg viewBox="0 0 400 210" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#8fe3ff"/><stop offset=".38" stop-color="#8fe3ff"/>
+              <stop offset=".39" stop-color="#1da1d6"/><stop offset="1" stop-color="#062f5c"/>
+            </linearGradient>
+          </defs>
+          <rect width="400" height="210" fill="url(#sea)"/>
+          <circle cx="340" cy="34" r="20" fill="#fff6b0"/>
+          <path d="M120 80 q20 -6 40 0 l-6 10 h-28z" fill="#8b4a2b"/>
+          <rect x="138" y="52" width="3" height="28" fill="#5a2f1a"/>
+          <path d="M141 54 l18 14 h-18z" fill="#fff"/>
+          <path d="M160 72 Q230 30 262 120" stroke="#222" stroke-width="2" fill="none"/>
+          <line x1="262" y1="120" x2="262" y2="150" stroke="#eee" stroke-width="1"/>
+          <g fill="#ffb347"><ellipse cx="290" cy="160" rx="22" ry="11"/><path d="M268 160 l-14 -10 v20z"/></g>
+          <circle cx="302" cy="157" r="2.5" fill="#222"/>
+          <g fill="#ff6fa8"><ellipse cx="90" cy="150" rx="16" ry="8"/><path d="M106 150 l12 -8 v16z"/></g>
+          <g fill="#7cf29a"><ellipse cx="190" cy="185" rx="14" ry="7"/><path d="M176 185 l-10 -7 v14z"/></g>
+          <g fill="#ffffff55"><circle cx="210" cy="130" r="4"/><circle cx="216" cy="118" r="3"/><circle cx="60" cy="120" r="3"/></g>
+          <path d="M0 82 q25 -6 50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0 t50 0" stroke="#fff" stroke-width="3" fill="none" opacity=".6"/>
+        </svg>
+      </div>
+      <div class="body">
+        <h2>Deep Blue Fishing</h2>
+        <p>Cast your line, reel in fish of every color, and explore the islands of the deep blue sea.</p>
+        <div class="chips"><span>2D</span><span>Fishing</span><span>Islands</span></div>
+        <a class="play" href="https://claude.ai/artifact/27vPMCavUVQZus88NaUn3E">▶ PLAY</a>
+      </div>
+    </article>
+
+    <!-- Graveyard Defense -->
+    <article class="card grave">
+      <div class="art">
+        <span class="badge">🎃 TOWER DEFENSE</span>
+        <svg viewBox="0 0 400 210" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="night" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#2b1050"/><stop offset="1" stop-color="#5a1e3a"/>
+            </linearGradient>
+          </defs>
+          <rect width="400" height="210" fill="url(#night)"/>
+          <circle cx="320" cy="50" r="30" fill="#ffe9a8"/>
+          <circle cx="332" cy="44" r="26" fill="#3a1450" opacity=".0"/>
+          <path d="M0 160 Q100 140 200 158 T400 150 V210 H0z" fill="#1a0f22"/>
+          <g fill="#6b6380">
+            <path d="M60 165 v-30 a14 14 0 0 1 28 0 v30z"/>
+            <path d="M150 168 v-22 a11 11 0 0 1 22 0 v22z"/>
+            <rect x="250" y="135" width="6" height="32"/><rect x="241" y="143" width="24" height="6"/>
+          </g>
+          <!-- headless horseman silhouette -->
+          <g fill="#0b0610" transform="translate(280 112)">
+            <path d="M0 40 q10 -18 40 -16 l14 -10 l6 6 l-8 10 q6 8 4 16 l-6 0 l-2 -10 l-26 2 l-6 14 h-6 l4 -16 q-10 2 -14 4z"/>
+            <path d="M28 24 l2 -20 h8 l2 20z"/>
+          </g>
+          <g transform="translate(300 96)">
+            <circle r="11" fill="#ff8a3d"/>
+            <path d="M-5 -2 l3 -3 l3 3z M2 -2 l3 -3 l3 3z" fill="#2b0f05" transform="translate(-1.5 0)"/>
+            <path d="M-6 4 q6 5 12 0" stroke="#2b0f05" stroke-width="2" fill="none"/>
+            <rect x="-1" y="-15" width="2" height="5" fill="#3d6b1e"/>
+          </g>
+          <!-- zombie -->
+          <g transform="translate(110 130)">
+            <rect x="-8" y="0" width="16" height="22" rx="3" fill="#4a7a3a"/>
+            <circle cy="-8" r="9" fill="#8fc46a"/>
+            <circle cx="-3" cy="-9" r="1.8" fill="#300"/><circle cx="3" cy="-9" r="1.8" fill="#300"/>
+            <rect x="6" y="3" width="16" height="5" rx="2" fill="#8fc46a"/>
+          </g>
+          <g fill="#fff" opacity=".7"><path d="M40 50 q8 -6 16 0 q-8 -2 -8 6 q0 -8 -8 -6z"/><path d="M200 34 q8 -6 16 0 q-8 -2 -8 6 q0 -8 -8 -6z"/></g>
+        </svg>
+      </div>
+      <div class="body">
+        <h2>Graveyard Defense</h2>
+        <p>Hold off waves of zombies with vampires, monsters and the mighty Headless Horseman. Upgrade in the shop between waves.</p>
+        <div class="chips"><span>Tower Defense</span><span>Halloween</span><span>Shop</span></div>
+        <a class="play" href="https://claude.ai/artifact/WkS5rdVL4bwKNTVir2CELa">▶ PLAY</a>
+      </div>
+    </article>
+
+    <!-- Sandwich Sprint 3D -->
+    <article class="card run">
+      <div class="art">
+        <span class="badge">🏃 3D RUNNER</span>
+        <svg viewBox="0 0 400 210" preserveAspectRatio="xMidYMid slice">
+          <rect width="400" height="210" fill="#2a8a45"/>
+          <rect width="400" height="80" fill="#7fd1ff"/>
+          <polygon points="170,80 230,80 400,210 0,210" fill="#e8d3a8"/>
+          <polygon points="193,80 207,80 270,210 130,210" fill="#d9bf8c"/>
+          <g stroke="#c4a571" stroke-width="2">
+            <line x1="183" y1="80" x2="85" y2="210"/><line x1="217" y1="80" x2="315" y2="210"/>
+          </g>
+          <!-- shop counters -->
+          <polygon points="0,80 170,80 0,170" fill="#c0392b"/>
+          <polygon points="400,80 230,80 400,170" fill="#c0392b"/>
+          <!-- cookies -->
+          <g>
+            <circle cx="200" cy="110" r="7" fill="#c98a3a"/><circle cx="198" cy="108" r="1.4" fill="#4a2a10"/><circle cx="203" cy="112" r="1.4" fill="#4a2a10"/>
+            <circle cx="160" cy="140" r="10" fill="#c98a3a"/><circle cx="157" cy="137" r="2" fill="#4a2a10"/><circle cx="163" cy="143" r="2" fill="#4a2a10"/>
+          </g>
+          <!-- sandwich obstacle -->
+          <g transform="translate(250 130)">
+            <rect x="-26" y="-4" width="52" height="10" rx="5" fill="#f0c070"/>
+            <rect x="-28" y="4" width="56" height="5" fill="#6cc04a"/>
+            <rect x="-26" y="9" width="52" height="6" fill="#e35d5d"/>
+            <rect x="-26" y="15" width="52" height="10" rx="5" fill="#f0c070"/>
+          </g>
+          <!-- runner -->
+          <g transform="translate(200 172)">
+            <ellipse cy="30" rx="18" ry="5" fill="#0003"/>
+            <rect x="-11" y="-8" width="22" height="26" rx="8" fill="#2f6bff"/>
+            <circle cy="-18" r="11" fill="#ffd1a6"/>
+            <rect x="-11" y="16" width="8" height="14" rx="3" fill="#333" transform="rotate(-15 -7 16)"/>
+            <rect x="3" y="16" width="8" height="14" rx="3" fill="#333" transform="rotate(15 7 16)"/>
+          </g>
+        </svg>
+      </div>
+      <div class="body">
+        <h2>Sandwich Sprint 3D</h2>
+        <p>Dash through the sandwich shop, dodge obstacles, and grab every cookie. Spend your cookies in the shop!</p>
+        <div class="chips"><span>3D</span><span>Endless Runner</span><span>Shop</span></div>
+        <a class="play" href="https://claude.ai/artifact/WVPLmqGjj9mPFu55oiskqZ">▶ PLAY</a>
+      </div>
+    </article>
+
+    <!-- Wild Woods Bug Catching -->
+    <article class="card bug">
+      <div class="art">
+        <span class="badge">🐞 BUG CATCHING</span>
+        <svg viewBox="0 0 400 210" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="woods" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#bdf0a0"/><stop offset=".7" stop-color="#4fa64a"/><stop offset="1" stop-color="#2d6b2b"/>
+            </linearGradient>
+          </defs>
+          <rect width="400" height="210" fill="url(#woods)"/>
+          <!-- trees -->
+          <g>
+            <rect x="40" y="70" width="18" height="110" fill="#6b4226"/>
+            <circle cx="49" cy="60" r="42" fill="#2f7d32"/><circle cx="25" cy="80" r="26" fill="#3a9140"/>
+            <rect x="335" y="60" width="20" height="120" fill="#6b4226"/>
+            <circle cx="345" cy="50" r="46" fill="#2f7d32"/><circle cx="375" cy="78" r="28" fill="#3a9140"/>
+          </g>
+          <path d="M0 178 Q100 168 200 176 T400 172 V210 H0z" fill="#245a22"/>
+          <g fill="#ff5fa2"><circle cx="110" cy="182" r="4"/><circle cx="260" cy="186" r="4"/></g>
+          <g fill="#ffe14f"><circle cx="130" cy="186" r="3"/><circle cx="290" cy="181" r="3"/></g>
+          <!-- butterfly -->
+          <g transform="translate(150 70)">
+            <ellipse cx="-9" cy="-4" rx="10" ry="8" fill="#ff9f1c"/><ellipse cx="9" cy="-4" rx="10" ry="8" fill="#ff9f1c"/>
+            <ellipse cx="-7" cy="7" rx="6" ry="5" fill="#ffbf69"/><ellipse cx="7" cy="7" rx="6" ry="5" fill="#ffbf69"/>
+            <rect x="-1.5" y="-8" width="3" height="18" rx="1.5" fill="#222"/>
+          </g>
+          <!-- ladybug -->
+          <g transform="translate(250 120)">
+            <circle r="10" fill="#e63946"/><circle cy="-9" r="5" fill="#222"/>
+            <line x1="0" y1="-6" x2="0" y2="10" stroke="#222" stroke-width="1.5"/>
+            <circle cx="-4" cy="2" r="2" fill="#222"/><circle cx="4" cy="4" r="2" fill="#222"/>
+          </g>
+          <!-- beetle -->
+          <g transform="translate(300 160)">
+            <ellipse rx="9" ry="12" fill="#3a5bd9"/><circle cy="-12" r="4" fill="#1d2f7a"/>
+          </g>
+          <!-- net -->
+          <g transform="translate(205 95)">
+            <line x1="0" y1="0" x2="-70" y2="80" stroke="#8b5a2b" stroke-width="5" stroke-linecap="round"/>
+            <ellipse cx="10" cy="-10" rx="26" ry="18" fill="#ffffff55" stroke="#fff" stroke-width="3"/>
+            <g stroke="#ffffffaa" stroke-width="1">
+              <line x1="-6" y1="-24" x2="-6" y2="4"/><line x1="10" y1="-28" x2="10" y2="8"/><line x1="26" y1="-24" x2="26" y2="4"/>
+              <line x1="-14" y1="-10" x2="34" y2="-10"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="body">
+        <h2>Wild Woods Bug Catching</h2>
+        <p>Grab your net and head into the forest. Hold down the net to catch butterflies, beetles and more!</p>
+        <div class="chips"><span>2D</span><span>Bug Catching</span><span>Forest</span></div>
+        <a class="play" href="https://claude.ai/artifact/VXQWkvyA8bZ56r1avsoydo">▶ PLAY</a>
+      </div>
+    </article>
+  </section>
+
+  <footer>Made with ♥ — more games coming soon</footer>
+</main>
+<script>
+  const s=document.getElementById('stars');
+  const w=innerWidth,h=Math.max(innerHeight,document.body.scrollHeight);
+  s.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  let out='';
+  for(let i=0;i<70;i++){
+    const r=Math.random()*1.6+.3, o=(Math.random()*.6+.2).toFixed(2);
+    out+=`<circle cx="${(Math.random()*w)|0}" cy="${(Math.random()*h)|0}" r="${r.toFixed(1)}" fill="#fff" opacity="${o}"/>`;
+  }
+  s.innerHTML=out;
+</script>
+</body>
+</html>
