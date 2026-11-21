@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="../account.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Sandwich Sprint 3D</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;800&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#1f6b30;font-family:'Rubik',system-ui,sans-serif;color:#fff;
+    touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  canvas{display:block}
+  #hud{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 14px) 18px 0;
+    display:flex;justify-content:space-between;pointer-events:none;font-weight:800;font-size:22px;text-shadow:0 2px 4px #0006}
+  #hud small{display:block;font-size:11px;font-weight:500;opacity:.85;letter-spacing:.12em}
+  #coins{text-align:right}
+  #lives{font-size:14px;margin-top:4px}
+  .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:#1f7a37ee;text-align:center;padding:calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 20px)}
+  .screen.hidden{display:none}
+  h1{font-size:44px;margin:0 0 6px;font-weight:800;line-height:1;color:#ffcc1f;text-shadow:0 4px 0 #145024}
+  .sub{opacity:.9;margin:0 0 22px;font-weight:500}
+  .btn{pointer-events:auto;border:0;border-radius:40px;padding:15px 44px;font:800 20px 'Rubik',sans-serif;color:#145024;
+    background:#ffcc1f;box-shadow:0 5px 0 #c99a00;cursor:pointer;margin:6px}
+  .btn.alt{background:#fff;box-shadow:0 5px 0 #c9c9c9;font-size:17px;padding:12px 34px}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 #c99a00}
+  .help{margin-top:22px;font-size:14px;line-height:1.85;opacity:.9}
+  .help b{color:#ffcc1f}
+  .bank{margin:0 0 18px;font-weight:800;color:#ffcc1f;font-size:18px}
+  .big{font-size:56px;font-weight:800;margin:4px 0}
+  .best{color:#ffcc1f;margin-bottom:6px}
+  #pause{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 16px);width:44px;height:44px;border-radius:50%;
+    border:0;background:#00000033;color:#fff;font-size:16px;display:none}
+  #shop{justify-content:flex-start}
+  #shop h1{font-size:36px;margin-top:8px}
+  .shoplist{width:100%;max-width:420px;overflow-y:auto;touch-action:pan-y;flex:1;margin:4px 0 10px;-webkit-overflow-scrolling:touch}
+  .sec{text-align:left;font-weight:800;color:#ffcc1f;margin:14px 4px 6px;letter-spacing:.08em;font-size:13px}
+  .item{display:flex;align-items:center;gap:12px;background:#ffffff1c;border-radius:16px;padding:12px;margin:8px 0;text-align:left}
+  .sw{width:42px;height:42px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;font-size:22px}
+  .item .t{flex:1}
+  .item .t b{display:block;font-size:16px}
+  .item .t span{font-size:12px;opacity:.85}
+  .item button{border:0;border-radius:20px;padding:9px 14px;font:800 14px 'Rubik',sans-serif;background:#ffcc1f;color:#145024;min-width:84px}
+  .item button.own{background:#ffffff33;color:#fff}
+  .item button:disabled{opacity:.45}
+  #toast{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);font-weight:800;font-size:28px;color:#ffcc1f;
+    text-shadow:0 3px 0 #145024;pointer-events:none;opacity:0;transition:opacity .3s}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div><small>SCORE</small><span id="score">0</span></div>
+  <div id="coins"><small>COOKIES</small>🍪 <span id="coinCount">0</span><div id="lives"></div></div>
+</div>
+<div id="toast"></div>
+<button id="pause" aria-label="Pause">❚❚</button>
+
+<div id="start" class="screen">
+  <h1>SANDWICH<br>SPRINT</h1>
+  <p class="sub">Run through the sandwich shop and grab the cookies!</p>
+  <div class="bank">🍪 <span class="bankAmt">0</span> cookies saved</div>
+  <button class="btn" id="playBtn">PLAY</button>
+  <button class="btn alt" id="shopBtn1">🛒 SHOP</button>
+  <div class="help">
+    <b>Swipe ← →</b> switch lanes<br>
+    <b>Swipe ↑</b> jump over bread carts &amp; wet floor signs<br>
+    <b>Swipe ↓</b> slide under giant subs<br>
+    <b>Dodge</b> the drink coolers
+  </div>
+</div>
+
+<div id="over" class="screen hidden">
+  <p class="sub" style="margin:0">SPLAT! 🥪</p>
+  <div class="big" id="finalScore">0</div>
+  <div class="best" id="bestScore">Best: 0</div>
+  <div class="bank">+<span id="earned">0</span> cookies · 🍪 <span class="bankAmt">0</span> total</div>
+  <button class="btn" id="againBtn">RUN AGAIN</button>
+  <button class="btn alt" id="shopBtn2">🛒 SHOP</button>
+</div>
+
+<div id="paused" class="screen hidden">
+  <h1>PAUSED</h1>
+  <p class="sub">Take a lunch break</p>
+  <button class="btn" id="resumeBtn">RESUME</button>
+</div>
+
+<div id="shop" class="screen hidden">
+  <h1>COOKIE SHOP</h1>
+  <div class="bank" style="margin-bottom:4px">🍪 <span class="bankAmt">0</span></div>
+  <div class="shoplist" id="shopList"></div>
+  <button class="btn" id="shopBack">BACK</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+const LANES = [-2.2, 0, 2.2];
+const SPAWN_Z = -130, DESPAWN_Z = 12;
+const $ = id => document.getElementById(id);
+const GREEN = 0x1f8f3a, DARKGREEN = 0x145024, YELLOW = 0xffcc1f;
+
+// ---------- save data ----------
+const SAVE_KEY = 'sandwichSprintSave';
+let save = { bank: 0, best: 0, owned: ['classic'], skin: 'classic', chances: 0 };
+try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) save = Object.assign(save, s); } catch (e) {}
+function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
+
+const SKINS = [
+  { id: 'classic', name: 'Classic Crew', price: 0, shirt: 0xffffff, apron: GREEN, cap: GREEN },
+  { id: 'sunny', name: 'Sunny Shift', price: 40, shirt: YELLOW, apron: GREEN, cap: YELLOW },
+  { id: 'chef', name: 'Head Chef', price: 80, shirt: 0xffffff, apron: 0xffffff, cap: 0xffffff },
+  { id: 'night', name: 'Night Shift', price: 120, shirt: 0x333a44, apron: 0x111111, cap: 0x111111 },
+  { id: 'tomato', name: 'Tomato Red', price: 160, shirt: 0xe8412c, apron: 0xffffff, cap: 0xe8412c },
+  { id: 'gold', name: 'Golden Bread', price: 300, shirt: 0xffb800, apron: 0xd99a00, cap: 0xffd84a, glow: 0x553800 },
+];
+const UPGRADES = [
+  { id: 'magnet', name: 'Cookie Magnet', desc: 'Pulls in cookies from nearby lanes', price: 150, emoji: '🧲' },
+  { id: 'double', name: 'Double Cookies', desc: 'Every cookie counts twice', price: 250, emoji: '✨' },
+  { id: 'boots', name: 'Spring Shoes', desc: 'Jump higher and land softer', price: 100, emoji: '👟' },
+];
+
+// ---------- renderer / scene ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.prepend(renderer.domElement);
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf4ecd8);
+scene.fog = new THREE.Fog(0xf4ecd8, 40, 120);
+
+const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.1, 200);
+camera.position.set(0, 3.4, 6.5);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb8a888, 0.95));
+const sun = new THREE.DirectionalLight(0xffffff, 0.55);
+sun.position.set(3, 10, 6);
+scene.add(sun);
+
+function canvasTex(w, h, draw, rx, ry) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry);
+  t.anisotropy = maxAniso;
+  return t;
+}
+// calm floor: large soft beige tiles, low-contrast grout
+const groundTex = canvasTex(256, 256, (g, w, h) => {
+  g.fillStyle = '#ddd3bf'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#d5cab4'; g.fillRect(0, 0, 128, 128); g.fillRect(128, 128, 128, 128);
+  g.fillStyle = '#c4b89f';
+  g.fillRect(0, 0, w, 3); g.fillRect(0, 128, w, 3); g.fillRect(0, 0, 3, h); g.fillRect(128, 0, 3, h);
+}, 4, 30);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(16, 240), new THREE.MeshLambertMaterial({ map: groundTex }));
+ground.rotation.x = -Math.PI / 2; ground.position.z = -100;
+scene.add(ground);
+// runway mat in the lanes so the path reads clearly
+const mat = new THREE.Mesh(new THREE.PlaneGeometry(6.8, 240), new THREE.MeshLambertMaterial({ color: 0x3b4a3f }));
+mat.rotation.x = -Math.PI / 2; mat.position.set(0, 0.01, -100); scene.add(mat);
+[-1.1, 1.1].forEach(x => {
+  const l = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 240), new THREE.MeshBasicMaterial({ color: 0x5c6e60 }));
+  l.rotation.x = -Math.PI / 2; l.position.set(x, 0.02, -100); scene.add(l);
+});
+[-3.4, 3.4].forEach(x => {
+  const l = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 240), new THREE.MeshBasicMaterial({ color: YELLOW }));
+  l.rotation.x = -Math.PI / 2; l.position.set(x, 0.02, -100); scene.add(l);
+});
+
+// walls: green lower panel, cream upper, yellow stripe
+const wallTex = canvasTex(64, 128, (g, w, h) => {
+  g.fillStyle = '#f7f0de'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#1f8f3a'; g.fillRect(0, 78, w, 50);
+  g.fillStyle = '#ffcc1f'; g.fillRect(0, 70, w, 8);
+}, 60, 1);
+const wallMat = new THREE.MeshLambertMaterial({ map: wallTex, side: THREE.DoubleSide });
+[-8, 8].forEach(x => {
+  const w = new THREE.Mesh(new THREE.PlaneGeometry(240, 7), wallMat);
+  w.rotation.y = x < 0 ? Math.PI / 2 : -Math.PI / 2; w.position.set(x, 3.5, -100); scene.add(w);
+});
+const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(16, 240), new THREE.MeshLambertMaterial({ color: 0xefe6d0, side: THREE.DoubleSide }));
+ceiling.rotation.x = Math.PI / 2; ceiling.position.set(0, 7, -100); scene.add(ceiling);
+
+// ---------- scenery ----------
+const props = [];
+const M = c => new THREE.MeshLambertMaterial({ color: c });
+const counterMat = M(GREEN), topMat = M(0xe6e6e6), steel = M(0xb8bec4), darkSteel = M(0x6b7178);
+const glassMat = new THREE.MeshLambertMaterial({ color: 0xd8f0ff, transparent: true, opacity: 0.4 });
+const veg = [0x5bbf3a, 0xe8412c, 0xffd23f, 0x8a3fbf, 0xf5f0e0, 0x2e7d32].map(M);
+const lampMat = new THREE.MeshBasicMaterial({ color: 0xfffbe8 });
+const yellowMat = M(YELLOW), boardMat = M(DARKGREEN), lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const woodMat = M(0x9a6b45), breadMat = M(0xd99a4e), plantPot = M(0x7a4a2a), leafMat = M(0x3d9b4a);
+
+function box(w, h, d, m, x = 0, y = 0, z = 0) { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); return b; }
+function cyl(r, h, m, x = 0, y = 0, z = 0, seg = 14) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), m); c.position.set(x, y, z); return c; }
+
+function menuBoard(g, side) {
+  g.add(box(0.1, 1.6, 4, boardMat, side * 1.3, 4.2, 0));
+  g.add(box(0.12, 0.25, 4, yellowMat, side * 1.28, 4.9, 0));
+  for (let k = 0; k < 3; k++) g.add(box(0.12, 0.07, 2.4, lineMat, side * 1.24, 4.45 - k * 0.32, -0.5));
+  for (let k = 0; k < 3; k++) g.add(box(0.12, 0.07, 0.5, yellowMat, side * 1.24, 4.45 - k * 0.32, 1.3));
+}
+const builders = [
+  // sandwich counter with sneeze guard + veggie trays
+  (g, side) => {
+    g.add(box(2, 1.1, 6, counterMat, 0, 0.55, 0), box(2.2, 0.1, 6.2, topMat, 0, 1.15, 0),
+          box(0.05, 0.7, 6, glassMat, -side * 0.9, 1.6, 0));
+    for (let k = 0; k < 6; k++) g.add(box(1.1, 0.15, 0.8, veg[k], side * 0.2, 1.26, -2.3 + k * 0.92));
+    menuBoard(g, side);
+    g.position.x = side * 6.6;
+  },
+  // cash register + cookie display
+  (g, side) => {
+    g.add(box(2, 1.1, 4, counterMat, 0, 0.55, 0), box(2.2, 0.1, 4.2, topMat, 0, 1.15, 0));
+    g.add(box(0.8, 0.5, 0.9, darkSteel, 0, 1.45, -1), box(0.5, 0.35, 0.05, new THREE.MeshBasicMaterial({ color: 0x9be7a5 }), -side * 0.1, 1.85, -1.2));
+    g.add(box(0.9, 0.6, 1.4, glassMat, 0, 1.5, 0.9));
+    for (let k = 0; k < 6; k++) { const c = cyl(0.17, 0.05, breadMat, -0.15 + (k % 2) * 0.3, 1.3 + Math.floor(k / 2) * 0.18, 0.4 + (k % 3) * 0.4); g.add(c); }
+    menuBoard(g, side);
+    g.position.x = side * 6.6;
+  },
+  // bread oven + rack
+  (g, side) => {
+    g.add(box(1.8, 2.6, 2.2, steel, 0, 1.3, 0), box(0.06, 1.2, 1.6, M(0x2b2b2b), -side * 0.92, 1.4, 0));
+    g.add(box(0.07, 0.9, 1.3, new THREE.MeshBasicMaterial({ color: 0xffa040 }), -side * 0.93, 1.4, 0));
+    g.add(box(1.4, 0.1, 1.6, darkSteel, 0, 2.75, 0));
+    // bread rack
+    const rx = 0, rz = 2.4;
+    for (let s = 0; s < 4; s++) {
+      g.add(box(1, 0.04, 1, steel, rx, 0.4 + s * 0.5, rz));
+      for (let k = 0; k < 2; k++) { const b = cyl(0.12, 0.85, breadMat, rx - 0.2 + k * 0.4, 0.5 + s * 0.5, rz); b.rotation.x = Math.PI / 2; g.add(b); }
+    }
+    g.position.x = side * 6.8;
+  },
+  // table with stools
+  (g, side) => {
+    g.add(cyl(0.9, 0.1, topMat, 0, 1, 0, 20), cyl(0.1, 1, darkSteel, 0, 0.5, 0, 8));
+    [-1.3, 1.3].forEach(dz => g.add(cyl(0.4, 0.15, yellowMat, 0, 0.7, dz, 16), cyl(0.06, 0.7, darkSteel, 0, 0.35, dz, 6)));
+    g.add(box(0.4, 0.04, 0.3, M(0xffffff), 0.2, 1.07, 0.1)); // napkin
+    g.position.x = side * 5.6;
+  },
+  // drinks fountain
+  (g, side) => {
+    g.add(box(1.6, 1.1, 2.4, counterMat, 0, 0.55, 0), box(1.2, 1.2, 2, M(0xdcdcdc), 0, 1.7, 0));
+    [0x3a7bd5, 0xe8412c, 0xff9f45, 0x5bbf3a].forEach((c, k) => g.add(box(0.06, 0.35, 0.35, M(c), -side * 0.62, 1.95, -0.75 + k * 0.5)));
+    for (let k = 0; k < 4; k++) g.add(cyl(0.12, 0.3, M(0xffffff), -side * 0.5, 1.3, -0.75 + k * 0.5, 10));
+    g.position.x = side * 6.8;
+  },
+  // potted plant + trash bin
+  (g, side) => {
+    g.add(cyl(0.4, 0.7, plantPot, 0, 0.35, -0.8));
+    for (let k = 0; k < 5; k++) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 8), leafMat); l.position.set(Math.cos(k) * 0.25, 1.1 + (k % 2) * 0.35, -0.8 + Math.sin(k) * 0.25); g.add(l); }
+    g.add(box(0.8, 1.2, 0.8, M(0x7a7f85), 0, 0.6, 1.2), box(0.85, 0.08, 0.85, yellowMat, 0, 1.22, 1.2));
+    g.position.x = side * 6.6;
+  },
+];
+for (let i = 0; i < 32; i++) {
+  const g = new THREE.Group();
+  const side = i % 2 ? 1 : -1;
+  builders[(i * 7 + (i >> 1)) % builders.length](g, side);
+  g.position.z = -i * 7.5;
+  scene.add(g); props.push(g);
+}
+for (let i = 0; i < 20; i++) {
+  const l = box(1.4, 0.08, 2.6, lampMat, 0, 6.95, -i * 12);
+  scene.add(l); props.push(l);
+}
+
+// ---------- player ----------
+const player = new THREE.Group();
+const shirtMat = M(0xffffff), skinMat = M(0xe0ac7e), pantsMat = M(0x2b2b3a), apronMat = M(GREEN), capMat = M(GREEN);
+const torso = box(0.8, 0.9, 0.5, shirtMat, 0, 1.05, 0);
+const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 12), skinMat); head.position.y = 1.8;
+const cap = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), capMat); cap.position.y = 1.86;
+const brim = box(0.5, 0.05, 0.3, capMat, 0, 1.88, -0.38);
+const apron = box(0.62, 0.8, 0.05, apronMat, 0, 0.95, -0.27);
+const legGeo = new THREE.BoxGeometry(0.28, 0.6, 0.28);
+const legL = new THREE.Mesh(legGeo, pantsMat), legR = new THREE.Mesh(legGeo, pantsMat);
+legL.position.set(-0.2, 0.3, 0); legR.position.set(0.2, 0.3, 0);
+const armGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
+const armL = new THREE.Mesh(armGeo, shirtMat), armR = new THREE.Mesh(armGeo, shirtMat);
+armL.position.set(-0.52, 1.1, 0); armR.position.set(0.52, 1.1, 0);
+const rig = new THREE.Group();
+rig.add(torso, head, cap, brim, apron, legL, legR, armL, armR);
+player.add(rig);
+const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.5, 20),
+  new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3 }));
+shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.03;
+scene.add(player, shadow);
+
+function applySkin(id) {
+  const s = SKINS.find(k => k.id === id) || SKINS[0];
+  shirtMat.color.setHex(s.shirt); apronMat.color.setHex(s.apron); capMat.color.setHex(s.cap);
+  [shirtMat, apronMat, capMat].forEach(m => m.emissive.setHex(s.glow || 0));
+}
+applySkin(save.skin);
+
+// ---------- obstacles & cookies ----------
+const MAT = {
+  bread: M(0xd99a4e), cart: M(0x9aa3ad), lettuce: M(0x5bbf3a), tomato: M(0xe8412c), cheese: M(0xffd23f),
+  yellow: M(0xffd000), black: M(0x222222), cooler: M(0xf2f2f2), door: M(0x9fd8ff), trim: M(GREEN),
+  can: [M(0xe8412c), M(0x3a7bd5), M(0x5bbf3a), M(0xff9f45)], pole: M(0x777777), bucket: M(0x3a7bd5),
+};
+const coinGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.1, 20);
+const coinMat = M(0xc68642), chipMat = M(0x3b2210), chipGeo = new THREE.SphereGeometry(0.06, 6, 4);
+function makeCookie() {
+  const c = new THREE.Mesh(coinGeo, coinMat);
+  [[0.15, 0.1], [-0.12, 0.14], [0.02, -0.16], [-0.18, -0.08], [0.2, -0.12]].forEach(([x, z]) =>
+    [0.05, -0.05].forEach(y => { const ch = new THREE.Mesh(chipGeo, chipMat); ch.position.set(x, y, z); c.add(ch); }));
+  return c;
+}
+function loaf(len) {
+  const b = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, len, 14), MAT.bread);
+  b.rotation.z = Math.PI / 2; b.scale.z = 0.8; return b;
+}
+function makeObstacle(type, lane, z) {
+  const g = new THREE.Group();
+  let depth = 0.6;
+  if (type === 'low') {
+    if (Math.random() < 0.5) { // bread cart
+      g.add(box(1.9, 0.08, 0.7, MAT.cart, 0, 0.45, 0));
+      [-0.8, 0.8].forEach(x => g.add(box(0.06, 0.45, 0.6, MAT.cart, x, 0.22, 0)));
+      [-0.2, 0.2].forEach(dz => { const b = loaf(1.7); b.position.set(0, 0.68, dz); g.add(b); });
+    } else { // wet floor signs + mop bucket
+      [-0.55, 0.55].forEach(x => {
+        const sign = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.85, 4), MAT.yellow); sign.position.set(x, 0.42, 0); sign.rotation.y = Math.PI / 4;
+        const band = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.12, 4), MAT.black); band.position.set(x, 0.6, 0); band.rotation.y = Math.PI / 4; band.scale.set(1.02, 1, 1.02);
+        g.add(sign, band);
+      });
+      const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.45, 12), MAT.bucket); bucket.position.set(0, 0.23, 0.1); g.add(bucket);
+    }
+  } else if (type === 'high') { // giant sub on poles
+    const bot = loaf(1.9); bot.position.y = 1.4;
+    const top = loaf(1.9); top.position.y = 1.9;
+    g.add(bot, top, box(1.95, 0.08, 0.5, MAT.lettuce, 0, 1.6, 0), box(1.85, 0.07, 0.42, MAT.tomato, 0, 1.67, 0),
+          box(1.9, 0.05, 0.46, MAT.cheese, 0, 1.73, 0));
+    [-0.98, 0.98].forEach(x => g.add(cyl(0.07, 2.1, MAT.pole, x, 1.05, 0, 8)));
+    depth = 0.5;
+  } else { // drink cooler
+    depth = 1.6;
+    g.add(box(1.9, 2.6, depth, MAT.cooler, 0, 1.3, 0), box(1.95, 0.3, depth + 0.02, MAT.trim, 0, 2.45, 0),
+          box(1.6, 2.0, 0.05, MAT.door, 0, 1.25, depth / 2 + 0.01));
+    for (let r = 0; r < 4; r++) for (let k = 0; k < 5; k++)
+      g.add(cyl(0.1, 0.3, MAT.can[(r + k) % 4], -0.56 + k * 0.28, 0.5 + r * 0.48, depth / 2 + 0.06, 8));
+  }
+  g.position.set(LANES[lane], 0, z);
+  g.userData = { type, lane, depth };
+  scene.add(g);
+  return g;
+}
+
+// ---------- game state ----------
+let obstacles = [], coins = [];
+let state = 'start', prevScreen = 'start';
+let speed, distance, coinCount, nextSpawn, laneIdx, py, vy, slideT, runPhase, time, invuln, chancesLeft;
+const has = id => save.owned.includes(id);
+
+function reset() {
+  obstacles.forEach(o => scene.remove(o)); coins.forEach(c => scene.remove(c));
+  obstacles = []; coins = [];
+  speed = 13; distance = 0; coinCount = 0; nextSpawn = 30;
+  laneIdx = 1; py = 0; vy = 0; slideT = 0; runPhase = 0; time = 0; invuln = 0;
+  chancesLeft = save.chances;
+  player.position.set(0, 0, 0); player.rotation.set(0, 0, 0); rig.scale.set(1, 1, 1); rig.visible = true;
+  updateHud();
+}
+
+function spawnRow(z) {
+  const types = ['low', 'high', 'block'];
+  const count = Math.random() < 0.35 ? 2 : 1;
+  const lanes = [0, 1, 2].sort(() => Math.random() - 0.5);
+  lanes.slice(0, count).forEach(l => obstacles.push(makeObstacle(types[Math.floor(Math.random() * 3)], l, z)));
+  if (Math.random() < 0.75) {
+    const free = lanes[count];
+    for (let i = 0; i < 5; i++) {
+      const c = makeCookie();
+      c.rotation.x = Math.PI / 2;
+      c.position.set(LANES[free], 1, z + 6 + i * 2.2);
+      scene.add(c); coins.push(c);
+    }
+  }
+}
+
+// ---------- input ----------
+function move(dir) {
+  if (state !== 'play') return;
+  if (dir === 'left' && laneIdx > 0) { laneIdx--; beep(500, 0.05); }
+  if (dir === 'right' && laneIdx < 2) { laneIdx++; beep(500, 0.05); }
+  if (dir === 'up' && py <= 0.001) { vy = has('boots') ? 11.5 : 10; slideT = 0; beep(700, 0.08); }
+  if (dir === 'down') { slideT = 0.75; if (py > 0) vy = -14; beep(300, 0.08); }
+}
+let tx = 0, ty = 0, tracking = false;
+addEventListener('touchstart', e => { const t = e.changedTouches[0]; tx = t.clientX; ty = t.clientY; tracking = true; }, { passive: true });
+addEventListener('touchmove', e => {
+  if (!tracking || state !== 'play') return;
+  const t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) > 28) {
+    move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+    tracking = false;
+  }
+}, { passive: true });
+addEventListener('touchend', () => tracking = false);
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (k === 'arrowleft' || k === 'a') move('left');
+  else if (k === 'arrowright' || k === 'd') move('right');
+  else if (k === 'arrowup' || k === 'w' || k === ' ') move('up');
+  else if (k === 'arrowdown' || k === 's') move('down');
+  else if (k === 'enter' && (state === 'start' || state === 'over')) startGame();
+});
+
+// ---------- sound ----------
+let actx = null;
+function beep(freq, dur, type = 'square', vol = 0.04) {
+  if (!actx) return;
+  try {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+    o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + dur);
+  } catch (e) {}
+}
+
+// ---------- screens ----------
+const screens = ['start', 'over', 'paused', 'shop'];
+function show(name) { screens.forEach(s => $(s).classList.toggle('hidden', s !== name)); refreshBank(); }
+function refreshBank() { document.querySelectorAll('.bankAmt').forEach(e => e.textContent = save.bank); }
+let toastT;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(() => t.style.opacity = 0, 1200); }
+
+function startGame() {
+  try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); } catch (e) {}
+  reset(); state = 'play'; show(null);
+  $('pause').style.display = 'block';
+}
+function crash() {
+  if (chancesLeft > 0) {
+    chancesLeft--; save.chances--; persist();
+    invuln = 2.2; beep(220, 0.25, 'triangle', 0.08);
+    toast('Second Chance! 🥪');
+    // clear what's right in front of you
+    obstacles = obstacles.filter(o => { if (o.position.z > -12) { scene.remove(o); return false; } return true; });
+    updateHud();
+    return;
+  }
+  state = 'over';
+  beep(120, 0.4, 'sawtooth', 0.07);
+  try { navigator.vibrate && navigator.vibrate(150); } catch (e) {}
+  const s = score();
+  const newBest = s > save.best;
+  if (newBest) save.best = s;
+  save.bank += coinCount; persist();
+  $('finalScore').textContent = s;
+  $('bestScore').textContent = (newBest && s > 0 ? '🏆 New best! ' : 'Best: ') + save.best;
+  $('earned').textContent = coinCount;
+  $('pause').style.display = 'none';
+  setTimeout(() => show('over'), 500);
+}
+$('playBtn').onclick = startGame;
+$('againBtn').onclick = startGame;
+$('shopBtn1').onclick = () => openShop('start');
+$('shopBtn2').onclick = () => openShop('over');
+$('shopBack').onclick = () => show(prevScreen);
+$('pause').onclick = () => { if (state === 'play') { state = 'paused'; show('paused'); } };
+$('resumeBtn').onclick = () => { state = 'play'; show(null); };
+document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play') $('pause').onclick(); });
+
+// ---------- shop ----------
+function hex(c) { return '#' + c.toString(16).padStart(6, '0'); }
+function openShop(from) { prevScreen = from; renderShop(); show('shop'); }
+function renderShop() {
+  const L = $('shopList'); L.innerHTML = '';
+  const sec = t => { const d = document.createElement('div'); d.className = 'sec'; d.textContent = t; L.appendChild(d); };
+  const row = (swatch, title, desc, btnText, cls, disabled, onClick) => {
+    const d = document.createElement('div'); d.className = 'item';
+    d.innerHTML = `<div class="sw">${swatch}</div><div class="t"><b>${title}</b><span>${desc}</span></div>`;
+    const b = document.createElement('button'); b.textContent = btnText; if (cls) b.className = cls; b.disabled = disabled;
+    b.onclick = onClick; d.appendChild(b); L.appendChild(d);
+  };
+  sec('OUTFITS');
+  SKINS.forEach(s => {
+    const sw = `<div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,${hex(s.cap)} 0 33%,${hex(s.shirt)} 33% 66%,${hex(s.apron)} 66%);border:2px solid #fff4"></div>`;
+    const owned = has(s.id), on = save.skin === s.id;
+    row(sw, s.name, owned ? (on ? 'Wearing now' : 'Owned') : 'New look for your sandwich maker',
+      on ? 'WEARING' : owned ? 'WEAR' : '🍪 ' + s.price, owned ? 'own' : '', on || (!owned && save.bank < s.price), () => {
+        if (!owned) { save.bank -= s.price; save.owned.push(s.id); beep(900, 0.12, 'triangle', 0.06); }
+        save.skin = s.id; applySkin(s.id); persist(); renderShop(); refreshBank();
+      });
+  });
+  sec('UPGRADES');
+  UPGRADES.forEach(u => {
+    const owned = has(u.id);
+    row(`<div class="sw" style="background:#ffffff22">${u.emoji}</div>`, u.name, u.desc,
+      owned ? 'OWNED' : '🍪 ' + u.price, owned ? 'own' : '', owned || save.bank < u.price, () => {
+        save.bank -= u.price; save.owned.push(u.id); persist(); beep(900, 0.12, 'triangle', 0.06); renderShop(); refreshBank();
+      });
+  });
+  sec('ITEMS');
+  row(`<div class="sw" style="background:#ffffff22">❤️</div>`, 'Second Chance', `Survive one crash · you have ${save.chances}`,
+    '🍪 50', '', save.bank < 50, () => {
+      save.bank -= 50; save.chances++; persist(); beep(900, 0.12, 'triangle', 0.06); renderShop(); refreshBank();
+    });
+}
+
+const score = () => Math.floor(distance) + coinCount * 10;
+function updateHud() {
+  $('score').textContent = score(); $('coinCount').textContent = coinCount;
+  $('lives').textContent = chancesLeft > 0 ? '❤️'.repeat(Math.min(chancesLeft, 5)) + (chancesLeft > 5 ? '+' : '') : '';
+}
+
+// ---------- loop ----------
+const clock = new THREE.Clock();
+function tick() {
+  requestAnimationFrame(tick);
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  if (state === 'play') {
+    time += dt;
+    speed = Math.min(13 + time * 0.3, 38);
+    const dz = speed * dt;
+    distance += dz;
+
+    nextSpawn -= dz;
+    if (nextSpawn <= 0) { spawnRow(SPAWN_Z); nextSpawn = Math.max(15, 27 - time * 0.12) + Math.random() * 8; }
+
+    player.position.x += (LANES[laneIdx] - player.position.x) * Math.min(1, dt * 14);
+    vy -= (has('boots') ? 27 : 30) * dt; py += vy * dt;
+    if (py < 0) { py = 0; vy = 0; }
+    slideT = Math.max(0, slideT - dt);
+    const sliding = slideT > 0 && py === 0;
+    player.position.y = py;
+    player.rotation.z = (LANES[laneIdx] - player.position.x) * -0.15;
+
+    runPhase += dt * speed * 0.9;
+    const sw = py > 0 ? 0.6 : Math.sin(runPhase) * 0.8;
+    legL.rotation.x = sw; legR.rotation.x = -sw; armL.rotation.x = -sw; armR.rotation.x = sw;
+    rig.scale.y += ((sliding ? 0.4 : 1) - rig.scale.y) * Math.min(1, dt * 20);
+    rig.rotation.x = sliding ? -0.5 : 0;
+    rig.position.y = py === 0 && !sliding ? Math.abs(Math.sin(runPhase)) * 0.08 : 0;
+
+    invuln = Math.max(0, invuln - dt);
+    rig.visible = invuln > 0 ? Math.floor(invuln * 12) % 2 === 0 : true;
+
+    const pTop = py + (sliding ? 0.8 : 2.0);
+    const px = player.position.x;
+
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      const o = obstacles[i]; o.position.z += dz;
+      const d = o.userData;
+      if (invuln === 0 && Math.abs(o.position.z) < d.depth / 2 + 0.3 && Math.abs(o.position.x - px) < 1.15) {
+        let hit = d.type === 'low' ? py < 0.8 : d.type === 'high' ? pTop > 1.2 : true;
+        if (hit) { crash(); break; }
+      }
+      if (o.position.z - d.depth / 2 > DESPAWN_Z) { scene.remove(o); obstacles.splice(i, 1); }
+    }
+
+    const magnet = has('magnet');
+    for (let i = coins.length - 1; i >= 0; i--) {
+      const c = coins[i]; c.position.z += dz; c.rotation.z += dt * 4;
+      if (magnet && c.position.z > -9 && c.position.z < 1) {
+        c.position.x += (px - c.position.x) * Math.min(1, dt * 8);
+        c.position.y += (py + 1 - c.position.y) * Math.min(1, dt * 8);
+      }
+      if (Math.abs(c.position.z) < 0.8 && Math.abs(c.position.x - px) < 1 && Math.abs(c.position.y - 1 - py) < 1.2) {
+        coinCount += has('double') ? 2 : 1; beep(1200, 0.07, 'triangle', 0.05);
+        scene.remove(c); coins.splice(i, 1); continue;
+      }
+      if (c.position.z > DESPAWN_Z) { scene.remove(c); coins.splice(i, 1); }
+    }
+
+    groundTex.offset.y += dz / 8;
+    props.forEach(p => { p.position.z += dz; if (p.position.z > 12) p.position.z -= 240; });
+    updateHud();
+  } else if (state === 'over') {
+    player.rotation.x = Math.min(player.rotation.x + dt * 6, Math.PI / 2);
+  } else if (state === 'start' || state === 'shop' || (state !== 'paused' && state !== 'play')) {
+    runPhase += dt * 6;
+    const sw = Math.sin(runPhase) * 0.5;
+    legL.rotation.x = sw; legR.rotation.x = -sw; armL.rotation.x = -sw; armR.rotation.x = sw;
+  }
+
+  shadow.position.x = player.position.x;
+  shadow.scale.setScalar(1 - Math.min(py, 2) * 0.25);
+  camera.position.x += (player.position.x * 0.5 - camera.position.x) * Math.min(1, dt * 5);
+  camera.lookAt(camera.position.x * 0.5, 1, -8);
+  renderer.render(scene, camera);
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.fov = innerWidth < innerHeight ? 72 : 60;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+dispatchEvent(new Event('resize'));
+refreshBank();
+reset();
+tick();
+})();
+</script>
+</body>
+</html>

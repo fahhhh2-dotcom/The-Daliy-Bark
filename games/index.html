@@ -51,15 +51,42 @@
   .bug h2{color:#7cf29a} .bug .play{background:#7cf29a;box-shadow:0 5px 0 #2f9a4c}
 
   footer{text-align:center;color:#8a84ad;font-size:13px;margin-top:40px}
+
+  #acct{position:absolute;top:0;right:0;z-index:3;border:2px solid #ffffff30;background:#ffffff14;color:#fff;
+    font:800 14px 'Rubik',sans-serif;padding:10px 16px;border-radius:30px;cursor:pointer;max-width:58vw;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #acct.on{border-color:#7cf29a;color:#7cf29a}
+  .saveNote{display:inline-block;margin-top:14px;font-size:14px;font-weight:600;color:#7cf29a}
+  .modal{position:fixed;inset:0;z-index:10;background:#0009;display:flex;align-items:center;justify-content:center;padding:20px}
+  .modal[hidden]{display:none}
+  .sheet{width:100%;max-width:380px;background:#1c1838;border:2px solid #ffffff20;border-radius:24px;padding:24px;position:relative;box-shadow:0 20px 50px #000a}
+  .sheet h3{font-family:'Bungee',sans-serif;font-weight:400;font-size:24px;margin:0 0 6px;color:var(--yellow)}
+  .sheet p{color:var(--muted);margin:0 0 16px;font-size:14px;line-height:1.5}
+  .sheet input{width:100%;padding:14px;border-radius:14px;border:2px solid #ffffff22;background:#120f24;color:#fff;font:16px 'Rubik',sans-serif;margin-bottom:10px}
+  .sheet input:focus{outline:none;border-color:var(--yellow)}
+  .sbtn{width:100%;border:0;border-radius:30px;padding:14px;font:800 16px 'Rubik',sans-serif;cursor:pointer;margin-top:4px}
+  .sbtn.main{background:var(--yellow);color:#111;box-shadow:0 4px 0 #b38a00}
+  .sbtn.g{background:#fff;color:#222;margin-top:10px}
+  .sbtn:disabled{opacity:.5}
+  .or{text-align:center;color:#8a84ad;font-size:12px;margin:14px 0 4px;letter-spacing:.1em}
+  .links{display:flex;justify-content:space-between;margin-top:14px;font-size:14px}
+  .links button{background:none;border:0;color:var(--yellow);font:600 14px 'Rubik',sans-serif;cursor:pointer;padding:4px}
+  .msg{min-height:20px;font-size:14px;color:#ff8a8a;margin:6px 0 2px}
+  .msg.ok{color:#7cf29a}
+  .x{position:absolute;top:12px;right:14px;background:none;border:0;color:#fff;font-size:22px;cursor:pointer}
+  header{position:relative}
+  @media (max-width:520px){header{padding-top:52px}}
 </style>
 </head>
 <body>
 <svg class="stars" id="stars" aria-hidden="true"></svg>
 <main>
   <header>
+    <button id="acct">👤 Sign in to save</button>
     <div class="tag">★ INSERT COIN ★</div>
     <h1>MY GAME<br>ARCADE</h1>
     <p>Four games I made. Pick one and press play!</p>
+    <div class="saveNote" id="saveNote">Sign in to save your progress in every game, on any device.</div>
   </header>
 
   <section class="grid">
@@ -93,7 +120,7 @@
         <h2>Deep Blue Fishing</h2>
         <p>Cast your line, reel in fish of every color, and explore the islands of the deep blue sea.</p>
         <div class="chips"><span>2D</span><span>Fishing</span><span>Islands</span></div>
-        <a class="play" href="https://claude.ai/artifact/27vPMCavUVQZus88NaUn3E">▶ PLAY</a>
+        <a class="play" href="fishing/">▶ PLAY</a>
       </div>
     </article>
 
@@ -141,7 +168,7 @@
         <h2>Graveyard Defense</h2>
         <p>Hold off waves of zombies with vampires, monsters and the mighty Headless Horseman. Upgrade in the shop between waves.</p>
         <div class="chips"><span>Tower Defense</span><span>Halloween</span><span>Shop</span></div>
-        <a class="play" href="https://claude.ai/artifact/WkS5rdVL4bwKNTVir2CELa">▶ PLAY</a>
+        <a class="play" href="graveyard/">▶ PLAY</a>
       </div>
     </article>
 
@@ -186,7 +213,7 @@
         <h2>Sandwich Sprint 3D</h2>
         <p>Dash through the sandwich shop, dodge obstacles, and grab every cookie. Spend your cookies in the shop!</p>
         <div class="chips"><span>3D</span><span>Endless Runner</span><span>Shop</span></div>
-        <a class="play" href="https://claude.ai/artifact/WVPLmqGjj9mPFu55oiskqZ">▶ PLAY</a>
+        <a class="play" href="runner/">▶ PLAY</a>
       </div>
     </article>
 
@@ -242,7 +269,7 @@
         <h2>Wild Woods Bug Catching</h2>
         <p>Grab your net and head into the forest. Hold down the net to catch butterflies, beetles and more!</p>
         <div class="chips"><span>2D</span><span>Bug Catching</span><span>Forest</span></div>
-        <a class="play" href="https://claude.ai/artifact/VXQWkvyA8bZ56r1avsoydo">▶ PLAY</a>
+        <a class="play" href="bugs/">▶ PLAY</a>
       </div>
     </article>
   </section>
@@ -259,6 +286,83 @@
     out+=`<circle cx="${(Math.random()*w)|0}" cy="${(Math.random()*h)|0}" r="${r.toFixed(1)}" fill="#fff" opacity="${o}"/>`;
   }
   s.innerHTML=out;
+</script>
+
+<div class="modal" id="modal" hidden>
+  <div class="sheet">
+    <button class="x" id="mClose" aria-label="Close">✕</button>
+    <div id="mOut">
+      <h3 id="mTitle">Sign in</h3>
+      <p>Your coins, fish, bugs and upgrades save to your account, so you keep them on every phone and computer.</p>
+      <form id="mForm">
+        <input id="mEmail" type="email" placeholder="Email" autocomplete="email" required>
+        <input id="mPw" type="password" placeholder="Password" autocomplete="current-password" required>
+        <div class="msg" id="mMsg"></div>
+        <button class="sbtn main" id="mGo" type="submit">Sign in</button>
+      </form>
+      <div class="or">OR</div>
+      <button class="sbtn g" id="mGoogle">Continue with Google</button>
+      <div class="links"><button id="mSwap">New here? Make an account</button><button id="mForgot">Forgot password?</button></div>
+    </div>
+    <div id="mIn" hidden>
+      <h3>You're signed in</h3>
+      <p id="mWho"></p>
+      <p>Every game saves to your account automatically. Sign in with the same account on another device to pick up where you left off.</p>
+      <button class="sbtn main" id="mDone">Play!</button>
+      <button class="sbtn g" id="mOutBtn">Sign out</button>
+    </div>
+  </div>
+</div>
+<script>window.ARCADE_HUB = true;</script>
+<script src="account.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  let mode = "in";
+  const msg = (t, ok) => { $("mMsg").textContent = t || ""; $("mMsg").className = "msg" + (ok ? " ok" : ""); };
+  const busy = b => { $("mGo").disabled = $("mGoogle").disabled = b; };
+  function paint() {
+    $("mTitle").textContent = mode === "in" ? "Sign in" : "Make an account";
+    $("mGo").textContent = mode === "in" ? "Sign in" : "Make my account";
+    $("mSwap").textContent = mode === "in" ? "New here? Make an account" : "Have an account? Sign in";
+    $("mPw").autocomplete = mode === "in" ? "current-password" : "new-password";
+    msg("");
+  }
+  const open = () => { $("modal").hidden = false; };
+  const close = () => { $("modal").hidden = true; msg(""); busy(false); };
+  $("acct").onclick = open; $("mClose").onclick = close; $("mDone").onclick = close;
+  $("modal").onclick = e => { if (e.target.id === "modal") close(); };
+  $("mSwap").onclick = () => { mode = mode === "in" ? "up" : "in"; paint(); };
+  $("mForm").onsubmit = async e => {
+    e.preventDefault();
+    const email = $("mEmail").value.trim(), pw = $("mPw").value;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return msg("Type a real email, like you@gmail.com");
+    if (mode === "up" && pw.length < 6) return msg("Make your password at least 6 letters or numbers.");
+    busy(true); msg("Signing you in…", true);
+    try { mode === "up" ? await Arcade.signUp(email, pw) : await Arcade.signIn(email, pw); }
+    catch (ex) { busy(false); msg(Arcade.nice(ex)); }
+  };
+  $("mGoogle").onclick = async () => {
+    busy(true); msg("");
+    try { await Arcade.google(); } catch (ex) { busy(false); msg(Arcade.nice(ex)); }
+  };
+  $("mForgot").onclick = async () => {
+    const email = $("mEmail").value.trim();
+    if (!email) return msg("Type your email first, then tap \"Forgot password?\"");
+    try { await Arcade.reset(email); msg("Check " + email + " for a link to make a new password.", true); }
+    catch (ex) { msg(Arcade.nice(ex)); }
+  };
+  $("mOutBtn").onclick = async () => { await Arcade.signOut(); close(); };
+  Arcade.onChange(u => {
+    busy(false);
+    $("mOut").hidden = !!u; $("mIn").hidden = !u;
+    $("acct").classList.toggle("on", !!u);
+    $("acct").textContent = u ? "✓ " + (u.displayName || u.email || "Signed in") : "👤 Sign in to save";
+    $("saveNote").textContent = u ? "☁️ Your progress is saving to your account." : "Sign in to save your progress in every game, on any device.";
+    if (u) { $("mWho").textContent = "Signed in as " + (u.email || u.displayName); msg(""); }
+  });
+  paint();
+})();
 </script>
 </body>
 </html>
