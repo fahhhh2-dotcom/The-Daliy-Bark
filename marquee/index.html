@@ -230,6 +230,11 @@ footer a{text-decoration:underline}
 .lshield{position:absolute;inset:0;z-index:2}
 .lstatic{position:absolute;inset:0;width:100%;height:100%;z-index:5;opacity:0;pointer-events:none;transition:opacity .25s}
 .lstatic.on{opacity:1;transition:none}
+.lfill{position:absolute;inset:0;z-index:4;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:radial-gradient(ellipse at center,#2a0f1c,#000 70%)}
+.lfill.on{display:flex}
+.lfill h2{font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,6vw,72px);letter-spacing:2px;line-height:1}
+.lfnext{font-size:clamp(20px,2.6vw,32px);font-weight:700;margin-top:6px}
+.lfcount{color:#bbb;margin-top:10px;font-variant-numeric:tabular-nums}
 .lbug{position:absolute;top:14px;left:14px;z-index:4;display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);padding:6px 12px;border-radius:6px;font-size:13px;font-weight:700;letter-spacing:1px}
 .lbug b{color:#fff;font-size:15px}.lbug span:last-child{font-weight:500;letter-spacing:0;color:#ddd}
 .ldot{width:9px;height:9px;border-radius:50%;background:#ff2d2d;box-shadow:0 0 10px #ff2d2d;animation:pulse 1.4s infinite}
@@ -1022,35 +1027,37 @@ function destroyShorts(){clearTimeout(sMuteChk);try{if(SP&&SP.destroy)SP.destroy
 document.addEventListener('keydown',e=>{if(view!=='shorts'||P.open||!SP||document.activeElement===$('#q')||(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('header')))return;
  if(e.key==='ArrowDown'||e.key==='j'){e.preventDefault();sGo(1)}else if(e.key==='ArrowUp'||e.key==='k'){e.preventDefault();sGo(-1)}else if(e.key===' '){e.preventDefault();sToggle()}});
 
-/* ---------- Live TV: always-on scheduled channels ---------- */
+/* ---------- Live TV: one shared schedule, synced to the clock, same for everyone ---------- */
 const LIVE=[
- {n:101,name:'Challenge TV',icon:'🏆',src:[['MrBeast','UULFX6OQ3DkcsbYNE6H8uQQuVA'],['Ryan Trahan','UULFnmGIkw-KdI0W5siakKPKog'],['Dude Perfect','UULFRijo3ddMTht_IHyNSNXpNQ'],['Unspeakable','UULFwIWAbIeu0xI0ReKWOcw3eg'],['Airrack','UULFyps-v4WNjWDnYRKmZ4BUGw'],['Good Mythical Morning','UULF4PooiX37Pld1T8J5SYT-SQ']]},
- {n:102,name:'Minecraft TV',icon:'⛏️',src:[['Minecraft','UULF1sELGmy5jp5fQUugmuYlXQ'],['MrBeast Gaming','UULFIPPMRA040LQr5QPyJEbmXA'],['DanTDM','UULFS5Oz6CHmeoF7vSad0qqXfw'],['Dream','UULFTkXRDQl0luXxVQrRQvWS6w'],['Unspeakable','UULFwIWAbIeu0xI0ReKWOcw3eg']]},
- {n:103,name:'Science TV',icon:'🚀',src:[['Mark Rober','UULFY1kMZp36IQSyNx_9h4mpCg'],['Kurzgesagt','UULFsXVk37bltHxD1rDPwtNM8Q'],['Veritasium','UULFHnyfMqiRRG1u-2MsSQLbXA'],['Mrwhosetheboss','UULFMiJRAwDNSNzuYeN2uWa0pA'],['Zach King','UULFq8DICunczvLuJJq414110A']]},
- {n:104,name:'Shorts TV',icon:'⚡',src:[['MrBeast Shorts','UUSHX6OQ3DkcsbYNE6H8uQQuVA'],['Dude Perfect Shorts','UUSHRijo3ddMTht_IHyNSNXpNQ'],['Ryan Trahan Shorts','UUSHnmGIkw-KdI0W5siakKPKog'],['Mark Rober Shorts','UUSHY1kMZp36IQSyNx_9h4mpCg'],['Unspeakable Shorts','UUSHwIWAbIeu0xI0ReKWOcw3eg']]},
- {n:105,name:'Creator TV',icon:'🎮',teen:true,src:[['H1T1','UULFE7spuKzxP1k8A-XucxxUAQ'],['hxsain','UULFZfTWLrTkaoZoSx5fkrAPJA'],['Sidemen','UULFDogdKl7t7NHzQ95aEwkdMw'],['H1T1 Shorts','UUSHE7spuKzxP1k8A-XucxxUAQ'],['hxsain Shorts','UUSHZfTWLrTkaoZoSx5fkrAPJA']]},
- {n:106,name:'Kids TV',icon:'🎈',kidsOnly:true,src:[['Bluey','UULFVzLLZkDuFGAE2BGdBuBNBg'],['Sesame Street','UULFoookXUzPciGrEZEXmh4Jjg'],['PBS KIDS','UULFrNnk0wFBnCS1awGjq_ijGQ'],['Blippi','UULF5PYHgAzJ1wLEidB58SK6Xw'],['Kids Diana Show','UULFk8GzjMOrta8yxDcKfylJYw'],['Vlad and Niki','UULFvlE5gTbOvjiolFlEm-c_Ow']]},
+ {n:101,name:'Challenge TV',icon:'🏆',src:[['MrBeast','0e3GPea1Tyg'],['Ryan Trahan','VmqwfEw4UoU'],['Dude Perfect','PrCiTJY6Uqg'],['MrBeast','zxYjTTXc-J8'],['Airrack','iYZ77j7v4GM'],['Unspeakable','RsGGOT9wZwg'],['MrBeast','FM7Z-Xq8Drc'],['Good Mythical Morning','IgFpP9QfYbw'],['MrBeast','Hwybp38GnZw'],['MrBeast','v9QtM6qnG50'],['MrBeast','9bqk6ZUsKyA']]},
+ {n:102,name:'Minecraft TV',icon:'⛏️',src:[['Minecraft','s0w_pTOXDBQ'],['MrBeast Gaming','Ra6sNe8s2Hc'],['DanTDM','paML_p4sbCo'],['Dream','g22Z__ShvVY'],['Minecraft','jGNgh5zEFkY'],['Unspeakable','RsGGOT9wZwg']]},
+ {n:103,name:'Science TV',icon:'🚀',src:[['Mark Rober','gicEOsFtMxw'],['Kurzgesagt','ujkD4SxPKOI'],['Veritasium','ONAuUyml0yI'],['Mrwhosetheboss','NrF4mkTmuTU'],['Zach King','mlJdZftpCJc'],['MrBeast','TJ2ifmkGGus']]},
+ {n:104,name:'Gaming TV',icon:'🎮',src:[['Nintendo','mq4uCJDwO9U'],['MrBeast Gaming','Ra6sNe8s2Hc'],['DanTDM','paML_p4sbCo'],['Minecraft','jGNgh5zEFkY'],['Dream','g22Z__ShvVY']]},
+ {n:105,name:'Creator TV',icon:'🔥',teen:true,src:[['H1T1','3P-rZJbrGyg'],['hxsain','HpeXGZycOZc'],['Sidemen','fwqEB2HdY88']]},
+ {n:106,name:'Kids TV',icon:'🎈',kidsOnly:true,src:[['Bluey','evYFRYX4Hyw'],['Sesame Street','QLC32zDmgTI'],['PBS KIDS','DVA4rAD52i0'],['Blippi','nTr4DUuvgA8'],['Kids Diana Show','yJ8DGLldq5s'],['Vlad and Niki','Is_Ih3JaBgc'],['Cocomelon','Gm_HjftxXKY'],["Ryan's World",'H7iA4Ri1H3Q']]},
 ];
-const SLOT=20*60;
+const SLOT=20*60; // every show block is 20 minutes, starting on the clock (:00, :20, :40)
 const liveList=()=>CUR&&CUR.kids?[...LIVE.filter(c=>c.kidsOnly),...LIVE.filter(c=>!c.kidsOnly&&!c.teen)]:LIVE;
-function slotInfo(ch,at=Date.now()){const sec=Math.floor(at/1000),slot=Math.floor(sec/SLOT),i=slot%ch.src.length,round=Math.floor(slot/ch.src.length),off=sec%SLOT,src=ch.src[i],sh=src[1].startsWith('UUSH');
- return{src,next:ch.src[(i+1)%ch.src.length],idx:sh?(round*13+Math.floor(off/50))%40:(round*3+ch.n)%12,start:sh?0:off%420,ends:(slot+1)*SLOT*1000}}
+function slotInfo(ch,at=Date.now()){const sec=at/1000,slot=Math.floor(sec/SLOT),i=(slot+ch.n)%ch.src.length;
+ return{src:ch.src[i],next:ch.src[(i+1)%ch.src.length],off:sec-slot*SLOT,starts:slot*SLOT*1000,ends:(slot+1)*SLOT*1000,key:slot+':'+ch.n}}
 const hhmm=t=>new Date(t).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
-let LP=null,lCh=0,lCur=null,lTick=null,lIdle=null,lMuteChk=null;
-function guideHTML(L){return `<h3>Channel Guide</h3>`+L.map((c,i)=>{const s=slotInfo(c);return `<button class="grow ${i===lCh?'on':''}" data-ch="${i}"><span class="gnum">${c.n}</span><span class="gicon">${c.icon}</span><span class="gname">${esc(c.name)}</span><span class="gnow"><i>●</i> ${esc(s.src[0])} · next ${esc(s.next[0])} at ${hhmm(s.ends)}</span></button>`}).join('')}
+const mmss=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+let LP=null,lCh=0,lKey=null,lTick=null,lIdle=null,lMuteChk=null,lFiller=false,lLastGuide=0;
+function guideHTML(L){return `<h3>Channel Guide</h3>`+L.map((c,i)=>{const s=slotInfo(c);return `<button class="grow ${i===lCh?'on':''}" data-ch="${i}"><span class="gnum">${c.n}</span><span class="gicon">${c.icon}</span><span class="gname">${esc(c.name)}</span><span class="gnow"><i>●</i> ${esc(s.src[0])} · ${esc(s.next[0])} at ${hhmm(s.ends)}</span></button>`}).join('')}
 function renderLive(main){const L=liveList();if(lCh>=L.length)lCh=0;
  if(document.getElementById('lscreen')&&LP)return;
  destroyLive();
- if(!CAN_EMBED){main.innerHTML=`<div class="ph"><h1>Live TV</h1><span>Always-on channels. Tune in anytime.</span></div><div class="lcards">${L.map(c=>{const s=slotInfo(c);return `<div class="lcard"><div style="font-size:30px">${c.icon}</div><div class="kicker" style="margin:0">Channel ${c.n} · <span style="color:#ff4d4d">● LIVE</span></div><h2 style="font-size:22px">${esc(c.name)}</h2><div style="color:#bbb;font-size:13px">On now: ${esc(s.src[0])}<br>Next: ${esc(s.next[0])} at ${hhmm(s.ends)}</div><a class="big" href="https://www.youtube.com/playlist?list=${s.src[1]}" target="_blank" rel="noopener">▶&nbsp; Watch on YouTube</a></div>`}).join('')}</div><p class="shint" style="text-align:center">On your website (thedailybark.dog/marquee) channels play live right here.</p>`;
+ if(!CAN_EMBED){main.innerHTML=`<div class="ph"><h1>Live TV</h1><span>Always-on channels. Tune in anytime.</span></div><div class="lcards">${L.map(c=>{const s=slotInfo(c);return `<div class="lcard"><div style="font-size:30px">${c.icon}</div><div class="kicker" style="margin:0">Channel ${c.n} · <span style="color:#ff4d4d">● LIVE</span></div><h2 style="font-size:22px">${esc(c.name)}</h2><div style="color:#bbb;font-size:13px">On now: ${esc(s.src[0])}<br>Next: ${esc(s.next[0])} at ${hhmm(s.ends)}</div><a class="big" href="https://www.youtube.com/watch?v=${s.src[1]}&t=${Math.floor(s.off)}s" target="_blank" rel="noopener">▶&nbsp; Watch on YouTube</a></div>`}).join('')}</div><p class="shint" style="text-align:center">On your website (thedailybark.dog/marquee) channels play live right here.</p>`;
   main.querySelectorAll('.lcard a').forEach(a=>a.addEventListener('click',e=>e.stopPropagation()));return}
- main.innerHTML=`<div class="ph"><h1>Live TV</h1><span>Always-on channels. Tune in anytime, like real TV.</span></div>
+ main.innerHTML=`<div class="ph"><h1>Live TV</h1><span>Everyone watching sees the same show at the same moment.</span></div>
  <div class="live"><div><div class="lscreen" id="lscreen"><div id="lp"></div><div class="lshield" id="lshield"></div><canvas class="lstatic on" id="lstatic"></canvas>
+   <div class="lfill" id="lfill"><div class="kicker" id="lfillCh"></div><h2>Up next</h2><div class="lfnext" id="lfnext"></div><div class="lfcount" id="lfcount"></div></div>
    <div class="lbug"><span class="ldot"></span>LIVE <b id="lchn"></b><span id="lchname"></span></div>
    <div class="lthird"><small>NOW PLAYING</small><b id="lnow">Tuning in…</b><span id="lsub"></span></div>
    <div class="lctl"><button class="ib" id="lmute" title="Mute (M)">${VI.vol}</button><input type="range" class="vvol" id="lvol" min="0" max="100" value="${vVol}" aria-label="Volume" style="width:90px"><span class="sp"></span>
     <button class="ib" id="lup" title="Channel up (↑)"><svg viewBox="0 0 24 24"><path d="M7.4 15.4L12 10.8l4.6 4.6L18 14l-6-6-6 6z"/></svg></button><button class="ib" id="ldown" title="Channel down (↓)"><svg viewBox="0 0 24 24"><path d="M7.4 8.6L12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg></button><button class="ib" id="lfs" title="Fullscreen (F)">${VI.fs}</button></div>
    <div class="sunmute" id="lUnmute">🔇 Tap for sound</div></div>
-   <p class="shint">Channels follow a schedule: a new creator comes on every 20 minutes. Use ↑ ↓ to flip channels.</p></div>
+   <p class="shint">Shows start at :00, :20 and :40 every hour. It's live, so you can't pause or rewind. Use ↑ ↓ to flip channels.</p></div>
   <div class="guide" id="guide">${guideHTML(L)}</div></div>`;
  vfill($('#lvol'));staticFx(900);
  $('#guide').addEventListener('click',e=>{const b=e.target.closest('[data-ch]');if(b){e.stopPropagation();tune(+b.dataset.ch)}});
@@ -1062,26 +1069,37 @@ function renderLive(main){const L=liveList();if(lCh>=L.length)lCh=0;
  $('#lmute').onclick=()=>{if(!LP||!LP.isMuted)return;const m=LP.isMuted();m?LP.unMute():LP.mute();$('#lmute').innerHTML=m?VI.vol:VI.mute;$('#lUnmute').classList.remove('on')};
  $('#lvol').oninput=e=>{vVol=+e.target.value;store.set('vol',vVol);vfill(e.target);if(LP&&LP.setVolume){LP.setVolume(vVol);if(vVol>0&&LP.isMuted()){LP.unMute();$('#lmute').innerHTML=VI.vol;$('#lUnmute').classList.remove('on')}}};
  const scr=$('#lscreen');scr.addEventListener('mousemove',lPoke);scr.addEventListener('touchstart',lPoke,{passive:true});
- const ch=L[lCh],si=slotInfo(ch);lCur=si.src[1]+'|'+si.ends;setBug(ch,si);
+ const ch=L[lCh],si=slotInfo(ch);lKey=si.key;setBug(ch,si);
  ensureYT().then(()=>{if(view!=='live'||!document.getElementById('lp'))return;
-  LP=new YT.Player('lp',{host:'https://www.youtube-nocookie.com',playerVars:{listType:'playlist',list:si.src[1],index:si.idx,start:si.start,autoplay:1,controls:0,rel:0,playsinline:1,iv_load_policy:3,disablekb:1,fs:0,modestbranding:1},
+  LP=new YT.Player('lp',{host:'https://www.youtube-nocookie.com',videoId:si.src[1],playerVars:{start:Math.floor(si.off),autoplay:1,controls:0,rel:0,playsinline:1,iv_load_policy:3,disablekb:1,fs:0,modestbranding:1},
    events:{onReady:e=>{try{e.target.setVolume(vVol);e.target.playVideo()}catch(x){}
-     clearTimeout(lMuteChk);lMuteChk=setTimeout(()=>{try{if(LP&&LP.getPlayerState()!==1){LP.mute();LP.playVideo();$('#lUnmute').classList.add('on');$('#lmute').innerHTML=VI.mute}}catch(x){}},1800)},
-    onStateChange:e=>{if(e.data===1){$('#lstatic').classList.remove('on');try{const d=LP.getVideoData();if(d&&d.title)$('#lnow').textContent=d.title}catch(x){}lPoke()}},
-    onError:()=>{try{LP.nextVideo()}catch(x){}}}});
-  clearInterval(lTick);lTick=setInterval(liveTick,15000);
- }).catch(()=>{const sc=$('#lscreen');if(sc){const f=document.createElement('iframe');f.src=`https://www.youtube-nocookie.com/embed/videoseries?list=${si.src[1]}&index=${si.idx}&autoplay=1&rel=0&playsinline=1`;f.allow='autoplay; encrypted-media; fullscreen';f.allowFullscreen=true;sc.prepend(f);$('#lstatic').classList.remove('on')}})}
+     clearTimeout(lMuteChk);lMuteChk=setTimeout(()=>{try{if(LP&&!lFiller&&LP.getPlayerState()!==1){LP.mute();LP.playVideo();$('#lUnmute').classList.add('on');$('#lmute').innerHTML=VI.mute}}catch(x){}},2000)},
+    onStateChange:e=>{if(e.data===1){$('#lstatic').classList.remove('on');try{const d=LP.getVideoData();if(d&&d.title)$('#lnow').textContent=d.title}catch(x){}lSync(true);lPoke()}
+     if(e.data===0)showFiller()},
+    onError:()=>showFiller()}});
+  clearInterval(lTick);lTick=setInterval(liveTick,1000);
+ }).catch(()=>{const sc=$('#lscreen');if(sc){const f=document.createElement('iframe');f.src=`https://www.youtube-nocookie.com/embed/${si.src[1]}?start=${Math.floor(si.off)}&autoplay=1&rel=0&playsinline=1`;f.allow='autoplay; encrypted-media; fullscreen';f.allowFullscreen=true;sc.prepend(f);$('#lstatic').classList.remove('on')}})}
 function setBug(ch,si){$('#lchn').textContent=ch.n;$('#lchname').textContent=ch.name;$('#lsub').textContent=`${si.src[0]} on ${ch.name} · next: ${si.next[0]} at ${hhmm(si.ends)}`}
-function tune(i){const L=liveList();lCh=i;const ch=L[i],si=slotInfo(ch);lCur=si.src[1]+'|'+si.ends;staticFx(700);setBug(ch,si);$('#lnow').textContent='Tuning in…';
- $('#guide').innerHTML=guideHTML(L);
- try{LP.loadPlaylist({list:si.src[1],listType:'playlist',index:si.idx,startSeconds:si.start})}catch(e){}}
-function liveTick(){if(view!=='live')return;const L=liveList(),ch=L[lCh],si=slotInfo(ch),key=si.src[1]+'|'+si.ends;
- if(key!==lCur)tune(lCh);else{$('#guide').innerHTML=guideHTML(L);setBug(ch,si)}}
+// keep every viewer on the exact same second; if the show is already over, show "Up next"
+function lSync(force){if(!LP||!LP.getDuration||lFiller)return;const L=liveList(),si=slotInfo(L[lCh]),dur=LP.getDuration()||0;if(!dur)return;
+ if(si.off>=dur-1){showFiller();return}
+ const cur=LP.getCurrentTime()||0;if(force?Math.abs(cur-si.off)>3:Math.abs(cur-si.off)>6)LP.seekTo(si.off,true);
+ if(LP.getPlayerState&&LP.getPlayerState()===2)LP.playVideo()}
+function showFiller(){if(lFiller)return;lFiller=true;try{LP.pauseVideo()}catch(e){}const L=liveList(),ch=L[lCh],si=slotInfo(ch);
+ $('#lfillCh').textContent=`Channel ${ch.n} · ${ch.name}`;$('#lfnext').textContent=si.next[0];$('#lfill').classList.add('on');$('#lnow').textContent='Up next: '+si.next[0];fillerTick()}
+function fillerTick(){const L=liveList(),si=slotInfo(L[lCh]);const c=$('#lfcount');if(c)c.textContent=`starts in ${mmss((si.ends-Date.now())/1000)} · at ${hhmm(si.ends)}`}
+function tune(i){const L=liveList();lCh=i;const ch=L[i],si=slotInfo(ch);lKey=si.key;lFiller=false;const f=$('#lfill');if(f)f.classList.remove('on');
+ staticFx(700);setBug(ch,si);$('#lnow').textContent='Tuning in…';$('#guide').innerHTML=guideHTML(L);
+ try{LP.loadVideoById({videoId:si.src[1],startSeconds:Math.floor(si.off)})}catch(e){}}
+function liveTick(){if(view!=='live')return;const L=liveList(),ch=L[lCh],si=slotInfo(ch);
+ if(si.key!==lKey){tune(lCh);return}
+ if(lFiller)fillerTick();else if(Date.now()%5000<1000)lSync(false);
+ if(Date.now()-lLastGuide>15000){lLastGuide=Date.now();$('#guide').innerHTML=guideHTML(L);setBug(ch,si)}}
 function staticFx(ms){const c=$('#lstatic');if(!c)return;c.width=320;c.height=180;const x=c.getContext('2d');c.classList.add('on');const end=Date.now()+ms;
  (function f(){const d=x.createImageData(320,180);for(let i=0;i<d.data.length;i+=4){const v=Math.random()*255;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255}x.putImageData(d,0,0);
-  if(Date.now()<end||(LP&&LP.getPlayerState&&LP.getPlayerState()!==1&&Date.now()<end+4000))requestAnimationFrame(f);else c.classList.remove('on')})()}
+  if(Date.now()<end||(LP&&!lFiller&&LP.getPlayerState&&LP.getPlayerState()!==1&&Date.now()<end+4000))requestAnimationFrame(f);else c.classList.remove('on')})()}
 function lPoke(){const s=$('#lscreen');if(!s)return;s.classList.remove('idle');clearTimeout(lIdle);lIdle=setTimeout(()=>{const t=$('#lscreen');if(t)t.classList.add('idle')},3500)}
-function destroyLive(){clearInterval(lTick);clearTimeout(lIdle);clearTimeout(lMuteChk);try{if(LP&&LP.destroy)LP.destroy()}catch(e){}LP=null;lCur=null}
+function destroyLive(){clearInterval(lTick);clearTimeout(lIdle);clearTimeout(lMuteChk);try{if(LP&&LP.destroy)LP.destroy()}catch(e){}LP=null;lKey=null;lFiller=false}
 document.addEventListener('keydown',e=>{if(view!=='live'||P.open||!LP||document.activeElement===$('#q')||(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.guide,header')))return;const L=liveList();
  if(e.key==='ArrowUp'){e.preventDefault();tune((lCh-1+L.length)%L.length)}else if(e.key==='ArrowDown'){e.preventDefault();tune((lCh+1)%L.length)}
  else if(e.key.toLowerCase()==='m')$('#lmute').click();else if(e.key.toLowerCase()==='f')$('#lfs').click()});
