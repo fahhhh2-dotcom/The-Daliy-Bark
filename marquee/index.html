@@ -65,6 +65,7 @@ main.flat{margin-top:0;padding-top:96px}
 .pl{width:36px;height:36px;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center;flex:none;font-size:14px;padding-left:2px}
 .pl:hover{background:var(--accent);color:#fff}
 .ci b{display:block;font-size:14px}.ci small{color:#ccc;font-size:12px}
+.uhd{position:absolute;top:8px;right:8px;background:linear-gradient(90deg,#ffd76a,#ff9f3d);color:#1a1000;font-weight:900;font-size:11px;padding:2px 7px;border-radius:3px;letter-spacing:.5px;box-shadow:0 2px 8px rgba(0,0,0,.4)}
 .rank{position:absolute;top:8px;left:8px;background:var(--accent);color:#fff;font-weight:700;font-size:11px;padding:2px 7px;border-radius:3px}
 .ph{margin:0 4vw 20px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
 .ph h1{font-size:30px}.ph span{color:var(--muted)}
@@ -507,6 +508,19 @@ const FILMS = [
   desc:'Diana and Roma play pretend, go on adventures and learn good habits.'},
  {id:'kvlad',list:'UULFvlE5gTbOvjiolFlEm-c_Ow',tv:'Is_Ih3JaBgc',title:'Vlad and Niki',channel:'Vlad and Niki',year:'Always new',genres:['Kids','Learning'],scene:'kids',hue:180,match:95,kidsOnly:true,
   desc:'Brothers Vlad and Niki play with toys, cars and superheroes in funny stories.'},
+
+ {id:'uhdperu',yt:'1La4QzGeaaQ',uhd:'8K',title:'Peru 8K HDR 60FPS',channel:'Jacob + Katie Schwarz',year:'8K HDR',genres:['Ultra HD','Nature'],scene:'snow',hue:30,match:98,
+  desc:'Machu Picchu, mountains, rainforest and wildlife across Peru, filmed in super-sharp 8K HDR at 60 frames per second.'},
+ {id:'uhdocean',yt:'PPAmfbMnWow',uhd:'8K',title:'Ocean Wildlife 8K HDR',channel:'8K VIDEO ULTRA HD HDR',year:'8K HDR',genres:['Ultra HD','Nature'],scene:'deep',hue:195,match:96,
+  desc:'Sea turtles, sharks, coral reefs and colorful fish in 8K HDR. Made for big, bright TVs.'},
+ {id:'uhdcostarica',yt:'LXb3EKWsInQ',uhd:'4K',title:'Costa Rica in 4K 60fps HDR',channel:'Jacob + Katie Schwarz',year:'4K HDR',genres:['Ultra HD','Nature'],scene:'forest',hue:120,match:98,
+  desc:'Frogs, sloths, volcanoes and waterfalls. One of the most famous 4K demo videos on YouTube.'},
+ {id:'uhdchameleon',yt:'5paGGUUjV2Q',uhd:'4K',title:'Secrets of the Fire-Breathing Chameleon',channel:'HDR Content',year:'4K HDR',genres:['Ultra HD','Nature'],scene:'forest',hue:90,match:94,
+  desc:'Close-up chameleons and colorful jungle animals in 4K HDR with Dolby colors.'},
+ {id:'uhdourplanet',yt:'GfO-3Oir-qM',uhd:'HD',title:'Our Planet — One Planet (Full Episode)',channel:'Netflix',year:'Full episode',genres:['Ultra HD','Nature'],scene:'ocean',hue:190,match:97,
+  desc:'The first full episode of Netflix\'s nature series Our Planet, narrated by David Attenborough, free on Netflix\'s YouTube channel.'},
+ {id:'chslowmo',list:'UULFUK0HBIBWgM2c4vsPhkYY4w',tv:'pYMiybNr3vU',uhd:'4K',title:'The Slow Mo Guys',channel:'The Slow Mo Guys',year:'Always new',genres:['Channels','Ultra HD','Science & Tech'],scene:'space',hue:20,match:96,
+  desc:'Explosions, water balloons and crazy experiments filmed in super slow motion with high-end cameras.'},
 ];
 const SHORTS=[
  {name:'H1T1',list:'UUSHE7spuKzxP1k8A-XucxxUAQ',handle:'H1T1',teen:true,hue:20},
@@ -522,7 +536,7 @@ const SHORTS=[
 ];
 FILMS.forEach((f,i)=>{f.seed=i*37+5;f.color=true});
 const byId=id=>FILMS.find(f=>f.id===id);
-const GENRES=['All','Kids','Channels','MrBeast','Challenges','Minecraft','Science & Tech','Feel-Good','Nintendo','Live Shows'];
+const GENRES=['All','Ultra HD','Kids','Channels','MrBeast','Challenges','Minecraft','Science & Tech','Feel-Good','Nintendo','Live Shows'];
 const ytURL=f=>f.list?`https://www.youtube.com/playlist?list=${f.list}`:`https://www.youtube.com/watch?v=${f.yt}`;
 const IN_TV_APP=/MarqueeTV/.test(navigator.userAgent);
 const CAN_EMBED=/^https?:$/.test(location.protocol)&&!/(claude|anthropic|claudeusercontent)/i.test(location.hostname);
@@ -741,7 +755,7 @@ function toggleList(id){if(inList(id)){myList=myList.filter(x=>x!==id);toast('Re
 function syncListBtns(){$('#hList').textContent=inList(heroF.id)?'✓':'+';if(M.f)$('#mList').textContent=inList(M.f.id)?'✓':'+'}
 
 /* ---------- Rows ---------- */
-function card(f,rank){return `<div class="card" data-id="${f.id}" tabindex="0" role="button" aria-label="${f.title}"><img src="${thumb(f)}" alt="" loading="lazy">${rank?`<span class="rank">TOP ${rank}</span>`:''}
+function card(f,rank){return `<div class="card" data-id="${f.id}" tabindex="0" role="button" aria-label="${f.title}"><img src="${thumb(f)}" alt="" loading="lazy">${rank?`<span class="rank">TOP ${rank}</span>`:''}${f.uhd&&f.uhd!=='HD'?`<span class="uhd">${f.uhd}</span>`:''}
  <div class="hov"><span class="pl" data-play="${f.id}" title="Play">▶</span><div class="ci"><b>${f.title}</b><small>${f.channel} · ${f.year}</small></div></div></div>`}
 let REAL_THUMBS=false;const thumb=f=>REAL_THUMBS&&(f.yt||f.tv)?`https://i.ytimg.com/vi/${f.yt||f.tv}/hqdefault.jpg`:f.img;
 function row(title,list,ranked){if(!list.length)return'';return `<section class="row"><h2>${title}</h2><div class="rw"><button class="arr l" aria-label="Scroll left">‹</button><div class="track">${list.map((f,i)=>card(f,ranked?i+1:0)).join('')}</div><button class="arr r" aria-label="Scroll right">›</button></div></section>`}
@@ -766,8 +780,8 @@ function render(){
  const ok=x=>x&&visible(x);
  if(CUR&&CUR.kids){const K=LIB();main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok))+row('My List',myList.map(byId).filter(ok))+
    row('Cartoons & Shows',K.filter(f=>f.genres.includes('Cartoons')))+row('Learn & Play',K.filter(f=>f.genres.includes('Learning')||f.genres.includes('Songs')))+
-   row('Fun for Everyone',K.filter(f=>!f.kidsOnly&&(f.genres.includes('Channels')||f.genres.includes('Feel-Good'))&&!f.genres.includes('Science & Tech')))+row('Cool Science',K.filter(f=>f.genres.includes('Science & Tech')))+row('MrBeast',K.filter(f=>f.genres.includes('MrBeast')&&!f.list))+row('Minecraft',K.filter(f=>f.genres.includes('Minecraft')));return}
- main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok))+row('My List',myList.map(byId).filter(ok))+row('Top 10 Videos',top,true)+row('New This Year',LIB().filter(f=>f.added))+
+   row('Fun for Everyone',K.filter(f=>!f.kidsOnly&&(f.genres.includes('Channels')||f.genres.includes('Feel-Good'))&&!f.genres.includes('Science & Tech')))+row('Cool Science',K.filter(f=>f.genres.includes('Science & Tech')))+row('Amazing Animals in Ultra HD',K.filter(f=>f.genres.includes('Nature')))+row('MrBeast',K.filter(f=>f.genres.includes('MrBeast')&&!f.list))+row('Minecraft',K.filter(f=>f.genres.includes('Minecraft')));return}
+ main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok))+row('My List',myList.map(byId).filter(ok))+row('Top 10 Videos',top,true)+row('Ultra HD — 4K & 8K',G('Ultra HD'))+row('New This Year',LIB().filter(f=>f.added))+
   row('H1T1 & hxsain — Long Videos',LIB().filter(f=>f.id==='chh1t1'||f.id==='chhxsain'))+row('Latest From Your Favorite Channels',G('Channels').filter(f=>!f.kidsOnly))+row('MrBeast',G('MrBeast'))+row('Insane Challenges',G('Challenges'))+row('Minecraft',G('Minecraft'))+row('Science & Tech',G('Science & Tech'))+row('Nintendo',G('Nintendo'))+row('For Little Kids',G('Kids'))+row('Live Shows & Directs',G('Live Shows'));
 }
 function route(){const v=(location.hash||'#home').slice(1);view=['home','live','shorts','browse','my-list'].includes(v)?v:'home';$('#q').value='';render();window.scrollTo(0,0)}
@@ -1034,6 +1048,7 @@ const LIVE=[
  {n:102,name:'Minecraft TV',icon:'⛏️',src:[['Minecraft','s0w_pTOXDBQ'],['MrBeast Gaming','Ra6sNe8s2Hc'],['DanTDM','paML_p4sbCo'],['Dream','g22Z__ShvVY'],['Minecraft','jGNgh5zEFkY'],['Unspeakable','RsGGOT9wZwg']]},
  {n:103,name:'Science TV',icon:'🚀',src:[['Mark Rober','gicEOsFtMxw'],['Kurzgesagt','ujkD4SxPKOI'],['Veritasium','ONAuUyml0yI'],['Mrwhosetheboss','NrF4mkTmuTU'],['Zach King','mlJdZftpCJc'],['MrBeast','TJ2ifmkGGus']]},
  {n:104,name:'Gaming TV',icon:'🎮',src:[['Nintendo','mq4uCJDwO9U'],['MrBeast Gaming','Ra6sNe8s2Hc'],['DanTDM','paML_p4sbCo'],['Minecraft','jGNgh5zEFkY'],['Dream','g22Z__ShvVY']]},
+ {n:107,name:'Nature 4K TV',icon:'🌿',src:[['Peru in 8K','1La4QzGeaaQ'],['Ocean Wildlife 8K','PPAmfbMnWow'],['Costa Rica 4K','LXb3EKWsInQ'],['Our Planet','GfO-3Oir-qM'],['Chameleons 4K','5paGGUUjV2Q']]},
  {n:105,name:'Creator TV',icon:'🔥',teen:true,src:[['H1T1','3P-rZJbrGyg'],['hxsain','HpeXGZycOZc'],['Sidemen','fwqEB2HdY88']]},
  {n:106,name:'Kids TV',icon:'🎈',kidsOnly:true,src:[['Bluey','evYFRYX4Hyw'],['Sesame Street','QLC32zDmgTI'],['PBS KIDS','DVA4rAD52i0'],['Blippi','nTr4DUuvgA8'],['Kids Diana Show','yJ8DGLldq5s'],['Vlad and Niki','Is_Ih3JaBgc'],['Cocomelon','Gm_HjftxXKY'],["Ryan's World",'H7iA4Ri1H3Q']]},
 ];
