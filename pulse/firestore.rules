@@ -1,0 +1,87 @@
+rules_version = '2';
+// Pulse security rules — paste into Firebase console → Firestore Database → Rules → Publish.
+// Anyone can READ public posts and profiles. Only signed-in people can write,
+// and only their own things. Admins (a doc in the "admins" collection with
+// their user ID) can delete anything to moderate.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function isAdmin() { return signedIn() && exists(/databases/$(database)/documents/admins/$(me())); }
+    function data() { return request.resource.data; }
+    function postAuthor(pid) {
+      return exists(/databases/$(database)/documents/posts/$(pid))
+        && get(/databases/$(database)/documents/posts/$(pid)).data.author == me();
+    }
+    function str(v, max) { return v is string && v.size() <= max; }
+
+    // Usernames: one owner each, first come first served
+    match /handles/{h} {
+      allow read: if true;
+      allow create: if signedIn() && data().user == me() && h.matches('^[a-z0-9_]{3,20}$');
+      allow delete: if signedIn() && (resource.data.user == me() || isAdmin());
+    }
+
+    // Profiles: you can only write your own, with a username you own
+    match /profiles/{uid} {
+      allow read: if true;
+      allow write: if signedIn() && uid == me() && data().user == me()
+        && str(data().handle, 20) && str(data().displayName, 40)
+        && str(data().bio, 160) && str(data().website, 100)
+        && getAfter(/databases/$(database)/documents/handles/$(data().handle)).data.user == me();
+      allow delete: if isAdmin();
+    }
+
+    // Posts: create your own (280 chars max); delete your own; no editing
+    match /posts/{pid} {
+      allow read: if true;
+      allow create: if signedIn() && data().author == me()
+        && str(data().text, 280)
+        && data().createdAt is number
+        && (!('image' in data()) || str(data().image, 400000));
+      allow delete: if signedIn() && (resource.data.author == me() || isAdmin());
+    }
+
+    match /comments/{cid} {
+      allow read: if true;
+      allow create: if signedIn() && data().author == me() && str(data().text, 500);
+      allow delete: if signedIn() && (resource.data.author == me() || isAdmin() || postAuthor(resource.data.post));
+    }
+
+    // Likes, reposts and poll votes: id is "<postId>__<yourUserId>"
+    match /likes/{id} {
+      allow read: if true;
+      allow create: if signedIn() && data().user == me() && id == data().post + '__' + me();
+      allow delete: if signedIn() && (resource.data.user == me() || isAdmin() || postAuthor(resource.data.post));
+    }
+    match /reposts/{id} {
+      allow read: if true;
+      allow create: if signedIn() && data().user == me() && id == data().post + '__' + me();
+      allow delete: if signedIn() && (resource.data.user == me() || isAdmin() || postAuthor(resource.data.post));
+    }
+    match /votes/{id} {
+      allow read: if true;
+      allow create, update: if signedIn() && data().user == me() && id == data().post + '__' + me() && data().choice is int;
+      allow delete: if signedIn() && (resource.data.user == me() || isAdmin() || postAuthor(resource.data.post));
+    }
+
+    // Follows: id is "<yourUserId>__<theirUserId>"
+    match /follows/{id} {
+      allow read: if true;
+      allow create: if signedIn() && data().from == me() && id == me() + '__' + data().to;
+      allow delete: if signedIn() && (resource.data.from == me() || isAdmin());
+    }
+
+    // Bookmarks & "last seen" — private to each person
+    match /private/{uid} {
+      allow read, write: if signedIn() && uid == me();
+    }
+
+    // Admin list — you add yourself here by hand in the console
+    match /admins/{uid} {
+      allow read: if signedIn() && uid == me();
+      allow write: if false;
+    }
+  }
+}

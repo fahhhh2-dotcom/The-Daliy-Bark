@@ -1,0 +1,15 @@
+rules_version = '2';
+// Pulse storage rules — paste into Firebase console → Storage → Rules → Publish.
+// Everyone can view photos/videos. You can only upload into your own folder,
+// only images or videos, and only up to 20 MB.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /media/{uid}/{file} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.size < 20 * 1024 * 1024
+        && request.resource.contentType.matches('(image|video)/.*');
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
