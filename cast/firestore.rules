@@ -162,6 +162,11 @@ service cloud.firestore {
       allow create: if signedIn() && data().user == me() && vid == data().bid + '__' + me();
     }
 
+    // Marquee (streaming site): each person's profiles and My List, private to them
+    match /marquee/{uid} {
+      allow read, write: if signedIn() && uid == me();
+    }
+
     // Admin list — you add yourself here by hand in the console
     match /admins/{uid} {
       allow read: if signedIn() && uid == me();
