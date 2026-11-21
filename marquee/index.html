@@ -412,6 +412,27 @@ const FILMS = [
   desc:'Giant science builds, crazy experiments and engineering pranks from Mark Rober, newest first.'},
  {id:'chminecraft',list:'UULF1sELGmy5jp5fQUugmuYlXQ',title:'Minecraft — Latest Videos',channel:'Minecraft',year:'Always new',genres:['Channels','Minecraft'],scene:'blocks',hue:205,match:96,
   desc:'Every new video from the official Minecraft channel: updates, LIVE shows and behind-the-scenes, newest first.'},
+
+ {id:'chmbgaming',list:'UULFIPPMRA040LQr5QPyJEbmXA',title:'MrBeast Gaming — Latest Videos',channel:'MrBeast Gaming',year:'Always new',genres:['Channels','MrBeast','Minecraft'],scene:'blocks',hue:35,match:97,
+  desc:'MrBeast and friends compete in giant Minecraft and gaming challenges for real money. Newest videos first.'},
+ {id:'chtrahan',list:'UULFnmGIkw-KdI0W5siakKPKog',title:'Ryan Trahan — Latest Videos',channel:'Ryan Trahan',year:'Always new',genres:['Channels','Challenges'],scene:'desert',hue:15,match:96,
+  desc:'Wild adventures and challenges, like traveling the country with just a penny. Newest videos first.'},
+ {id:'chunspeakable',list:'UULFwIWAbIeu0xI0ReKWOcw3eg',title:'Unspeakable — Latest Videos',channel:'Unspeakable',year:'Always new',genres:['Channels','Minecraft','Challenges'],scene:'blocks',hue:160,match:95,
+  desc:'Minecraft builds, crazy challenges and real-life stunts from Unspeakable. Newest videos first.'},
+ {id:'chsidemen',list:'UULFDogdKl7t7NHzQ95aEwkdMw',title:'Sidemen — Latest Videos',channel:'Sidemen',year:'Always new',genres:['Channels','Challenges'],scene:'city',hue:0,match:93,teen:true,
+  desc:'The Sidemen\'s big challenge videos, like Tinder in Real Life and $100,000 vs $1,000 holidays. Newest videos first.'},
+ {id:'kbluey',list:'UULFVzLLZkDuFGAE2BGdBuBNBg',title:'Bluey — Official Channel',channel:'Bluey',year:'Always new',genres:['Kids','Cartoons'],scene:'kids',hue:205,match:99,kidsOnly:true,
+  desc:'Full episodes, mini episodes and songs from Bluey, Bingo and the Heeler family.'},
+ {id:'ksesame',list:'UULFoookXUzPciGrEZEXmh4Jjg',title:'Sesame Street',channel:'Sesame Street',year:'Always new',genres:['Kids','Cartoons','Learning'],scene:'kids',hue:45,match:98,kidsOnly:true,
+  desc:'Elmo, Cookie Monster, Big Bird and friends sing, play and learn letters, numbers and feelings.'},
+ {id:'kpbs',list:'UULFrNnk0wFBnCS1awGjq_ijGQ',title:'PBS KIDS',channel:'PBS KIDS',year:'Always new',genres:['Kids','Cartoons','Learning'],scene:'kids',hue:120,match:97,kidsOnly:true,
+  desc:'Clips and episodes from Daniel Tiger, Wild Kratts, Curious George and more PBS KIDS shows.'},
+ {id:'kblippi',list:'UULF5PYHgAzJ1wLEidB58SK6Xw',title:'Blippi',channel:'Blippi',year:'Always new',genres:['Kids','Learning'],scene:'kids',hue:25,match:98,kidsOnly:true,
+  desc:'Blippi explores playgrounds, trucks, animals and more while learning colors, numbers and new words.'},
+ {id:'kcocomelon',list:'UULFbCmjCuTUZos6Inko4u57UQ',title:'Cocomelon — Nursery Rhymes',channel:'Cocomelon',year:'Always new',genres:['Kids','Cartoons','Songs'],scene:'kids',hue:290,match:96,kidsOnly:true,
+  desc:'Sing-along nursery rhymes and songs with JJ and his family. Great for little kids.'},
+ {id:'kryan',list:'UULFhGJGhZ9SOOHvBB0Y4DOO_w',title:'Ryan\'s World',channel:'Ryan\'s World',year:'Always new',genres:['Kids','Learning'],scene:'kids',hue:0,match:96,kidsOnly:true,
+  desc:'Ryan does science experiments, challenges and pretend play with his family. Newest videos first.'},
 ];
 const SHORTS=[
  {name:'H1T1',list:'UUSHE7spuKzxP1k8A-XucxxUAQ',handle:'H1T1',teen:true,hue:20},
@@ -419,10 +440,15 @@ const SHORTS=[
  {name:'MrBeast',list:'UUSHX6OQ3DkcsbYNE6H8uQQuVA',handle:'MrBeast',hue:200},
  {name:'Dude Perfect',list:'UUSHRijo3ddMTht_IHyNSNXpNQ',handle:'DudePerfect',hue:205},
  {name:'Mark Rober',list:'UUSHY1kMZp36IQSyNx_9h4mpCg',handle:'MarkRober',hue:160},
+ {name:'Ryan Trahan',list:'UUSHnmGIkw-KdI0W5siakKPKog',handle:'ryan',hue:15},
+ {name:'Unspeakable',list:'UUSHwIWAbIeu0xI0ReKWOcw3eg',handle:'unspeakable',hue:160},
+ {name:'Bluey',list:'UUSHVzLLZkDuFGAE2BGdBuBNBg',handle:'BlueyOfficialChannel',hue:205,kidsOnly:true},
+ {name:'Blippi',list:'UUSH5PYHgAzJ1wLEidB58SK6Xw',handle:'Blippi',hue:25,kidsOnly:true},
+ {name:'Sesame Street',list:'UUSHoookXUzPciGrEZEXmh4Jjg',handle:'sesamestreet',hue:45,kidsOnly:true},
 ];
 FILMS.forEach((f,i)=>{f.seed=i*37+5;f.color=true});
 const byId=id=>FILMS.find(f=>f.id===id);
-const GENRES=['All','Channels','MrBeast','Challenges','Feel-Good','Minecraft','Nintendo','Live Shows'];
+const GENRES=['All','Kids','Channels','MrBeast','Challenges','Feel-Good','Minecraft','Nintendo','Live Shows'];
 const ytURL=f=>f.list?`https://www.youtube.com/playlist?list=${f.list}`:`https://www.youtube.com/watch?v=${f.yt}`;
 const CAN_EMBED=/^https?:$/.test(location.protocol)&&!/(claude|anthropic|claudeusercontent)/i.test(location.hostname);
 
@@ -432,6 +458,20 @@ const hsl=(h,s,l,a=1)=>`hsla(${h},${s}%,${l}%,${a})`;
 function lg(c,y0,y1,stops){const g=c.createLinearGradient(0,y0,0,y1);stops.forEach(s=>g.addColorStop(s[0],s[1]));return g}
 function glow(c,x,y,r,col0,col1){const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,col0);g.addColorStop(1,col1);c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2)}
 const S={
+ kids(c,w,h,t,hu){
+  c.fillStyle=lg(c,0,h,[[0,'#6ec6ff'],[1,'#d8f3ff']]);c.fillRect(0,0,w,h);
+  const rx=w*.3,ry=h*1.05,cols=['#ff5a5f','#ff9f43','#feca57','#4cd964','#48dbfb','#5f27cd'];
+  cols.forEach((col,i)=>{c.strokeStyle=col;c.lineWidth=h*.035;c.beginPath();c.arc(rx,ry,h*(.75-i*.035),Math.PI,2*Math.PI);c.stroke()});
+  const sx=w*.82,sy=h*.2,sr=h*.1;c.fillStyle='#ffd93b';c.beginPath();c.arc(sx,sy,sr,0,7);c.fill();
+  c.strokeStyle='#ffd93b';c.lineWidth=h*.012;for(let i=0;i<12;i++){const a=i/12*Math.PI*2+t*.3;c.beginPath();c.moveTo(sx+Math.cos(a)*sr*1.25,sy+Math.sin(a)*sr*1.25);c.lineTo(sx+Math.cos(a)*sr*1.6,sy+Math.sin(a)*sr*1.6);c.stroke()}
+  c.fillStyle='#7a4a00';c.beginPath();c.arc(sx-sr*.35,sy-sr*.15,sr*.1,0,7);c.arc(sx+sr*.35,sy-sr*.15,sr*.1,0,7);c.fill();
+  c.strokeStyle='#7a4a00';c.lineWidth=h*.008;c.beginPath();c.arc(sx,sy+sr*.05,sr*.45,.2*Math.PI,.8*Math.PI);c.stroke();
+  c.fillStyle='#fff';for(let k=0;k<4;k++){const x=((R(k)+t*.01*(1+k*.3))%1.3-.15)*w,y=h*(.12+R(k+5)*.3),r=h*.05;c.beginPath();c.arc(x,y,r,0,7);c.arc(x+r,y-r*.4,r*1.2,0,7);c.arc(x+r*2.2,y,r,0,7);c.fill()}
+  c.fillStyle='#5cd65c';c.beginPath();c.moveTo(0,h);for(let x=0;x<=w+10;x+=10)c.lineTo(x,h*.82-Math.sin(x/w*5+1)*h*.05);c.lineTo(w,h);c.fill();
+  for(let i=0;i<9;i++){const bx=(R(i+20)*.9+.05)*w+Math.sin(t+i)*w*.01,by=h-((t*.06*(.6+R(i))+R(i+40))%1.3)*h*1.1,br=h*(.04+R(i+3)*.025),col=cols[i%cols.length];
+   c.strokeStyle='rgba(80,80,80,.5)';c.lineWidth=1;c.beginPath();c.moveTo(bx,by+br*1.2);c.quadraticCurveTo(bx+br*.4,by+br*2.4,bx,by+br*3.6);c.stroke();
+   c.fillStyle=col;c.beginPath();c.ellipse(bx,by,br,br*1.2,0,0,7);c.fill();c.fillStyle='rgba(255,255,255,.45)';c.beginPath();c.ellipse(bx-br*.35,by-br*.45,br*.22,br*.32,-.5,0,7);c.fill()}
+ },
  beast(c,w,h,t,hu){
   c.fillStyle=lg(c,0,h,[[0,hsl(hu,85,58)],[1,hsl(hu+30,90,38)]]);c.fillRect(0,0,w,h);
   const cx=w*.72,cy=h*.42,R0=Math.hypot(w,h);
@@ -647,8 +687,11 @@ function render(){
   main.innerHTML=`<div class="ph"><h1>My List</h1><span>${list.length} saved</span></div>`+(list.length?`<div class="grid">${list.map(f=>card(f)).join('')}</div>`:`<div class="empty"><b>Your list is empty</b>Tap + on any movie to save it here.</div>`);return}
  const top=['mbsquid','mbcircle','mbwonka','mkwdirect','mbages','mclivemar25','mbblind','mbburied'].map(byId).filter(visible);
  const ok=x=>x&&visible(x);
+ if(CUR&&CUR.kids){const K=LIB();main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok))+row('My List',myList.map(byId).filter(ok))+
+   row('Cartoons & Shows',K.filter(f=>f.genres.includes('Cartoons')))+row('Learn & Play',K.filter(f=>f.genres.includes('Learning')||f.genres.includes('Songs')))+
+   row('Fun for Everyone',K.filter(f=>!f.kidsOnly&&(f.genres.includes('Channels')||f.genres.includes('Feel-Good'))))+row('MrBeast',K.filter(f=>f.genres.includes('MrBeast')&&!f.list))+row('Minecraft',K.filter(f=>f.genres.includes('Minecraft')));return}
  main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok))+row('My List',myList.map(byId).filter(ok))+row('Top 10 Videos',top,true)+row('New This Year',LIB().filter(f=>f.added))+
-  row('Latest From Your Favorite Channels',G('Channels'))+row('MrBeast',G('MrBeast'))+row('Insane Challenges',G('Challenges'))+row('Minecraft',G('Minecraft'))+row('Nintendo',G('Nintendo'))+row('Live Shows & Directs',G('Live Shows'));
+  row('H1T1 & hxsain — Long Videos',LIB().filter(f=>f.id==='chh1t1'||f.id==='chhxsain'))+row('Latest From Your Favorite Channels',G('Channels').filter(f=>!f.kidsOnly))+row('MrBeast',G('MrBeast'))+row('Insane Challenges',G('Challenges'))+row('Minecraft',G('Minecraft'))+row('Nintendo',G('Nintendo'))+row('For Little Kids',G('Kids'))+row('Live Shows & Directs',G('Live Shows'));
 }
 function route(){const v=(location.hash||'#home').slice(1);view=['home','shorts','browse','my-list'].includes(v)?v:'home';$('#q').value='';render();window.scrollTo(0,0)}
 window.addEventListener('hashchange',route);
@@ -670,7 +713,7 @@ function showHeroText(){$('#hT').textContent=heroF.title;$('#hM').innerHTML=meta
 function setHero(i){heroI=(i+FEATURED.length)%FEATURED.length;$('#heroIn').classList.add('fade');
  setTimeout(()=>{heroF=FEATURED[heroI];showHeroText();$('#heroIn').classList.remove('fade')},350);
  clearInterval(heroTimer);heroTimer=setInterval(()=>{if(!M.open&&!P.open)setHero(heroI+1)},14000)}
-function setFeatured(){FEATURED=['mbsquid','mbwonka','mbcircle','mclivemar25','mkwdirect'].map(byId);
+function setFeatured(){FEATURED=(CUR&&CUR.kids?['kbluey','kblippi','ksesame','kryan','chrober']:['mbsquid','chh1t1','mbwonka','chhxsain','chmbgaming']).map(byId);
  $('#hDots').innerHTML=FEATURED.map((_,i)=>`<button aria-label="Featured ${i+1}"></button>`).join('');heroI=0;heroF=FEATURED[0];showHeroText();setHero(0)}
 $('#hDots').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setHero([...b.parentElement.children].indexOf(b))});
 $('#hPlay').onclick=()=>play(heroF.id);$('#hInfo').onclick=()=>openModal(heroF.id);$('#hList').onclick=()=>toggleList(heroF.id);
@@ -868,7 +911,7 @@ async function accSignOut(){$('#me').classList.remove('open');try{await ACC.F.au
 let SP=null,sIdx=0,sCreator=0,sWheel=0,sTouchY=null,sLastTap=0,sMuteChk=null;
 const ICN={heart:'<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
  up:'<svg viewBox="0 0 24 24"><path d="M7.4 15.4L12 10.8l4.6 4.6L18 14l-6-6-6 6z"/></svg>',down:'<svg viewBox="0 0 24 24"><path d="M7.4 8.6L12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg>'};
-const sList=()=>SHORTS.filter(c=>!(CUR&&CUR.kids&&c.teen));
+const sList=()=>CUR&&CUR.kids?[...SHORTS.filter(c=>c.kidsOnly),...SHORTS.filter(c=>!c.kidsOnly&&!c.teen)]:SHORTS.filter(c=>!c.kidsOnly);
 function renderShorts(main){const L=sList();if(sCreator>=L.length)sCreator=0;const c=L[sCreator];
  if(document.getElementById('sframe')&&SP&&main.dataset.sc===c.list)return;
  destroyShorts();main.dataset.sc=c.list;
