@@ -145,14 +145,14 @@
   };
 
   const DEFAULT_DIAL = [
+    {title:'The Daily Bark', url:'https://thedailybark.dog/'},
+    {title:'SkyCast', url:'https://skycastweather.com/'},
+    {title:'Nimbus', url:'https://thedailybark.dog/nimbus/'},
+    {title:'Games', url:'https://thedailybark.dog/games/'},
     {title:'Wikipedia', url:'https://en.wikipedia.org/wiki/Main_Page'},
-    {title:'OpenStreetMap', url:'https://www.openstreetmap.org/export/embed.html?bbox=-98,29,-94,33&layer=mapnik'},
-    {title:'Bing', url:'https://www.bing.com/'},
-    {title:'Archive.org', url:'https://archive.org/'},
-    {title:'Example', url:'https://example.com/'},
-    {title:'Weather', url:'https://wttr.in/?format=v2'},
+    {title:'Map', url:'https://www.openstreetmap.org/export/embed.html?bbox=-98,29,-94,33&layer=mapnik'},
   ];
-  let dial = store.get('dial', DEFAULT_DIAL);
+  let dial = store.get('dial2', DEFAULT_DIAL);
   let bookmarks = store.get('bookmarks', [{title:'Wikipedia', url:'https://en.wikipedia.org/wiki/Main_Page'}]);
   let history = store.get('history', []);
   let noticeHidden = false;
@@ -339,13 +339,13 @@
         el.innerHTML = `<span class="badge" style="background:${colorFor(hostOf(s.url))}">${esc(s.title[0].toUpperCase())}</span>
           <span>${esc(s.title)}</span><button class="rm" title="Remove">✕</button>`;
         el.onclick = () => navigate(tab, s.url);
-        el.querySelector('.rm').onclick = e => { e.stopPropagation(); dial.splice(i,1); store.set('dial', dial); renderInternal(tab, url); };
+        el.querySelector('.rm').onclick = e => { e.stopPropagation(); dial.splice(i,1); store.set('dial2', dial); renderInternal(tab, url); };
         d.append(el);
       });
       const add = document.createElement('div');
       add.className = 'tile add';
       add.innerHTML = '<span class="badge">+</span><span>Add site</span>';
-      add.onclick = () => askSite(s => { dial.push(s); store.set('dial', dial); renderInternal(tab, url); });
+      add.onclick = () => askSite(s => { dial.push(s); store.set('dial2', dial); renderInternal(tab, url); });
       d.append(add);
       tickClock();
     }
