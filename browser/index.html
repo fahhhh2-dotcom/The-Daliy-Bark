@@ -157,10 +157,11 @@
     {title:'SkyCast', url:'https://skycastweather.com/'},
     {title:'Nimbus', url:'https://thedailybark.dog/nimbus/'},
     {title:'Games', url:'https://thedailybark.dog/games/'},
+    {title:'YouTube', url:'orbit://youtube'},
     {title:'Wikipedia', url:'https://en.wikipedia.org/wiki/Main_Page'},
     {title:'Map', url:'https://www.openstreetmap.org/export/embed.html?bbox=-98,29,-94,33&layer=mapnik'},
   ];
-  let dial = store.get('dial4', DEFAULT_DIAL);
+  let dial = store.get('dial5', DEFAULT_DIAL);
   let bookmarks = store.get('bookmarks', [{title:'Wikipedia', url:'https://en.wikipedia.org/wiki/Main_Page'}]);
   let history = store.get('history', []);
   let noticeHidden = false;
@@ -188,13 +189,26 @@
     if(/^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(q) && !q.includes(' ')) return 'https://' + q;
     return 'https://en.wikipedia.org/w/index.php?search=' + encodeURIComponent(q);
   }
+  // youtube.com home/search pages -> Orbit's built-in YouTube page
+  function ytRoute(u){
+    try{
+      const url = new URL(u);
+      if(/(^|\.)youtube\.com$/.test(url.hostname) && url.pathname !== '/watch' && !url.pathname.startsWith('/embed/') && !url.pathname.startsWith('/shorts/')){
+        const q = url.searchParams.get('search_query');
+        return 'orbit://youtube' + (q ? '?q=' + encodeURIComponent(q) : '');
+      }
+    }catch(e){}
+    return u;
+  }
   // Turn a YouTube watch link into an embeddable player
   function frameable(u){
     try{
       const url = new URL(u);
       if(/(^|\.)youtube\.com$/.test(url.hostname) && url.pathname === '/watch' && url.searchParams.get('v'))
-        return 'https://www.youtube.com/embed/' + url.searchParams.get('v');
-      if(url.hostname === 'youtu.be') return 'https://www.youtube.com/embed' + url.pathname;
+        return 'https://www.youtube.com/embed/' + url.searchParams.get('v') + '?autoplay=1&rel=0';
+      if(/(^|\.)youtube\.com$/.test(url.hostname) && url.pathname.startsWith('/shorts/'))
+        return 'https://www.youtube.com/embed/' + url.pathname.split('/')[2] + '?autoplay=1&rel=0';
+      if(url.hostname === 'youtu.be') return 'https://www.youtube.com/embed' + url.pathname + '?autoplay=1&rel=0';
     }catch(e){}
     return u;
   }
@@ -250,7 +264,7 @@
   }
 
   function navigate(tab, input, push=true){
-    const url = normalize(input);
+    const url = ytRoute(normalize(input));
     if(push){
       tab.stack = tab.stack.slice(0, tab.idx+1);
       tab.stack.push(url); tab.idx = tab.stack.length-1;
@@ -266,6 +280,8 @@
     if(url === 'orbit://home') return 'New Tab';
     if(url === 'orbit://bookmarks') return 'Bookmarks';
     if(url === 'orbit://history') return 'History';
+    if(url.startsWith('orbit://youtube')){ const m = url.match(/[?&]q=([^&]*)/); return m ? decodeURIComponent(m[1]) + ' – YouTube' : 'YouTube'; }
+    try{ const u = new URL(url); if(/(^|\.)youtube\.com$|youtu\.be$/.test(u.hostname)) return 'YouTube video'; }catch(e){}
     try{
       const u = new URL(url);
       const s = u.searchParams.get('search');
@@ -357,13 +373,13 @@
         el.innerHTML = `<span class="badge" style="background:${colorFor(hostOf(s.url))}">${esc(s.title[0].toUpperCase())}</span>
           <span>${esc(s.title)}</span><button class="rm" title="Remove">✕</button>`;
         el.onclick = () => navigate(tab, s.url);
-        el.querySelector('.rm').onclick = e => { e.stopPropagation(); dial.splice(i,1); store.set('dial4', dial); renderInternal(tab, url); };
+        el.querySelector('.rm').onclick = e => { e.stopPropagation(); dial.splice(i,1); store.set('dial5', dial); renderInternal(tab, url); };
         d.append(el);
       });
       const add = document.createElement('div');
       add.className = 'tile add';
       add.innerHTML = '<span class="badge">+</span><span>Add site</span>';
-      add.onclick = () => askSite(s => { dial.push(s); store.set('dial4', dial); renderInternal(tab, url); });
+      add.onclick = () => askSite(s => { dial.push(s); store.set('dial5', dial); renderInternal(tab, url); });
       d.append(add);
       tickClock();
     }
@@ -395,6 +411,9 @@
         list.append(r);
       });
     }
+    else if(url.startsWith('orbit://youtube')){
+      renderYouTube(tab, url);
+    }
     else {
       p.innerHTML = `<div class="listpage"><h1>Page not found</h1><p class="sub">${esc(url)}</p></div>`;
     }
@@ -408,6 +427,66 @@
       <p class="sub" style="color:var(--muted);word-break:break-all;margin:0 0 26px">${esc(url)}</p>
       <a href="${esc(url)}" target="_blank" rel="noopener" style="display:inline-block;padding:14px 28px;border-radius:26px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none;font-size:16px">Open ${esc(h)} ↗</a>
       <p style="color:var(--muted);font-size:14px;margin:22px auto 0;max-width:440px;line-height:1.5">${esc(h)} doesn't allow itself to be shown inside other websites, so it can only open in its own tab. Tip: YouTube <b>video</b> links (youtube.com/watch?v=…) do play right here in Orbit.</p></div>`;
+  }
+
+
+  // ---------- Built-in YouTube ----------
+  // Search goes through public YouTube front-ends (Piped / Invidious) that allow other sites to ask them;
+  // videos play with YouTube's own embed player.
+  const PIPED = ['https://pipedapi.kavin.rocks','https://pipedapi.adminforge.de','https://api.piped.private.coffee','https://pipedapi.reallyaweso.me'];
+  const INVID = ['https://inv.nadeko.net','https://invidious.nerdvpn.de','https://yewtu.be','https://invidious.privacyredirect.com'];
+  async function getJSON(u, ms=6000){
+    const c = new AbortController(); const t = setTimeout(() => c.abort(), ms);
+    try{ const r = await fetch(u, {signal:c.signal}); if(!r.ok) throw 0; return await r.json(); } finally{ clearTimeout(t); }
+  }
+  const fmtDur = s => { s = +s||0; if(!s) return ''; const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=String(s%60).padStart(2,'0'); return h ? `${h}:${String(m).padStart(2,'0')}:${x}` : `${m}:${x}`; };
+  const fmtViews = n => { n=+n||0; if(n<=0) return ''; return (n>=1e9?(n/1e9).toFixed(1)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?Math.round(n/1e3)+'K':n) + ' views'; };
+  async function ytSearch(q){
+    const tries = [];
+    for(const b of PIPED) tries.push(async () => {
+      const d = await getJSON(q ? `${b}/search?q=${encodeURIComponent(q)}&filter=videos` : `${b}/trending?region=US`);
+      const items = (q ? d.items : d) || [];
+      return items.filter(i => i.url && i.url.includes('v=')).map(i => ({id:i.url.split('v=')[1].split('&')[0], title:i.title, by:i.uploaderName, dur:i.duration, views:i.views}));
+    });
+    for(const b of INVID) tries.push(async () => {
+      const d = await getJSON(q ? `${b}/api/v1/search?q=${encodeURIComponent(q)}&type=video` : `${b}/api/v1/trending?region=US`);
+      return (d||[]).filter(i => i.videoId).map(i => ({id:i.videoId, title:i.title, by:i.author, dur:i.lengthSeconds, views:i.viewCount}));
+    });
+    for(const t of tries){ try{ const r = await t(); if(r.length) return r; }catch(e){} }
+    throw new Error('none');
+  }
+  function renderYouTube(tab, url){
+    const m = url.match(/[?&]q=([^&]*)/); const q = m ? decodeURIComponent(m[1]) : '';
+    const p = tab.page;
+    p.innerHTML = `<div style="max-width:1100px;margin:0 auto">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px;font-size:24px;font-weight:800"><span style="background:var(--accent);color:#fff;border-radius:50%;width:34px;height:34px;display:grid;place-items:center;font-size:14px">▶</span>Videos</div>
+        <form class="bigsearch" style="margin:0;flex:1;min-width:240px"><input placeholder="Search YouTube" value="${esc(q)}"><button>Search</button></form>
+      </div>
+      <div class="ytstatus" style="color:var(--muted);margin-bottom:14px">${q ? 'Searching…' : 'Loading popular videos…'}</div>
+      <div class="ytgrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px"></div></div>`;
+    const f = p.querySelector('form'), inp = f.querySelector('input');
+    f.onsubmit = e => { e.preventDefault(); const v = inp.value.trim();
+      if(/youtu\.?be/.test(v)) navigate(tab, v); else navigate(tab, 'orbit://youtube' + (v ? '?q=' + encodeURIComponent(v) : '')); };
+    const status = p.querySelector('.ytstatus'), grid = p.querySelector('.ytgrid');
+    ytSearch(q).then(list => {
+      if(tab.stack[tab.idx] !== url) return;
+      status.textContent = q ? `Results for “${q}”` : 'Popular right now';
+      list.slice(0,40).forEach(v => {
+        const el = document.createElement('div');
+        el.style.cssText = 'cursor:pointer';
+        el.innerHTML = `<div style="position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#222">
+            <img src="https://i.ytimg.com/vi/${esc(v.id)}/mqdefault.jpg" loading="lazy" style="width:100%;height:100%;object-fit:cover">
+            ${fmtDur(v.dur) ? `<span style="position:absolute;right:6px;bottom:6px;background:#000c;color:#fff;font-size:12px;padding:1px 6px;border-radius:4px">${fmtDur(v.dur)}</span>` : ''}</div>
+          <div style="font-weight:600;margin-top:8px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(v.title||'')}</div>
+          <div style="color:var(--muted);font-size:13px;margin-top:3px">${esc(v.by||'')}${fmtViews(v.views) ? ' · ' + fmtViews(v.views) : ''}</div>`;
+        el.onclick = () => navigate(tab, 'https://www.youtube.com/watch?v=' + v.id);
+        grid.append(el);
+      });
+    }).catch(() => {
+      if(tab.stack[tab.idx] !== url) return;
+      status.innerHTML = `Couldn't load videos right now. You can still paste a YouTube video link in the search box above (or the address bar) and it will play here.`;
+    });
   }
 
   function tickClock(){
