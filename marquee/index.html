@@ -223,6 +223,42 @@ footer a{text-decoration:underline}
 .dl:hover{border-color:#fff;background:rgba(255,255,255,.18)}
 .dl svg{width:16px;height:16px;fill:#fff}
 .dlnote{font-size:13px;color:var(--muted);margin-top:12px}
+/* Shorts */
+.shorts{display:flex;flex-direction:column;align-items:center;padding:0 4vw 30px}
+.schips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:16px}
+.sframe{position:relative;height:min(78vh,820px);aspect-ratio:9/16;max-width:92vw;border-radius:18px;overflow:hidden;background:#000;box-shadow:0 20px 80px rgba(0,0,0,.7),0 0 0 1px #222}
+.sframe iframe,#sp{position:absolute;inset:0;width:100%;height:100%;border:0}
+.sshield{position:absolute;inset:0;z-index:2;cursor:pointer;touch-action:none}
+.sinfo{position:absolute;left:0;right:60px;bottom:0;z-index:3;padding:60px 16px 18px;background:linear-gradient(transparent,rgba(0,0,0,.85));pointer-events:none}
+.sinfo b{display:block;font-size:16px;margin-bottom:4px}.sinfo span{font-size:14px;color:#ddd;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sside{position:absolute;right:8px;bottom:24px;z-index:4;display:flex;flex-direction:column;gap:12px}
+.sside button{width:48px;height:48px;border-radius:50%;background:rgba(0,0,0,.45);display:grid;place-items:center;backdrop-filter:blur(6px);transition:transform .15s,background .2s}
+.sside button:hover{background:rgba(255,255,255,.2);transform:scale(1.08)}
+.sside svg{width:24px;height:24px;fill:#fff}
+.sside .liked svg{fill:var(--accent)}
+.sload{position:absolute;inset:0;z-index:5;background:#000;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;transition:opacity .5s;color:#aaa;font-size:14px}
+.sload.gone{opacity:0;pointer-events:none}
+.spaused{position:absolute;inset:0;z-index:3;display:grid;place-items:center;pointer-events:none;opacity:0;transition:opacity .25s}
+.sframe.paused .spaused{opacity:1}
+.spaused svg{width:80px;height:80px;fill:rgba(255,255,255,.9);filter:drop-shadow(0 0 20px rgba(0,0,0,.6))}
+.sframe.slide-up{animation:sup .45s cubic-bezier(.2,.9,.3,1)}.sframe.slide-down{animation:sdn .45s cubic-bezier(.2,.9,.3,1)}
+@keyframes sup{from{transform:translateY(40px);opacity:.3}to{transform:none;opacity:1}}
+@keyframes sdn{from{transform:translateY(-40px);opacity:.3}to{transform:none;opacity:1}}
+.heart{position:absolute;z-index:6;font-size:90px;pointer-events:none;animation:hb .9s ease-out forwards;transform:translate(-50%,-50%)}
+@keyframes hb{0%{transform:translate(-50%,-50%) scale(.3);opacity:0}25%{transform:translate(-50%,-50%) scale(1.2);opacity:1}100%{transform:translate(-50%,-130%) scale(1);opacity:0}}
+.sunmute{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:6;background:#fff;color:#000;font-weight:700;font-size:13px;padding:8px 14px;border-radius:20px;display:none}
+.sunmute.on{display:block}
+.shint{margin-top:14px;color:var(--muted);font-size:13px}
+.scards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;width:100%;max-width:1100px}
+.scard{border-radius:14px;overflow:hidden;background:var(--panel);aspect-ratio:9/14;position:relative;display:flex;flex-direction:column;justify-content:flex-end;padding:18px;transition:transform .2s}
+.scard:hover{transform:translateY(-4px)}
+.scard .big{font-size:15px;padding:10px 16px;margin-top:12px;justify-content:center}
+/* Sign in */
+.gbtn{display:inline-flex;align-items:center;gap:12px;background:#fff;color:#1f1f1f;font-weight:600;font-size:17px;padding:14px 28px;border-radius:30px;box-shadow:0 6px 30px rgba(0,0,0,.4);transition:transform .15s}
+.gbtn:hover{transform:scale(1.04)}.gbtn svg{width:22px;height:22px}
+.skip{margin-top:18px;color:#aaa;text-decoration:underline;font-size:14px}
+.signp{color:#bbb;max-width:460px;text-align:center;line-height:1.6;margin:-16px 0 30px}
+.acct{font-size:12px;color:var(--muted);padding:2px 10px 8px}
 @media(max-width:760px){
  header{gap:14px;padding:12px 4vw;flex-wrap:wrap}
  nav{order:3;width:100%;gap:18px}
@@ -238,6 +274,7 @@ footer a{text-decoration:underline}
   <div class="logo" onclick="location.hash='home'">MARQUEE</div>
   <nav>
     <a href="#home" data-v="home">Home</a>
+    <a href="#shorts" data-v="shorts">Shorts</a>
     <a href="#browse" data-v="browse">Browse</a>
     <a href="#my-list" data-v="my-list">My List</a>
   </nav>
@@ -257,6 +294,14 @@ footer a{text-decoration:underline}
   <div class="stip" id="stip">Dimming the lights…</div>
 </div>
 <div class="grain" id="grain"></div>
+
+<div class="who" id="signin">
+  <div class="logo">MARQUEE</div>
+  <h1>Sign in to Marquee</h1>
+  <p class="signp">Sign in with Google and your profiles, My List and Continue Watching follow you to any phone, tablet or computer.</p>
+  <button class="gbtn" id="gbtn"><svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Sign in with Google</button>
+  <button class="skip" id="skipSign">Continue without signing in</button>
+</div>
 
 <div class="who" id="who">
   <div class="logo">MARQUEE</div>
@@ -297,7 +342,7 @@ footer a{text-decoration:underline}
 
 <footer>
   Marquee shows videos from official YouTube channels like MrBeast, Minecraft and Nintendo of America.
-  Videos belong to their creators and play from YouTube. Profiles and lists are saved on this device.
+  Videos belong to their creators and play through YouTube. Sign in with Google to save your profiles and lists to your account.
 </footer>
 
 <div class="modal" id="modal">
@@ -354,11 +399,31 @@ const FILMS = [
   desc:'Jimmy spends 50 hours inside a coffin underground, with only cameras and his friends on the radio to keep him company.'},
  {id:'mbblind',yt:'TJ2ifmkGGus',title:'1,000 Blind People See For The First Time',channel:'MrBeast',year:2023,genres:['MrBeast','Feel-Good'],scene:'beast',hue:170,match:96,
   desc:'MrBeast pays for cataract surgery for 1,000 people so they can see again, and films the moments they see their families.'},
+
+ {id:'chmrbeast',list:'UULFX6OQ3DkcsbYNE6H8uQQuVA',title:'MrBeast — Latest Videos',channel:'MrBeast',year:'Always new',genres:['Channels','MrBeast'],scene:'beast',hue:210,match:99,
+  desc:'Plays MrBeast\'s newest uploads, one after another. It updates by itself every time he posts.'},
+ {id:'chh1t1',list:'UULFE7spuKzxP1k8A-XucxxUAQ',title:'H1T1 — Latest Videos',channel:'John Casterline (H1T1)',year:'Always new',genres:['Channels'],scene:'synth',hue:20,match:97,teen:true,
+  desc:'The newest long videos from H1T1, playing back to back. It updates by itself every time he posts.'},
+ {id:'chhxsain',list:'UULFZfTWLrTkaoZoSx5fkrAPJA',title:'hxsain — Latest Videos',channel:'hxsain',year:'Always new',genres:['Channels'],scene:'city',hue:250,match:96,teen:true,
+  desc:'The newest long videos from hxsain, playing back to back. It updates by itself every time he posts.'},
+ {id:'chdude',list:'UULFRijo3ddMTht_IHyNSNXpNQ',title:'Dude Perfect — Latest Videos',channel:'Dude Perfect',year:'Always new',genres:['Channels','Challenges'],scene:'desert',hue:200,match:96,
+  desc:'Trick shots, battles and stereotypes from Dude Perfect, always starting with their newest video.'},
+ {id:'chrober',list:'UULFY1kMZp36IQSyNx_9h4mpCg',title:'Mark Rober — Latest Videos',channel:'Mark Rober',year:'Always new',genres:['Channels','Feel-Good'],scene:'space',hue:200,match:97,
+  desc:'Giant science builds, crazy experiments and engineering pranks from Mark Rober, newest first.'},
+ {id:'chminecraft',list:'UULF1sELGmy5jp5fQUugmuYlXQ',title:'Minecraft — Latest Videos',channel:'Minecraft',year:'Always new',genres:['Channels','Minecraft'],scene:'blocks',hue:205,match:96,
+  desc:'Every new video from the official Minecraft channel: updates, LIVE shows and behind-the-scenes, newest first.'},
+];
+const SHORTS=[
+ {name:'H1T1',list:'UUSHE7spuKzxP1k8A-XucxxUAQ',handle:'H1T1',teen:true,hue:20},
+ {name:'hxsain',list:'UUSHZfTWLrTkaoZoSx5fkrAPJA',handle:'hxsain',teen:true,hue:250},
+ {name:'MrBeast',list:'UUSHX6OQ3DkcsbYNE6H8uQQuVA',handle:'MrBeast',hue:200},
+ {name:'Dude Perfect',list:'UUSHRijo3ddMTht_IHyNSNXpNQ',handle:'DudePerfect',hue:205},
+ {name:'Mark Rober',list:'UUSHY1kMZp36IQSyNx_9h4mpCg',handle:'MarkRober',hue:160},
 ];
 FILMS.forEach((f,i)=>{f.seed=i*37+5;f.color=true});
 const byId=id=>FILMS.find(f=>f.id===id);
-const GENRES=['All','MrBeast','Challenges','Feel-Good','Minecraft','Nintendo','Live Shows'];
-const ytURL=f=>`https://www.youtube.com/watch?v=${f.yt}`;
+const GENRES=['All','Channels','MrBeast','Challenges','Feel-Good','Minecraft','Nintendo','Live Shows'];
+const ytURL=f=>f.list?`https://www.youtube.com/playlist?list=${f.list}`:`https://www.youtube.com/watch?v=${f.yt}`;
 const CAN_EMBED=/^https?:$/.test(location.protocol)&&!/(claude|anthropic|claudeusercontent)/i.test(location.hostname);
 
 /* ---------- Backdrop scenes ---------- */
@@ -533,7 +598,7 @@ function makePoster(f){
 }
 
 /* ---------- State ---------- */
-const store={get(k,d){try{const v=localStorage.getItem('marquee2_'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('marquee2_'+k,JSON.stringify(v))}catch(e){}}};
+const store={get(k,d){try{const v=localStorage.getItem('marquee2_'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('marquee2_'+k,JSON.stringify(v))}catch(e){};if(window.cloudTouch&&(k==='profiles'||k.startsWith('list_')||k.startsWith('recent_')))cloudTouch()}};
 let myList=[],recent=[];
 const FACES=[
  '<svg viewBox="0 0 100 100"><circle cx="34" cy="40" r="7" fill="#fff"/><circle cx="66" cy="40" r="7" fill="#fff"/><path d="M28 62 Q50 82 72 62" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round"/></svg>',
@@ -563,17 +628,19 @@ function syncListBtns(){$('#hList').textContent=inList(heroF.id)?'✓':'+';if(M.
 /* ---------- Rows ---------- */
 function card(f,rank){return `<div class="card" data-id="${f.id}" tabindex="0" role="button" aria-label="${f.title}"><img src="${thumb(f)}" alt="" loading="lazy">${rank?`<span class="rank">TOP ${rank}</span>`:''}
  <div class="hov"><span class="pl" data-play="${f.id}" title="Play">▶</span><div class="ci"><b>${f.title}</b><small>${f.channel} · ${f.year}</small></div></div></div>`}
-let REAL_THUMBS=false;const thumb=f=>REAL_THUMBS?`https://i.ytimg.com/vi/${f.yt}/hqdefault.jpg`:f.img;
+let REAL_THUMBS=false;const thumb=f=>REAL_THUMBS&&f.yt?`https://i.ytimg.com/vi/${f.yt}/hqdefault.jpg`:f.img;
 function row(title,list,ranked){if(!list.length)return'';return `<section class="row"><h2>${title}</h2><div class="rw"><button class="arr l" aria-label="Scroll left">‹</button><div class="track">${list.map((f,i)=>card(f,ranked?i+1:0)).join('')}</div><button class="arr r" aria-label="Scroll right">›</button></div></section>`}
 const G=g=>LIB().filter(f=>f.genres.includes(g));
 
 let view='home',browseG='All';
 function render(){
  const main=$('#main'),q=$('#q').value.trim().toLowerCase();
+ if(view!=='shorts'||q)destroyShorts();
  document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',!q&&a.dataset.v===view));
  const showHero=!q&&view==='home';$('#hero').style.display=showHero?'':'none';main.classList.toggle('flat',!showHero);
  if(q){const res=LIB().filter(f=>[f.title,f.desc,f.channel,f.year,...f.genres].join(' ').toLowerCase().includes(q));
   main.innerHTML=`<div class="ph"><h1>Results for “${q.replace(/</g,'&lt;')}”</h1><span>${res.length} title${res.length===1?'':'s'}</span></div>`+(res.length?`<div class="grid">${res.map(f=>card(f)).join('')}</div>`:`<div class="empty"><b>No matches</b>Try “MrBeast”, “Minecraft” or “challenge”.</div>`);return}
+ if(view==='shorts'){renderShorts(main);return}
  if(view==='browse'){const list=browseG==='All'?LIB():G(browseG);
   main.innerHTML=`<div class="ph"><h1>Browse</h1><span>${list.length} films</span></div><div class="chips">${GENRES.map(g=>`<button class="chip ${g===browseG?'on':''}" data-g="${g}">${g}</button>`).join('')}</div><div class="grid">${list.map(f=>card(f)).join('')}</div>`;return}
  if(view==='my-list'){const list=myList.map(byId).filter(f=>f&&visible(f));
@@ -581,9 +648,9 @@ function render(){
  const top=['mbsquid','mbcircle','mbwonka','mkwdirect','mbages','mclivemar25','mbblind','mbburied'].map(byId).filter(visible);
  const ok=x=>x&&visible(x);
  main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok))+row('My List',myList.map(byId).filter(ok))+row('Top 10 Videos',top,true)+row('New This Year',LIB().filter(f=>f.added))+
-  row('MrBeast',G('MrBeast'))+row('Insane Challenges',G('Challenges'))+row('Minecraft',G('Minecraft'))+row('Nintendo',G('Nintendo'))+row('Live Shows & Directs',G('Live Shows'));
+  row('Latest From Your Favorite Channels',G('Channels'))+row('MrBeast',G('MrBeast'))+row('Insane Challenges',G('Challenges'))+row('Minecraft',G('Minecraft'))+row('Nintendo',G('Nintendo'))+row('Live Shows & Directs',G('Live Shows'));
 }
-function route(){const v=(location.hash||'#home').slice(1);view=['home','browse','my-list'].includes(v)?v:'home';$('#q').value='';render();window.scrollTo(0,0)}
+function route(){const v=(location.hash||'#home').slice(1);view=['home','shorts','browse','my-list'].includes(v)?v:'home';$('#q').value='';render();window.scrollTo(0,0)}
 window.addEventListener('hashchange',route);
 $('#q').addEventListener('input',render);
 document.addEventListener('click',e=>{
@@ -654,23 +721,24 @@ function startVideo(f,body){
   <div class="vintro" id="vintro"><div class="slogo">MARQUEE</div><div class="vt">${esc(f.title)}</div><div class="vspin"></div></div>
   <div class="vend" id="vend"></div>
   <div class="vctl"><input type="range" class="vseek" id="vseek" min="0" max="1000" value="0" aria-label="Seek">
-   <div class="vrow"><button class="ib" id="vpp">${VI.play}</button><button class="ib" id="vbk" title="Back 10s">${VI.back}</button><button class="ib" id="vfw" title="Forward 10s">${VI.fwd}</button>
+   <div class="vrow"><button class="ib" id="vpp">${VI.play}</button><button class="ib" id="vbk" title="Back 10s">${VI.back}</button><button class="ib" id="vfw" title="Forward 10s">${VI.fwd}</button>${f.list?`<button class="ib" id="vnx" title="Next video"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm10-12v12h2V6h-2z"/></svg></button>`:''}
    <button class="ib" id="vmute">${VI.vol}</button><input type="range" class="vvol" id="vvol" min="0" max="100" value="${vVol}" aria-label="Volume"><span class="vtime" id="vtime">0:00 / 0:00</span>
    <span class="sp"></span><button class="ib" id="vfs" title="Fullscreen (F)">${VI.fs}</button></div></div></div>`;
  vfill($('#vvol'));
  ensureYT().then(()=>{if(!P.open||P.f!==f)return;
-  YTP=new YT.Player('ytp',{videoId:f.yt,host:'https://www.youtube-nocookie.com',
-   playerVars:{autoplay:1,controls:0,rel:0,playsinline:1,iv_load_policy:3,disablekb:1,fs:0,modestbranding:1,cc_load_policy:0},
+  const pv={autoplay:1,controls:0,rel:0,playsinline:1,iv_load_policy:3,disablekb:1,fs:0,modestbranding:1,cc_load_policy:0};if(f.list){pv.listType='playlist';pv.list=f.list}
+  YTP=new YT.Player('ytp',{...(f.list?{}:{videoId:f.yt}),host:'https://www.youtube-nocookie.com',
+   playerVars:pv,
    events:{onReady:e=>{try{e.target.setVolume(vVol);if(vMuted)e.target.mute();e.target.playVideo()}catch(x){}},
     onStateChange:e=>onVState(e.data,f),onError:()=>fallbackEmbed(f)}});
   clearInterval(vTick);vTick=setInterval(vUpdate,250)
  }).catch(()=>fallbackEmbed(f));
  wireV();vPoke()}
-function fallbackEmbed(f){if(!P.open)return;stopVideo();$('#pBody').innerHTML=`<div class="vp"><iframe src="https://www.youtube-nocookie.com/embed/${f.yt}?autoplay=1&rel=0&playsinline=1" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen title="${esc(f.title)}"></iframe></div>`}
+function fallbackEmbed(f){if(!P.open)return;stopVideo();$('#pBody').innerHTML=`<div class="vp"><iframe src="https://www.youtube-nocookie.com/embed/${f.list?'videoseries?list='+f.list+'&':f.yt+'?'}autoplay=1&rel=0&playsinline=1" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen title="${esc(f.title)}"></iframe></div>`}
 function onVState(st,f){const vp=$('#vp');if(!vp)return;
  vp.classList.toggle('paused',st===2||st===-1||st===5);vp.classList.toggle('buffering',st===3);
  $('#vpp').innerHTML=st===1?VI.pause:VI.play;
- if(st===1){setTimeout(()=>{const vi=$('#vintro');if(vi)vi.classList.add('gone')},500);vPoke()}
+ if(st===1){setTimeout(()=>{const vi=$('#vintro');if(vi)vi.classList.add('gone')},500);vPoke();if(f.list){try{const d=YTP.getVideoData();if(d&&d.title)$('#pName').textContent=d.title}catch(e){}}}
  if(st===2)$('#player').classList.remove('idle');
  if(st===0)vEnded(f)}
 function vUpdate(){if(!YTP||!YTP.getDuration)return;try{const d=YTP.getDuration()||0,t=YTP.getCurrentTime()||0;
@@ -682,7 +750,7 @@ function vFS(){const el=$('#player');try{if(document.fullscreenElement)document.
 function vPoke(){const p=$('#player');p.classList.remove('idle');clearTimeout(vIdle);vIdle=setTimeout(()=>{try{if(P.open&&YTP&&YTP.getPlayerState&&YTP.getPlayerState()===1)p.classList.add('idle')}catch(e){}},2600)}
 function wireV(){
  $('#vshield').onclick=vToggle;$('#vshield').ondblclick=vFS;$('#vpp').onclick=vToggle;
- $('#vbk').onclick=()=>vSeekBy(-10);$('#vfw').onclick=()=>vSeekBy(10);$('#vfs').onclick=vFS;
+ $('#vbk').onclick=()=>vSeekBy(-10);const nb=$('#vnx');if(nb)nb.onclick=()=>{try{YTP.nextVideo()}catch(e){}};$('#vfw').onclick=()=>vSeekBy(10);$('#vfs').onclick=vFS;
  $('#vmute').onclick=()=>vSetMute(!vMuted);
  $('#vvol').oninput=e=>{vVol=+e.target.value;store.set('vol',vVol);vfill(e.target);if(YTP&&YTP.setVolume){YTP.setVolume(vVol);if(vVol>0&&vMuted)vSetMute(false)}$('#vmute').innerHTML=vVol==0?VI.mute:VI.vol};
  const sk=$('#vseek');sk.oninput=()=>{vDrag=true;vfill(sk);try{$('#vtime').textContent=vfmt(sk.value/1000*YTP.getDuration())+' / '+vfmt(YTP.getDuration())}catch(e){}};
@@ -714,10 +782,10 @@ function loop(now){const dt=Math.min(.1,(now-last)/1000);last=now;clock+=dt;
  else if(!document.hidden&&$('#hero').style.display!=='none'&&scrollY<innerHeight*.85)drawScene($('#heroCv'),heroF,clock);
  requestAnimationFrame(loop)}
 /* ---------- Profiles ---------- */
-function renderMe(){$('#me').innerHTML=`${avHTML(CUR)}<div class="menu"><div class="cur">Watching as<b>${esc(CUR.name)}${CUR.kids?' · Kids':''}</b></div><hr>${profiles.filter(p=>p.id!==PID).map(p=>`<button data-pick="${p.id}">${avHTML(p)}${esc(p.name)}</button>`).join('')}<hr><button data-act="manage">✎&nbsp; Manage Profiles</button><button data-act="switch">⇄&nbsp; Switch Profile</button></div>`}
+function renderMe(){$('#me').innerHTML=`${avHTML(CUR)}<div class="menu"><div class="cur">Watching as<b>${esc(CUR.name)}${CUR.kids?' · Kids':''}</b></div>${ACC.user?`<div class="acct">☁ Saved to ${esc(ACC.user.email||'your Google account')}</div>`:''}<hr>${profiles.filter(p=>p.id!==PID).map(p=>`<button data-pick="${p.id}">${avHTML(p)}${esc(p.name)}</button>`).join('')}<hr><button data-act="manage">✎&nbsp; Manage Profiles</button><button data-act="switch">⇄&nbsp; Switch Profile</button>${ACC.user?'<button data-act="signout">↩&nbsp; Sign out</button>':'<button data-act="signin">G&nbsp; Sign in with Google</button>'}</div>`}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let managing=false;
-function showWho(manage){managing=!!manage;closeModal();if(P.open)closePlayer();$('#me').classList.remove('open');
+function showWho(manage){managing=!!manage;$('#signin').classList.remove('on');closeModal();if(P.open)closePlayer();$('#me').classList.remove('open');
  $('#whoT').textContent=managing?'Manage Profiles':"Who's watching?";$('#mng').textContent=managing?'Done':'Manage Profiles';$('#mng').classList.toggle('done',managing);
  $('#pgrid').innerHTML=profiles.map((p,i)=>`<div class="prof ${managing?'edit':''}" data-prof="${p.id}" style="animation-delay:${i*.07}s">${avHTML(p)}<div class="nm">${esc(p.name)}</div></div>`).join('')+
   (profiles.length<5?`<div class="prof" data-prof="new" style="animation-delay:${profiles.length*.07}s"><div class="av addav">+</div><div class="nm">Add Profile</div></div>`:'');
@@ -731,7 +799,7 @@ $('#pgrid').addEventListener('click',e=>{const el=e.target.closest('[data-prof]'
  if(id==='new')openEditor(null);else if(managing)openEditor(id);else pick(id)});
 $('#me').addEventListener('click',e=>{
  const pk=e.target.closest('[data-pick]');if(pk){pick(pk.dataset.pick);return}
- const ac=e.target.closest('[data-act]');if(ac){showWho(ac.dataset.act==='manage');return}
+ const ac=e.target.closest('[data-act]');if(ac){const a=ac.dataset.act;if(a==='signout'){accSignOut();return}if(a==='signin'){$('#me').classList.remove('open');showSignIn();return}showWho(a==='manage');return}
  if(e.target.closest('#me>.av'))$('#me').classList.toggle('open')});
 document.addEventListener('click',e=>{if(!e.target.closest('#me'))$('#me').classList.remove('open')});
 let draft=null;
@@ -758,6 +826,88 @@ $('#peDel').onclick=()=>{profiles=profiles.filter(x=>x.id!==draft.id);store.set(
  if(PID===draft.id){PID=null;CUR=null}$('#pe').classList.remove('on');showWho(true);toast('Profile deleted')};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#pe').classList.contains('on'))$('#pe').classList.remove('on')});
 
+/* ---------- Google accounts (Firebase, same project as SkyCast & the arcade) ---------- */
+const FB_CONFIG={apiKey:"AIzaSyCZWdgqgqt04-8olhaB0aLDqtYM0BQZ8_A",authDomain:"celestial-now-514716-d4.firebaseapp.com",projectId:"celestial-now-514716-d4",
+ storageBucket:"celestial-now-514716-d4.firebasestorage.app",messagingSenderId:"22824472007",appId:"1:22824472007:web:da68fec7c7776bb764dde2"};
+const FBV="https://www.gstatic.com/firebasejs/10.12.2/";
+const ACC={F:null,user:null,ready:null,pulling:false};
+let pushT=null;
+ACC.ready=(async()=>{if(!CAN_EMBED)throw new Error('not on website');
+ const [a,au,fs]=await Promise.all([import(FBV+'firebase-app.js'),import(FBV+'firebase-auth.js'),import(FBV+'firebase-firestore.js')]);
+ const app=a.initializeApp(FB_CONFIG,'marquee');ACC.F={au,fs,auth:au.getAuth(app),db:fs.getFirestore(app)};
+ try{await au.getRedirectResult(ACC.F.auth)}catch(e){}
+ await new Promise(res=>{let first=true;au.onAuthStateChanged(ACC.F.auth,async u=>{const was=ACC.user;ACC.user=u;
+  if(first){first=false;res();return}
+  if(u&&!was){await pullCloud();if($('#signin').classList.contains('on')){$('#signin').classList.remove('on');showWho(false)}else if(CUR){renderMe();render()}toast('Signed in! Your profiles are saved.')}
+  if(!u&&was&&CUR)renderMe()})});
+ return ACC.F})().catch(e=>{console.warn('Accounts unavailable',e);return null});
+function cloudData(){const lists={},recents={};profiles.forEach(p=>{lists[p.id]=store.get('list_'+p.id,[]);recents[p.id]=store.get('recent_'+p.id,[])});return{profiles,lists,recents,t:Date.now()}}
+async function pushCloud(){const F=ACC.F,u=ACC.user;if(!F||!u||ACC.pulling)return;
+ try{await F.fs.setDoc(F.fs.doc(F.db,'users',u.uid),{email:u.email||'',marquee:cloudData()},{merge:true})}catch(e){console.warn('Marquee save failed',e)}}
+window.cloudTouch=()=>{if(!ACC.user||ACC.pulling)return;clearTimeout(pushT);pushT=setTimeout(pushCloud,1200)};
+async function pullCloud(){const F=ACC.F,u=ACC.user;if(!F||!u)return;
+ let d=null;try{const snap=await F.fs.getDoc(F.fs.doc(F.db,'users',u.uid));d=snap.exists()?snap.data().marquee:null}catch(e){console.warn('Marquee load failed',e);return}
+ if(d&&Array.isArray(d.profiles)&&d.profiles.length){ACC.pulling=true;
+  profiles=d.profiles;store.set('profiles',profiles);
+  profiles.forEach(p=>{store.set('list_'+p.id,(d.lists&&d.lists[p.id])||[]);store.set('recent_'+p.id,(d.recents&&d.recents[p.id])||[])});
+  ACC.pulling=false;
+  const keep=CUR&&profiles.find(p=>p.id===CUR.id);CUR=keep||profiles[0];PID=CUR.id;myList=store.get('list_'+PID,[]);recent=store.get('recent_'+PID,[])}
+ else await pushCloud()}
+function showSignIn(){closeModal();$('#who').classList.remove('on');$('#signin').classList.add('on');document.body.style.overflow='hidden'}
+$('#gbtn').onclick=async()=>{const F=await Promise.race([ACC.ready,new Promise(r=>setTimeout(()=>r(null),4000))]);
+ if(!F){toast('Google sign-in works on your website: thedailybark.dog/marquee');return}
+ const p=new F.au.GoogleAuthProvider();p.setCustomParameters({prompt:'select_account'});
+ try{await F.au.signInWithPopup(F.auth,p)}catch(e){const c=(e&&e.code)||'';
+  if(c.includes('popup-blocked')||c.includes('operation-not-supported')){try{await F.au.signInWithRedirect(F.auth,p)}catch(e2){toast('Sign-in didn’t work. Try again.')}}
+  else if(c.includes('unauthorized-domain'))toast('Google sign-in isn’t turned on for this website yet.');
+  else if(!c.includes('popup-closed')&&!c.includes('cancelled'))toast('Sign-in didn’t work. Try again.')}};
+$('#skipSign').onclick=()=>{store.set('nosignin',true);$('#signin').classList.remove('on');showWho(false)};
+async function accSignOut(){$('#me').classList.remove('open');try{await ACC.F.au.signOut(ACC.F.auth)}catch(e){}ACC.user=null;toast('Signed out. Your profiles stay on this device.');renderMe()}
+
+/* ---------- Shorts mode ---------- */
+let SP=null,sIdx=0,sCreator=0,sWheel=0,sTouchY=null,sLastTap=0,sMuteChk=null;
+const ICN={heart:'<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
+ up:'<svg viewBox="0 0 24 24"><path d="M7.4 15.4L12 10.8l4.6 4.6L18 14l-6-6-6 6z"/></svg>',down:'<svg viewBox="0 0 24 24"><path d="M7.4 8.6L12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg>'};
+const sList=()=>SHORTS.filter(c=>!(CUR&&CUR.kids&&c.teen));
+function renderShorts(main){const L=sList();if(sCreator>=L.length)sCreator=0;const c=L[sCreator];
+ if(document.getElementById('sframe')&&SP&&main.dataset.sc===c.list)return;
+ destroyShorts();main.dataset.sc=c.list;
+ const chips=`<div class="schips">${L.map((x,i)=>`<button class="chip ${i===sCreator?'on':''}" data-sc="${i}">${esc(x.name)}</button>`).join('')}</div>`;
+ if(!CAN_EMBED){main.innerHTML=`<div class="ph"><h1>Shorts</h1><span>Swipe-style short videos</span></div><div class="shorts"><div class="scards">${L.map(x=>`<div class="scard" style="background:linear-gradient(160deg,${hsl(x.hue,80,50)},${hsl(x.hue+40,70,18)})"><div class="kicker" style="color:#fff">Shorts</div><h2 style="font-size:28px">${esc(x.name)}</h2><a class="big" href="https://www.youtube.com/@${x.handle}/shorts" target="_blank" rel="noopener">▶&nbsp; Watch Shorts</a></div>`).join('')}</div><p class="shint">On your website (thedailybark.dog/marquee) Shorts play right here with swipe-to-scroll.</p></div>`;
+  main.querySelectorAll('.scard').forEach(el=>el.addEventListener('click',e=>e.stopPropagation()));return}
+ main.innerHTML=`<div class="ph"><h1>Shorts</h1><span>${esc(c.name)}</span></div><div class="shorts">${chips}
+  <div class="sframe paused" id="sframe"><div id="sp"></div><div class="sshield" id="sshield"></div><div class="spaused">${VI.play}</div>
+   <div class="sinfo"><b id="sAuthor">@${esc(c.handle)}</b><span id="sTitle">Loading…</span></div>
+   <div class="sside"><button id="sLike" title="Like">${ICN.heart}</button><button id="sMute" title="Mute">${VI.vol}</button><button id="sPrev" title="Previous">${ICN.up}</button><button id="sNext" title="Next">${ICN.down}</button></div>
+   <div class="sunmute" id="sUnmute">🔇 Tap for sound</div>
+   <div class="sload" id="sload"><div class="vspin"></div>Loading ${esc(c.name)} Shorts…</div></div>
+  <div class="shint">Scroll, swipe or press ↑ ↓ for the next Short · double-tap to like</div></div>`;
+ main.querySelectorAll('[data-sc]').forEach(b=>b.onclick=e=>{e.stopPropagation();sCreator=+b.dataset.sc;delete main.dataset.sc;destroyShorts();renderShorts(main)});
+ ensureYT().then(()=>{if(view!=='shorts'||!document.getElementById('sp'))return;
+  SP=new YT.Player('sp',{host:'https://www.youtube-nocookie.com',playerVars:{listType:'playlist',list:c.list,autoplay:1,controls:0,loop:1,playsinline:1,rel:0,iv_load_policy:3,disablekb:1,fs:0,modestbranding:1},
+   events:{onReady:e=>{try{e.target.setVolume(vVol);e.target.playVideo()}catch(x){}
+     clearTimeout(sMuteChk);sMuteChk=setTimeout(()=>{try{if(SP&&SP.getPlayerState()!==1){SP.mute();SP.playVideo();$('#sUnmute').classList.add('on');$('#sMute').innerHTML=VI.mute}}catch(x){}},1800)},
+    onStateChange:e=>{const fr=$('#sframe');if(!fr)return;fr.classList.toggle('paused',e.data===2);
+     if(e.data===1){$('#sload').classList.add('gone');try{const d=SP.getVideoData();$('#sTitle').textContent=d.title||'';$('#sAuthor').textContent='@'+(d.author||c.handle).replace(/^@/,'')}catch(x){}$('#sLike').classList.remove('liked')}},
+    onError:()=>{try{SP.nextVideo()}catch(x){}}}});
+ }).catch(()=>{const fr=$('#sframe');if(fr)fr.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/videoseries?list=${c.list}&autoplay=1&loop=1&playsinline=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`});
+ const sh=$('#sshield');
+ sh.addEventListener('click',e=>{const now=Date.now();if(now-sLastTap<300){sHeart(e);sLastTap=0;return}sLastTap=now;setTimeout(()=>{if(sLastTap===now)sToggle()},300)});
+ sh.addEventListener('wheel',e=>{e.preventDefault();const n=Date.now();if(n-sWheel<700)return;sWheel=n;e.deltaY>0?sGo(1):sGo(-1)},{passive:false});
+ sh.addEventListener('touchstart',e=>{sTouchY=e.touches[0].clientY},{passive:true});
+ sh.addEventListener('touchend',e=>{if(sTouchY==null)return;const dy=e.changedTouches[0].clientY-sTouchY;sTouchY=null;if(Math.abs(dy)>50){dy<0?sGo(1):sGo(-1)}},{passive:true});
+ $('#sNext').onclick=()=>sGo(1);$('#sPrev').onclick=()=>sGo(-1);
+ $('#sMute').onclick=()=>{if(!SP)return;const m=SP.isMuted();m?SP.unMute():SP.mute();$('#sMute').innerHTML=m?VI.vol:VI.mute;$('#sUnmute').classList.remove('on')};
+ $('#sUnmute').onclick=()=>$('#sMute').click();
+ $('#sLike').onclick=e=>{e.currentTarget.classList.toggle('liked');if(e.currentTarget.classList.contains('liked'))toast('Liked!')}}
+function sToggle(){if(!SP||!SP.getPlayerState)return;if($('#sUnmute').classList.contains('on')){SP.unMute();$('#sUnmute').classList.remove('on');$('#sMute').innerHTML=VI.vol;return}SP.getPlayerState()===1?SP.pauseVideo():SP.playVideo()}
+function sGo(d){if(!SP)return;const fr=$('#sframe');fr.classList.remove('slide-up','slide-down');void fr.offsetWidth;fr.classList.add(d>0?'slide-up':'slide-down');
+ try{d>0?SP.nextVideo():SP.previousVideo()}catch(e){}}
+function sHeart(e){const fr=$('#sframe'),r=fr.getBoundingClientRect(),h=document.createElement('div');h.className='heart';h.textContent='❤️';h.style.left=(e.clientX-r.left)+'px';h.style.top=(e.clientY-r.top)+'px';fr.appendChild(h);setTimeout(()=>h.remove(),900);$('#sLike').classList.add('liked')}
+function destroyShorts(){clearTimeout(sMuteChk);try{if(SP&&SP.destroy)SP.destroy()}catch(e){}SP=null;const m=document.getElementById('main');if(m)delete m.dataset.sc}
+document.addEventListener('keydown',e=>{if(view!=='shorts'||P.open||!SP||document.activeElement===$('#q'))return;
+ if(e.key==='ArrowDown'||e.key==='j'){e.preventDefault();sGo(1)}else if(e.key==='ArrowUp'||e.key==='k'){e.preventDefault();sGo(-1)}else if(e.key===' '){e.preventDefault();sToggle()}});
+
 /* ---------- Boot with splash ---------- */
 (function(){const n=document.createElement('canvas');n.width=n.height=160;const c=n.getContext('2d'),d=c.createImageData(160,160);
  for(let i=0;i<d.data.length;i+=4){const v=Math.random()*255;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255}c.putImageData(d,0,0);
@@ -770,7 +920,11 @@ async function boot(){const t0=performance.now(),bar=$('#sbar'),tip=$('#stip');
  bar.style.width='100%';tip.textContent='Enjoy the show';await new Promise(r=>setTimeout(r,450));
  REAL_THUMBS=await new Promise(r=>{const im=new Image();const to=setTimeout(()=>r(false),2500);im.onload=()=>{clearTimeout(to);r(im.naturalWidth>130)};im.onerror=()=>{clearTimeout(to);r(false)};im.src=`https://i.ytimg.com/vi/${FILMS[0].yt}/hqdefault.jpg`});
  CUR=profiles[0];PID=CUR.id;setFeatured();requestAnimationFrame(loop);
- showWho(false);$('#splash').classList.add('out');setTimeout(()=>$('#splash').remove(),900)}
+ tip.textContent='Checking your account…';
+ await Promise.race([ACC.ready,new Promise(r=>setTimeout(r,3500))]);
+ if(ACC.user){await pullCloud();showWho(false)}
+ else if(store.get('nosignin',false)||!CAN_EMBED)showWho(false);else showSignIn();
+ $('#splash').classList.add('out');setTimeout(()=>$('#splash').remove(),900)}
 boot();
 </script>
 </body>
