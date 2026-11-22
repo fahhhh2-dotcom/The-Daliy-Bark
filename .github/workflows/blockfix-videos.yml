@@ -1,0 +1,34 @@
+# Keeps BlockFix's videos and thumbnails fresh by reading each creator's
+# public YouTube feed every few hours and saving blockfix/videos.json.
+name: BlockFix videos
+on:
+  schedule:
+    - cron: "23 */3 * * *"
+  push:
+    branches: [main]
+    paths: ["blockfix/creators.json", "blockfix/update_videos.py", ".github/workflows/blockfix-videos.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: blockfix-videos
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch newest videos
+        run: python blockfix/update_videos.py
+      - name: Save if changed
+        run: |
+          if git diff --quiet -- blockfix/videos.json && git ls-files --error-unmatch blockfix/videos.json >/dev/null 2>&1; then
+            echo "No changes."; exit 0
+          fi
+          git config user.name "BlockFix Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add blockfix/videos.json
+          git commit -qm "BlockFix: refresh videos"
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin main && break; sleep 5; done

@@ -1,0 +1,38 @@
+[
+  {"name":"Dream","id":"UCTkXRDQl0luXxVQrRQvWS6w","game":"Minecraft","desc":"Manhunts, speedruns and impossible challenges."},
+  {"name":"Technoblade","id":"UCFAiFyGs6oDiF1Nf-rRJpZA","game":"Minecraft","desc":"Legendary PvP, Hypixel and potato wars. Technoblade never dies."},
+  {"name":"Grian","id":"UCR9Gcq0CMm6YgTzsDxAxjOQ","game":"Minecraft","desc":"Pranks, gorgeous builds, Hermitcraft and the Life Series."},
+  {"name":"Mumbo Jumbo","id":"UChFur_NwVSbUozOcF_F2kMg","game":"Minecraft","desc":"Redstone genius with secret doors and giant machines."},
+  {"name":"DanTDM","id":"UCS5Oz6CHmeoF7vSad0qqXfw","game":"Minecraft","desc":"Mods, maps and lots of laughs from a gaming classic."},
+  {"name":"CaptainSparklez","id":"UCshoKvlZGZ20rVgazZp5vnQ","game":"Minecraft","desc":"Minecraft songs, parodies and years of gameplay."},
+  {"name":"Aphmau","id":"UCzYfz8uibvnB7Yc1LjePi4g","game":"Minecraft","desc":"Roleplay series full of drama, friends and surprises."},
+  {"name":"PrestonPlayz","id":"UCJZam2u1G0syq3kyqrCXrNw","game":"Minecraft","desc":"High-energy challenges, traps and secret bases."},
+  {"name":"LDShadowLady","id":"UCzTlXb7ivVzuFlugVCv3Kvg","game":"Minecraft","desc":"Cozy builds, Empires SMP and the Life Series."},
+  {"name":"TommyInnit","id":"UC5p_l5ZeB_wGjO_yDXwiqvw","game":"Minecraft","desc":"Loud, chaotic Minecraft mods and SMP adventures."},
+  {"name":"GeorgeNotFound","id":"UCA2tt9GSU2sl8rAqjlLR3mQ","game":"Minecraft","desc":"Dream Team manhunts and goofy experiments."},
+  {"name":"Sapnap","id":"UCqynl7rdtktKMQESdSBmE-g","game":"Minecraft","desc":"Dream Team member with fiery challenges."},
+  {"name":"Skeppy","id":"UCzMjRlKVO9XIqH_crIFpi6w","game":"Minecraft","desc":"Diamond-block trolls, pranks and Hypixel chaos."},
+  {"name":"ItsFunneh","id":"UCUk7VggtJdo9XYTy3Z5QVAw","game":"Minecraft","desc":"The Krew's funny roleplays and adventures."},
+  {"name":"xisumavoid","id":"UCU9pX8hKcrx06XfOB-VQLdw","game":"Minecraft","desc":"Hermitcraft's leader and Minecraft update news."},
+  {"name":"Stampy","handle":"stampycat","game":"Minecraft","desc":"Stampy's Lovely World: kind, cozy Minecraft fun."},
+  {"name":"Philza","handle":"ph1lza","game":"Minecraft","desc":"Hardcore legend with years-long survival worlds."},
+
+  {"name":"Unspeakable","id":"UCwIWAbIeu0xI0ReKWOcw3eg","game":"Variety","desc":"Huge challenges, pranks and gaming madness."},
+  {"name":"MrBeast Gaming","handle":"MrBeastGaming","game":"Variety","desc":"Giant-prize gaming challenges with the MrBeast crew."},
+  {"name":"Jelly","handle":"Jelly","game":"Variety","desc":"GTA, Minecraft and goofy gaming chaos."},
+  {"name":"SSundee","handle":"SSundee","game":"Variety","desc":"Among Us, mods and funny gaming with friends."},
+  {"name":"Markiplier","handle":"markiplier","game":"Horror","desc":"Scary games, screams and big laughs."},
+  {"name":"jacksepticeye","handle":"jacksepticeye","game":"Horror","desc":"High-energy horror and indie games."},
+  {"name":"CoryxKenshin","handle":"CoryxKenshin","game":"Horror","desc":"Spooky Scary Sunday and hilarious reactions."},
+
+  {"name":"Ninja","handle":"Ninja","game":"Fortnite","desc":"One of the most famous Fortnite players ever."},
+  {"name":"Lachlan","handle":"Lachlan","game":"Fortnite","desc":"Fortnite challenges, customs and new seasons."},
+  {"name":"SypherPK","handle":"SypherPK","game":"Fortnite","desc":"Fortnite tips, secrets and pro-level plays."},
+  {"name":"Typical Gamer","handle":"TypicalGamer","game":"Fortnite","desc":"Fortnite, GTA and big gaming events."},
+  {"name":"Ali-A","handle":"AliA","game":"Fortnite","desc":"Fortnite news, new skins and updates."},
+
+  {"name":"KreekCraft","handle":"KreekCraft","game":"Roblox","desc":"Roblox news, events and new games."},
+  {"name":"Flamingo","handle":"Flamingo","game":"Roblox","desc":"Wild, chaotic Roblox adventures."},
+  {"name":"Thinknoodles","handle":"Thinknoodles","game":"Roblox","desc":"Family-friendly Roblox and more."},
+  {"name":"DenisDaily","handle":"Denis","game":"Roblox","desc":"Roblox games with Denis and friends."}
+]
