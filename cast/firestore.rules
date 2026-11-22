@@ -167,6 +167,19 @@ service cloud.firestore {
       allow read, write: if signedIn() && uid == me();
     }
 
+    // CastTV live sync: each account's profiles live under a long secret key that only
+    // that person's devices (and TVs they link) know. "get" only — the list can't be browsed.
+    match /mqsync/{key} {
+      allow get, create, update: if key.size() >= 32 && key.size() <= 64;
+    }
+    // CastTV "Link a TV" codes: the TV makes a 6-character code, a signed-in phone fills in the key
+    match /tvlinks/{code} {
+      allow get, delete: if code.matches('^[A-Z0-9]{6}$');
+      allow create: if code.matches('^[A-Z0-9]{6}$') && request.resource.data.keys().hasOnly(['at']);
+      allow update: if signedIn() && code.matches('^[A-Z0-9]{6}$') && !('key' in resource.data)
+        && request.resource.data.keys().hasOnly(['at', 'key', 'name']);
+    }
+
     // Admin list — you add yourself here by hand in the console
     match /admins/{uid} {
       allow read: if signedIn() && uid == me();

@@ -725,6 +725,27 @@ main{margin-top:-16vh}
  main{margin-top:-8vh}
  .cav{width:28px;height:28px;font-size:12px}
 }
+
+/* ===== Link a TV ===== */
+.linkov{position:fixed;inset:0;z-index:900;background:rgba(3,7,18,.92);backdrop-filter:blur(8px);display:grid;place-items:center;padding:20px;animation:fi .3s}
+.linkov.out{animation:fo .3s forwards}
+.linkbox{width:min(560px,94vw);background:linear-gradient(180deg,#0d1a33,#08111f);border:1px solid rgba(120,170,255,.2);border-radius:22px;padding:34px 34px 28px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.6);animation:pop .4s cubic-bezier(.22,1,.36,1)}
+.linkbox .logo{justify-content:center;font-size:30px;margin-bottom:14px}
+.linkbox h2{font-size:28px;margin-bottom:12px}
+.linkbox p{color:#a9b8d4;line-height:1.5;margin-bottom:18px}
+.linkbox ol{text-align:left;color:#c9d5ea;line-height:1.7;margin:0 auto 18px;max-width:420px;padding-left:22px}
+.lcode{display:flex;justify-content:center;gap:10px;margin:8px 0 20px}
+.lcode span{width:58px;height:72px;display:grid;place-items:center;font-family:'CastDisplay','Bebas Neue',sans-serif;font-size:50px;color:#fff;background:#0a1730;border:2px solid rgba(56,189,248,.5);border-radius:12px;box-shadow:0 0 22px rgba(56,189,248,.25)}
+.lwait{display:flex;align-items:center;justify-content:center;gap:10px;color:#7dd3fc;margin-bottom:18px}
+.lwait i{width:16px;height:16px;border-radius:50%;border:2px solid rgba(125,211,252,.3);border-top-color:#7dd3fc;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lok{width:74px;height:74px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;font-size:38px;color:#fff;background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 0 40px rgba(34,197,94,.5);animation:pop .45s cubic-bezier(.34,1.56,.64,1)}
+#lkIn{width:100%;font-family:'CastDisplay','Bebas Neue',sans-serif;font-size:42px;letter-spacing:14px;text-align:center;text-transform:uppercase;background:#0a1730;border:2px solid rgba(56,189,248,.45);border-radius:14px;color:#fff;padding:10px;margin-bottom:16px;outline:none}
+#lkIn:focus{border-color:#38bdf8;box-shadow:0 0 0 4px rgba(56,189,248,.2)}
+.lkrow{display:flex;gap:10px;justify-content:center}.lkrow .btn{border-radius:999px}
+#lkMsg{display:block;margin-top:12px;color:#fca5a5;min-height:18px}
+.who .lnk{margin-top:12px;border-color:rgba(56,189,248,.5)!important;color:#7dd3fc!important}
+.who .synced{margin-top:16px;color:#7dd3fc;font-size:14px;opacity:.85}
 </style>
 </head>
 <body>
@@ -780,6 +801,8 @@ main{margin-top:-16vh}
   <h1 id="whoT">Who's watching?</h1>
   <div class="pgrid" id="pgrid"></div>
   <button class="mng" id="mng">Manage Profiles</button>
+  <button class="mng lnk" id="lnkBtn">📱 Link your account</button>
+  <div class="synced" id="syncedNote"></div>
 </div>
 
 <div class="pe" id="pe">
@@ -1586,13 +1609,14 @@ function loop(now){requestAnimationFrame(loop);if(now-lastDraw<FRAME_MS)return;l
  else if(M.open){if(!bigOn($('#mImg')))drawScene($('#mCv'),M.f,clock)}
  else if($('#hero').style.display!=='none'&&scrollY<innerHeight*.85&&!bigOn($('#heroImg'))&&!document.querySelector('#splash,.who.on'))drawScene($('#heroCv'),heroF,clock)}
 /* ---------- Profiles ---------- */
-function renderMe(){$('#me').innerHTML=`${avHTML(CUR)}<div class="menu"><div class="cur">Watching as<b>${esc(CUR.name)}${CUR.kids?' · Kids':''}</b></div>${ACC.user?`<div class="acct">☁ Saved to ${esc(ACC.user.email||'your Google account')}</div>`:''}<hr>${profiles.filter(p=>p.id!==PID).map(p=>`<button data-pick="${p.id}">${avHTML(p)}${esc(p.name)}</button>`).join('')}<hr><button data-act="manage">✎&nbsp; Manage Profiles</button><button data-act="switch">⇄&nbsp; Switch Profile</button><button data-act="interests">⭐&nbsp; My interests</button><button data-act="surprise">🎲&nbsp; Surprise me</button><button data-act="sound" class="${SFX.on?'sfxon':''}">${SFX.on?'🔊':'🔈'}&nbsp; Sounds: ${SFX.on?'On':'Off'}</button>${ACC.user?'<button data-act="signout">↩&nbsp; Sign out</button>':'<button data-act="signin">G&nbsp; Sign in with Google</button>'}</div>`}
+function renderMe(){$('#me').innerHTML=`${avHTML(CUR)}<div class="menu"><div class="cur">Watching as<b>${esc(CUR.name)}${CUR.kids?' · Kids':''}</b></div>${ACC.user?`<div class="acct">☁ Synced to ${esc(ACC.user.email||'your Google account')}</div>`:SYNC.key?`<div class="acct">☁ Linked to ${esc(SYNC.name||'your account')}</div>`:''}<hr>${profiles.filter(p=>p.id!==PID).map(p=>`<button data-pick="${p.id}">${avHTML(p)}${esc(p.name)}</button>`).join('')}<hr><button data-act="manage">✎&nbsp; Manage Profiles</button><button data-act="switch">⇄&nbsp; Switch Profile</button><button data-act="interests">⭐&nbsp; My interests</button><button data-act="surprise">🎲&nbsp; Surprise me</button><button data-act="sound" class="${SFX.on?'sfxon':''}">${SFX.on?'🔊':'🔈'}&nbsp; Sounds: ${SFX.on?'On':'Off'}</button>${ACC.user?'<button data-act="linktv">📺&nbsp; Link a TV</button><button data-act="signout">↩&nbsp; Sign out</button>':SYNC.key?'<button data-act="unlink">↩&nbsp; Unlink this device</button>':IN_TV_APP?'<button data-act="linkme">📱&nbsp; Link your account</button>':'<button data-act="signin">G&nbsp; Sign in with Google</button>'}</div>`}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let managing=false;
 function showWho(manage){managing=!!manage;$('#signin').classList.remove('on');closeModal();if(P.open)closePlayer();$('#me').classList.remove('open');
  $('#whoT').textContent=managing?'Manage Profiles':"Who's watching?";$('#mng').textContent=managing?'Done':'Manage Profiles';$('#mng').classList.toggle('done',managing);
  $('#pgrid').innerHTML=profiles.map((p,i)=>`<div class="prof ${managing?'edit':''}" tabindex="0" data-prof="${p.id}" style="animation-delay:${i*.07}s">${avHTML(p)}<div class="nm">${p.pin?'🔒 ':''}${esc(p.name)}</div></div>`).join('')+
   (profiles.length<5?`<div class="prof" tabindex="0" data-prof="new" style="animation-delay:${profiles.length*.07}s"><div class="av addav">+</div><div class="nm">Add Profile</div></div>`:'');
+ const lb=$('#lnkBtn'),sn=$('#syncedNote');if(lb)lb.style.display=IN_TV_APP&&!SYNC.key&&!managing?'':'none';if(sn)sn.textContent=SYNC.key?'☁ Synced with '+(SYNC.name||'your account'):'';
  $('#who').classList.add('on');document.body.style.overflow='hidden'}
 const UNLOCKED=new Set();
 function whoGo(id){const w=$('#who'),el=w&&w.querySelector(`[data-prof="${id}"]`);if(!w||!w.classList.contains('on')||!el||matchMedia('(prefers-reduced-motion:reduce)').matches){pickNow(id);return}
@@ -1622,7 +1646,8 @@ $('#me').addEventListener('click',e=>{
  const ac=e.target.closest('[data-act]');if(ac){const a=ac.dataset.act;if(a==='sound'){SFX.on=!SFX.on;if(SFX.on)SFX.chime();renderMe();$('#me').classList.add('open');return}
   if(a==='interests'){$('#me').classList.remove('open');showInterests(false);return}
   if(a==='surprise'){$('#me').classList.remove('open');const pool=FILMS.filter(f=>CUR&&CUR.kids?(f.kidsOnly||(!f.teen&&f.genres.includes('Kids'))):!f.kidsOnly);const f=pool[Math.floor(Math.random()*pool.length)];if(f)openModal(f.id);return}
-  if(a==='signout'){accSignOut();return}if(a==='signin'){$('#me').classList.remove('open');showSignIn();return}showWho(a==='manage');return}
+  if(a==='signout'){accSignOut();return}if(a==='linktv'){tvLinkEnter();return}if(a==='linkme'){$('#me').classList.remove('open');tvLinkStart();return}
+  if(a==='unlink'){$('#me').classList.remove('open');stopSync();renderMe();toast('Unlinked. Your profiles stay on this TV.');return}if(a==='signin'){$('#me').classList.remove('open');showSignIn();return}showWho(a==='manage');return}
  if(e.target.closest('#me>.av'))$('#me').classList.toggle('open')});
 document.addEventListener('click',e=>{if(!e.target.closest('#me'))$('#me').classList.remove('open')});
 let draft=null;
@@ -1661,22 +1686,82 @@ ACC.ready=(async()=>{if(!CAN_EMBED)throw new Error('not on website');
  const app=a.initializeApp(FB_CONFIG,'marquee');ACC.F={au,fs,auth:au.getAuth(app),db:fs.getFirestore(app)};
  try{await au.getRedirectResult(ACC.F.auth)}catch(e){}
  await new Promise(res=>{let first=true;au.onAuthStateChanged(ACC.F.auth,async u=>{const was=ACC.user;ACC.user=u;
-  if(first){first=false;res();return}
+  if(first){first=false;res();if(!u&&SYNC.key)startSync(SYNC.key);return}
   if(u&&!was){await pullCloud();if($('#signin').classList.contains('on')){$('#signin').classList.remove('on');showWho(false)}else if(CUR){renderMe();render()}toast('Signed in! Your profiles are saved.')}
   if(!u&&was&&CUR)renderMe()})});
  return ACC.F})().catch(e=>{console.warn('Accounts unavailable',e);return null});
 function cloudData(){const lists={},recents={},rates={},ints={};profiles.forEach(p=>{lists[p.id]=store.get('list_'+p.id,[]);recents[p.id]=store.get('recent_'+p.id,[]);rates[p.id]=store.get('rate_'+p.id,{});ints[p.id]=store.get('interests_'+p.id,null)});return{profiles,lists,recents,rates,ints,t:Date.now()}}
-async function pushCloud(){const F=ACC.F,u=ACC.user;if(!F||!u||ACC.pulling)return;
- try{await F.fs.setDoc(F.fs.doc(F.db,'marquee',u.uid),{marquee:cloudData()},{merge:true})}catch(e){console.warn('Marquee save failed',e)}}
-window.cloudTouch=()=>{if(!ACC.user||ACC.pulling)return;clearTimeout(pushT);pushT=setTimeout(pushCloud,1200)};
+/* Live sync: every device with your account (or a linked TV) shares one private sync doc, mqsync/<secret key>. */
+const SYNC={key:store.get('synckey',null),name:store.get('syncname',''),unsub:null,dev:store.get('devid',null)||(()=>{const d=Math.random().toString(36).slice(2,12);store.set('devid',d);return d})(),lastT:0};
+const rndKey=n=>{const a='abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';let r='';const b=crypto.getRandomValues(new Uint8Array(n));for(const x of b)r+=a[x%a.length];return r};
+function applyCloud(d){if(!(d&&Array.isArray(d.profiles)&&d.profiles.length))return false;ACC.pulling=true;
+ try{profiles=d.profiles;store.set('profiles',profiles);
+  profiles.forEach(p=>{store.set('list_'+p.id,(d.lists&&d.lists[p.id])||[]);store.set('recent_'+p.id,(d.recents&&d.recents[p.id])||[]);store.set('rate_'+p.id,(d.rates&&d.rates[p.id])||{});if(d.ints&&d.ints[p.id])store.set('interests_'+p.id,d.ints[p.id])})}
+ finally{ACC.pulling=false}
+ const keep=CUR&&profiles.find(p=>p.id===CUR.id);if(CUR||keep){CUR=keep||profiles[0];PID=CUR.id;myList=store.get('list_'+PID,[]);recent=store.get('recent_'+PID,[])}return true}
+function refreshAfterSync(){if($('#who').classList.contains('on'))showWho(managing);else if(CUR){renderMe();if(!P.open&&!M.open&&view!=='live'&&view!=='shorts')render()}}
+async function pushCloud(){const F=ACC.F;if(!F||!SYNC.key||ACC.pulling)return;
+ const t=Date.now();SYNC.lastT=t;try{await F.fs.setDoc(F.fs.doc(F.db,'mqsync',SYNC.key),{d:cloudData(),t,by:SYNC.dev,name:SYNC.name||''})}catch(e){console.warn('Sync save failed',e)}}
+window.cloudTouch=()=>{if(!SYNC.key||ACC.pulling)return;clearTimeout(pushT);pushT=setTimeout(pushCloud,800)};
+async function startSync(key,name){const F=await ACC.ready;if(!F)return;if(SYNC.unsub){SYNC.unsub();SYNC.unsub=null}
+ SYNC.key=key;store.set('synckey',key);if(name!=null){SYNC.name=name;store.set('syncname',name)}
+ let first=true;
+ SYNC.unsub=F.fs.onSnapshot(F.fs.doc(F.db,'mqsync',key),snap=>{if(snap.metadata.hasPendingWrites)return;
+  const v=snap.exists()?snap.data():null;
+  if(first){first=false;if(!v||!v.d){pushCloud();return}}
+  if(!v||!v.d||v.by===SYNC.dev&&v.t<=SYNC.lastT)return;
+  if(v.name&&!SYNC.name){SYNC.name=v.name;store.set('syncname',v.name)}
+  if(applyCloud(v.d))refreshAfterSync()},e=>console.warn('Sync listen failed',e))}
+function stopSync(){if(SYNC.unsub){SYNC.unsub();SYNC.unsub=null}SYNC.key=null;SYNC.name='';store.set('synckey',null);store.set('syncname','')}
+// signed-in phones/computers: find (or make) this account's secret sync key
 async function pullCloud(){const F=ACC.F,u=ACC.user;if(!F||!u)return;
- let d=null;try{const snap=await F.fs.getDoc(F.fs.doc(F.db,'marquee',u.uid));d=snap.exists()?snap.data().marquee:null}catch(e){console.warn('Marquee load failed',e);return}
- if(d&&Array.isArray(d.profiles)&&d.profiles.length){ACC.pulling=true;
-  profiles=d.profiles;store.set('profiles',profiles);
-  profiles.forEach(p=>{store.set('list_'+p.id,(d.lists&&d.lists[p.id])||[]);store.set('recent_'+p.id,(d.recents&&d.recents[p.id])||[]);store.set('rate_'+p.id,(d.rates&&d.rates[p.id])||{});if(d.ints&&d.ints[p.id])store.set('interests_'+p.id,d.ints[p.id])});
-  ACC.pulling=false;
-  const keep=CUR&&profiles.find(p=>p.id===CUR.id);CUR=keep||profiles[0];PID=CUR.id;myList=store.get('list_'+PID,[]);recent=store.get('recent_'+PID,[])}
- else await pushCloud()}
+ let doc=null;try{const snap=await F.fs.getDoc(F.fs.doc(F.db,'marquee',u.uid));doc=snap.exists()?snap.data():null}catch(e){console.warn('Account load failed',e);return}
+ let key=doc&&doc.key;const nm=u.displayName||u.email||'your account';
+ if(!key){key=rndKey(40);
+  if(doc&&doc.marquee)applyCloud(doc.marquee);   // bring over profiles saved the old way
+  try{await F.fs.setDoc(F.fs.doc(F.db,'mqsync',key),{d:cloudData(),t:Date.now(),by:SYNC.dev,name:nm});await F.fs.setDoc(F.fs.doc(F.db,'marquee',u.uid),{key},{merge:true})}catch(e){console.warn('Sync setup failed',e);return}}
+ else{try{const s2=await F.fs.getDoc(F.fs.doc(F.db,'mqsync',key));if(s2.exists()&&s2.data().d)applyCloud(s2.data().d)}catch(e){}}
+ await startSync(key,nm)}
+/* ---------- Link a TV (TV shows a code, your signed-in phone types it in) ---------- */
+const LINKCH='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+async function tvLinkStart(){const F=await Promise.race([ACC.ready,new Promise(r=>setTimeout(()=>r(null),6000))]);
+ if(!F){toast('Linking needs the internet. Try again in a moment.');return}
+ let ov=document.getElementById('tvlink');if(ov)ov.remove();ov=document.createElement('div');ov.id='tvlink';ov.className='linkov';document.body.appendChild(ov);
+ let code='',unsub=null,timer=null,done=false;
+ const close=()=>{done=true;if(unsub)unsub();clearTimeout(timer);if(code)F.fs.deleteDoc(F.fs.doc(F.db,'tvlinks',code)).catch(()=>{});ov.classList.add('out');setTimeout(()=>ov.remove(),300)};
+ const make=async()=>{if(done)return;if(unsub)unsub();if(code)F.fs.deleteDoc(F.fs.doc(F.db,'tvlinks',code)).catch(()=>{});
+  code=Array.from(crypto.getRandomValues(new Uint8Array(6)),x=>LINKCH[x%LINKCH.length]).join('');
+  ov.innerHTML=`<div class="linkbox"><div class="logo">${$('.logo').innerHTML}</div><h2>Link your account</h2>
+   <ol><li>On your phone, go to <b>thedailybark.dog/casttv</b></li><li>Sign in with Google, tap your profile picture, then <b>📺 Link a TV</b></li><li>Type this code:</li></ol>
+   <div class="lcode">${code.split('').map(c=>`<span>${c}</span>`).join('')}</div>
+   <div class="lwait"><i></i>Waiting for your phone…</div><button class="btn ghost" id="lkCancel">Cancel</button></div>`;
+  ov.querySelector('#lkCancel').onclick=close;setTimeout(()=>{const b=ov.querySelector('#lkCancel');if(b)b.focus()},50);
+  try{await F.fs.setDoc(F.fs.doc(F.db,'tvlinks',code),{at:Date.now()})}catch(e){ov.querySelector('.lwait').textContent='Linking isn’t switched on yet (database rules need updating).';return}
+  unsub=F.fs.onSnapshot(F.fs.doc(F.db,'tvlinks',code),async snap=>{const v=snap.data();if(!v||!v.key||done)return;
+   done=true;unsub();clearTimeout(timer);F.fs.deleteDoc(F.fs.doc(F.db,'tvlinks',code)).catch(()=>{});
+   ov.querySelector('.linkbox').innerHTML=`<div class="lok">✓</div><h2>Linked to ${esc(v.name||'your account')}!</h2><p>Your profiles are on this TV now and stay in sync.</p>`;
+   try{const s2=await F.fs.getDoc(F.fs.doc(F.db,'mqsync',v.key));if(s2.exists()&&s2.data().d)applyCloud(s2.data().d)}catch(e){}
+   await startSync(v.key,v.name||'');SFX.chime&&SFX.chime();
+   setTimeout(()=>{ov.classList.add('out');setTimeout(()=>ov.remove(),300);refreshAfterSync();if(!$('#who').classList.contains('on'))showWho(false)},2200)});
+  clearTimeout(timer);timer=setTimeout(make,10*60*1000)};   // fresh code every 10 minutes
+ make()}
+async function tvLinkEnter(){$('#me').classList.remove('open');
+ if(!ACC.user){toast('Sign in with Google first, then link your TV.');showSignIn();return}
+ if(!SYNC.key)await pullCloud();
+ const ov=document.createElement('div');ov.className='linkov';ov.innerHTML=`<div class="linkbox"><h2>📺 Link a TV</h2><p>Open CastTV on your TV and choose <b>Link your account</b>. Type the code it shows:</p>
+  <input id="lkIn" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123">
+  <div class="lkrow"><button class="btn ghost" id="lkX">Cancel</button><button class="btn play" id="lkGo">Link TV</button></div><small id="lkMsg"></small></div>`;
+ document.body.appendChild(ov);const inp=ov.querySelector('#lkIn'),msg=ov.querySelector('#lkMsg');inp.focus();
+ inp.oninput=()=>{inp.value=inp.value.toUpperCase().replace(/[^A-Z0-9]/g,'')};
+ const close=()=>{ov.classList.add('out');setTimeout(()=>ov.remove(),300)};ov.querySelector('#lkX').onclick=close;
+ const go=async()=>{const c=inp.value.trim().toUpperCase();if(c.length!==6){msg.textContent='The code has 6 letters and numbers.';return}
+  const F=ACC.F;msg.textContent='Linking…';
+  try{const ref=F.fs.doc(F.db,'tvlinks',c),sn=await F.fs.getDoc(ref);
+   if(!sn.exists()||Date.now()-(sn.data().at||0)>11*60*1000){msg.textContent='That code didn’t work. Check the TV and try again.';return}
+   await F.fs.updateDoc(ref,{key:SYNC.key,name:ACC.user.displayName||ACC.user.email||'your account'});
+   ov.querySelector('.linkbox').innerHTML='<div class="lok">✓</div><h2>TV linked!</h2><p>Your profiles will show up on the TV in a second.</p>';setTimeout(close,2000)}
+  catch(e){msg.textContent='That code didn’t work. Check the TV and try again.'}};
+ ov.querySelector('#lkGo').onclick=go;inp.onkeydown=e=>{if(e.key==='Enter')go()}}
 function showSignIn(){closeModal();$('#who').classList.remove('on');$('#signin').classList.add('on');document.body.style.overflow='hidden'}
 $('#gbtn').onclick=async()=>{if(IN_TV_APP){toast('Google sign-in doesn’t work in the TV app. Sign in on your phone or computer instead.');return}const F=await Promise.race([ACC.ready,new Promise(r=>setTimeout(()=>r(null),4000))]);
  if(!F){toast('Google sign-in works on your website: thedailybark.dog/marquee');return}
@@ -1685,8 +1770,9 @@ $('#gbtn').onclick=async()=>{if(IN_TV_APP){toast('Google sign-in doesn’t work 
   if(c.includes('popup-blocked')||c.includes('operation-not-supported')){try{await F.au.signInWithRedirect(F.auth,p)}catch(e2){toast('Sign-in didn’t work. Try again.')}}
   else if(c.includes('unauthorized-domain'))toast('Google sign-in isn’t turned on for this website yet.');
   else if(!c.includes('popup-closed')&&!c.includes('cancelled'))toast('Sign-in didn’t work ('+(c.replace('auth/','')||'error')+'). Try again.')}};
+$('#lnkBtn').onclick=()=>tvLinkStart();
 $('#skipSign').onclick=()=>{store.set('nosignin',true);$('#signin').classList.remove('on');showWho(false)};
-async function accSignOut(){$('#me').classList.remove('open');try{await ACC.F.au.signOut(ACC.F.auth)}catch(e){}ACC.user=null;toast('Signed out. Your profiles stay on this device.');renderMe()}
+async function accSignOut(){$('#me').classList.remove('open');stopSync();try{await ACC.F.au.signOut(ACC.F.auth)}catch(e){}ACC.user=null;toast('Signed out. Your profiles stay on this device.');renderMe()}
 
 /* ---------- Shorts mode ---------- */
 let SP=null,sIdx=0,sCreator=0,sWheel=0,sTouchY=null,sLastTap=0,sMuteChk=null;
