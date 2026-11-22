@@ -31,8 +31,16 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Load the permanent signing key
+        env:
+          KS: ${{ secrets.MARQUEE_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS" ]; then echo "$KS" | base64 -d > marquee-tv/marquee.keystore; echo "Using permanent key"; else echo "No MARQUEE_KEYSTORE_B64 secret yet - using a random debug key"; fi
+
       - name: Build the app
         working-directory: marquee-tv
+        env:
+          MARQUEE_KEY_PASSWORD: ${{ secrets.MARQUEE_KEY_PASSWORD }}
         run: gradle assembleDebug --no-daemon
 
       - name: Put the app on the website
