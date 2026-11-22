@@ -579,6 +579,32 @@ header{transition:background .35s ease,box-shadow .35s ease}
 .splash.go .sbar{opacity:0!important;transition:opacity .2s}
 .stip{display:none}
 @media (prefers-reduced-motion:reduce){.mp{opacity:1;animation:none}.splash.go .mwrap{transform:none}}
+
+/* ===== Intro v2: M opens into MARQUEE ===== */
+.splash .mwrap{width:min(84vw,780px);aspect-ratio:392.04/100;transition:transform .8s cubic-bezier(.55,0,.8,.2),opacity .7s ease;will-change:transform,opacity}
+.splash .mlogo{filter:drop-shadow(0 0 14px rgba(56,150,255,.4))}
+.mall{transform:translateX(146.0px);animation:mOpen 1s cubic-bezier(.65,0,.25,1) 1.45s forwards}
+@keyframes mOpen{to{transform:none}}
+.mp1{animation:mpUp .5s cubic-bezier(.16,1,.3,1) .15s forwards}
+.mp2{animation:mpDiag .45s cubic-bezier(.16,1,.3,1) .45s forwards}
+.mp3{animation:mpDiag .45s cubic-bezier(.16,1,.3,1) .7s forwards}
+.mp4{animation:mpUp .5s cubic-bezier(.16,1,.3,1) .92s forwards}
+.mclip{transform-box:fill-box;transform-origin:0 50%;transform:scaleX(0);animation:mWipe 1s cubic-bezier(.65,0,.25,1) 1.45s forwards}
+@keyframes mWipe{to{transform:scaleX(1)}}
+.ml{opacity:0;transform:translateX(-10px);animation:mlIn .7s cubic-bezier(.22,1,.36,1) calc(1.55s + var(--i)*.09s) forwards}
+@keyframes mlIn{to{opacity:1;transform:none}}
+.mwrap::after{inset:-40% -10%;background:radial-gradient(closest-side,rgba(56,150,255,.32),transparent);animation:mGlow 2s ease 1.2s forwards}
+.splash.go .mwrap{transform:scale(1.45);opacity:0;filter:none}
+.splash.out{transition:opacity .5s ease .35s}
+@media (prefers-reduced-motion:reduce){.mall,.ml,.mclip{animation:none;transform:none;opacity:1}}
+
+/* header fits on TVs (Fire TV is ~960px wide): no wrapping nav items */
+.logo{flex:none}
+nav{flex:none}
+nav a{white-space:nowrap;display:inline-flex;align-items:center}
+nav a .rd{vertical-align:0;flex:none}
+.search{flex:0 1 260px;min-width:0}
+@media(min-width:761px) and (max-width:1100px){header{gap:20px}nav{gap:16px}.hclock{display:none}}
 </style>
 </head>
 <body>
@@ -601,15 +627,20 @@ header{transition:background .35s ease,box-shadow .35s ease}
 </header>
 
 <div class="splash" id="splash">
-  <div class="mwrap" id="mwrap"><svg class="mlogo" viewBox="0 0 100 100" aria-label="Marquee">
+  <div class="mwrap" id="mwrap"><svg class="mlogo" viewBox="0 0 392.04 100" aria-label="Marquee">
    <defs><linearGradient id="mgP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1856e1"/></linearGradient>
    <linearGradient id="mgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#afe1ff"/><stop offset="1" stop-color="#38aafa"/></linearGradient>
    <linearGradient id="mgR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e50c8"/><stop offset="1" stop-color="#0c3096"/></linearGradient>
+   <linearGradient id="mgW" gradientUnits="userSpaceOnUse" x1="96" y1="0" x2="381.04" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#a9d2ff"/><stop offset="1" stop-color="#38bdf8"/></linearGradient>
+   <clipPath id="mgC"><rect class="mclip" x="90.5" y="-10" width="392.04" height="120"/></clipPath>
    <filter id="mgS" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.6"/></filter></defs>
-   <g class="mp mp1"><polygon points="11,8 29.7,8 29.7,92 11,92" fill="url(#mgP)"/></g>
-   <g class="mp mp4"><polygon points="70.3,8 89,8 89,92 70.3,92" fill="url(#mgP)"/></g>
-   <g class="mp mp3"><polygon points="70.3,8 89,8 59.4,70 40.6,70" fill="#000a" filter="url(#mgS)"/><polygon points="70.3,8 89,8 59.4,70 40.6,70" fill="url(#mgR)"/></g>
-   <g class="mp mp2"><polygon points="11,8 29.7,8 59.4,70 40.6,70" fill="#000a" filter="url(#mgS)"/><polygon points="11,8 29.7,8 59.4,70 40.6,70" fill="url(#mgL)"/></g>
+   <g class="mall">
+    <g class="mword" clip-path="url(#mgC)" fill="url(#mgW)"><g class="ml" style="--i:0"><path d="M97.43 92 105.55 8H134.04L142.01 92H126.12L124.92 78.45H114.8L113.75 92ZM116 65.03H123.63L119.96 22.32H119.2Z"/></g><g class="ml" style="--i:1"><path d="M150.36 92V8H176.14Q182.58 8 185.87 10.94Q189.17 13.87 190.29 19.14Q191.41 24.42 191.41 31.53Q191.41 38.4 189.67 42.51Q187.93 46.61 183.1 48.19Q187.07 49 188.66 52.12Q190.26 55.25 190.26 60.21V92H173.7V59.12Q173.7 55.44 172.2 54.56Q170.7 53.67 167.35 53.67V92ZM167.45 39.12H171.51Q174.99 39.12 174.99 31.53Q174.99 26.61 174.23 25.09Q173.46 23.56 171.36 23.56H167.45Z"/></g><g class="ml" style="--i:2"><path d="M237.28 100.92 223.91 92.14Q221.62 92.76 219.19 92.76Q209.36 92.76 204.18 86.94Q199 81.12 199 69.95V29.33Q199 18.5 204.32 12.87Q209.64 7.24 219.71 7.24Q229.78 7.24 235.11 12.87Q240.43 18.5 240.43 29.33V69.95Q240.43 80.35 235.75 86.32L242.96 90.9ZM219.71 77.3Q221.53 77.3 222.31 75.96Q223.1 74.63 223.32 72.67Q223.53 70.71 223.53 68.9V29.62Q223.53 26.95 222.79 24.82Q222.05 22.7 219.62 22.7Q217.14 22.7 216.37 24.78Q215.61 26.85 215.61 29.57V69.23Q215.61 70.9 215.82 72.79Q216.04 74.67 216.9 75.99Q217.76 77.3 219.71 77.3Z"/></g><g class="ml" style="--i:3"><path d="M271.02 92.76Q260.52 92.76 255.56 86.87Q250.6 80.97 250.6 69.52V8H266.92V68.85Q266.92 70.95 267.16 72.89Q267.4 74.82 268.25 76.06Q269.11 77.3 271.02 77.3Q272.98 77.3 273.84 76.08Q274.7 74.87 274.91 72.91Q275.13 70.95 275.13 68.85V8H291.45V69.52Q291.45 80.97 286.49 86.87Q281.52 92.76 271.02 92.76Z"/></g><g class="ml" style="--i:4"><path d="M301.09 92V8H334.69V24.23H318.18V40.6H334.02V56.4H318.18V75.63H335.79V92Z"/></g><g class="ml" style="--i:5"><path d="M344.53 92V8H378.13V24.23H361.61V40.6H377.46V56.4H361.61V75.63H379.23V92Z"/></g></g>
+    <g class="mp mp1"><polygon points="11,8 29.7,8 29.7,92 11,92" fill="url(#mgP)"/></g>
+    <g class="mp mp4"><polygon points="70.3,8 89,8 89,92 70.3,92" fill="url(#mgP)"/></g>
+    <g class="mp mp3"><polygon points="70.3,8 89,8 59.4,70 40.6,70" fill="#000a" filter="url(#mgS)"/><polygon points="70.3,8 89,8 59.4,70 40.6,70" fill="url(#mgR)"/></g>
+    <g class="mp mp2"><polygon points="11,8 29.7,8 59.4,70 40.6,70" fill="#000a" filter="url(#mgS)"/><polygon points="11,8 29.7,8 59.4,70 40.6,70" fill="url(#mgL)"/></g>
+   </g>
   </svg></div>
   <div class="streaks"><i style="--x:0%;--h:205;--d:0.00s;--w:1px"></i><i style="--x:37%;--h:195;--d:0.13s;--w:3px"></i><i style="--x:74%;--h:215;--d:0.26s;--w:5px"></i><i style="--x:11%;--h:225;--d:0.39s;--w:2px"></i><i style="--x:48%;--h:190;--d:0.12s;--w:4px"></i><i style="--x:85%;--h:260;--d:0.25s;--w:1px"></i><i style="--x:22%;--h:200;--d:0.38s;--w:3px"></i><i style="--x:59%;--h:185;--d:0.11s;--w:5px"></i><i style="--x:96%;--h:205;--d:0.24s;--w:2px"></i><i style="--x:33%;--h:195;--d:0.37s;--w:4px"></i><i style="--x:70%;--h:215;--d:0.10s;--w:1px"></i><i style="--x:7%;--h:225;--d:0.23s;--w:3px"></i><i style="--x:44%;--h:190;--d:0.36s;--w:5px"></i><i style="--x:81%;--h:260;--d:0.09s;--w:2px"></i><i style="--x:18%;--h:200;--d:0.22s;--w:4px"></i><i style="--x:55%;--h:185;--d:0.35s;--w:1px"></i><i style="--x:92%;--h:205;--d:0.08s;--w:3px"></i><i style="--x:29%;--h:195;--d:0.21s;--w:5px"></i><i style="--x:66%;--h:215;--d:0.34s;--w:2px"></i><i style="--x:3%;--h:225;--d:0.07s;--w:4px"></i><i style="--x:40%;--h:190;--d:0.20s;--w:1px"></i><i style="--x:77%;--h:260;--d:0.33s;--w:3px"></i><i style="--x:14%;--h:200;--d:0.06s;--w:5px"></i><i style="--x:51%;--h:185;--d:0.19s;--w:2px"></i><i style="--x:88%;--h:205;--d:0.32s;--w:4px"></i><i style="--x:25%;--h:195;--d:0.05s;--w:1px"></i><i style="--x:62%;--h:215;--d:0.18s;--w:3px"></i><i style="--x:99%;--h:225;--d:0.31s;--w:5px"></i></div>
   <div class="sbar"><i id="sbar"></i></div>
@@ -1743,10 +1774,10 @@ const TADUM=(()=>{let url=null,played=false;
  return{play(){if(played||localStorage.getItem('marquee_sfx')==='off')return Promise.resolve(played);try{url=url||make();const a=new Audio(url);a.volume=.8;
    return a.play().then(()=>{played=true;return true}).catch(()=>false)}catch(e){return Promise.resolve(false)}},get played(){return played}}})();
 const TIPS=['Loading chunks…','Mining diamonds…','Crafting the menu…','Spawning videos…','Pressing start…'];
-async function boot(){const t0=performance.now(),bar=$('#sbar'),tip=$('#stip');setTimeout(()=>TADUM.play(),250);
+async function boot(){const t0=performance.now(),bar=$('#sbar'),tip=$('#stip');setTimeout(()=>TADUM.play(),1000);
  await Promise.race([document.fonts?document.fonts.ready:Promise.resolve(),new Promise(r=>setTimeout(r,1500))]);
  for(let i=0;i<FILMS.length;i++){makePoster(FILMS[i]);bar.style.width=((i+1)/FILMS.length*85)+'%';tip.textContent=TIPS[Math.floor(i/FILMS.length*TIPS.length)];await new Promise(r=>setTimeout(r,40))}
- const wait=Math.max(0,2700-(performance.now()-t0));await new Promise(r=>setTimeout(r,wait));
+ const wait=Math.max(0,3500-(performance.now()-t0));await new Promise(r=>setTimeout(r,wait));
  bar.style.width='100%';tip.textContent='Enjoy the show';await new Promise(r=>setTimeout(r,450));
  REAL_THUMBS=await new Promise(r=>{const im=new Image();const to=setTimeout(()=>r(false),2500);im.onload=()=>{clearTimeout(to);r(im.naturalWidth>130)};im.onerror=()=>{clearTimeout(to);r(false)};im.src=`https://i.ytimg.com/vi/${FILMS[0].yt}/hqdefault.jpg`});
  CUR=profiles[0];PID=CUR.id;setFeatured();requestAnimationFrame(loop);
@@ -1754,7 +1785,7 @@ async function boot(){const t0=performance.now(),bar=$('#sbar'),tip=$('#stip');s
  await Promise.race([ACC.ready,new Promise(r=>setTimeout(r,3500))]);
  if(ACC.user){await pullCloud();showWho(false)}
  else if(store.get('nosignin',false)||!CAN_EMBED||IN_TV_APP)showWho(false);else showSignIn();
- $('#splash').classList.add('go','out');setTimeout(()=>{const sp=$('#splash');if(sp)sp.remove()},1150)}
+ $('#splash').classList.add('go','out');setTimeout(()=>{const sp=$('#splash');if(sp)sp.remove()},1000)}
 boot();
 </script>
 </body>
