@@ -46,9 +46,10 @@ jobs:
       - name: Put the app on the website
         run: |
           cp marquee-tv/app/build/outputs/apk/debug/app-debug.apk marquee/marquee.apk
+          cp marquee-tv/app/build/outputs/apk/debug/app-debug.apk marquee/marqueetv.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add marquee/marquee.apk
+          git add marquee/marquee.apk marquee/marqueetv.apk
           git commit -m "Build Marquee TV app" || exit 0
           git pull --rebase
           git push
