@@ -167,7 +167,7 @@ footer a{text-decoration:underline}
 .sbar{width:min(320px,70vw);height:3px;background:#222;border-radius:2px;margin-top:28px;overflow:hidden}
 .sbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s;box-shadow:0 0 14px var(--accent)}
 .stip{margin-top:16px;color:#888;font-size:12px;letter-spacing:3px;text-transform:uppercase;min-height:16px}
-.grain{position:fixed;inset:-50%;z-index:450;pointer-events:none;opacity:.045;animation:grain .9s steps(6) infinite}
+.grain{display:none!important}
 @keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-5%,3%)}40%{transform:translate(3%,-6%)}60%{transform:translate(-7%,2%)}80%{transform:translate(4%,5%)}100%{transform:translate(0,0)}}
 /* Profiles */
 .who{position:fixed;inset:0;z-index:300;background:radial-gradient(ellipse at top,#22121e,#0a0a0e 60%);display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px;overflow-y:auto}
@@ -321,7 +321,7 @@ nav a .rd{display:inline-block;width:7px;height:7px;border-radius:50%;background
 }
 
 /* ===== Deep blue streaming look (Netflix x Prime Video) ===== */
-body{background:radial-gradient(1400px 700px at 80% -10%,rgba(31,111,255,.16),transparent 60%),radial-gradient(900px 600px at -10% 30%,rgba(56,189,248,.07),transparent 60%),var(--bg);background-color:var(--bg)}
+body{background:var(--bg)}
 header{background:linear-gradient(rgba(3,8,20,.85),transparent)}
 header.solid{background:rgba(5,11,24,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 1px 0 rgba(120,160,255,.12),0 10px 30px rgba(0,0,0,.45)}
 .logo{background:linear-gradient(90deg,#ffffff 0%,#9cc7ff 45%,#38bdf8 100%);-webkit-background-clip:text;background-clip:text;text-shadow:none;filter:drop-shadow(0 0 18px rgba(31,111,255,.45))}
@@ -370,7 +370,7 @@ nav a.on::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:3
   <div class="sbar"><i id="sbar"></i></div>
   <div class="stip" id="stip">Dimming the lights…</div>
 </div>
-<div class="grain" id="grain"></div>
+
 
 <div class="who" id="signin">
   <div class="logo">MARQUEE</div>
@@ -761,16 +761,16 @@ const S={
 function sizeCv(cv){const d=Math.min(window.devicePixelRatio||1,1.5),w=Math.round(cv.clientWidth*d),h=Math.round(cv.clientHeight*d);if(w&&h&&(cv.width!==w||cv.height!==h)){cv.width=w;cv.height=h}}
 function drawScene(cv,f,t){sizeCv(cv);cv.classList.toggle('bw',!f.color);S[f.scene](cv.getContext('2d'),cv.width,cv.height,t+f.seed,f.hue)}
 function makePoster(f){
- const cv=document.createElement('canvas');cv.width=480;cv.height=270;const c=cv.getContext('2d');
+ const cv=document.createElement('canvas');cv.width=960;cv.height=540;const c=cv.getContext('2d');c.scale(2,2);c.imageSmoothingQuality='high';
  S[f.scene](c,480,270,f.seed+12,f.hue);
- if(!f.color){const d=c.getImageData(0,0,480,270),p=d.data;for(let i=0;i<p.length;i+=4){let v=(p[i]*.3+p[i+1]*.59+p[i+2]*.11);v=Math.min(255,(v-128)*1.15+128);p[i]=Math.min(255,v*1.07);p[i+1]=v*.98;p[i+2]=v*.85}c.putImageData(d,0,0)}
+ if(!f.color){const d=c.getImageData(0,0,960,540),p=d.data;for(let i=0;i<p.length;i+=4){let v=(p[i]*.3+p[i+1]*.59+p[i+2]*.11);v=Math.min(255,(v-128)*1.15+128);p[i]=Math.min(255,v*1.07);p[i+1]=v*.98;p[i+2]=v*.85}c.putImageData(d,0,0)}
  const g=c.createLinearGradient(0,270,0,100);g.addColorStop(0,'rgba(0,0,0,.88)');g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.fillRect(0,0,480,270);
  c.strokeStyle='rgba(255,235,200,.35)';c.lineWidth=2;c.strokeRect(10,10,460,250);
  c.fillStyle='rgba(255,235,200,.85)';c.font='700 13px Inter,sans-serif';c.textAlign='right';c.fillText(f.channel.toUpperCase()+' · '+f.year,456,32);c.textAlign='left';
  c.fillStyle='#fff';let fs=56;const T=f.title.toUpperCase();c.font=`${fs}px "Bebas Neue",Impact,sans-serif`;
  while(c.measureText(T).width>430&&fs>28){fs-=2;c.font=`${fs}px "Bebas Neue",Impact,sans-serif`}
  c.shadowColor='rgba(0,0,0,.6)';c.shadowBlur=12;c.fillText(T,24,244);
- f.img=cv.toDataURL('image/jpeg',.85);
+ f.img=cv.toDataURL('image/jpeg',.95);
 }
 
 /* ---------- State ---------- */
@@ -1237,7 +1237,7 @@ document.addEventListener('mousemove',()=>document.documentElement.classList.rem
 /* ---------- Boot with splash ---------- */
 (function(){const n=document.createElement('canvas');n.width=n.height=160;const c=n.getContext('2d'),d=c.createImageData(160,160);
  for(let i=0;i<d.data.length;i+=4){const v=Math.random()*255;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255}c.putImageData(d,0,0);
- $('#grain').style.backgroundImage=`url(${n.toDataURL()})`})();
+ {const g=document.getElementById('grain');if(g)g.style.backgroundImage=`url(${n.toDataURL()})`}})();
 const TIPS=['Loading chunks…','Mining diamonds…','Crafting the menu…','Spawning videos…','Pressing start…'];
 async function boot(){const t0=performance.now(),bar=$('#sbar'),tip=$('#stip');
  await Promise.race([document.fonts?document.fonts.ready:Promise.resolve(),new Promise(r=>setTimeout(r,1500))]);
