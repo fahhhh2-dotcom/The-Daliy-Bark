@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>BlockFix — Minecraft YouTubers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--red:#e50914;--bg:#141414;--text:#fff;--muted:#b3b3b3}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;overflow-x:hidden}
+  button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+  a{color:inherit}
+  .logo{font-family:'Bebas Neue',Impact,'Arial Narrow',sans-serif,sans-serif;color:var(--red);letter-spacing:2px;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+
+  /* ---------- Profiles ---------- */
+  #profiles{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;transition:opacity .4s}
+  #profiles .logo{position:absolute;top:22px;left:24px;font-size:38px}
+  #profiles h1{font-weight:500;font-size:clamp(26px,5vw,48px);margin-bottom:28px}
+  .plist{display:flex;gap:clamp(14px,3vw,28px);flex-wrap:wrap;justify-content:center;max-width:720px}
+  .prof{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--muted)}
+  .prof canvas{width:clamp(84px,14vw,140px);height:clamp(84px,14vw,140px);border-radius:6px;image-rendering:pixelated;border:3px solid transparent;transition:.2s}
+  .prof:hover{color:#fff}.prof:hover canvas{border-color:#fff}
+  .hidden{opacity:0;pointer-events:none}
+
+  /* ---------- Nav ---------- */
+  nav{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:22px;
+      padding:14px 4%;padding-top:max(14px,env(safe-area-inset-top));
+      background:linear-gradient(rgba(0,0,0,.75),transparent);transition:background .3s}
+  nav.solid{background:#141414}
+  nav .logo{font-size:34px}
+  nav .links{display:flex;gap:18px;font-size:14px}
+  nav .links button{color:#e5e5e5}nav .links button.on{font-weight:700;color:#fff}
+  nav .right{margin-left:auto;display:flex;align-items:center;gap:14px}
+  .searchbox{display:flex;align-items:center;gap:6px;border:1px solid transparent;padding:4px 6px;transition:.3s}
+  .searchbox.open{border-color:#fff;background:rgba(0,0,0,.75)}
+  .searchbox input{width:0;background:none;border:0;outline:0;color:#fff;font:inherit;font-size:14px;transition:width .3s}
+  .searchbox.open input{width:150px}
+  .me{width:32px;height:32px;border-radius:4px;image-rendering:pixelated}
+  @media (max-width:700px){nav .links{display:none} nav .logo{font-size:28px}}
+
+  /* ---------- Hero ---------- */
+  .hero{position:relative;height:min(88vh,760px);min-height:460px;display:flex;align-items:flex-end;overflow:hidden}
+  .hero .art{position:absolute;inset:0;background-size:cover}
+  .hero canvas.big{position:absolute;right:6%;top:50%;transform:translateY(-55%);width:min(42vw,420px);height:min(42vw,420px);image-rendering:pixelated;opacity:.9;filter:drop-shadow(0 20px 40px rgba(0,0,0,.6))}
+  .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.85) 0%,rgba(0,0,0,.35) 50%,transparent 75%),linear-gradient(transparent 55%,var(--bg))}
+  .hero .copy{position:relative;z-index:2;padding:0 4% 12vh;max-width:640px}
+  .badge{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:3px;color:#ddd;margin-bottom:10px}
+  .badge b{color:var(--red);font-family:'Bebas Neue',Impact,'Arial Narrow',sans-serif;font-size:22px;letter-spacing:1px}
+  .hero h2{font-family:'Bebas Neue',Impact,'Arial Narrow',sans-serif;font-size:clamp(52px,9vw,110px);line-height:.9;letter-spacing:1px;margin-bottom:14px;text-shadow:0 3px 12px rgba(0,0,0,.6)}
+  .hero .meta{display:flex;gap:10px;align-items:center;font-size:14px;color:#ddd;margin-bottom:12px}
+  .match{color:#46d369;font-weight:700}
+  .pill{border:1px solid #aaa;padding:0 6px;font-size:12px}
+  .hero p{font-size:clamp(14px,1.6vw,18px);line-height:1.45;color:#eee;margin-bottom:20px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+  .btns{display:flex;gap:10px;flex-wrap:wrap}
+  .b-play,.b-info{display:inline-flex;align-items:center;gap:10px;padding:10px 26px;border-radius:4px;font-weight:700;font-size:17px;text-decoration:none}
+  .b-play{background:#fff;color:#000}.b-play:hover{background:rgba(255,255,255,.75)}
+  .b-info{background:rgba(109,109,110,.7);color:#fff}.b-info:hover{background:rgba(109,109,110,.45)}
+  .b-play svg,.b-info svg{width:22px;height:22px}
+
+  /* ---------- Rows ---------- */
+  .rows{position:relative;z-index:3;margin-top:-9vh;padding-bottom:60px}
+  .row{margin-bottom:34px}
+  .row h3{font-size:clamp(16px,1.6vw,21px);font-weight:700;margin:0 4% 10px;color:#e5e5e5}
+  .track{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:10px 4% 24px;scrollbar-width:none}
+  .track::-webkit-scrollbar{display:none}
+  .tile{flex:0 0 clamp(150px,19vw,250px);aspect-ratio:16/9;border-radius:4px;position:relative;overflow:hidden;scroll-snap-align:start;
+        transition:transform .25s ease,box-shadow .25s;cursor:pointer;background:#222}
+  .tile:hover{transform:scale(1.12);z-index:5;box-shadow:0 12px 28px rgba(0,0,0,.7)}
+  .tile canvas{position:absolute;right:6%;bottom:8%;height:72%;aspect-ratio:1;image-rendering:pixelated;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5))}
+  .tile .t-name{position:absolute;left:8%;bottom:10%;font-family:'Bebas Neue',Impact,'Arial Narrow',sans-serif;font-size:clamp(20px,2.3vw,30px);line-height:.95;max-width:58%;overflow-wrap:anywhere;text-shadow:0 2px 6px rgba(0,0,0,.8)}
+  .tile .t-b{position:absolute;top:7%;left:6%;font-family:'Bebas Neue',Impact,'Arial Narrow',sans-serif;color:var(--red);font-size:18px;text-shadow:0 1px 3px #000}
+  .tile .t-new{position:absolute;top:0;right:0;background:var(--red);font-size:10px;font-weight:800;padding:3px 6px;border-bottom-left-radius:4px}
+  .rank{flex:0 0 auto;display:flex;align-items:flex-end;scroll-snap-align:start;cursor:pointer}
+  .rank .num{font-family:'Bebas Neue',Impact,'Arial Narrow',sans-serif;font-size:clamp(110px,13vw,170px);line-height:.78;color:var(--bg);-webkit-text-stroke:3px #595959;margin-right:-14px}
+  .rank .tile{flex-basis:clamp(105px,11vw,150px);aspect-ratio:2/3}
+  .rank .tile canvas{left:50%;right:auto;transform:translateX(-50%);bottom:24%;height:auto;width:72%}
+  .rank .tile .t-name{left:0;right:0;bottom:6%;max-width:none;text-align:center;font-size:clamp(17px,1.8vw,24px)}
+  .rank:hover .tile{transform:scale(1.08)}
+  .empty{color:var(--muted);margin:0 4%;font-size:15px}
+
+  /* ---------- Modal (info) ---------- */
+  .modal{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.7);display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;padding:4vh 12px;transition:opacity .25s}
+  .sheet{width:min(860px,100%);background:#181818;border-radius:8px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.8);transform:scale(.96);transition:transform .25s}
+  .modal:not(.hidden) .sheet{transform:none}
+  .sheet .top{position:relative;aspect-ratio:16/9;overflow:hidden}
+  .sheet .top canvas{position:absolute;right:8%;top:10%;height:70%;aspect-ratio:1;image-rendering:pixelated}
+  .sheet .top::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 40%,#181818)}
+  .sheet .top .copy{position:absolute;left:5%;bottom:8%;z-index:2}
+  .sheet .top h2{font-family:'Bebas Neue',Impact,'Arial Narrow',sans-serif;font-size:clamp(40px,7vw,72px);line-height:.9;margin-bottom:14px}
+  .x{position:absolute;top:12px;right:12px;z-index:3;width:38px;height:38px;border-radius:50%;background:#181818;display:grid;place-items:center;font-size:22px}
+  .circle{width:42px;height:42px;border-radius:50%;border:2px solid #888;display:grid;place-items:center;font-size:20px;background:rgba(42,42,42,.6)}
+  .circle:hover{border-color:#fff}
+  .sheet .body{padding:4px 5% 30px;display:grid;grid-template-columns:2fr 1fr;gap:24px}
+  .sheet .body p{line-height:1.5;font-size:15px}
+  .sheet .body .side{font-size:14px;color:#777;line-height:1.7}
+  .sheet .body .side span{color:#ddd}
+  .sheet h4{grid-column:1/-1;font-size:20px;margin-top:8px}
+  .more{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .more .tile{flex:none;width:100%}
+  .more .tile:hover{transform:scale(1.04)}
+  @media (max-width:640px){.sheet .body{grid-template-columns:1fr}}
+
+  /* ---------- Player ---------- */
+  #player{position:fixed;inset:0;z-index:60;background:#000;transition:opacity .25s}
+  #player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  #player .bar{position:absolute;top:0;left:0;right:0;z-index:2;display:flex;align-items:center;gap:14px;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top));
+              background:linear-gradient(rgba(0,0,0,.85),transparent);transition:opacity .4s}
+  #player .back{font-size:28px;line-height:1}
+  #player .ptitle{font-weight:700}
+  #player .seg{margin-left:auto;display:flex;background:rgba(255,255,255,.12);border-radius:4px;overflow:hidden}
+  #player .seg button{padding:7px 12px;font-size:13px;font-weight:700;color:#ccc}
+  #player .seg button.on{background:#fff;color:#000}
+  #player .off{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px}
+  #player .off p{color:var(--muted);margin:10px 0 18px}
+
+  /* Intro */
+  #intro{position:fixed;inset:0;z-index:70;background:#000;display:grid;place-items:center;transition:opacity .5s}
+  #intro .logo{font-size:clamp(70px,16vw,180px);animation:zoom 1.6s ease-in forwards}
+  @keyframes zoom{0%{transform:scale(.6);opacity:0}25%{opacity:1;transform:scale(1)}75%{transform:scale(1.05);opacity:1}100%{transform:scale(3.5);opacity:0}}
+
+  footer{color:#757575;font-size:13px;padding:10px 4% 50px;line-height:1.6;max-width:900px}
+</style>
+</head>
+<body>
+
+<div id="intro"><div class="logo">BLOCKFIX</div></div>
+
+<!-- Profiles -->
+<section id="profiles" class="hidden">
+  <div class="logo">BLOCKFIX</div>
+  <h1>Who's watching?</h1>
+  <div class="plist" id="plist"></div>
+</section>
+
+<nav id="nav">
+  <div class="logo">BLOCKFIX</div>
+  <div class="links" id="links">
+    <button data-v="home" class="on">Home</button>
+    <button data-v="Builds">Builds</button>
+    <button data-v="Challenges">Challenges</button>
+    <button data-v="Stories">Stories</button>
+    <button data-v="list">My List</button>
+  </div>
+  <div class="right">
+    <label class="searchbox" id="sbox">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="q" type="search" placeholder="Creators, series…" aria-label="Search">
+    </label>
+    <button id="meBtn" aria-label="Switch profile"><canvas class="me" id="me" width="8" height="8"></canvas></button>
+  </div>
+</nav>
+
+<header class="hero" id="hero"></header>
+<main class="rows" id="rows"></main>
+
+<footer>BlockFix is a fan site for watching Minecraft YouTubers. Every video plays from the creator's own official YouTube channel. Not affiliated with Minecraft, Mojang or YouTube.</footer>
+
+<!-- Info modal -->
+<div class="modal hidden" id="modal"><div class="sheet" id="sheet"></div></div>
+
+<!-- Player -->
+<div id="player" class="hidden"></div>
+
+<script>
+const CREATORS = [
+  {name:"Dream", id:"UCTkXRDQl0luXxVQrRQvWS6w", cat:"Challenges", color:"#3fbf5a", skin:["#3fbf5a","#ffffff","#2a2a2a"], desc:"Manhunts, speedruns and impossible challenges from one of the biggest Minecraft channels ever.", shows:"Minecraft Manhunt, Speedruns, Dream SMP"},
+  {name:"Technoblade", id:"UCFAiFyGs6oDiF1Nf-rRJpZA", cat:"Challenges", color:"#e88aa8", skin:["#f2a7bd","#c0567a","#ffd84a"], desc:"Legendary PvP, Hypixel Skyblock and potato wars. Technoblade never dies.", shows:"Hypixel, Potato War, Dream SMP"},
+  {name:"Grian", id:"UCR9Gcq0CMm6YgTzsDxAxjOQ", cat:"Builds", color:"#d94141", skin:["#d94141","#f1c9a0","#5a3a22"], desc:"Pranks, gorgeous builds and the Life Series — Hermitcraft's most mischievous builder.", shows:"Hermitcraft, Life Series, Build Tutorials"},
+  {name:"Mumbo Jumbo", id:"UChFur_NwVSbUozOcF_F2kMg", cat:"Builds", color:"#e0a64a", skin:["#3b6fd1","#f1c9a0","#2b1d12"], desc:"Redstone genius. Secret doors, giant machines and contraptions that probably shouldn't work.", shows:"Hermitcraft, Redstone, Life Series"},
+  {name:"DanTDM", id:"UCS5Oz6CHmeoF7vSad0qqXfw", cat:"Challenges", color:"#4aa8e0", skin:["#4aa8e0","#f1c9a0","#7b4bd1"], desc:"A Minecraft classic. Mods, maps and lots of laughs with Dan.", shows:"Mod Reviews, Adventure Maps"},
+  {name:"CaptainSparklez", id:"UCshoKvlZGZ20rVgazZp5vnQ", cat:"Stories", color:"#c9a227", skin:["#1f3d7a","#f1c9a0","#c9a227"], desc:"Minecraft songs, parodies and more than a decade of block-building history.", shows:"Music Videos, Mods, Let's Plays"},
+  {name:"Aphmau", id:"UCzYfz8uibvnB7Yc1LjePi4g", cat:"Stories", color:"#a46be0", skin:["#a46be0","#f1c9a0","#2b1d12"], desc:"Roleplay drama, friendship and surprises in Minecraft's most famous story series.", shows:"Roleplay Series, Mods"},
+  {name:"PrestonPlayz", id:"UCJZam2u1G0syq3kyqrCXrNw", cat:"Challenges", color:"#ff7a1a", skin:["#ff7a1a","#c98d5c","#1a1a1a"], desc:"High-energy challenges, traps, pranks and secret bases.", shows:"Challenges, Pranks, Secret Bases"},
+  {name:"LDShadowLady", id:"UCzTlXb7ivVzuFlugVCv3Kvg", cat:"Builds", color:"#ff8fc7", skin:["#ff8fc7","#f1c9a0","#6b3a1f"], desc:"Cozy, beautiful builds plus Empires SMP and the Life Series.", shows:"Empires SMP, Life Series"},
+  {name:"TommyInnit", id:"UC5p_l5ZeB_wGjO_yDXwiqvw", cat:"Challenges", color:"#e04a4a", skin:["#e04a4a","#f1c9a0","#e8c16a"], desc:"Loud, chaotic and hilarious Minecraft mods and SMP adventures.", shows:"Mods, Dream SMP"},
+  {name:"GeorgeNotFound", id:"UCA2tt9GSU2sl8rAqjlLR3mQ", cat:"Challenges", color:"#5a8be0", skin:["#5a8be0","#f1c9a0","#3a2a1a"], desc:"Dream Team manhunts and goofy Minecraft experiments.", shows:"Manhunt, Challenges"},
+  {name:"Sapnap", id:"UCqynl7rdtktKMQESdSBmE-g", cat:"Challenges", color:"#ff6a2a", skin:["#f2f2f2","#e0b08a","#1a1a1a"], desc:"Dream Team member bringing fiery Minecraft challenges.", shows:"Challenges, Dream SMP"},
+  {name:"Skeppy", id:"UCzMjRlKVO9XIqH_crIFpi6w", cat:"Challenges", color:"#3fd7ff", skin:["#3fd7ff","#3fd7ff","#1d7a9a"], desc:"Diamond-block trolls, pranks and Hypixel chaos.", shows:"Trolling, Hypixel"},
+  {name:"Unspeakable", id:"UCwIWAbIeu0xI0ReKWOcw3eg", cat:"Challenges", color:"#3aa0ff", skin:["#3aa0ff","#f1c9a0","#5a3a22"], desc:"Huge challenges, pranks and Minecraft madness.", shows:"Challenges, Pranks"},
+  {name:"ItsFunneh", id:"UCUk7VggtJdo9XYTy3Z5QVAw", cat:"Stories", color:"#ff6fae", skin:["#ff6fae","#f1c9a0","#3a2414"], desc:"The Krew's funny roleplays and family-friendly adventures.", shows:"Roleplays, Krew Adventures"},
+  {name:"xisumavoid", id:"UCU9pX8hKcrx06XfOB-VQLdw", cat:"Builds", color:"#7d5cff", skin:["#2b2b2b","#f1c9a0","#7d5cff"], desc:"Hermitcraft's leader and the go-to channel for Minecraft updates.", shows:"Hermitcraft, Snapshots"},
+  {name:"Stampy", handle:"stampycat", cat:"Stories", color:"#ff9a3c", skin:["#ff9a3c","#ffcf8a","#c45a12"], desc:"Stampy's Lovely World — kind, cozy Minecraft fun.", shows:"Lovely World"},
+  {name:"Philza", handle:"ph1lza", cat:"Builds", color:"#3a9a5a", skin:["#3a9a5a","#f1c9a0","#e8e0c0"], desc:"Hardcore legend with years-long survival worlds.", shows:"Hardcore, Survival"}
+];
+const NEW = new Set(["TommyInnit","GeorgeNotFound","Sapnap","Skeppy","Unspeakable","ItsFunneh","xisumavoid","Stampy","Philza"]);
+const PROFILES = [
+  {name:"Steve", skin:["#2fb8c0","#c98d5c","#3b2414"]},
+  {name:"Alex",  skin:["#5aa03a","#f1c9a0","#e0751f"]},
+  {name:"Creeper", skin:["#3fae3a","#5fd04f","#1a1a1a"], creeper:true},
+  {name:"Kids", skin:["#ffcf3a","#f1c9a0","#7b4bd1"]}
+];
+const chanURL = c => c.id ? 'https://www.youtube.com/channel/'+c.id : 'https://www.youtube.com/@'+c.handle;
+const $ = s => document.querySelector(s);
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+
+/* ---- pixel faces ---- */
+function hash(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))|0;return Math.abs(h)}
+function face(cv,c){
+  const x=cv.getContext('2d');x.clearRect(0,0,8,8);const [shirt,skin,hair]=c.skin;
+  if(c.creeper){x.fillStyle=shirt;x.fillRect(0,0,8,8);x.fillStyle=skin;for(let i=0;i<8;i++)for(let j=0;j<8;j++)if((i*7+j*3)%5===0)x.fillRect(i,j,1,1);
+    x.fillStyle="#111";x.fillRect(1,2,2,2);x.fillRect(5,2,2,2);x.fillRect(3,4,2,2);x.fillRect(2,5,1,2);x.fillRect(5,5,1,2);return}
+  const h=hash(c.name);
+  x.fillStyle=skin;x.fillRect(0,0,8,8);
+  x.fillStyle=hair;x.fillRect(0,0,8,2);x.fillRect(0,2,1,2);x.fillRect(7,2,1,2);if(h%2)x.fillRect(1,2,2,1);
+  x.fillStyle="#fff";x.fillRect(1,3,2,1);x.fillRect(5,3,2,1);
+  x.fillStyle=h%3?"#2b4fbf":"#222";x.fillRect(2,3,1,1);x.fillRect(5,3,1,1);
+  x.fillStyle="rgba(0,0,0,.25)";x.fillRect(3,5,2,1);
+  x.fillStyle=shirt;x.fillRect(0,7,8,1);
+}
+function art(c){ // poster background
+  return `background:radial-gradient(circle at 75% 40%,${c.color}cc 0%,${c.color}55 35%,#0b0b0b 80%),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 8px,transparent 8px 16px),
+    repeating-linear-gradient(90deg,rgba(0,0,0,.08) 0 8px,transparent 8px 16px)`;
+}
+function makeCanvas(c,cls){const cv=document.createElement('canvas');cv.width=8;cv.height=8;if(cls)cv.className=cls;face(cv,c);return cv}
+
+/* ---- sounds (gentle "ta-dum") ---- */
+let actx;function tadum(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+  [[110,0],[82,.28]].forEach(([f,t])=>{const o=actx.createOscillator(),g=actx.createGain();o.type='sine';o.frequency.value=f;
+  g.gain.setValueAtTime(0,actx.currentTime+t);g.gain.linearRampToValueAtTime(.35,actx.currentTime+t+.03);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+t+.9);
+  o.connect(g).connect(actx.destination);o.start(actx.currentTime+t);o.stop(actx.currentTime+t+1)})}catch{}}
+
+/* ---- state ---- */
+let profile=store.get('bf_profile',null);
+let lists=store.get('bf_lists',{});
+let view='home', term='';
+const myList=()=>new Set(lists[profile]||[]);
+function toggleList(c){const s=myList();s.has(c.name)?s.delete(c.name):s.add(c.name);lists[profile]=[...s];store.set('bf_lists',lists);render()}
+
+/* ---- intro + profiles ---- */
+setTimeout(()=>{$('#intro').classList.add('hidden');if(!profile)showProfiles()},1700);
+function showProfiles(){
+  const pl=$('#plist');pl.innerHTML='';
+  PROFILES.forEach(p=>{const b=document.createElement('button');b.className='prof';b.appendChild(makeCanvas(p));
+    b.insertAdjacentHTML('beforeend',`<span>${p.name}</span>`);
+    b.onclick=()=>{profile=p.name;store.set('bf_profile',profile);tadum();$('#profiles').classList.add('hidden');render()};pl.appendChild(b)});
+  $('#profiles').classList.remove('hidden');
+}
+$('#meBtn').onclick=showProfiles;
+
+/* ---- nav ---- */
+addEventListener('scroll',()=>$('#nav').classList.toggle('solid',scrollY>40));
+document.querySelectorAll('#links button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#links button').forEach(x=>x.classList.remove('on'));b.classList.add('on');view=b.dataset.v;render();scrollTo({top:0,behavior:'smooth'})});
+const sbox=$('#sbox'),q=$('#q');
+sbox.onclick=()=>{sbox.classList.add('open');q.focus()};
+q.onblur=()=>{if(!q.value)sbox.classList.remove('open')};
+q.oninput=()=>{term=q.value.trim().toLowerCase();render()};
+
+/* ---- tiles ---- */
+function tile(c){
+  const t=document.createElement('div');t.className='tile';t.style.cssText=art(c);
+  t.innerHTML=`<span class="t-b">B</span>${NEW.has(c.name)?'<span class="t-new">NEW</span>':''}<div class="t-name">${c.name}</div>`;
+  t.appendChild(makeCanvas(c));t.onclick=()=>openInfo(c);return t;
+}
+function row(title,list,ranked){
+  const r=document.createElement('section');r.className='row';r.innerHTML=`<h3>${title}</h3>`;
+  const tr=document.createElement('div');tr.className='track';
+  if(!list.length){r.insertAdjacentHTML('beforeend','<p class="empty">Nothing here yet — tap ＋ My List on a creator to add them.</p>');return r}
+  list.forEach((c,i)=>{if(ranked){const w=document.createElement('div');w.className='rank';w.innerHTML=`<span class="num">${i+1}</span>`;
+    const tl=tile(c);tl.querySelector('.t-new')?.remove();w.appendChild(tl);w.onclick=()=>openInfo(c);tl.onclick=null;tr.appendChild(w)}else tr.appendChild(tile(c))});
+  r.appendChild(tr);return r;
+}
+
+/* ---- hero ---- */
+function hero(c){
+  const h=$('#hero');h.innerHTML=`<div class="art" style="${art(c)}"></div>
+   <div class="copy"><div class="badge"><b>B</b> CREATOR</div><h2>${c.name}</h2>
+   <div class="meta"><span class="match">${90+hash(c.name)%10}% Match</span><span class="pill">All Ages</span><span>${c.cat}</span></div>
+   <p>${c.desc}</p>
+   <div class="btns"><button class="b-play" id="hPlay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l15 8-15 8z"/></svg>Play</button>
+   <button class="b-info" id="hInfo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7h.01"/></svg>More Info</button></div></div>`;
+  h.appendChild(makeCanvas(c,'big'));
+  $('#hPlay').onclick=()=>play(c);$('#hInfo').onclick=()=>openInfo(c);
+}
+
+/* ---- render ---- */
+const shuffleDaily=a=>{const d=new Date().toDateString();return [...a].sort((x,y)=>hash(x.name+d)-hash(y.name+d))};
+function render(){
+  const rows=$('#rows');rows.innerHTML='';
+  if(term){const res=CREATORS.filter(c=>(c.name+' '+c.desc+' '+c.shows).toLowerCase().includes(term));
+    $('#hero').style.display='none';rows.style.marginTop='90px';rows.appendChild(row(`Results for "${q.value}"`,res));return}
+  $('#hero').style.display='';rows.style.marginTop='';
+  const daily=shuffleDaily(CREATORS);
+  if(view==='list'){const l=CREATORS.filter(c=>myList().has(c.name));hero(l[0]||daily[0]);rows.appendChild(row('My List',l));return}
+  if(view!=='home'){const l=CREATORS.filter(c=>c.cat===view);hero(l[0]);rows.appendChild(row(view,l));rows.appendChild(row('You might also like',daily.filter(c=>c.cat!==view)));return}
+  hero(daily[0]);
+  const l=CREATORS.filter(c=>myList().has(c.name));
+  if(l.length)rows.appendChild(row('My List',l));
+  rows.appendChild(row('Top 10 Minecraft Creators Today',daily.slice(0,10),true));
+  rows.appendChild(row('New on BlockFix',CREATORS.filter(c=>NEW.has(c.name))));
+  rows.appendChild(row('Epic Builds & Redstone',CREATORS.filter(c=>c.cat==='Builds')));
+  rows.appendChild(row('Challenges & Manhunts',CREATORS.filter(c=>c.cat==='Challenges')));
+  rows.appendChild(row('Story Time & Roleplay',CREATORS.filter(c=>c.cat==='Stories')));
+  rows.appendChild(row('Hermitcraft Legends',CREATORS.filter(c=>/Hermitcraft/.test(c.shows))));
+  rows.appendChild(row('Dream SMP Crew',CREATORS.filter(c=>/Dream SMP|Manhunt/.test(c.shows))));
+  const me=$('#me');const p=PROFILES.find(p=>p.name===profile)||PROFILES[0];face(me,p);
+}
+
+/* ---- info modal ---- */
+const modal=$('#modal');
+function openInfo(c){
+  const inList=myList().has(c.name);
+  const sheet=$('#sheet');sheet.innerHTML=`<div class="top" style="${art(c)}"><button class="x" id="mx">✕</button>
+    <div class="copy"><h2>${c.name}</h2><div class="btns" style="align-items:center">
+    <button class="b-play" id="mPlay"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l15 8-15 8z"/></svg>Play</button>
+    <button class="circle" id="mList" title="My List">${inList?'✓':'＋'}</button>
+    <a class="circle" href="${chanURL(c)}" target="_blank" rel="noopener" title="Open on YouTube">↗</a></div></div></div>
+    <div class="body"><div><div class="meta" style="display:flex;gap:10px;margin:6px 0 12px;font-size:14px"><span class="match">${90+hash(c.name)%10}% Match</span><span class="pill">All Ages</span><span>${c.cat}</span></div><p>${c.desc}</p></div>
+    <div class="side"><div>Genre: <span>Minecraft, ${c.cat}</span></div><div>Known for: <span>${c.shows}</span></div></div>
+    <h4>More Like This</h4><div class="more" id="more"></div></div>`;
+  sheet.querySelector('.top').appendChild(makeCanvas(c));
+  const more=$('#more');CREATORS.filter(x=>x.cat===c.cat&&x!==c).slice(0,6).forEach(x=>more.appendChild(tile(x)));
+  $('#mx').onclick=closeInfo;$('#mPlay').onclick=()=>{closeInfo();play(c)};
+  $('#mList').onclick=()=>{toggleList(c);$('#mList').textContent=myList().has(c.name)?'✓':'＋'};
+  modal.classList.remove('hidden');modal.scrollTop=0;document.body.style.overflow='hidden';
+}
+function closeInfo(){modal.classList.add('hidden');document.body.style.overflow=''}
+modal.onclick=e=>{if(e.target===modal)closeInfo()};
+
+/* ---- player ---- */
+const player=$('#player');let pmode='UU',pc=null;
+function play(c,m){
+  pc=c;pmode=m||pmode;
+  const inner = c.id
+    ? `<iframe src="https://www.youtube-nocookie.com/embed/videoseries?list=${pmode+c.id.slice(2)}&autoplay=1&rel=0&playsinline=1" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="${c.name}"></iframe>`
+    : `<div class="off"><div><h2 class="logo" style="font-size:60px;color:#fff">${c.name}</h2><p>This creator's videos open on YouTube.</p>
+       <a class="b-play" href="${chanURL(c)}/videos" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l15 8-15 8z"/></svg>Watch on YouTube</a></div></div>`;
+  player.innerHTML=`<div class="bar" id="pbar"><button class="back" id="pback">←</button><span class="ptitle">${c.name}</span>
+    ${c.id?`<div class="seg"><button data-m="UU" class="${pmode==='UU'?'on':''}">Latest</button><button data-m="UULP" class="${pmode==='UULP'?'on':''}">Popular</button></div>`:''}</div>${inner}`;
+  player.classList.remove('hidden');document.body.style.overflow='hidden';
+  $('#pback').onclick=()=>{player.classList.add('hidden');player.innerHTML='';document.body.style.overflow=''};
+  player.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>play(c,b.dataset.m));
+}
+addEventListener('keydown',e=>{if(e.key==='Escape'){if(!player.classList.contains('hidden'))$('#pback').click();else closeInfo()}});
+
+render();
+</script>
+</body>
+</html>
