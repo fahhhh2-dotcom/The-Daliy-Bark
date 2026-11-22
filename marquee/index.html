@@ -462,6 +462,44 @@ nav a.on::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:3
  .row h2{font-size:18px}
  .track{gap:12px}
 }
+
+/* ===== Smooth motion ===== */
+:root{--ease:cubic-bezier(.22,1,.36,1)}
+.bigimg{transition:opacity .9s var(--ease);will-change:opacity}
+.cv{will-change:transform;transform:translateZ(0);background:linear-gradient(100deg,#0c1628 30%,#16233d 50%,#0c1628 70%) 0 0/300% 100%;animation:shim 1.4s linear infinite}
+.cv img{opacity:0;transition:opacity .45s var(--ease)}
+.cv img.ld{opacity:1}
+.cv.ld{animation:none;background:var(--panel)}
+@keyframes shim{to{background-position:-300% 0}}
+.card:hover .cv,.card:focus-visible .cv{transition:transform .4s var(--ease),box-shadow .4s var(--ease)}
+.cv,.cv .hov,.cv .pl{transition-timing-function:var(--ease)}
+.cv .hov .pl{transform:scale(.8);transition:transform .35s var(--ease),background .2s}
+.card:hover .hov .pl,.card:focus-visible .hov .pl{transform:scale(1)}
+main.enter>*{animation:rise .55s var(--ease) both}
+main.enter>*:nth-child(2){animation-delay:.05s}main.enter>*:nth-child(3){animation-delay:.1s}
+main.enter>*:nth-child(4){animation-delay:.15s}main.enter>*:nth-child(5){animation-delay:.2s}
+main.enter>*:nth-child(n+6){animation-delay:.25s}
+main.enter .grid>.card{animation:rise .5s var(--ease) both}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.hero-in{transition:opacity .45s var(--ease),transform .45s var(--ease)}
+.hero-in.fade{transform:translateY(10px)}
+.modal.on{animation:fi .28s var(--ease)}
+.modal.on .mbox{animation:pop .38s var(--ease)}
+.modal.closing{animation:fo .22s ease forwards}
+.modal.closing .mbox{animation:popout .22s ease forwards}
+@keyframes pop{from{opacity:0;transform:translateY(24px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes popout{to{opacity:0;transform:translateY(16px) scale(.97)}}
+@keyframes fo{to{opacity:0}}
+nav a{transition:color .25s}
+nav a.on::after{animation:grow .35s var(--ease)}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+header{transition:background .35s ease,box-shadow .35s ease}
+.btn,.chip,.gbtn{transition:transform .2s var(--ease),filter .2s,background .2s,color .2s,border-color .2s}
+.btn:active,.chip:active{transform:scale(.96)}
+.track{scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.track>.card{scroll-snap-align:start;scroll-margin-left:4vw}
+.tv-nav header.solid{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(5,11,24,.98)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
@@ -716,6 +754,8 @@ const FILMS = [
   desc:'Silly Roblox chaos, trolling and admin pranks from Flamingo. Newest videos first.'},
  {id:'chprestonplayz',kidFav:true,list:'UULFJZam2u1G0syq3kyqrCXrNw',tv:'7PGrbgDTdT4',title:'PrestonPlayz',channel:'PrestonPlayz',year:'Always new',genres:['Channels', 'Gaming', 'Minecraft', 'Roblox'],scene:'blocks',hue:30,match:96,
   desc:'Minecraft, Roblox and real-life challenges with Preston and friends.'},
+ {id:'chterragreen',list:'UULFkYVerz4P_kAZNbDdg2SAeg',tv:'7O3Dm1YCCq0',title:'TerraGreen',channel:'TerraGreen',year:'Always new',genres:['Channels','Animals','Nature'],scene:'forest',hue:120,match:96,
+  desc:'TerraGreen builds tiny ecosystems and explores wild plants, bugs and animals. Newest videos first.'},
  {id:'chsambucha',list:'UULFWBWgCD4oAqT3hUeq40SCUw',tv:'5cttQ4FYMeI',title:'Sambucha',channel:'Sambucha',year:'Always new',genres:['Channels','Challenges','Feel-Good'],scene:'city',hue:45,match:96,
   desc:'Sambucha tries viral life hacks, wild food experiments and funny challenges. Newest videos first.'},
  {id:'chpreston',kidFav:true,list:'UULF70Dib4MvFfT1tU6MqeyHpQ',tv:'jdcv-iemGiQ',title:'Preston',channel:'Preston',year:'Always new',genres:['Channels', 'Challenges'],scene:'desert',hue:200,match:95,
@@ -1076,7 +1116,7 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-eptab]');i
 document.addEventListener('keydown',e=>{if(e.key==='Enter'){const ep=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.ep');if(ep){e.preventDefault();play(ep.dataset.ep)}}});
 
 /* ---------- Rows ---------- */
-function card(f,rank){return `<div class="card" data-id="${f.id}" tabindex="0" role="button" aria-label="${f.title}"><div class="cv"><img src="${thumb(f)}" onerror="thumbFail(this,'${f.id}')" alt="" loading="lazy">${rank?`<span class="rank">TOP ${rank}</span>`:''}${f.uhd&&f.uhd!=='HD'?`<span class="uhd">${f.uhd}</span>`:''}
+function card(f,rank){return `<div class="card" data-id="${f.id}" tabindex="0" role="button" aria-label="${f.title}"><div class="cv"><img src="${thumb(f)}" onload="this.classList.add('ld');this.parentNode.classList.add('ld')" onerror="thumbFail(this,'${f.id}')" alt="" loading="lazy">${rank?`<span class="rank">TOP ${rank}</span>`:''}${f.uhd&&f.uhd!=='HD'?`<span class="uhd">${f.uhd}</span>`:''}
  <div class="hov"><span class="pl" data-play="${f.id}" title="Play">▶</span><div class="ci"><b>${f.title}</b><small>${f.show?f.year:f.channel+' · '+f.year}</small></div></div>${f.show?`<span class="showtag">${f.base?'SHOW':f.eps.length+' EP'}</span>`:''}</div><div class="cap"><b>${esc(capT(f))}</b><small>${esc(capS(f))}</small></div></div>`}
 const capT=f=>String(f.title||'').replace(/\s+[—-]\s+(Latest|Newest) Videos$/i,'');
 const capS=f=>{const c=String(f.channel||'').replace(/\s*\(.*\)$/,''),t=capT(f).toLowerCase(),who=c&&!t.includes(c.toLowerCase())&&!c.toLowerCase().includes(t)?c+' · ':'';return f.show?who+(f.base?'Show · New videos':f.eps.length+' videos'):who+(f.year||'')};
@@ -1126,8 +1166,10 @@ function forYou(){const r=rates(),liked=Object.keys(r).filter(k=>r[k]===1).map(b
  if(!liked.length)return{picks,because:null};
  const last=liked[liked.length-1];const because=LIB().filter(f=>f.id!==last.id&&showKey(f.channel)!==showKey(last.channel)&&!bad.has(f.id)&&f.genres.some(g=>last.genres.includes(g)&&g!=='Channels')).slice(0,12);
  return{picks,because:{title:last.title,list:because}}}
+let lastPage='';
 function render(){buildShows();
  const main=$('#main'),q=$('#q').value.trim().toLowerCase();
+ const pg=view+'|'+(q?'q':'')+'|'+(view==='browse'?browseG:'')+'|'+(PID||'');if(pg!==lastPage){lastPage=pg;main.classList.remove('enter');void main.offsetWidth;main.classList.add('enter')}
  if(view!=='shorts'||q)destroyShorts();
  if(view!=='live'||q)destroyLive();
  document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',!q&&a.dataset.v===view));
@@ -1151,7 +1193,7 @@ function render(){buildShows();
 }
 function route(){const v=(location.hash||'#home').slice(1);view=['home','live','shorts','browse','my-list'].includes(v)?v:'home';$('#q').value='';render();window.scrollTo(0,0)}
 window.addEventListener('hashchange',route);
-$('#q').addEventListener('input',render);
+let qT=0;$('#q').addEventListener('input',()=>{clearTimeout(qT);qT=setTimeout(render,180)});
 document.addEventListener('click',e=>{
  if(e.target.closest('a.dl')){toast('Opening download page…');return}
  const pl=e.target.closest('[data-play]');if(pl){e.stopPropagation();play(pl.dataset.play);return}
@@ -1159,14 +1201,22 @@ document.addEventListener('click',e=>{
  const ch=e.target.closest('.chip');if(ch){browseG=ch.dataset.g;render();return}
  const cd=e.target.closest('.card,.mc');if(cd){openModal(cd.dataset.id)}
 });
-window.addEventListener('scroll',()=>$('#hdr').classList.toggle('solid',scrollY>40),{passive:true});
+let hdrSolid=null;window.addEventListener('scroll',()=>{const v=scrollY>40;if(v!==hdrSolid){hdrSolid=v;$('#hdr').classList.toggle('solid',v)}},{passive:true});
 
 /* ---------- Hero ---------- */
 let FEATURED=['mbsquid','mbwonka','mbcircle','chh1t1pop','chkreek'].map(byId);
 let heroI=0,heroF=FEATURED[0],heroTimer;
-function setBigImg(el,f){if(!el)return;el.classList.remove('on');el.onload=null;el.onerror=null;const v=vidOf(f);if(!v){el.removeAttribute('src');return}
- const tries=['maxresdefault','sddefault','hqdefault'];const next=()=>{const t=tries.shift();if(!t){el.removeAttribute('src');return}el.src=`https://i.ytimg.com/vi/${v}/${t}.jpg`};
- el.onload=()=>{if(el.naturalWidth<=130){next();return}el.classList.add('on')};el.onerror=next;next()}
+function setBigImg(el,f){if(!el)return;
+ if(!el._b){const b=el.cloneNode(false);b.removeAttribute('id');b.classList.remove('on');el.after(b);el._b=b;b._b=el;el._front=el}
+ const gen=(el._gen=(el._gen||0)+1),front=el._front,back=front===el?el._b:el;const v=vidOf(f);
+ const hide=()=>{front.classList.remove('on');back.classList.remove('on')};if(!v){hide();return}
+ const tries=['maxresdefault','sddefault','hqdefault'];const im=new Image();
+ const next=()=>{const t=tries.shift();if(!t){if(gen===el._gen)hide();return}im.src=`https://i.ytimg.com/vi/${v}/${t}.jpg`};
+ im.onload=()=>{if(gen!==el._gen)return;if(im.naturalWidth<=130){next();return}
+  back.src=im.src;const go=()=>{if(gen!==el._gen)return;back.classList.add('on');front.classList.remove('on');el._front=back};
+  (back.decode?back.decode():Promise.resolve()).then(go,go)};
+ im.onerror=next;next()}
+const bigOn=el=>!!el&&(el.classList.contains('on')||(el._b&&el._b.classList.contains('on')));
 function showHeroText(){setBigImg($('#heroImg'),heroF);$('#hT').textContent=heroF.title;$('#hM').innerHTML=metaHTML(heroF);$('#hD').textContent=heroF.desc;syncListBtns();
  document.querySelectorAll('#hDots button').forEach((b,j)=>b.classList.toggle('on',j===heroI))}
 function setHero(i){heroI=(i+FEATURED.length)%FEATURED.length;$('#heroIn').classList.add('fade');
@@ -1185,8 +1235,8 @@ function openModal(id){buildShows();const f0=byId(id),f=showOf(f0)||f0;if(!f)ret
  SH.tab=null;SH.shown=30;if(f.show)renderShowPage(f);else $('#mEps').innerHTML='';
  const more=toShows(LIB().filter(x=>showKey(x.channel)!==f.id&&x.genres.some(g=>g!=='Channels'&&f.genres.includes(g)))).slice(0,6);
  $('#mMore').innerHTML=more.map(x=>`<div class="mc" tabindex="0" data-id="${x.id}"><img src="${thumb(x)}" onerror="thumbFail(this,'${x.id}')" alt=""><div><b>${esc(x.title)}</b><small>${x.year} · ${esc(x.desc)}</small></div></div>`).join('');
- syncListBtns();syncRate();$('#modal').classList.add('on');document.body.style.overflow='hidden';$('#modal').scrollTop=0}
-function closeModal(){M.open=false;$('#modal').classList.remove('on');if(!P.open)document.body.style.overflow=''}
+ syncListBtns();syncRate();clearTimeout(mCloseT);$('#modal').classList.remove('closing');$('#modal').classList.add('on');document.body.style.overflow='hidden';$('#modal').scrollTop=0}
+let mCloseT=0;function closeModal(){if(!M.open)return;M.open=false;const m=$('#modal');m.classList.add('closing');clearTimeout(mCloseT);mCloseT=setTimeout(()=>{m.classList.remove('on','closing')},220);if(!P.open)document.body.style.overflow=''}
 $('#mX').onclick=closeModal;$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
 $('#mPlay').onclick=()=>play(M.f.id);$('#mList').onclick=()=>toggleList(M.f.id);
 $('#mUp').onclick=()=>setRate(M.f.id,1);$('#mDn').onclick=()=>setRate(M.f.id,-1);
@@ -1290,11 +1340,12 @@ document.addEventListener('keydown',e=>{
 
 /* ---------- Loop & boot ---------- */
 let last=performance.now(),clock=0;
-function loop(now){const dt=Math.min(.1,(now-last)/1000);last=now;clock+=dt;
+const FRAME_MS=IN_TV_APP?50:33;let lastDraw=0;
+function loop(now){requestAnimationFrame(loop);if(now-lastDraw<FRAME_MS)return;lastDraw=now;
+ const dt=Math.min(.1,(now-last)/1000);last=now;clock+=dt;if(document.hidden)return;
  if(P.open){const l=document.getElementById('lCv');if(l)drawScene(l,P.f,clock)}
- else if(M.open)drawScene($('#mCv'),M.f,clock);
- else if(!document.hidden&&$('#hero').style.display!=='none'&&scrollY<innerHeight*.85)drawScene($('#heroCv'),heroF,clock);
- requestAnimationFrame(loop)}
+ else if(M.open){if(!bigOn($('#mImg')))drawScene($('#mCv'),M.f,clock)}
+ else if($('#hero').style.display!=='none'&&scrollY<innerHeight*.85&&!bigOn($('#heroImg')))drawScene($('#heroCv'),heroF,clock)}
 /* ---------- Profiles ---------- */
 function renderMe(){$('#me').innerHTML=`${avHTML(CUR)}<div class="menu"><div class="cur">Watching as<b>${esc(CUR.name)}${CUR.kids?' · Kids':''}</b></div>${ACC.user?`<div class="acct">☁ Saved to ${esc(ACC.user.email||'your Google account')}</div>`:''}<hr>${profiles.filter(p=>p.id!==PID).map(p=>`<button data-pick="${p.id}">${avHTML(p)}${esc(p.name)}</button>`).join('')}<hr><button data-act="manage">✎&nbsp; Manage Profiles</button><button data-act="switch">⇄&nbsp; Switch Profile</button><button data-act="interests">⭐&nbsp; My interests</button><button data-act="surprise">🎲&nbsp; Surprise me</button><button data-act="sound" class="${SFX.on?'sfxon':''}">${SFX.on?'🔊':'🔈'}&nbsp; Sounds: ${SFX.on?'On':'Off'}</button>${ACC.user?'<button data-act="signout">↩&nbsp; Sign out</button>':'<button data-act="signin">G&nbsp; Sign in with Google</button>'}</div>`}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -1451,7 +1502,7 @@ const LIVE=[
  {n:103,name:'Science TV',icon:'🚀',src:[['Mark Rober','gicEOsFtMxw'],['Kurzgesagt','ujkD4SxPKOI'],['Veritasium','ONAuUyml0yI'],['Mrwhosetheboss','NrF4mkTmuTU'],['Zach King','mlJdZftpCJc'],['MrBeast','TJ2ifmkGGus']]},
  {n:104,name:'Gaming TV',icon:'🎮',src:[['MrBeast Gaming','Ra6sNe8s2Hc'],['DanTDM','paML_p4sbCo'],['Dream','g22Z__ShvVY']]},
  {n:109,name:'Weather TV',icon:'⛈️',src:[['Max Velocity','UULFvBVK2ymNzPLRJrgip2GeQQ','PxzCHuNO9eY'],['Ryan Hall, Y\'all','UULFJHAT3Uvv-g3I8H3GhHWV7w','nxXo4foqf1E'],['Reed Timmer','UULFV6hWxB0-u_IX7e-h4fEBAw','NYuZUvh0uCo'],['The Weather Channel','UULFGTUbwceCMibvpbd2NaIP7A','FsxrYPLhfWU'],['Pecos Hank','UULFAQpSHsgUcNt6uCOjpgD8kw','z_WiMgPClW4'],['FOX Weather','UULF1FbPiXx59_ltnFVx7IxWow','EKgBMLN1M7s']]},
- {n:107,name:'Nature 4K TV',icon:'🌿',src:[['Peru in 8K','1La4QzGeaaQ'],['Ocean Wildlife 8K','PPAmfbMnWow'],['Costa Rica 4K','LXb3EKWsInQ'],['Our Planet','GfO-3Oir-qM'],['Chameleons 4K','5paGGUUjV2Q']]},
+ {n:107,name:'Nature 4K TV',icon:'🌿',src:[['TerraGreen','7O3Dm1YCCq0'],['Peru in 8K','1La4QzGeaaQ'],['Ocean Wildlife 8K','PPAmfbMnWow'],['Costa Rica 4K','LXb3EKWsInQ'],['Our Planet','GfO-3Oir-qM'],['Chameleons 4K','5paGGUUjV2Q']]},
  {n:105,name:'Creator TV',icon:'🔥',teen:true,src:[['H1T1','3P-rZJbrGyg'],['KreekCraft','21dKUNkOgzk'],['hxsain','HpeXGZycOZc'],['Flamingo','eMbzXLAAfyM'],['Sidemen','fwqEB2HdY88'],['Markiplier','zGhJeLMIhbk']]},
  {n:108,name:'Kids Gaming TV',icon:'🕹️',kidFav:true,src:[['Sambucha','5cttQ4FYMeI'],['Unspeakable','RsGGOT9wZwg'],['PrestonPlayz','7PGrbgDTdT4'],['Aphmau','sTIIWf5NpLQ'],['Preston','jdcv-iemGiQ'],['SSundee','hyI3KePy4LA'],['DanTDM','paML_p4sbCo'],['MrBeast Gaming','Ra6sNe8s2Hc']]},
  {n:106,name:'Kids TV',icon:'🎈',kidsOnly:true,src:[['Bluey','evYFRYX4Hyw'],['Sesame Street','QLC32zDmgTI'],['PBS KIDS','DVA4rAD52i0'],['Blippi','nTr4DUuvgA8'],['Kids Diana Show','yJ8DGLldq5s'],['Vlad and Niki','Is_Ih3JaBgc'],['Cocomelon','Gm_HjftxXKY'],["Ryan's World",'H7iA4Ri1H3Q']]},
