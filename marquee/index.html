@@ -26,6 +26,8 @@ nav a{color:#ccc;transition:color .2s}nav a:hover{color:#fff}nav a.on{color:#fff
 .hero{position:relative;height:82vh;min-height:520px;overflow:hidden}
 .hero canvas,.mtop canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .bw{filter:grayscale(1) sepia(.3) contrast(1.1) brightness(.95)}
+.bigimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .8s}
+.bigimg.on{opacity:1}
 .shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,10,14,.92) 0%,rgba(10,10,14,.55) 40%,transparent 70%),linear-gradient(0deg,var(--bg) 0%,transparent 35%)}
 .hero-in{position:absolute;left:4vw;bottom:22%;max-width:580px;transition:opacity .6s,transform .6s}
 .hero-in.fade{opacity:0;transform:translateY(12px)}
@@ -483,6 +485,7 @@ nav a.on::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:3
 
 <section class="hero" id="hero">
   <canvas id="heroCv"></canvas>
+  <img class="bigimg" id="heroImg" alt="">
   <div class="shade"></div>
   <div class="hero-in" id="heroIn">
     <div class="kicker">★ Featured Video</div>
@@ -510,6 +513,7 @@ nav a.on::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:3
     <button class="x" id="mX" aria-label="Close">✕</button>
     <div class="mtop">
       <canvas id="mCv"></canvas>
+      <img class="bigimg" id="mImg" alt="">
       <div class="mshade"></div>
       <div class="mhead">
         <h2 id="mT"></h2>
@@ -573,11 +577,11 @@ const FILMS = [
  {id:'chminecraft',list:'UULF1sELGmy5jp5fQUugmuYlXQ',tv:'s0w_pTOXDBQ',title:'Minecraft — Latest Videos',channel:'Minecraft',year:'Always new',genres:['Channels','Minecraft'],scene:'blocks',hue:205,match:96,
   desc:'Every new video from the official Minecraft channel: updates, LIVE shows and behind-the-scenes, newest first.'},
 
- {id:'chmbgaming',list:'UULFIPPMRA040LQr5QPyJEbmXA',tv:'Ra6sNe8s2Hc',title:'MrBeast Gaming — Latest Videos',channel:'MrBeast Gaming',year:'Always new',genres:['Channels','MrBeast','Minecraft'],scene:'blocks',hue:35,match:97,
+ {id:'chmbgaming',kidFav:true,list:'UULFIPPMRA040LQr5QPyJEbmXA',tv:'Ra6sNe8s2Hc',title:'MrBeast Gaming — Latest Videos',channel:'MrBeast Gaming',year:'Always new',genres:['Channels','MrBeast','Minecraft'],scene:'blocks',hue:35,match:97,
   desc:'MrBeast and friends compete in giant Minecraft and gaming challenges for real money. Newest videos first.'},
  {id:'chtrahan',list:'UULFnmGIkw-KdI0W5siakKPKog',tv:'VmqwfEw4UoU',title:'Ryan Trahan — Latest Videos',channel:'Ryan Trahan',year:'Always new',genres:['Channels','Challenges'],scene:'desert',hue:15,match:96,
   desc:'Wild adventures and challenges, like traveling the country with just a penny. Newest videos first.'},
- {id:'chunspeakable',list:'UULFwIWAbIeu0xI0ReKWOcw3eg',tv:'RsGGOT9wZwg',title:'Unspeakable — Latest Videos',channel:'Unspeakable',year:'Always new',genres:['Channels','Minecraft','Challenges'],scene:'blocks',hue:160,match:95,
+ {id:'chunspeakable',kidFav:true,list:'UULFwIWAbIeu0xI0ReKWOcw3eg',tv:'RsGGOT9wZwg',title:'Unspeakable — Latest Videos',channel:'Unspeakable',year:'Always new',genres:['Channels','Minecraft','Challenges'],scene:'blocks',hue:160,match:95,
   desc:'Minecraft builds, crazy challenges and real-life stunts from Unspeakable. Newest videos first.'},
  {id:'chsidemen',list:'UULFDogdKl7t7NHzQ95aEwkdMw',tv:'fwqEB2HdY88',title:'Sidemen — Latest Videos',channel:'Sidemen',year:'Always new',genres:['Channels','Challenges'],scene:'city',hue:0,match:93,teen:true,
   desc:'The Sidemen\'s big challenge videos, like Tinder in Real Life and $100,000 vs $1,000 holidays. Newest videos first.'},
@@ -600,7 +604,7 @@ const FILMS = [
   desc:'Mind-blowing science and engineering, with real experiments and surprising answers.'},
  {id:'chwhose',list:'UULFMiJRAwDNSNzuYeN2uWa0pA',tv:'NrF4mkTmuTU',title:'Mrwhosetheboss',channel:'Mrwhosetheboss',year:'Always new',genres:['Channels','Science & Tech'],scene:'synth',hue:200,match:95,
   desc:'The coolest phones, gadgets and tech tested and explained. Newest videos first.'},
- {id:'chdantdm',list:'UULFS5Oz6CHmeoF7vSad0qqXfw',tv:'paML_p4sbCo',title:'DanTDM',channel:'DanTDM',year:'Always new',genres:['Channels','Minecraft'],scene:'blocks',hue:205,match:96,
+ {id:'chdantdm',kidFav:true,list:'UULFS5Oz6CHmeoF7vSad0qqXfw',tv:'paML_p4sbCo',title:'DanTDM',channel:'DanTDM',year:'Always new',genres:['Channels','Minecraft'],scene:'blocks',hue:205,match:96,
   desc:'Minecraft, Roblox and the newest games played with lots of energy. Newest videos first.'},
  {id:'chdream',list:'UULFTkXRDQl0luXxVQrRQvWS6w',tv:'g22Z__ShvVY',title:'Dream',channel:'Dream',year:'Always new',genres:['Channels','Minecraft'],scene:'blocks',hue:140,match:95,
   desc:'Famous Minecraft Manhunts and challenges from Dream. Newest videos first.'},
@@ -628,73 +632,87 @@ const FILMS = [
  {id:'chslowmo',list:'UULFUK0HBIBWgM2c4vsPhkYY4w',tv:'pYMiybNr3vU',uhd:'4K',title:'The Slow Mo Guys',channel:'The Slow Mo Guys',year:'Always new',genres:['Channels','Ultra HD','Science & Tech'],scene:'space',hue:20,match:96,
   desc:'Explosions, water balloons and crazy experiments filmed in super slow motion with high-end cameras.'},
 
- {id:'chnasa',list:'UULFLA_DiR1FfKNvjuUpBHmylQ',title:'NASA',channel:'NASA',year:'Always new',genres:['Channels', 'Science & Tech', 'Nature', 'Space'],scene:'space',hue:220,match:96,
+ {id:'chnasa',list:'UULFLA_DiR1FfKNvjuUpBHmylQ',tv:'K8DG7LUTbaM',title:'NASA',channel:'NASA',year:'Always new',genres:['Channels', 'Science & Tech', 'Nature', 'Space'],scene:'space',hue:220,match:96,
   desc:'Rocket launches, spacewalks and amazing views of Earth and space, straight from NASA.'},
- {id:'chnatgeo',list:'UULFpVm7bg6pXKo1Pr6k5kxG9A',title:'National Geographic',channel:'National Geographic',year:'Always new',genres:['Channels', 'Nature'],scene:'forest',hue:45,match:96,
+ {id:'chnatgeo',list:'UULFpVm7bg6pXKo1Pr6k5kxG9A',tv:'a3waKSBc3Tk',title:'National Geographic',channel:'National Geographic',year:'Always new',genres:['Channels', 'Nature'],scene:'forest',hue:45,match:96,
   desc:'Wild animals, incredible places and adventures from National Geographic.'},
- {id:'chbbcearth',list:'UULFwmZiChSryoWQCZMIQezgTg',title:'BBC Earth',channel:'BBC Earth',year:'Always new',genres:['Channels', 'Nature', 'Ultra HD'],scene:'ocean',hue:190,match:97,
+ {id:'chbbcearth',list:'UULFwmZiChSryoWQCZMIQezgTg',tv:'fTQBX172_n0',title:'BBC Earth',channel:'BBC Earth',year:'Always new',genres:['Channels', 'Nature', 'Ultra HD'],scene:'ocean',hue:190,match:97,
   desc:'Stunning nature from the makers of Planet Earth and Blue Planet.'},
- {id:'chsmarter',list:'UULF6107grRI4m0o2-emgoDnAA',title:'SmarterEveryDay',channel:'SmarterEveryDay',year:'Always new',genres:['Channels', 'Science & Tech'],scene:'space',hue:30,match:95,
+ {id:'chsmarter',list:'UULF6107grRI4m0o2-emgoDnAA',tv:'pXypQ6d_iDg',title:'SmarterEveryDay',channel:'SmarterEveryDay',year:'Always new',genres:['Channels', 'Science & Tech'],scene:'space',hue:30,match:95,
   desc:'Destin explores how the world works with slow-motion cameras and real experiments.'},
- {id:'chmkbhd',list:'UULFBJycsmduvYEL83R_U4JriQ',title:'Marques Brownlee (MKBHD)',channel:'Marques Brownlee',year:'Always new',genres:['Channels', 'Science & Tech'],scene:'synth',hue:0,match:95,
+ {id:'chmkbhd',list:'UULFBJycsmduvYEL83R_U4JriQ',tv:'KTDJiVpSDTI',title:'Marques Brownlee (MKBHD)',channel:'Marques Brownlee',year:'Always new',genres:['Channels', 'Science & Tech'],scene:'synth',hue:0,match:95,
   desc:'Crisp, clear reviews of the newest phones, gadgets and cars.'},
- {id:'chltt',list:'UULFXuqSBlHAE6Xw-yeJA0Tunw',title:'Linus Tech Tips',channel:'Linus Tech Tips',year:'Always new',genres:['Channels', 'Science & Tech'],scene:'synth',hue:30,match:94,
+ {id:'chltt',list:'UULFXuqSBlHAE6Xw-yeJA0Tunw',tv:'f0KK_4AaqLQ',title:'Linus Tech Tips',channel:'Linus Tech Tips',year:'Always new',genres:['Channels', 'Science & Tech'],scene:'synth',hue:30,match:94,
   desc:'PC builds, crazy tech projects and gadget tests from Linus and the team.'},
- {id:'chtomscott',list:'UULFBa659QWEk1AI4Tg--mrJ2A',title:'Tom Scott',channel:'Tom Scott',year:'Always new',genres:['Channels', 'Science & Tech'],scene:'city',hue:200,match:94,
+ {id:'chtomscott',list:'UULFBa659QWEk1AI4Tg--mrJ2A',tv:'sdORrH7d2ug',title:'Tom Scott',channel:'Tom Scott',year:'Always new',genres:['Channels', 'Science & Tech'],scene:'city',hue:200,match:94,
   desc:'Short, fascinating videos about amazing places, science and the history of things.'},
- {id:'chmarkiplier',list:'UULF7_YxT-KID8kRbqZo7MyscQ',title:'Markiplier',channel:'Markiplier',year:'Always new',genres:['Channels', 'Gaming'],scene:'synth',hue:350,match:94,teen:true,
+ {id:'chmarkiplier',list:'UULF7_YxT-KID8kRbqZo7MyscQ',tv:'zGhJeLMIhbk',title:'Markiplier',channel:'Markiplier',year:'Always new',genres:['Channels', 'Gaming'],scene:'synth',hue:350,match:94,teen:true,
   desc:'Funny and spooky game playthroughs, series and sketches from Markiplier.'},
- {id:'chjacksepticeye',list:'UULFYzPXprvl5Y-Sf0g4vX-m6g',title:'jacksepticeye',channel:'jacksepticeye',year:'Always new',genres:['Channels', 'Gaming'],scene:'forest',hue:140,match:93,teen:true,
+ {id:'chjacksepticeye',list:'UULFYzPXprvl5Y-Sf0g4vX-m6g',tv:'etycvxXlTSc',title:'jacksepticeye',channel:'jacksepticeye',year:'Always new',genres:['Channels', 'Gaming'],scene:'forest',hue:140,match:93,teen:true,
   desc:'High-energy gaming videos from Jack, the Irish YouTuber with the green hair.'},
- {id:'kpeppa',list:'UULFAOtE1V7Ots4DjM8JLlrYgg',title:'Peppa Pig — Official',channel:'Peppa Pig',year:'Always new',genres:['Kids', 'Cartoons'],scene:'kids',hue:340,match:97,kidsOnly:true,
+ {id:'kpeppa',list:'UULFAOtE1V7Ots4DjM8JLlrYgg',tv:'TJ-KGh8khhA',title:'Peppa Pig — Official',channel:'Peppa Pig',year:'Always new',genres:['Kids', 'Cartoons'],scene:'kids',hue:340,match:97,kidsOnly:true,
   desc:'Full episodes and clips with Peppa, George and their family.'},
- {id:'ksupersimple',list:'UULFLsooMJoIpl_7ux2jvdPB-Q',title:'Super Simple Songs',channel:'Super Simple Songs',year:'Always new',genres:['Kids', 'Songs', 'Learning'],scene:'kids',hue:190,match:96,kidsOnly:true,
+ {id:'ksupersimple',list:'UULFLsooMJoIpl_7ux2jvdPB-Q',tv:'16LdAdVN0q0',title:'Super Simple Songs',channel:'Super Simple Songs',year:'Always new',genres:['Kids', 'Songs', 'Learning'],scene:'kids',hue:190,match:96,kidsOnly:true,
   desc:'Gentle sing-along songs for little kids: animals, colors, counting and bedtime.'},
 
- {id:'chnba',list:'UULFWJ2lWNubArHWmf3FIHbfcQ',title:'NBA',channel:'NBA',year:'Always new',genres:['Channels', 'Sports'],scene:'city',hue:25,match:95,
+ {id:'chnba',list:'UULFWJ2lWNubArHWmf3FIHbfcQ',tv:'fD9ObwrdOHI',title:'NBA',channel:'NBA',year:'Always new',genres:['Channels', 'Sports'],scene:'city',hue:25,match:95,
   desc:'Game highlights, buzzer beaters and the best dunks from the NBA.'},
- {id:'chnfl',list:'UULFDVYQ4Zhbm3S2dlz7P1GBDg',title:'NFL',channel:'NFL',year:'Always new',genres:['Channels', 'Sports'],scene:'city',hue:210,match:95,
+ {id:'chnfl',list:'UULFDVYQ4Zhbm3S2dlz7P1GBDg',tv:'e5OYKouL0KU',title:'NFL',channel:'NFL',year:'Always new',genres:['Channels', 'Sports'],scene:'city',hue:210,match:95,
   desc:'Big plays, game highlights and trick plays from the NFL.'},
- {id:'chtasty',list:'UULFJFp8uSYCjXOMnkUyb3CQ3Q',title:'Tasty',channel:'Tasty',year:'Always new',genres:['Channels', 'Food'],scene:'kids',hue:15,match:94,
+ {id:'chtasty',list:'UULFJFp8uSYCjXOMnkUyb3CQ3Q',tv:'6Zw9mTpeX_U',title:'Tasty',channel:'Tasty',year:'Always new',genres:['Channels', 'Food'],scene:'kids',hue:15,match:94,
   desc:'Fast, fun recipe videos: desserts, snacks and giant food experiments.'},
- {id:'chdodo',list:'UULFINb0wqPz-A0dV9nARjJlOQ',title:'The Dodo',channel:'The Dodo',year:'Always new',genres:['Channels', 'Animals', 'Feel-Good'],scene:'forest',hue:35,match:97,
+ {id:'chdodo',list:'UULFINb0wqPz-A0dV9nARjJlOQ',tv:'h_vrs_JwIDA',title:'The Dodo',channel:'The Dodo',year:'Always new',genres:['Channels', 'Animals', 'Feel-Good'],scene:'forest',hue:35,match:97,
   desc:'Heartwarming animal rescues and the funniest pets on the internet.'},
- {id:'chbrave',list:'UULF6E2mP01ZLH_kbAyeazCNdg',title:'Brave Wilderness',channel:'Brave Wilderness',year:'Always new',genres:['Channels', 'Animals', 'Nature'],scene:'forest',hue:100,match:94,teen:true,
+ {id:'chbrave',list:'UULF6E2mP01ZLH_kbAyeazCNdg',tv:'3917XrJVM_I',title:'Brave Wilderness',channel:'Brave Wilderness',year:'Always new',genres:['Channels', 'Animals', 'Nature'],scene:'forest',hue:100,match:94,teen:true,
   desc:'Coyote Peterson finds wild animals up close. Some bites and stings are part of the adventure!'},
- {id:'chspacex',list:'UULFtI0Hodo5o5dUb67FeUjDeA',title:'SpaceX',channel:'SpaceX',year:'Always new',genres:['Channels', 'Science & Tech', 'Space'],scene:'space',hue:210,match:96,
+ {id:'chspacex',list:'UULFtI0Hodo5o5dUb67FeUjDeA',tv:'8ySMdUIF3cY',title:'SpaceX',channel:'SpaceX',year:'Always new',genres:['Channels', 'Science & Tech', 'Space'],scene:'space',hue:210,match:96,
   desc:'Rocket launches and landings, including Starship test flights, straight from SpaceX.'},
 
- {id:'chh1t1pop',list:'UULPE7spuKzxP1k8A-XucxxUAQ',title:'H1T1 — Most Popular',channel:'John Casterline (H1T1)',year:'Always new',genres:['Channels', 'H1T1'],scene:'synth',hue:20,match:99,teen:true,
+ {id:'chh1t1pop',list:'UULPE7spuKzxP1k8A-XucxxUAQ',tv:'3P-rZJbrGyg',title:'H1T1 — Most Popular',channel:'John Casterline (H1T1)',year:'Always new',genres:['Channels', 'H1T1'],scene:'synth',hue:20,match:99,teen:true,
   desc:'H1T1’s most-watched videos of all time, back to back.'},
- {id:'chh1t1all',list:'UUE7spuKzxP1k8A-XucxxUAQ',title:'H1T1 — Everything New',channel:'John Casterline (H1T1)',year:'Always new',genres:['Channels', 'H1T1'],scene:'synth',hue:35,match:98,teen:true,
+ {id:'chh1t1all',list:'UUE7spuKzxP1k8A-XucxxUAQ',tv:'3P-rZJbrGyg',title:'H1T1 — Everything New',channel:'John Casterline (H1T1)',year:'Always new',genres:['Channels', 'H1T1'],scene:'synth',hue:35,match:98,teen:true,
   desc:'Every new H1T1 upload, Shorts and long videos, newest first.'},
- {id:'chkreek',list:'UULFxsk7hqE_CwZWGEJEkGanbA',title:'KreekCraft',channel:'KreekCraft',year:'Always new',genres:['Channels', 'Gaming', 'Roblox'],scene:'blocks',hue:120,match:97,
+ {id:'chkreek',list:'UULFxsk7hqE_CwZWGEJEkGanbA',tv:'21dKUNkOgzk',title:'KreekCraft',channel:'KreekCraft',year:'Always new',genres:['Channels', 'Gaming', 'Roblox'],scene:'blocks',hue:120,match:97,teen:true,
   desc:'The biggest Roblox news, new games and funny moments from KreekCraft. Newest videos first.'},
- {id:'chkreekpop',list:'UULPxsk7hqE_CwZWGEJEkGanbA',title:'KreekCraft — Most Popular',channel:'KreekCraft',year:'Always new',genres:['Channels', 'Gaming', 'Roblox'],scene:'blocks',hue:140,match:96,
+ {id:'chkreekpop',list:'UULPxsk7hqE_CwZWGEJEkGanbA',tv:'21dKUNkOgzk',title:'KreekCraft — Most Popular',channel:'KreekCraft',year:'Always new',genres:['Channels', 'Gaming', 'Roblox'],scene:'blocks',hue:140,match:96,teen:true,
   desc:'KreekCraft’s most-watched Roblox videos ever.'},
- {id:'chflamingo',list:'UULFm-X6o81nRsXQTmqpyArkBQ',title:'Flamingo',channel:'Flamingo',year:'Always new',genres:['Channels', 'Gaming', 'Roblox'],scene:'kids',hue:330,match:95,teen:true,
+ {id:'chflamingo',list:'UULFm-X6o81nRsXQTmqpyArkBQ',tv:'eMbzXLAAfyM',title:'Flamingo',channel:'Flamingo',year:'Always new',genres:['Channels', 'Gaming', 'Roblox'],scene:'kids',hue:330,match:95,teen:true,
   desc:'Silly Roblox chaos, trolling and admin pranks from Flamingo. Newest videos first.'},
- {id:'chprestonplayz',list:'UULFJZam2u1G0syq3kyqrCXrNw',title:'PrestonPlayz',channel:'PrestonPlayz',year:'Always new',genres:['Channels', 'Gaming', 'Minecraft', 'Roblox'],scene:'blocks',hue:30,match:96,
+ {id:'chprestonplayz',kidFav:true,list:'UULFJZam2u1G0syq3kyqrCXrNw',tv:'7PGrbgDTdT4',title:'PrestonPlayz',channel:'PrestonPlayz',year:'Always new',genres:['Channels', 'Gaming', 'Minecraft', 'Roblox'],scene:'blocks',hue:30,match:96,
   desc:'Minecraft, Roblox and real-life challenges with Preston and friends.'},
- {id:'chpreston',list:'UULF70Dib4MvFfT1tU6MqeyHpQ',title:'Preston',channel:'Preston',year:'Always new',genres:['Channels', 'Challenges'],scene:'desert',hue:200,match:95,
+ {id:'chpreston',kidFav:true,list:'UULF70Dib4MvFfT1tU6MqeyHpQ',tv:'jdcv-iemGiQ',title:'Preston',channel:'Preston',year:'Always new',genres:['Channels', 'Challenges'],scene:'desert',hue:200,match:95,
   desc:'Huge real-life challenges, hide and seek and giant builds from Preston.'},
- {id:'chaphmau',list:'UULFzYfz8uibvnB7Yc1LjePi4g',title:'Aphmau',channel:'Aphmau',year:'Always new',genres:['Channels', 'Gaming', 'Minecraft', 'Roblox'],scene:'kids',hue:300,match:96,
+ {id:'chaphmau',kidFav:true,list:'UULFzYfz8uibvnB7Yc1LjePi4g',tv:'sTIIWf5NpLQ',title:'Aphmau',channel:'Aphmau',year:'Always new',genres:['Channels', 'Gaming', 'Minecraft', 'Roblox'],scene:'kids',hue:300,match:96,
   desc:'Minecraft and Roblox stories, roleplay and funny adventures with Aphmau and friends.'},
- {id:'chssundee',list:'UULFke6I9N4KfC968-yRcd5YRg',title:'SSundee',channel:'SSundee',year:'Always new',genres:['Channels', 'Gaming', 'Minecraft'],scene:'blocks',hue:90,match:95,
+ {id:'chssundee',kidFav:true,list:'UULFke6I9N4KfC968-yRcd5YRg',tv:'hyI3KePy4LA',title:'SSundee',channel:'SSundee',year:'Always new',genres:['Channels', 'Gaming', 'Minecraft'],scene:'blocks',hue:90,match:95,
   desc:'Funny Minecraft, Among Us and Fortnite videos where SSundee yells a lot.'},
+
+ {id:'wxmaxv',list:'UULFvBVK2ymNzPLRJrgip2GeQQ',tv:'PxzCHuNO9eY',title:'Max Velocity — Severe Weather Center',channel:'Max Velocity - Severe Weather Center',year:'Always new',genres:['Weather','Channels'],scene:'city',hue:220,match:97,
+  desc:'Meteorologist Max Velocity breaks down tornadoes, hurricanes, blizzards and big storms across the U.S. Newest videos first.'},
+ {id:'wxryanhall',list:'UULFJHAT3Uvv-g3I8H3GhHWV7w',tv:'nxXo4foqf1E',title:'Ryan Hall, Y\'all',channel:'Ryan Hall, Y\'all',year:'Always new',genres:['Weather','Channels'],scene:'city',hue:200,match:97,
+  desc:'"The Internet\'s Weather Man" with severe weather forecasts and storm coverage. Newest videos first.'},
+ {id:'wxreed',list:'UULFV6hWxB0-u_IX7e-h4fEBAw',tv:'NYuZUvh0uCo',title:'Reed Timmer — Storm Chaser',channel:'Reed Timmer',year:'Always new',genres:['Weather','Channels'],scene:'desert',hue:210,match:96,
+  desc:'Extreme meteorologist Reed Timmer drives right up to tornadoes and hurricanes. Newest videos first.'},
+ {id:'wxpecos',list:'UULFAQpSHsgUcNt6uCOjpgD8kw',tv:'z_WiMgPClW4',title:'Pecos Hank — Storm Footage',channel:'Pecos Hank',year:'Always new',genres:['Weather','Channels','Nature'],scene:'desert',hue:30,match:96,uhd:'4K',
+  desc:'Beautiful, cinematic tornado and lightning footage with music by the storm chaser himself.'},
+ {id:'wxtwc',list:'UULFGTUbwceCMibvpbd2NaIP7A',tv:'FsxrYPLhfWU',title:'The Weather Channel',channel:'The Weather Channel',year:'Always new',genres:['Weather','Channels'],scene:'ocean',hue:210,match:94,
+  desc:'Forecasts, storm coverage and weather stories from The Weather Channel. Newest videos first.'},
+ {id:'wxfox',list:'UULF1FbPiXx59_ltnFVx7IxWow',tv:'EKgBMLN1M7s',title:'FOX Weather',channel:'FOX Weather',year:'Always new',genres:['Weather','Channels'],scene:'ocean',hue:200,match:93,
+  desc:'Breaking weather news, storm tracking and forecasts from FOX Weather. Newest videos first.'},
 ];
 const SHORTS=[
  {name:'H1T1',list:'UUSHE7spuKzxP1k8A-XucxxUAQ',handle:'H1T1',teen:true,hue:20},
- {name:'KreekCraft',list:'UUSHxsk7hqE_CwZWGEJEkGanbA',handle:'KreekCraft',hue:120},
- {name:'Preston',list:'UUSH70Dib4MvFfT1tU6MqeyHpQ',handle:'Preston',hue:200},
- {name:'SSundee',list:'UUSHke6I9N4KfC968-yRcd5YRg',handle:'SSundee',hue:90},
- {name:'Aphmau',list:'UUSHzYfz8uibvnB7Yc1LjePi4g',handle:'Aphmau',hue:300},
+ {name:'KreekCraft',list:'UUSHxsk7hqE_CwZWGEJEkGanbA',handle:'KreekCraft',hue:120,teen:true},
+ {name:'PrestonPlayz',list:'UUSHJZam2u1G0syq3kyqrCXrNw',handle:'prestonplayz',hue:30,kidFav:true},
+ {name:'Preston',list:'UUSH70Dib4MvFfT1tU6MqeyHpQ',handle:'Preston',hue:200,kidFav:true},
+ {name:'SSundee',list:'UUSHke6I9N4KfC968-yRcd5YRg',handle:'SSundee',hue:90,kidFav:true},
+ {name:'Aphmau',list:'UUSHzYfz8uibvnB7Yc1LjePi4g',handle:'Aphmau',hue:300,kidFav:true},
  {name:'hxsain',list:'UUSHZfTWLrTkaoZoSx5fkrAPJA',handle:'hxsain',teen:true,hue:250},
  {name:'MrBeast',list:'UUSHX6OQ3DkcsbYNE6H8uQQuVA',handle:'MrBeast',hue:200},
  {name:'Dude Perfect',list:'UUSHRijo3ddMTht_IHyNSNXpNQ',handle:'DudePerfect',hue:205},
  {name:'Mark Rober',list:'UUSHY1kMZp36IQSyNx_9h4mpCg',handle:'MarkRober',hue:160},
  {name:'Ryan Trahan',list:'UUSHnmGIkw-KdI0W5siakKPKog',handle:'ryan',hue:15},
- {name:'Unspeakable',list:'UUSHwIWAbIeu0xI0ReKWOcw3eg',handle:'unspeakable',hue:160},
+ {name:'Unspeakable',list:'UUSHwIWAbIeu0xI0ReKWOcw3eg',handle:'unspeakable',hue:160,kidFav:true},
  {name:'Bluey',list:'UUSHVzLLZkDuFGAE2BGdBuBNBg',handle:'BlueyOfficialChannel',hue:205,kidsOnly:true},
  {name:'Blippi',list:'UUSH5PYHgAzJ1wLEidB58SK6Xw',handle:'Blippi',hue:25,kidsOnly:true},
  {name:'Sesame Street',list:'UUSHoookXUzPciGrEZEXmh4Jjg',handle:'sesamestreet',hue:45,kidsOnly:true},
@@ -702,7 +720,7 @@ const SHORTS=[
 FILMS.forEach((f,i)=>{f.seed=i*37+5;f.color=true});
 var SHOWS={},EPS={},PLC={},QUEUE=[];
 const byId=id=>FILMS.find(f=>f.id===id)||SHOWS[id]||EPS[id];
-const GENRES=['All','Ultra HD','Kids','Channels','Gaming','Roblox','Sports','Animals','Food','MrBeast','Challenges','Minecraft','Science & Tech','Space','Nature','Feel-Good'];
+const GENRES=['All','Weather','Ultra HD','Kids','Channels','Gaming','Roblox','Sports','Animals','Food','MrBeast','Challenges','Minecraft','Science & Tech','Space','Nature','Feel-Good'];
 const ytURL=f=>f.list?`https://www.youtube.com/playlist?list=${f.list}`:`https://www.youtube.com/watch?v=${f.yt}`;
 const IN_TV_APP=/MarqueeTV/.test(navigator.userAgent);
 const CAN_EMBED=/^https?:$/.test(location.protocol)&&!/(claude|anthropic|claudeusercontent)/i.test(location.hostname);
@@ -951,7 +969,7 @@ function startSaver(){ssOn=true;const ov=document.createElement('div');ov.id='sa
  ov.innerHTML=`<canvas id="sscv"></canvas><div class="ss-shade"></div><div class="ss-logo">MARQUEE</div><div class="ss-time" id="ssTime"></div><div class="ss-date" id="ssDate"></div><div class="ss-now" id="ssNow"></div>`;
  document.body.appendChild(ov);const cv=ov.querySelector('#sscv'),ctx=cv.getContext('2d');let i=Math.floor(Math.random()*SS_SCENES.length),t0=performance.now(),sceneStart=t0;
  const card=()=>{const L=LIB();const f=L[Math.floor(Math.random()*L.length)];const n=ov.querySelector('#ssNow');if(!f||!n)return;
-  n.classList.remove('in');setTimeout(()=>{n.innerHTML=`<img src="${thumb(f)}" alt=""><div><small>NOW ON MARQUEE</small><b>${esc(f.title)}</b><span>Press any button to start watching</span></div>`;n.classList.add('in')},400)};
+  n.classList.remove('in');setTimeout(()=>{n.innerHTML=`<img src="${thumb(f)}" onerror="thumbFail(this,'${f.id}')" alt=""><div><small>NOW ON MARQUEE</small><b>${esc(f.title)}</b><span>Press any button to start watching</span></div>`;n.classList.add('in')},400)};
  const clock=()=>{const t=new Date();const a=ov.querySelector('#ssTime'),b=ov.querySelector('#ssDate');if(a){a.textContent=t.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});b.textContent=t.toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'})}};
  clock();card();ssCard=setInterval(()=>{clock();card()},15000);
  const frame=now=>{if(!ssOn)return;const w=Math.round(innerWidth*Math.min(devicePixelRatio||1,1.5)),h=Math.round(innerHeight*Math.min(devicePixelRatio||1,1.5));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}
@@ -976,7 +994,7 @@ function buildShows(){SHOWS={};try{Object.assign(EPS,store.get('eps',{}))}catch(
    img:f.img,scene:f.scene,hue:f.hue,seed:f.seed,color:true,tv:null,base:null,main:null,uhd:null};
   s.films.push(f);f.genres.forEach(g=>{if(!s.genres.includes(g))s.genres.push(g)});s.match=Math.max(s.match,f.match||0);s.teen=s.teen||!!f.teen;
   if(f.list&&f.list.startsWith('UULF')&&!s.base){s.base=f.list.slice(4);s.main=f;s.desc=f.desc;s.img=f.img;s.scene=f.scene;s.hue=f.hue;s.seed=f.seed;if(f.tv)s.tv=f.tv}
-  if(!s.tv&&(f.tv||f.yt))s.tv=f.tv||f.yt;if(!s.desc)s.desc=f.desc;if(f.uhd&&!s.uhd)s.uhd=f.uhd;if(f.kidsOnly)s.kidsOnly=true});
+  if(!s.tv&&(f.tv||f.yt))s.tv=f.tv||f.yt;if(!s.desc)s.desc=f.desc;if(f.uhd&&!s.uhd)s.uhd=f.uhd;if(f.kidsOnly)s.kidsOnly=true;if(f.kidFav)s.kidFav=true});
  Object.values(SHOWS).forEach(s=>{s.eps=s.films.filter(f=>f.yt);if(!s.main)s.main=s.films.find(f=>f.list)||s.eps[0]||s.films[0];
   s.year=s.base?'New episodes all the time':`${s.eps.length} episode${s.eps.length===1?'':'s'}`;
   if(!s.base&&s.eps.length>1)s.desc=`${s.eps.length} videos from ${s.title}. `+s.eps[0].desc})}
@@ -1002,7 +1020,7 @@ function showTabs(s){const t=[];if(s.base){t.push(['new','Newest','UULF'+s.base]
 function renderShowPage(s){SH.s=s;const tabs=showTabs(s);if(!SH.tab||!tabs.some(t=>t[0]===SH.tab))SH.tab=tabs[0]?tabs[0][0]:null;
  $('#mEps').innerHTML=`<div class="eph"><h3>Episodes</h3><div class="eptabs">${tabs.map(([k,l])=>`<button class="eptab ${k===SH.tab?'on':''}" data-eptab="${k}">${l}</button>`).join('')}</div></div><div class="eplist" id="epL"></div>`;
  drawEps()}
-function epRow(f,n,vid){return `<div class="ep" tabindex="0" role="button" data-ep="${f.id}"><span class="epn">${n}</span><div class="ept"><img src="${thumb(f)}" alt="" loading="lazy"><span class="epp">▶</span></div><div class="epi"><b ${vid?`data-vt="${vid}"`:''}>${esc(f.title)}</b><small>${esc(f.desc||'')}</small></div></div>`}
+function epRow(f,n,vid){return `<div class="ep" tabindex="0" role="button" data-ep="${f.id}"><span class="epn">${n}</span><div class="ept"><img src="${thumb(f)}" onerror="thumbFail(this,'${f.id}')" alt="" loading="lazy"><span class="epp">▶</span></div><div class="epi"><b ${vid?`data-vt="${vid}"`:''}>${esc(f.title)}</b><small>${esc(f.desc||'')}</small></div></div>`}
 function drawEps(){const s=SH.s,L=$('#epL');if(!s||!L)return;const tab=showTabs(s).find(t=>t[0]===SH.tab);if(!tab){L.innerHTML='';return}
  if(tab[0]==='feat'){QUEUE=s.eps.map(f=>f.id);L.innerHTML=s.eps.map((f,i)=>epRow(f,i+1)).join('');return}
  const list=tab[2],all=plFilm(list,s,tab[1]);
@@ -1019,10 +1037,11 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-eptab]');i
 document.addEventListener('keydown',e=>{if(e.key==='Enter'){const ep=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.ep');if(ep){e.preventDefault();play(ep.dataset.ep)}}});
 
 /* ---------- Rows ---------- */
-function card(f,rank){return `<div class="card" data-id="${f.id}" tabindex="0" role="button" aria-label="${f.title}"><img src="${thumb(f)}" alt="" loading="lazy">${rank?`<span class="rank">TOP ${rank}</span>`:''}${f.uhd&&f.uhd!=='HD'?`<span class="uhd">${f.uhd}</span>`:''}
+function card(f,rank){return `<div class="card" data-id="${f.id}" tabindex="0" role="button" aria-label="${f.title}"><img src="${thumb(f)}" onerror="thumbFail(this,'${f.id}')" alt="" loading="lazy">${rank?`<span class="rank">TOP ${rank}</span>`:''}${f.uhd&&f.uhd!=='HD'?`<span class="uhd">${f.uhd}</span>`:''}
  <div class="hov"><span class="pl" data-play="${f.id}" title="Play">▶</span><div class="ci"><b>${f.title}</b><small>${f.show?f.year:f.channel+' · '+f.year}</small></div></div>${f.show?`<span class="showtag">${f.base?'SHOW':f.eps.length+' EP'}</span>`:''}</div>`}
-let REAL_THUMBS=false;const thumb=f=>REAL_THUMBS&&(f.yt||f.tv)?`https://i.ytimg.com/vi/${f.yt||f.tv}/hqdefault.jpg`:f.img;
-function row(title,list,ranked,raw){if(!raw)list=toShows(list);if(!list.length)return'';return `<section class="row"><h2>${title}</h2><div class="rw"><button class="arr l" aria-label="Scroll left">‹</button><div class="track">${list.map((f,i)=>card(f,ranked?i+1:0)).join('')}</div><button class="arr r" aria-label="Scroll right">›</button></div></section>`}
+let REAL_THUMBS=false;const vidOf=f=>f&&(f.yt||f.tv);const thumb=f=>vidOf(f)?`https://i.ytimg.com/vi/${vidOf(f)}/hqdefault.jpg`:f.img;
+window.thumbFail=(el,id)=>{el.onerror=null;const f=byId(id);if(f&&f.img)el.src=f.img};
+function row(title,list,ranked,raw){if(!raw)list=toShows(list);if(!(CUR&&CUR.kids)&&title!=='My List'&&!raw)list=list.filter(f=>!f.kidFav);if(!list.length)return'';return `<section class="row"><h2>${title}</h2><div class="rw"><button class="arr l" aria-label="Scroll left">‹</button><div class="track">${list.map((f,i)=>card(f,ranked?i+1:0)).join('')}</div><button class="arr r" aria-label="Scroll right">›</button></div></section>`}
 const G=g=>LIB().filter(f=>f.genres.includes(g));
 
 let view='home',browseG='All';
@@ -1051,7 +1070,7 @@ function showInterests(first){const I=interests()||{cats:[],creators:[]};const p
   ov.innerHTML=`<div class="intbox"><div class="logo">MARQUEE</div><h1>${first?`Welcome, ${esc(CUR.name)}! What do you like?`:'Your interests'}</h1>
    <p>Pick a few. We’ll put them first on your home page.</p>
    <h3>Categories</h3><div class="intcats">${cats.map(([k,e,l])=>`<button class="intcat ${pick.cats.has(k)?'on':''}" data-ic="${k}"><span>${e}</span>${l}</button>`).join('')}</div>
-   <h3>Creators</h3><div class="intcr">${cr.map(f=>`<button class="intc ${pick.creators.has(f.id)?'on':''}" data-icr="${f.id}"><img src="${thumb(f)}" alt=""><b>${esc(f.channel.replace(/ \\(.*\\)/,''))}</b><i>✓</i></button>`).join('')}</div>
+   <h3>Creators</h3><div class="intcr">${cr.map(f=>`<button class="intc ${pick.creators.has(f.id)?'on':''}" data-icr="${f.id}"><img src="${thumb(f)}" onerror="thumbFail(this,'${f.id}')" alt=""><b>${esc(f.channel.replace(/ \\(.*\\)/,''))}</b><i>✓</i></button>`).join('')}</div>
    <div class="intact"><button class="btn play" data-idone="1">${pick.cats.size+pick.creators.size?`Done · ${pick.cats.size+pick.creators.size} picked`:'Done'}</button>${first?'<button class="btn ghost" data-iskip="1">Skip for now</button>':''}</div></div>`};
  ov.addEventListener('click',e=>{const c=e.target.closest('[data-ic]'),r=e.target.closest('[data-icr]');
   if(c){const k=c.dataset.ic;pick.cats.has(k)?pick.cats.delete(k):pick.cats.add(k);SFX.click();const y=ov.scrollTop;draw();ov.scrollTop=y;return}
@@ -1080,13 +1099,13 @@ function render(){buildShows();
   main.innerHTML=`<div class="ph"><h1>Browse</h1><span>${toShows(list).length} shows</span></div><div class="chips">${GENRES.map(g=>`<button class="chip ${g===browseG?'on':''}" data-g="${g}">${g}</button>`).join('')}</div><div class="grid">${toShows(list).map(f=>card(f)).join('')}</div>`;return}
  if(view==='my-list'){const list=toShows(myList.map(byId).filter(f=>f&&(f.show||visible(f))));
   main.innerHTML=`<div class="ph"><h1>My List</h1><span>${list.length} saved</span></div>`+(list.length?`<div class="grid">${list.map(f=>card(f)).join('')}</div>`:`<div class="empty"><b>Your list is empty</b>Tap + on any movie to save it here.</div>`);return}
- const top=['chmrbeast','chh1t1','chkreek','chmbgaming','chdude','chrober','chprestonplayz','chunspeakable','chaphmau','chtrahan'].map(byId).filter(x=>x&&visible(x));
+ const top=['chh1t1','chmrbeast','chkreek','chhxsain','chdude','chsidemen','chrober','chmarkiplier','chtrahan','chflamingo'].map(byId).filter(x=>x&&visible(x));
  const ok=x=>x&&(x.show||x.ep||visible(x));
  if(CUR&&CUR.kids){const K=LIB();main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok),0,1)+row('My List',myList.map(byId).filter(ok))+
-   row('Cartoons & Shows',K.filter(f=>f.genres.includes('Cartoons')))+row('Learn & Play',K.filter(f=>f.genres.includes('Learning')||f.genres.includes('Songs')))+
-   row('Fun for Everyone',K.filter(f=>!f.kidsOnly&&(f.genres.includes('Channels')||f.genres.includes('Feel-Good'))&&!f.genres.includes('Science & Tech')))+row('Cool Science',K.filter(f=>f.genres.includes('Science & Tech')))+row('Amazing Animals in Ultra HD',K.filter(f=>f.genres.includes('Nature')))+row('MrBeast',K.filter(f=>f.genres.includes('MrBeast')&&!f.list))+row('Minecraft',K.filter(f=>f.genres.includes('Minecraft')));return}
+   row('Gaming Creators — Unspeakable, Preston & more',K.filter(f=>f.kidFav))+row('Cartoons & Shows',K.filter(f=>f.genres.includes('Cartoons')))+row('Learn & Play',K.filter(f=>f.genres.includes('Learning')||f.genres.includes('Songs')))+
+   row('Fun for Everyone',K.filter(f=>!f.kidsOnly&&(f.genres.includes('Channels')||f.genres.includes('Feel-Good'))&&!f.genres.includes('Science & Tech')))+row('⛈️ Weather & Storms',K.filter(f=>f.genres.includes('Weather')))+row('Cool Science',K.filter(f=>f.genres.includes('Science & Tech')))+row('Amazing Animals in Ultra HD',K.filter(f=>f.genres.includes('Nature')))+row('MrBeast',K.filter(f=>f.genres.includes('MrBeast')&&!f.list))+row('Minecraft',K.filter(f=>f.genres.includes('Minecraft')));return}
  const FY=forYou(),hideBad=x=>rates()[x.id]!==-1;
- main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok),0,1)+row('My List',myList.map(byId).filter(ok))+row('Your Creators',((interests()||{}).creators||[]).map(byId).filter(ok))+row('Top Picks for '+esc(CUR?CUR.name:'You'),FY.picks)+row('Top 10 Shows',top.filter(hideBad),true)+(FY.because&&FY.because.list.length?row('Because You Liked '+esc(FY.because.title),FY.because.list):'')+row('Sports Highlights',G('Sports'))+row('Amazing Animals',G('Animals'))+row('Space & Rockets',G('Space'))+row('Food & Cooking',G('Food'))+row('Ultra HD — 4K & 8K',G('Ultra HD'))+row('New This Year',LIB().filter(f=>f.added))+
+ main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok),0,1)+row('My List',myList.map(byId).filter(ok))+row('Creators — H1T1, KreekCraft, hxsain & more',LIB().filter(f=>f.teen&&f.list))+row('Your Creators',((interests()||{}).creators||[]).map(byId).filter(ok))+row('Top Picks for '+esc(CUR?CUR.name:'You'),FY.picks)+row('Top 10 Shows',top.filter(hideBad),true)+(FY.because&&FY.because.list.length?row('Because You Liked '+esc(FY.because.title),FY.because.list):'')+row('⛈️ Weather — Storms, Tornadoes & Forecasts',G('Weather'))+row('Sports Highlights',G('Sports'))+row('Amazing Animals',G('Animals'))+row('Space & Rockets',G('Space'))+row('Food & Cooking',G('Food'))+row('Ultra HD — 4K & 8K',G('Ultra HD'))+row('New This Year',LIB().filter(f=>f.added))+
   row('H1T1 & Friends',LIB().filter(f=>f.genres.includes('H1T1')||f.id==='chh1t1'||f.id==='chhxsain'))+row('Roblox',G('Roblox'))+row('Latest From Your Favorite Channels',G('Channels').filter(f=>!f.kidsOnly))+row('MrBeast',G('MrBeast'))+row('Insane Challenges',G('Challenges'))+row('Minecraft',G('Minecraft'))+row('Science & Tech',G('Science & Tech'))+row('Nintendo',G('Nintendo'))+row('For Little Kids',G('Kids'))+row('Live Shows & Directs',G('Live Shows'));
 }
 function route(){const v=(location.hash||'#home').slice(1);view=['home','live','shorts','browse','my-list'].includes(v)?v:'home';$('#q').value='';render();window.scrollTo(0,0)}
@@ -1104,12 +1123,15 @@ window.addEventListener('scroll',()=>$('#hdr').classList.toggle('solid',scrollY>
 /* ---------- Hero ---------- */
 let FEATURED=['mbsquid','mbwonka','mbcircle','chh1t1pop','chkreek'].map(byId);
 let heroI=0,heroF=FEATURED[0],heroTimer;
-function showHeroText(){$('#hT').textContent=heroF.title;$('#hM').innerHTML=metaHTML(heroF);$('#hD').textContent=heroF.desc;syncListBtns();
+function setBigImg(el,f){if(!el)return;el.classList.remove('on');el.onload=null;el.onerror=null;const v=vidOf(f);if(!v){el.removeAttribute('src');return}
+ const tries=['maxresdefault','sddefault','hqdefault'];const next=()=>{const t=tries.shift();if(!t){el.removeAttribute('src');return}el.src=`https://i.ytimg.com/vi/${v}/${t}.jpg`};
+ el.onload=()=>{if(el.naturalWidth<=130){next();return}el.classList.add('on')};el.onerror=next;next()}
+function showHeroText(){setBigImg($('#heroImg'),heroF);$('#hT').textContent=heroF.title;$('#hM').innerHTML=metaHTML(heroF);$('#hD').textContent=heroF.desc;syncListBtns();
  document.querySelectorAll('#hDots button').forEach((b,j)=>b.classList.toggle('on',j===heroI))}
 function setHero(i){heroI=(i+FEATURED.length)%FEATURED.length;$('#heroIn').classList.add('fade');
  setTimeout(()=>{heroF=FEATURED[heroI];showHeroText();$('#heroIn').classList.remove('fade')},350);
  clearInterval(heroTimer);heroTimer=setInterval(()=>{if(!M.open&&!P.open)setHero(heroI+1)},14000)}
-function setFeatured(){FEATURED=(CUR&&CUR.kids?['kbluey','kblippi','ksesame','kryan','chrober']:['mbsquid','chh1t1','mbwonka','chhxsain','chmbgaming']).map(byId);
+function setFeatured(){FEATURED=(CUR&&CUR.kids?['chunspeakable','chpreston','kbluey','chprestonplayz','chssundee']:['chh1t1','mbsquid','chkreek','chhxsain','mbwonka']).map(byId).filter(Boolean);
  $('#hDots').innerHTML=FEATURED.map((_,i)=>`<button aria-label="Featured ${i+1}"></button>`).join('');heroI=0;heroF=FEATURED[0];showHeroText();setHero(0)}
 $('#hDots').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setHero([...b.parentElement.children].indexOf(b))});
 $('#hPlay').onclick=()=>play(heroF.id);$('#hInfo').onclick=()=>openModal(heroF.id);$('#hList').onclick=()=>toggleList(heroF.id);
@@ -1117,11 +1139,11 @@ $('#hPlay').onclick=()=>play(heroF.id);$('#hInfo').onclick=()=>openModal(heroF.i
 /* ---------- Modal ---------- */
 const M={open:false,f:null};
 function openModal(id){buildShows();const f0=byId(id),f=showOf(f0)||f0;if(!f)return;M.f=f;M.open=true;SFX.open();
- $('#mT').textContent=f.title;$('#mM').innerHTML=metaHTML(f);$('#mD').textContent=f.desc;
+ setBigImg($('#mImg'),f); $('#mT').textContent=f.title;$('#mM').innerHTML=metaHTML(f);$('#mD').textContent=f.desc;
  $('#mS').innerHTML=`<div>Creator: <span>${esc(chName(f.channel))}</span></div><div>Episodes: <span>${f.show?(f.base?'Hundreds · new ones all the time':f.eps.length):1}</span></div><div>Categories: <span>${f.genres.filter(g=>g!=='Channels').join(', ')}</span></div><div>Source: <span>YouTube · official channel</span></div>`;
  SH.tab=null;SH.shown=30;if(f.show)renderShowPage(f);else $('#mEps').innerHTML='';
  const more=toShows(LIB().filter(x=>showKey(x.channel)!==f.id&&x.genres.some(g=>g!=='Channels'&&f.genres.includes(g)))).slice(0,6);
- $('#mMore').innerHTML=more.map(x=>`<div class="mc" tabindex="0" data-id="${x.id}"><img src="${thumb(x)}" alt=""><div><b>${esc(x.title)}</b><small>${x.year} · ${esc(x.desc)}</small></div></div>`).join('');
+ $('#mMore').innerHTML=more.map(x=>`<div class="mc" tabindex="0" data-id="${x.id}"><img src="${thumb(x)}" onerror="thumbFail(this,'${x.id}')" alt=""><div><b>${esc(x.title)}</b><small>${x.year} · ${esc(x.desc)}</small></div></div>`).join('');
  syncListBtns();syncRate();$('#modal').classList.add('on');document.body.style.overflow='hidden';$('#modal').scrollTop=0}
 function closeModal(){M.open=false;$('#modal').classList.remove('on');if(!P.open)document.body.style.overflow=''}
 $('#mX').onclick=closeModal;$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
@@ -1209,7 +1231,7 @@ function vEnded(f){const L=LIB(),i=L.indexOf(f),qi=QUEUE.indexOf(f.id);let nx=qi
  if(!nx){const s=showOf(f);const sib=s?s.eps.filter(x=>x!==f):[];nx=sib[0]||L.filter(x=>x!==f&&x.genres.some(g=>f.genres.includes(g)))[0]||L[(i+1)%L.length]}
  const ve=$('#vend');let n=6;
  ve.innerHTML=`<div><div class="kicker">Finished</div><h2 style="font-family:'Bebas Neue';font-size:52px;line-height:1">${esc(f.title)}</h2><div class="btns" style="margin-top:18px"><button class="btn play" id="vagain">↺&nbsp;Replay</button><button class="btn ghost" id="vback">Back to Browse</button></div></div>
-  <div class="nx" id="vnext"><img src="${thumb(nx)}" alt=""><div><small>UP NEXT IN <span id="vcount">${n}</span></small><b style="display:block;margin:4px 0">${esc(nx.title)}</b><span style="color:#aaa;font-size:13px">${nx.channel}</span></div></div>`;
+  <div class="nx" id="vnext"><img src="${thumb(nx)}" onerror="thumbFail(this,'${nx.id}')" alt=""><div><small>UP NEXT IN <span id="vcount">${n}</span></small><b style="display:block;margin:4px 0">${esc(nx.title)}</b><span style="color:#aaa;font-size:13px">${nx.channel}</span></div></div>`;
  ve.classList.add('on');$('#player').classList.remove('idle');
  clearInterval(vEndT);vEndT=setInterval(()=>{n--;const c=document.getElementById('vcount');if(c)c.textContent=n;if(n<=0){clearInterval(vEndT);play(nx.id)}},1000);
  $('#vagain').onclick=()=>{clearInterval(vEndT);ve.classList.remove('on');YTP.seekTo(0,true);YTP.playVideo()};
@@ -1337,29 +1359,32 @@ async function accSignOut(){$('#me').classList.remove('open');try{await ACC.F.au
 let SP=null,sIdx=0,sCreator=0,sWheel=0,sTouchY=null,sLastTap=0,sMuteChk=null;
 const ICN={heart:'<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
  up:'<svg viewBox="0 0 24 24"><path d="M7.4 15.4L12 10.8l4.6 4.6L18 14l-6-6-6 6z"/></svg>',down:'<svg viewBox="0 0 24 24"><path d="M7.4 8.6L12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg>'};
-const sList=()=>CUR&&CUR.kids?[...SHORTS.filter(c=>c.kidsOnly),...SHORTS.filter(c=>!c.kidsOnly&&!c.teen)]:SHORTS.filter(c=>!c.kidsOnly);
-function renderShorts(main){const L=sList();if(sCreator>=L.length)sCreator=0;const c=L[sCreator];
- if(document.getElementById('sframe')&&SP&&main.dataset.sc===c.list)return;
- destroyShorts();main.dataset.sc=c.list;
- const chips=`<div class="schips">${L.map((x,i)=>`<button class="chip ${i===sCreator?'on':''}" data-sc="${i}">${esc(x.name)}</button>`).join('')}</div>`;
- if(!CAN_EMBED){main.innerHTML=`<div class="ph"><h1>Shorts</h1><span>Swipe-style short videos</span></div><div class="shorts"><div class="scards">${L.map(x=>`<div class="scard" style="background:linear-gradient(160deg,${hsl(x.hue,80,50)},${hsl(x.hue+40,70,18)})"><div class="kicker" style="color:#fff">Shorts</div><h2 style="font-size:28px">${esc(x.name)}</h2><a class="big" href="https://www.youtube.com/@${x.handle}/shorts" target="_blank" rel="noopener">▶&nbsp; Watch Shorts</a></div>`).join('')}</div><p class="shint">On your website (thedailybark.dog/marquee) Shorts play right here with swipe-to-scroll.</p></div>`;
+// Kids get kid creators; grown-ups get the more mature ones. No picking — it's one mixed feed.
+const sList=()=>CUR&&CUR.kids?SHORTS.filter(c=>!c.teen):SHORTS.filter(c=>!c.kidsOnly&&!c.kidFav);
+let sN=Math.floor(Math.random()*12);
+function sPos(L){const c=L[((sN%L.length)+L.length)%L.length],idx=Math.floor(sN/L.length)%40;return{c,idx}}
+function renderShorts(main){const L=sList();
+ if(document.getElementById('sframe')&&SP)return;
+ destroyShorts();
+ if(!CAN_EMBED){main.innerHTML=`<div class="ph"><h1>Shorts</h1><span>${CUR&&CUR.kids?'Kid-friendly Shorts':'Shorts from your favorite creators'}</span></div><div class="shorts"><div class="scards">${L.map(x=>`<div class="scard" style="background:linear-gradient(160deg,${hsl(x.hue,80,50)},${hsl(x.hue+40,70,18)})"><div class="kicker" style="color:#fff">Shorts</div><h2 style="font-size:28px">${esc(x.name)}</h2><a class="big" href="https://www.youtube.com/@${x.handle}/shorts" target="_blank" rel="noopener">▶&nbsp; Watch Shorts</a></div>`).join('')}</div><p class="shint">On your website (thedailybark.dog/marquee) Shorts play right here as one nonstop feed.</p></div>`;
   main.querySelectorAll('.scard').forEach(el=>el.addEventListener('click',e=>e.stopPropagation()));return}
- main.innerHTML=`<div class="ph"><h1>Shorts</h1><span>${esc(c.name)}</span></div><div class="shorts">${chips}
+ const p=sPos(L);
+ main.innerHTML=`<div class="ph"><h1>Shorts</h1><span>${CUR&&CUR.kids?'Kid-friendly Shorts, nonstop':'Nonstop Shorts from your favorite creators'}</span></div><div class="shorts">
   <div class="sframe paused" id="sframe"><div id="sp"></div><div class="sshield" id="sshield"></div><div class="spaused">${VI.play}</div>
-   <div class="sinfo"><b id="sAuthor">@${esc(c.handle)}</b><span id="sTitle">Loading…</span></div>
+   <div class="sinfo"><b id="sAuthor">@${esc(p.c.handle)}</b><span id="sTitle">Loading…</span></div>
    <div class="sside"><button id="sLike" title="Like">${ICN.heart}</button><button id="sMute" title="Mute">${VI.vol}</button><button id="sPrev" title="Previous">${ICN.up}</button><button id="sNext" title="Next">${ICN.down}</button></div>
    <div class="sunmute" id="sUnmute">🔇 Tap for sound</div>
-   <div class="sload" id="sload"><div class="vspin"></div>Loading ${esc(c.name)} Shorts…</div></div>
+   <div class="sload" id="sload"><div class="vspin"></div>Loading Shorts…</div></div>
   <div class="shint">Scroll, swipe or press ↑ ↓ for the next Short · double-tap to like</div></div>`;
- main.querySelectorAll('[data-sc]').forEach(b=>b.onclick=e=>{e.stopPropagation();sCreator=+b.dataset.sc;delete main.dataset.sc;destroyShorts();renderShorts(main)});
  ensureYT().then(()=>{if(view!=='shorts'||!document.getElementById('sp'))return;
-  SP=new YT.Player('sp',{host:'https://www.youtube-nocookie.com',playerVars:{listType:'playlist',list:c.list,autoplay:1,controls:0,loop:1,playsinline:1,rel:0,iv_load_policy:3,disablekb:1,fs:0,modestbranding:1},
+  SP=new YT.Player('sp',{host:'https://www.youtube-nocookie.com',playerVars:{listType:'playlist',list:p.c.list,index:p.idx,autoplay:1,controls:0,playsinline:1,rel:0,iv_load_policy:3,disablekb:1,fs:0,modestbranding:1},
    events:{onReady:e=>{try{e.target.setVolume(vVol);e.target.playVideo()}catch(x){}
      clearTimeout(sMuteChk);sMuteChk=setTimeout(()=>{try{if(SP&&SP.getPlayerState()!==1){SP.mute();SP.playVideo();$('#sUnmute').classList.add('on');$('#sMute').innerHTML=VI.mute}}catch(x){}},1800)},
     onStateChange:e=>{const fr=$('#sframe');if(!fr)return;fr.classList.toggle('paused',e.data===2);
-     if(e.data===1){$('#sload').classList.add('gone');try{const d=SP.getVideoData();$('#sTitle').textContent=d.title||'';$('#sAuthor').textContent='@'+(d.author||c.handle).replace(/^@/,'')}catch(x){}$('#sLike').classList.remove('liked')}},
-    onError:()=>{try{SP.nextVideo()}catch(x){}}}});
- }).catch(()=>{const fr=$('#sframe');if(fr)fr.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/videoseries?list=${c.list}&autoplay=1&loop=1&playsinline=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`});
+     if(e.data===1){$('#sload').classList.add('gone');try{const d=SP.getVideoData();$('#sTitle').textContent=d.title||'';$('#sAuthor').textContent='@'+String(d.author||sPos(sList()).c.handle).replace(/^@/,'')}catch(x){}$('#sLike').classList.remove('liked')}
+     if(e.data===0)sGo(1)},
+    onError:()=>sGo(1)}});
+ }).catch(()=>{const fr=$('#sframe');if(fr)fr.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/videoseries?list=${p.c.list}&index=${p.idx}&autoplay=1&playsinline=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`});
  const sh=$('#sshield');
  sh.addEventListener('click',e=>{const now=Date.now();if(now-sLastTap<300){sHeart(e);sLastTap=0;return}sLastTap=now;setTimeout(()=>{if(sLastTap===now)sToggle()},300)});
  sh.addEventListener('wheel',e=>{e.preventDefault();const n=Date.now();if(n-sWheel<700)return;sWheel=n;e.deltaY>0?sGo(1):sGo(-1)},{passive:false});
@@ -1371,7 +1396,8 @@ function renderShorts(main){const L=sList();if(sCreator>=L.length)sCreator=0;con
  $('#sLike').onclick=e=>{e.currentTarget.classList.toggle('liked');if(e.currentTarget.classList.contains('liked'))toast('Liked!')}}
 function sToggle(){if(!SP||!SP.getPlayerState)return;if($('#sUnmute').classList.contains('on')){SP.unMute();$('#sUnmute').classList.remove('on');$('#sMute').innerHTML=VI.vol;return}SP.getPlayerState()===1?SP.pauseVideo():SP.playVideo()}
 function sGo(d){if(!SP)return;const fr=$('#sframe');fr.classList.remove('slide-up','slide-down');void fr.offsetWidth;fr.classList.add(d>0?'slide-up':'slide-down');
- try{d>0?SP.nextVideo():SP.previousVideo()}catch(e){}}
+ sN=Math.max(0,sN+d);const p=sPos(sList());$('#sTitle').textContent='Loading…';$('#sAuthor').textContent='@'+p.c.handle;
+ try{SP.loadPlaylist({list:p.c.list,listType:'playlist',index:p.idx})}catch(e){}}
 function sHeart(e){const fr=$('#sframe'),r=fr.getBoundingClientRect(),h=document.createElement('div');h.className='heart';h.textContent='❤️';h.style.left=(e.clientX-r.left)+'px';h.style.top=(e.clientY-r.top)+'px';fr.appendChild(h);setTimeout(()=>h.remove(),900);$('#sLike').classList.add('liked')}
 function destroyShorts(){clearTimeout(sMuteChk);try{if(SP&&SP.destroy)SP.destroy()}catch(e){}SP=null;const m=document.getElementById('main');if(m)delete m.dataset.sc}
 document.addEventListener('keydown',e=>{if(view!=='shorts'||P.open||!SP||document.activeElement===$('#q')||(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('header')))return;
@@ -1383,12 +1409,18 @@ const LIVE=[
  {n:102,name:'Minecraft TV',icon:'⛏️',src:[['Minecraft','s0w_pTOXDBQ'],['MrBeast Gaming','Ra6sNe8s2Hc'],['DanTDM','paML_p4sbCo'],['Dream','g22Z__ShvVY'],['Minecraft','jGNgh5zEFkY'],['Unspeakable','RsGGOT9wZwg']]},
  {n:103,name:'Science TV',icon:'🚀',src:[['Mark Rober','gicEOsFtMxw'],['Kurzgesagt','ujkD4SxPKOI'],['Veritasium','ONAuUyml0yI'],['Mrwhosetheboss','NrF4mkTmuTU'],['Zach King','mlJdZftpCJc'],['MrBeast','TJ2ifmkGGus']]},
  {n:104,name:'Gaming TV',icon:'🎮',src:[['MrBeast Gaming','Ra6sNe8s2Hc'],['DanTDM','paML_p4sbCo'],['Dream','g22Z__ShvVY']]},
+ {n:109,name:'Weather TV',icon:'⛈️',src:[['Max Velocity','UULFvBVK2ymNzPLRJrgip2GeQQ','PxzCHuNO9eY'],['Ryan Hall, Y\'all','UULFJHAT3Uvv-g3I8H3GhHWV7w','nxXo4foqf1E'],['Reed Timmer','UULFV6hWxB0-u_IX7e-h4fEBAw','NYuZUvh0uCo'],['The Weather Channel','UULFGTUbwceCMibvpbd2NaIP7A','FsxrYPLhfWU'],['Pecos Hank','UULFAQpSHsgUcNt6uCOjpgD8kw','z_WiMgPClW4'],['FOX Weather','UULF1FbPiXx59_ltnFVx7IxWow','EKgBMLN1M7s']]},
  {n:107,name:'Nature 4K TV',icon:'🌿',src:[['Peru in 8K','1La4QzGeaaQ'],['Ocean Wildlife 8K','PPAmfbMnWow'],['Costa Rica 4K','LXb3EKWsInQ'],['Our Planet','GfO-3Oir-qM'],['Chameleons 4K','5paGGUUjV2Q']]},
- {n:105,name:'Creator TV',icon:'🔥',teen:true,src:[['H1T1','3P-rZJbrGyg'],['hxsain','HpeXGZycOZc'],['Sidemen','fwqEB2HdY88']]},
+ {n:105,name:'Creator TV',icon:'🔥',teen:true,src:[['H1T1','3P-rZJbrGyg'],['KreekCraft','21dKUNkOgzk'],['hxsain','HpeXGZycOZc'],['Flamingo','eMbzXLAAfyM'],['Sidemen','fwqEB2HdY88'],['Markiplier','zGhJeLMIhbk']]},
+ {n:108,name:'Kids Gaming TV',icon:'🕹️',kidFav:true,src:[['Unspeakable','RsGGOT9wZwg'],['PrestonPlayz','7PGrbgDTdT4'],['Aphmau','sTIIWf5NpLQ'],['Preston','jdcv-iemGiQ'],['SSundee','hyI3KePy4LA'],['DanTDM','paML_p4sbCo'],['MrBeast Gaming','Ra6sNe8s2Hc']]},
  {n:106,name:'Kids TV',icon:'🎈',kidsOnly:true,src:[['Bluey','evYFRYX4Hyw'],['Sesame Street','QLC32zDmgTI'],['PBS KIDS','DVA4rAD52i0'],['Blippi','nTr4DUuvgA8'],['Kids Diana Show','yJ8DGLldq5s'],['Vlad and Niki','Is_Ih3JaBgc'],['Cocomelon','Gm_HjftxXKY'],["Ryan's World",'H7iA4Ri1H3Q']]},
 ];
+const LATEST={};
+const vidNow=src=>src[1].startsWith('UU')?(LATEST[src[1]]||src[2]):src[1];
+function resolveVid(src){const v=src[1];if(!v.startsWith('UU'))return Promise.resolve(v);if(LATEST[v])return Promise.resolve(LATEST[v]);
+ return Promise.race([loadPL(v).then(ids=>{const id=(ids&&ids[0])||src[2];LATEST[v]=id;return id}),new Promise(r=>setTimeout(()=>r(src[2]),4000))]).catch(()=>src[2])}
 const SLOT=20*60; // every show block is 20 minutes, starting on the clock (:00, :20, :40)
-const liveList=()=>CUR&&CUR.kids?[...LIVE.filter(c=>c.kidsOnly),...LIVE.filter(c=>!c.kidsOnly&&!c.teen)]:LIVE;
+const liveList=()=>CUR&&CUR.kids?[...LIVE.filter(c=>c.kidFav),...LIVE.filter(c=>c.kidsOnly),...LIVE.filter(c=>!c.kidsOnly&&!c.kidFav&&!c.teen)]:[...LIVE.filter(c=>c.teen),...LIVE.filter(c=>!c.teen&&!c.kidsOnly&&!c.kidFav)];
 function slotInfo(ch,at=Date.now()){const sec=at/1000,slot=Math.floor(sec/SLOT),i=(slot+ch.n)%ch.src.length;
  return{src:ch.src[i],next:ch.src[(i+1)%ch.src.length],off:sec-slot*SLOT,starts:slot*SLOT*1000,ends:(slot+1)*SLOT*1000,key:slot+':'+ch.n}}
 const hhmm=t=>new Date(t).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
@@ -1398,7 +1430,7 @@ function guideHTML(L){return `<h3>Channel Guide</h3>`+L.map((c,i)=>{const s=slot
 function renderLive(main){const L=liveList();if(lCh>=L.length)lCh=0;
  if(document.getElementById('lscreen')&&LP)return;
  destroyLive();
- if(!CAN_EMBED){main.innerHTML=`<div class="ph"><h1>Live TV</h1><span>Always-on channels. Tune in anytime.</span></div><div class="lcards">${L.map(c=>{const s=slotInfo(c);return `<div class="lcard"><div style="font-size:30px">${c.icon}</div><div class="kicker" style="margin:0">Channel ${c.n} · <span style="color:#60a5fa">● LIVE</span></div><h2 style="font-size:22px">${esc(c.name)}</h2><div style="color:#bbb;font-size:13px">On now: ${esc(s.src[0])}<br>Next: ${esc(s.next[0])} at ${hhmm(s.ends)}</div><a class="big" href="https://www.youtube.com/watch?v=${s.src[1]}&t=${Math.floor(s.off)}s" target="_blank" rel="noopener">▶&nbsp; Watch on YouTube</a></div>`}).join('')}</div><p class="shint" style="text-align:center">On your website (thedailybark.dog/marquee) channels play live right here.</p>`;
+ if(!CAN_EMBED){main.innerHTML=`<div class="ph"><h1>Live TV</h1><span>Always-on channels. Tune in anytime.</span></div><div class="lcards">${L.map(c=>{const s=slotInfo(c);return `<div class="lcard"><img src="https://i.ytimg.com/vi/${vidNow(s.src)}/hqdefault.jpg" onerror="this.remove()" alt="" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px"><div style="font-size:30px">${c.icon}</div><div class="kicker" style="margin:0">Channel ${c.n} · <span style="color:#60a5fa">● LIVE</span></div><h2 style="font-size:22px">${esc(c.name)}</h2><div style="color:#bbb;font-size:13px">On now: ${esc(s.src[0])}<br>Next: ${esc(s.next[0])} at ${hhmm(s.ends)}</div><a class="big" href="https://www.youtube.com/watch?v=${vidNow(s.src)}&t=${Math.floor(s.off)}s" target="_blank" rel="noopener">▶&nbsp; Watch on YouTube</a></div>`}).join('')}</div><p class="shint" style="text-align:center">On your website (thedailybark.dog/marquee) channels play live right here.</p>`;
   main.querySelectorAll('.lcard a').forEach(a=>a.addEventListener('click',e=>e.stopPropagation()));return}
  main.innerHTML=`<div class="ph"><h1>Live TV</h1><span>Everyone watching sees the same show at the same moment.</span></div>
  <div class="live"><div><div class="lscreen" id="lscreen"><div id="lp"></div><div class="lshield" id="lshield"></div><canvas class="lstatic on" id="lstatic"></canvas>
@@ -1421,15 +1453,15 @@ function renderLive(main){const L=liveList();if(lCh>=L.length)lCh=0;
  $('#lvol').oninput=e=>{vVol=+e.target.value;store.set('vol',vVol);vfill(e.target);if(LP&&LP.setVolume){LP.setVolume(vVol);if(vVol>0&&LP.isMuted()){LP.unMute();$('#lmute').innerHTML=VI.vol;$('#lUnmute').classList.remove('on')}}};
  const scr=$('#lscreen');scr.addEventListener('mousemove',lPoke);scr.addEventListener('touchstart',lPoke,{passive:true});
  const ch=L[lCh],si=slotInfo(ch);lKey=si.key;setBug(ch,si);
- ensureYT().then(()=>{if(view!=='live'||!document.getElementById('lp'))return;
-  LP=new YT.Player('lp',{host:'https://www.youtube-nocookie.com',videoId:si.src[1],playerVars:{start:Math.floor(si.off),autoplay:1,controls:0,rel:0,playsinline:1,iv_load_policy:3,disablekb:1,fs:0,modestbranding:1},
+ ensureYT().then(()=>resolveVid(si.src)).then(vid=>{if(view!=='live'||!document.getElementById('lp'))return;
+  LP=new YT.Player('lp',{host:'https://www.youtube-nocookie.com',videoId:vid,playerVars:{start:Math.floor(si.off),autoplay:1,controls:0,rel:0,playsinline:1,iv_load_policy:3,disablekb:1,fs:0,modestbranding:1},
    events:{onReady:e=>{try{e.target.setVolume(vVol);e.target.playVideo()}catch(x){}
      clearTimeout(lMuteChk);lMuteChk=setTimeout(()=>{try{if(LP&&!lFiller&&LP.getPlayerState()!==1){LP.mute();LP.playVideo();$('#lUnmute').classList.add('on');$('#lmute').innerHTML=VI.mute}}catch(x){}},2000)},
     onStateChange:e=>{if(e.data===1){$('#lstatic').classList.remove('on');try{const d=LP.getVideoData();if(d&&d.title)$('#lnow').textContent=d.title}catch(x){}lSync(true);lPoke()}
      if(e.data===0)showFiller()},
     onError:()=>showFiller()}});
   clearInterval(lTick);lTick=setInterval(liveTick,1000);
- }).catch(()=>{const sc=$('#lscreen');if(sc){const f=document.createElement('iframe');f.src=`https://www.youtube-nocookie.com/embed/${si.src[1]}?start=${Math.floor(si.off)}&autoplay=1&rel=0&playsinline=1`;f.allow='autoplay; encrypted-media; fullscreen';f.allowFullscreen=true;sc.prepend(f);$('#lstatic').classList.remove('on')}})}
+ }).catch(()=>{const sc=$('#lscreen');if(sc){const f=document.createElement('iframe');f.src=`https://www.youtube-nocookie.com/embed/${vidNow(si.src)}?start=${Math.floor(si.off)}&autoplay=1&rel=0&playsinline=1`;f.allow='autoplay; encrypted-media; fullscreen';f.allowFullscreen=true;sc.prepend(f);$('#lstatic').classList.remove('on')}})}
 function setBug(ch,si){$('#lchn').textContent=ch.n;$('#lchname').textContent=ch.name;$('#lsub').textContent=`${si.src[0]} on ${ch.name} · next: ${si.next[0]} at ${hhmm(si.ends)}`}
 // keep every viewer on the exact same second; if the show is already over, show "Up next"
 function lSync(force){if(!LP||!LP.getDuration||lFiller)return;const L=liveList(),si=slotInfo(L[lCh]),dur=LP.getDuration()||0;if(!dur)return;
@@ -1441,7 +1473,7 @@ function showFiller(){if(lFiller)return;lFiller=true;try{LP.pauseVideo()}catch(e
 function fillerTick(){const L=liveList(),si=slotInfo(L[lCh]);const c=$('#lfcount');if(c)c.textContent=`starts in ${mmss((si.ends-Date.now())/1000)} · at ${hhmm(si.ends)}`}
 function tune(i){const L=liveList();lCh=i;const ch=L[i],si=slotInfo(ch);lKey=si.key;lFiller=false;const f=$('#lfill');if(f)f.classList.remove('on');
  staticFx(700);setBug(ch,si);$('#lnow').textContent='Tuning in…';$('#guide').innerHTML=guideHTML(L);
- try{LP.loadVideoById({videoId:si.src[1],startSeconds:Math.floor(si.off)})}catch(e){}}
+ resolveVid(si.src).then(vid=>{const s2=slotInfo(L[lCh]);if(s2.key!==lKey)return;try{LP.loadVideoById({videoId:vid,startSeconds:Math.floor(s2.off)})}catch(e){}})}
 function liveTick(){if(view!=='live')return;const L=liveList(),ch=L[lCh],si=slotInfo(ch);
  if(si.key!==lKey){tune(lCh);return}
  if(lFiller)fillerTick();else if(Date.now()%5000<1000)lSync(false);
