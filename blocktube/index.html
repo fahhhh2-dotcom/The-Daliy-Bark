@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BlockTube — Watch Minecraft YouTubers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --grass:#5fa83a; --grass-dark:#3f7a22; --dirt:#7a5232; --dirt-dark:#4e3320;
+    --stone:#2b2d31; --stone-2:#1d1f22; --panel:#33363c; --text:#f2f2f2; --muted:#a9adb5;
+    --diamond:#4fe3d6; --gold:#f5c542;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Nunito',system-ui,sans-serif;color:var(--text);
+    background:var(--stone-2);
+    background-image:
+      linear-gradient(45deg,rgba(255,255,255,.02) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.02) 75%),
+      linear-gradient(45deg,rgba(255,255,255,.02) 25%,transparent 25%,transparent 75%,rgba(255,255,255,.02) 75%);
+    background-size:32px 32px;background-position:0 0,16px 16px;min-height:100vh;
+  }
+  .pixel{font-family:'Press Start 2P',monospace;letter-spacing:.5px}
+
+  /* Header: grass block strip */
+  header{
+    background:linear-gradient(var(--grass) 0 14px,var(--grass-dark) 14px 18px,var(--dirt) 18px);
+    border-bottom:4px solid var(--dirt-dark);padding:26px 20px 18px;
+  }
+  .head-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .logo{display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff}
+  .logo-block{width:44px;height:44px;image-rendering:pixelated;box-shadow:0 4px 0 rgba(0,0,0,.35)}
+  .logo h1{font-size:20px;text-shadow:3px 3px 0 #000}
+  .logo small{display:block;font-family:'Nunito';font-size:13px;color:#f0e6d8;margin-top:6px;text-shadow:1px 1px 0 #000}
+  .search{margin-left:auto;flex:1;max-width:340px;position:relative}
+  .search input{
+    width:100%;padding:12px 14px;font:inherit;font-size:15px;color:#fff;
+    background:#1a1a1a;border:3px solid #000;box-shadow:inset 3px 3px 0 #555,inset -3px -3px 0 #111;outline:none;
+  }
+  .search input:focus{border-color:var(--diamond)}
+
+  main{max-width:1200px;margin:0 auto;padding:22px 20px 60px}
+
+  /* Player */
+  .player-wrap{display:grid;grid-template-columns:1fr 300px;gap:18px;margin-bottom:28px}
+  @media (max-width:900px){.player-wrap{grid-template-columns:1fr}}
+  .screen{
+    background:#000;border:4px solid #000;box-shadow:0 0 0 4px #555,0 10px 0 4px rgba(0,0,0,.4);
+    aspect-ratio:16/9;position:relative;overflow:hidden;
+  }
+  .screen iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .screen .idle{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;
+    background:radial-gradient(circle at center,#1f3d16,#000 75%)}
+  .screen .idle p{font-size:11px;line-height:2;color:#cfe8c2}
+  .now{
+    background:var(--panel);border:4px solid #000;box-shadow:inset 4px 4px 0 #4a4e55,inset -4px -4px 0 #24262a;
+    padding:18px;display:flex;flex-direction:column;gap:14px;
+  }
+  .now .who{display:flex;gap:12px;align-items:center}
+  .now h2{font-size:13px;line-height:1.6}
+  .now p{font-size:14px;color:var(--muted);line-height:1.5}
+  .tabs{display:flex;gap:8px}
+  .btn{
+    font-family:'Press Start 2P',monospace;font-size:10px;cursor:pointer;color:#fff;
+    padding:11px 12px;border:3px solid #000;background:#6b6b6b;
+    box-shadow:inset 3px 3px 0 #9a9a9a,inset -3px -3px 0 #3c3c3c;text-decoration:none;text-align:center;
+  }
+  .btn:hover{background:#7d8fd0;box-shadow:inset 3px 3px 0 #a9b8ef,inset -3px -3px 0 #4a5a9a}
+  .btn.on{background:var(--grass);box-shadow:inset 3px 3px 0 #8fd16a,inset -3px -3px 0 #2f5e18}
+  .btn.fav.on{background:var(--gold);color:#3a2a00;box-shadow:inset 3px 3px 0 #ffe08a,inset -3px -3px 0 #a07b10}
+  .now .actions{display:flex;flex-direction:column;gap:8px;margin-top:auto}
+
+  /* Filters */
+  .bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .bar h3{font-size:13px;margin-right:auto;text-shadow:2px 2px 0 #000}
+  .chip{font-family:'Press Start 2P';font-size:9px;padding:9px 10px;cursor:pointer;color:#ddd;
+    background:#2a2c30;border:3px solid #000}
+  .chip.on{background:var(--diamond);color:#06302c}
+
+  /* Creator cards */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+  .card{
+    background:var(--panel);border:4px solid #000;cursor:pointer;position:relative;
+    box-shadow:inset 4px 4px 0 #4a4e55,inset -4px -4px 0 #24262a;transition:transform .12s;
+    display:flex;flex-direction:column;
+  }
+  .card:hover{transform:translateY(-4px)}
+  .card.playing{outline:4px solid var(--diamond)}
+  .banner{height:84px;display:grid;place-items:center;border-bottom:4px solid #000}
+  .avatar{width:60px;height:60px;image-rendering:pixelated;border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.4)}
+  .card .info{padding:12px 12px 14px}
+  .card h4{font-size:11px;line-height:1.5;margin-bottom:6px}
+  .card .tag{font-size:13px;color:var(--muted);line-height:1.4}
+  .card .star{position:absolute;top:8px;right:8px;font-size:18px;filter:drop-shadow(2px 2px 0 #000)}
+  .empty{color:var(--muted);padding:30px 0;text-align:center;font-size:15px}
+
+  .avatar.big{width:96px;height:96px}
+  .go{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .count{font-size:13px;color:var(--muted);font-family:'Nunito'}
+  footer{text-align:center;color:#777;font-size:12px;padding:20px}
+</style>
+</head>
+<body>
+<header>
+  <div class="head-inner">
+    <a class="logo" href="#">
+      <canvas class="logo-block" id="logoBlock" width="8" height="8"></canvas>
+      <div><h1 class="pixel">BlockTube</h1><small>Watch the best Minecraft YouTubers</small></div>
+    </a>
+    <div class="search"><input id="q" type="search" placeholder="Search creators…" aria-label="Search creators"></div>
+  </div>
+</header>
+
+<main>
+  <section class="player-wrap">
+    <div class="screen" id="screen">
+      <div class="idle"><p class="pixel">Pick a creator below<br>to start watching ▶</p></div>
+    </div>
+    <aside class="now" id="now">
+      <div class="who"><canvas class="avatar" id="nowAvatar" width="8" height="8"></canvas>
+        <div><h2 class="pixel" id="nowName">Nobody yet</h2></div></div>
+      <p id="nowDesc">Choose a YouTuber to start watching their latest Minecraft videos.</p>
+      <div class="tabs">
+        <button class="btn on" data-mode="UU" style="flex:1">Latest</button>
+        <button class="btn" data-mode="UULP" style="flex:1">Popular</button>
+      </div>
+      <div class="actions">
+        <button class="btn fav" id="favBtn">☆ Favorite</button>
+        <a class="btn" id="ytLink" href="https://www.youtube.com" target="_blank" rel="noopener">Open on YouTube</a>
+      </div>
+    </aside>
+  </section>
+
+  <div class="bar">
+    <h3 class="pixel">Creators <span class="count" id="count"></span></h3>
+    <button class="chip on" data-filter="all">All</button>
+    <button class="chip" data-filter="Builds">Builds</button>
+    <button class="chip" data-filter="Challenges">Challenges</button>
+    <button class="chip" data-filter="Stories">Stories</button>
+    <button class="chip" data-filter="fav">★ Faves</button>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<footer>Videos play from each creator's official YouTube channel. BlockTube is a fan site and isn't affiliated with Minecraft, Mojang or YouTube.</footer>
+
+<script>
+const CREATORS = [
+  {name:"Dream", id:"UCTkXRDQl0luXxVQrRQvWS6w", cat:"Challenges", color:"#3fbf5a", skin:["#3fbf5a","#ffffff","#2a2a2a"], desc:"Manhunts, speedruns and wild Minecraft challenges."},
+  {name:"Technoblade", id:"UCFAiFyGs6oDiF1Nf-rRJpZA", cat:"Challenges", color:"#e88aa8", skin:["#f2a7bd","#c0567a","#ffd84a"], desc:"Legendary PvP, Hypixel and SMP videos. Technoblade never dies."},
+  {name:"Grian", id:"UCR9Gcq0CMm6YgTzsDxAxjOQ", cat:"Builds", color:"#d94141", skin:["#d94141","#f1c9a0","#5a3a22"], desc:"Hermitcraft, Life Series and amazing build tutorials."},
+  {name:"Mumbo Jumbo", id:"UChFur_NwVSbUozOcF_F2kMg", cat:"Builds", color:"#e0a64a", skin:["#3b6fd1","#f1c9a0","#2b1d12"], desc:"Redstone genius: crazy machines, doors and contraptions."},
+  {name:"DanTDM", id:"UCS5Oz6CHmeoF7vSad0qqXfw", cat:"Challenges", color:"#4aa8e0", skin:["#4aa8e0","#f1c9a0","#7b4bd1"], desc:"Mods, maps and lots of laughs from a Minecraft classic."},
+  {name:"CaptainSparklez", id:"UCshoKvlZGZ20rVgazZp5vnQ", cat:"Stories", color:"#c9a227", skin:["#1f3d7a","#f1c9a0","#c9a227"], desc:"Minecraft songs, parodies and years of gameplay."},
+  {name:"Aphmau", id:"UCzYfz8uibvnB7Yc1LjePi4g", cat:"Stories", color:"#a46be0", skin:["#a46be0","#f1c9a0","#2b1d12"], desc:"Roleplay series full of drama, friends and surprises."},
+  {name:"PrestonPlayz", id:"UCJZam2u1G0syq3kyqrCXrNw", cat:"Challenges", color:"#ff7a1a", skin:["#ff7a1a","#c98d5c","#1a1a1a"], desc:"High-energy Minecraft challenges, traps and pranks."},
+  {name:"LDShadowLady", id:"UCzTlXb7ivVzuFlugVCv3Kvg", cat:"Builds", color:"#ff8fc7", skin:["#ff8fc7","#f1c9a0","#6b3a1f"], desc:"Cozy builds, Empires SMP and the Life Series."},
+  {name:"TommyInnit", id:"UC5p_l5ZeB_wGjO_yDXwiqvw", cat:"Challenges", color:"#e04a4a", skin:["#e04a4a","#f1c9a0","#e8c16a"], desc:"Loud, chaotic Minecraft mods and SMP adventures."},
+  {name:"GeorgeNotFound", id:"UCA2tt9GSU2sl8rAqjlLR3mQ", cat:"Challenges", color:"#5a8be0", skin:["#5a8be0","#f1c9a0","#3a2a1a"], desc:"Dream Team manhunts and goofy Minecraft experiments."},
+  {name:"Sapnap", id:"UCqynl7rdtktKMQESdSBmE-g", cat:"Challenges", color:"#ff6a2a", skin:["#f2f2f2","#e0b08a","#1a1a1a"], desc:"Dream Team member with fiery Minecraft challenges."},
+  {name:"Skeppy", id:"UCzMjRlKVO9XIqH_crIFpi6w", cat:"Challenges", color:"#3fd7ff", skin:["#3fd7ff","#3fd7ff","#1d7a9a"], desc:"Diamond-block trolls, pranks and Hypixel chaos."},
+  {name:"Unspeakable", id:"UCwIWAbIeu0xI0ReKWOcw3eg", cat:"Challenges", color:"#3aa0ff", skin:["#3aa0ff","#f1c9a0","#5a3a22"], desc:"Huge challenges, pranks and Minecraft madness."},
+  {name:"ItsFunneh", id:"UCUk7VggtJdo9XYTy3Z5QVAw", cat:"Stories", color:"#ff6fae", skin:["#ff6fae","#f1c9a0","#3a2414"], desc:"The Krew's funny roleplays and family-friendly fun."},
+  {name:"xisumavoid", id:"UCU9pX8hKcrx06XfOB-VQLdw", cat:"Builds", color:"#7d5cff", skin:["#2b2b2b","#f1c9a0","#7d5cff"], desc:"Hermitcraft leader and the go-to for Minecraft updates."},
+  {name:"Stampy", handle:"stampycat", cat:"Stories", color:"#ff9a3c", skin:["#ff9a3c","#ffcf8a","#c45a12"], desc:"Stampy's Lovely World: kind, cozy Minecraft fun."},
+  {name:"Philza", handle:"ph1lza", cat:"Builds", color:"#3a9a5a", skin:["#3a9a5a","#f1c9a0","#e8e0c0"], desc:"Hardcore legend with years-long survival worlds."}
+];
+// true = videos play on this page (GitHub Pages). false = buttons open YouTube.
+const EMBED = true;
+const chanURL = c => c.id ? 'https://www.youtube.com/channel/'+c.id : 'https://www.youtube.com/@'+c.handle;
+
+/* ---- pixel avatars drawn on an 8x8 canvas ---- */
+function hash(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))|0;return Math.abs(h)}
+function drawAvatar(cv,c){
+  const x=cv.getContext('2d'),[shirt,face,hair]=c.skin,h=hash(c.name);
+  x.fillStyle=face;x.fillRect(0,0,8,8);
+  x.fillStyle=hair;x.fillRect(0,0,8,2);x.fillRect(0,2,1,2);x.fillRect(7,2,1,2);
+  if(h%2)x.fillRect(1,2,2,1);
+  x.fillStyle="#fff";x.fillRect(1,3,2,1);x.fillRect(5,3,2,1);
+  x.fillStyle=h%3?"#2b4fbf":"#222";x.fillRect(2,3,1,1);x.fillRect(5,3,1,1);
+  x.fillStyle="rgba(0,0,0,.25)";x.fillRect(3,5,2,1);
+  x.fillStyle=shirt;x.fillRect(0,7,8,1);
+}
+function drawLogo(){
+  const x=document.getElementById('logoBlock').getContext('2d');
+  const g=["#5fa83a","#6dbb44","#4f9330"],d=["#7a5232","#8a6040","#5e3e25"];
+  for(let i=0;i<8;i++)for(let j=0;j<8;j++){
+    const top=j<2||(j===2&&(i*7)%3===0);const p=top?g:d;
+    x.fillStyle=p[(i*3+j*5)%3];x.fillRect(i,j,1,1);
+  }
+}
+drawLogo();
+
+/* ---- state ---- */
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},
+             set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+let favs=new Set(store.get('bt_favs2',[]));
+let current=null, mode='UU', filter='all';
+
+const grid=document.getElementById('grid'), q=document.getElementById('q');
+
+function render(){
+  const term=q.value.trim().toLowerCase();
+  const list=CREATORS.filter(c=>
+    (filter==='all'||(filter==='fav'?favs.has(c.name):c.cat===filter)) &&
+    (!term||c.name.toLowerCase().includes(term)||c.desc.toLowerCase().includes(term)));
+  grid.innerHTML='';
+  if(!list.length){grid.innerHTML='<div class="empty">No creators here yet'+(filter==='fav'?' — tap ☆ Favorite on someone you like!':'.')+'</div>';return}
+  for(const c of list){
+    const el=document.createElement('div');
+    el.className='card'+(current&&current.name===c.name?' playing':'');
+    el.innerHTML=`<div class="banner" style="background:linear-gradient(135deg,${c.color},#1d1f22)">
+        <canvas class="avatar" width="8" height="8"></canvas></div>
+      ${favs.has(c.name)?'<span class="star">⭐</span>':''}
+      <div class="info"><h4 class="pixel">${c.name}</h4><div class="tag">${c.desc}</div></div>`;
+    drawAvatar(el.querySelector('canvas'),c);
+    el.onclick=()=>play(c);
+    grid.appendChild(el);
+  }
+}
+
+function play(c){
+  current=c;
+  const scr=document.getElementById('screen');
+  if(EMBED && c.id){
+    scr.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/videoseries?list=${mode+c.id.slice(2)}&autoplay=1&rel=0"
+      title="${c.name} videos" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+  }else{
+    scr.innerHTML=`<div class="idle" style="background:radial-gradient(circle at center,${c.color}55,#000 75%)">
+      <div><canvas class="avatar big" width="8" height="8"></canvas>
+      <p class="pixel" style="margin:16px 0">${c.name}</p>
+      <div class="go">
+        <a class="btn on" href="${chanURL(c)}/videos" target="_blank" rel="noopener">▶ Watch videos</a>
+        <a class="btn" href="${chanURL(c)}/shorts" target="_blank" rel="noopener">Shorts</a>
+      </div></div></div>`;
+    drawAvatar(scr.querySelector('canvas'),c);
+  }
+  document.getElementById('nowName').textContent=c.name;
+  document.getElementById('nowDesc').textContent=c.desc;
+  const av=document.getElementById('nowAvatar');av.getContext('2d').clearRect(0,0,8,8);drawAvatar(av,c);
+  document.getElementById('ytLink').href=chanURL(c);
+  updateFav();render();
+  if(innerWidth<900)scr.scrollIntoView({behavior:'smooth'});
+}
+
+function updateFav(){
+  const b=document.getElementById('favBtn'),on=current&&favs.has(current.name);
+  b.classList.toggle('on',!!on);b.textContent=on?'★ Favorited':'☆ Favorite';
+}
+document.getElementById('favBtn').onclick=()=>{
+  if(!current)return;
+  favs.has(current.name)?favs.delete(current.name):favs.add(current.name);
+  store.set('bt_favs2',[...favs]);updateFav();render();
+};
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-mode]').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');mode=b.dataset.mode;if(current)play(current);
+});
+document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-filter]').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');filter=b.dataset.filter;render();
+});
+q.oninput=render;
+if(!EMBED)document.querySelector('.tabs').style.display='none';
+document.getElementById('count').textContent=CREATORS.length+' creators';
+render();
+</script>
+</body>
+</html>
