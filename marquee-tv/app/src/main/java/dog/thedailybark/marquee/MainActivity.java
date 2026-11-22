@@ -96,7 +96,7 @@ public class MainActivity extends Activity {
 
         web.requestFocus();
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
-        else web.loadUrl(HOME);
+        else web.loadUrl(HOME + "?v=" + System.currentTimeMillis()); // always fresh, never an old saved copy
     }
 
     private void exitFullscreen() {
