@@ -343,6 +343,66 @@ nav a.on::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:3
 ::selection{background:rgba(31,111,255,.45)}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#1c2b4a;border-radius:10px}::-webkit-scrollbar-track{background:transparent}
 .sfxon{color:#7cc4ff}
+
+/* ===== new stuff ===== */
+.btn.rate{font-size:18px}.btn.rate.on{background:var(--accent)!important;border-color:var(--accent)!important;transform:scale(1.06)}
+.pinrow input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:11px 12px;color:#fff;font:inherit;letter-spacing:4px}
+.pinrow small{display:block;color:var(--muted);font-size:12px;margin-top:5px}
+.pinov{position:fixed;inset:0;z-index:600;background:rgba(3,7,18,.92);backdrop-filter:blur(8px);display:grid;place-items:center;animation:fadeIn .25s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.pinbox{text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;padding:24px}
+.pinbox .av{width:96px;height:96px}
+.pinbox h2{font-size:24px}
+.pinbox .muted{color:var(--muted)}
+.pindots{display:flex;gap:14px}.pindots i{width:16px;height:16px;border-radius:50%;border:2px solid #9cc7ff}.pindots i.on{background:#9cc7ff}
+.pindots.shake{animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+.pinpad{display:grid;grid-template-columns:repeat(3,72px);gap:10px}
+.pinpad button{height:62px;border-radius:14px;background:var(--panel2);font-size:24px;font-weight:700;transition:background .15s,transform .1s}
+.pinpad button:hover,.pinpad button:focus{background:var(--accent);outline:none}
+.pinpad button:active{transform:scale(.94)}
+.sleepb b{font-size:12px;font-weight:700;color:#9cc7ff}
+.hclock{font-weight:700;font-size:15px;color:#cfe0ff;letter-spacing:.5px;flex:none}
+@media (max-width:900px){.hclock{display:none}}
+#saver{position:fixed;inset:0;z-index:700;background:#000;cursor:none;animation:fadeIn 1.2s}
+#saver canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#saver canvas.fadein{animation:fadeIn 1.5s}
+#saver .ss-logo{position:absolute;top:6vh;left:5vw;font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,3vw,44px);letter-spacing:3px;color:#fff;opacity:.85;text-shadow:0 2px 20px rgba(0,0,0,.6)}
+#saver .ss-now{display:flex!important;flex-direction:row!important;align-items:center;gap:16px!important;opacity:0;transform:translateY(12px);transition:opacity .6s,transform .6s;background:rgba(5,10,20,.55);backdrop-filter:blur(10px);padding:12px 18px 12px 12px;border-radius:16px;border:1px solid rgba(255,255,255,.12)}
+#saver .ss-now.in{opacity:1;transform:none}
+#saver .ss-now img{width:clamp(120px,14vw,220px);aspect-ratio:16/9;object-fit:cover;border-radius:10px}
+#saver .ss-now div{display:flex;flex-direction:column;gap:4px}
+#saver .ss-now b{font-size:clamp(20px,2.4vw,34px)!important}
+#saver .ss-img{position:absolute;inset:-5%;background:#000 center/cover no-repeat;animation:kb 12s ease-in-out infinite alternate;filter:brightness(.75)}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.12) translate(-2%,-1%)}}
+#saver .ss-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent 35%,transparent 60%,rgba(0,0,0,.75))}
+#saver .ss-time{position:absolute;top:6vh;right:5vw;font-size:clamp(48px,8vw,110px);font-weight:700;letter-spacing:-2px}
+#saver .ss-date{position:absolute;top:calc(6vh + clamp(56px,9vw,120px));right:5vw;font-size:clamp(16px,2vw,26px);color:#cfe0ff}
+#saver .ss-now{position:absolute;left:5vw;bottom:8vh;display:flex;flex-direction:column;gap:6px;max-width:60vw}
+#saver .ss-now small{letter-spacing:4px;color:#7cc4ff;font-weight:800}
+#saver .ss-now b{font-size:clamp(26px,4vw,52px);line-height:1.05}
+#saver .ss-now span{color:#cfe0ff;opacity:.8}
+
+/* interests picker */
+.intov{position:fixed;inset:0;z-index:650;background:radial-gradient(900px 500px at 50% 0%,rgba(31,111,255,.25),transparent 70%),#050a14;overflow-y:auto;animation:fadeIn .3s}
+.intbox{max-width:1100px;margin:0 auto;padding:40px 4vw 60px}
+.intbox .logo{font-size:30px;margin-bottom:18px}
+.intbox h1{font-size:clamp(26px,3.4vw,40px);margin-bottom:6px}
+.intbox>p{color:var(--muted);margin-bottom:22px}
+.intbox h3{margin:22px 0 12px;font-size:18px}
+.intcats{display:flex;flex-wrap:wrap;gap:10px}
+.intcat{display:flex;align-items:center;gap:8px;padding:12px 18px;border-radius:999px;background:var(--panel2);border:2px solid transparent;font-weight:700;font-size:15px;transition:transform .15s,border-color .2s,background .2s}
+.intcat span{font-size:20px}
+.intcat.on{background:rgba(31,111,255,.25);border-color:var(--accent2)}
+.intcat:hover,.intcat:focus{transform:scale(1.05);outline:none;border-color:#fff}
+.intcr{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.intc{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px;border-radius:14px;background:var(--panel);border:2px solid transparent;transition:transform .15s,border-color .2s}
+.intc img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px}
+.intc b{font-size:13px;text-align:center}
+.intc i{position:absolute;top:14px;right:14px;width:26px;height:26px;border-radius:50%;background:var(--accent);display:none;place-items:center;font-style:normal;font-weight:900}
+.intc.on{border-color:var(--accent2);background:rgba(31,111,255,.16)}.intc.on i{display:grid}
+.intc:hover,.intc:focus{transform:scale(1.04);outline:none;border-color:#fff}
+.intact{position:sticky;bottom:0;display:flex;gap:12px;padding:20px 0 6px;margin-top:20px;background:linear-gradient(transparent,#050a14 40%)}
 </style>
 </head>
 <body>
@@ -360,6 +420,7 @@ nav a.on::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:3
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
     <input id="q" type="search" placeholder="Search videos, games, channels" autocomplete="off">
   </label>
+  <span class="hclock" id="hclock"></span>
   <span class="free">GAMING · MRBEAST</span>
   <div class="me" id="me"></div>
 </header>
@@ -394,6 +455,7 @@ nav a.on::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:3
     <div class="lbl">Color</div><div class="sw" id="peColors"></div>
     <div class="lbl">Face</div><div class="sw faces" id="peFaces"></div>
     <label class="tog"><input type="checkbox" id="peKids"><span>Kids profile<small>Hides videos for teen-rated games</small></span></label>
+    <div class="lbl">Profile lock</div><div class="pinrow"><input type="password" id="pePin" inputmode="numeric" maxlength="4" placeholder="4-digit PIN (optional)" autocomplete="off"><small>Stops others (like kids) from opening this profile</small></div>
     <div class="peact"><button class="btn play" id="peSave">Save</button><button class="btn ghost" id="peCancel">Cancel</button><button class="btn del" id="peDel">Delete</button></div>
   </div>
 </div>
@@ -433,6 +495,8 @@ nav a.on::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:3
         <div class="btns">
           <button class="btn play" id="mPlay">▶&nbsp;Play</button>
           <button class="btn round" id="mList" title="My List">+</button>
+          <button class="btn round rate" id="mUp" title="I like this">👍</button>
+          <button class="btn round rate" id="mDn" title="Not for me">👎</button>
         </div>
       </div>
     </div>
@@ -460,10 +524,6 @@ nav a.on::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:3
 /* Real public-domain films hosted free on the Internet Archive.
    ia = verified archive.org item id (plays embedded when the site is hosted on your own domain). */
 const FILMS = [
- {id:'mclivemar25',yt:'jGNgh5zEFkY',title:'Minecraft LIVE — March 2025',channel:'Minecraft',year:2025,genres:['Minecraft','Live Shows'],scene:'blocks',hue:230,match:96,added:true,
-  desc:'The full Minecraft LIVE show from March 2025, with the Vibrant Visuals graphics upgrade, the Happy Ghast and a look at upcoming game drops.'},
- {id:'mkwdirect',yt:'mq4uCJDwO9U',title:'Mario Kart World Direct',channel:'Nintendo of America',year:2025,genres:['Nintendo','Live Shows'],scene:'synth',hue:300,match:97,added:true,
-  desc:'A full Nintendo Direct all about Mario Kart World: 24-racer Knockout Tour, free roam, new items and a giant connected world.'},
 
  {id:'mbsquid',yt:'0e3GPea1Tyg',title:'$456,000 Squid Game In Real Life!',channel:'MrBeast',year:2021,genres:['MrBeast','Challenges'],scene:'beast',hue:330,match:99,
   desc:'456 players compete in real-life versions of the Squid Game challenges, with $456,000 going to the last one standing. MrBeast\'s most-watched video ever.'},
@@ -546,7 +606,7 @@ const FILMS = [
  {id:'chslowmo',list:'UULFUK0HBIBWgM2c4vsPhkYY4w',tv:'pYMiybNr3vU',uhd:'4K',title:'The Slow Mo Guys',channel:'The Slow Mo Guys',year:'Always new',genres:['Channels','Ultra HD','Science & Tech'],scene:'space',hue:20,match:96,
   desc:'Explosions, water balloons and crazy experiments filmed in super slow motion with high-end cameras.'},
 
- {id:'chnasa',list:'UULFLA_DiR1FfKNvjuUpBHmylQ',title:'NASA',channel:'NASA',year:'Always new',genres:['Channels', 'Science & Tech', 'Nature'],scene:'space',hue:220,match:96,
+ {id:'chnasa',list:'UULFLA_DiR1FfKNvjuUpBHmylQ',title:'NASA',channel:'NASA',year:'Always new',genres:['Channels', 'Science & Tech', 'Nature', 'Space'],scene:'space',hue:220,match:96,
   desc:'Rocket launches, spacewalks and amazing views of Earth and space, straight from NASA.'},
  {id:'chnatgeo',list:'UULFpVm7bg6pXKo1Pr6k5kxG9A',title:'National Geographic',channel:'National Geographic',year:'Always new',genres:['Channels', 'Nature'],scene:'forest',hue:45,match:96,
   desc:'Wild animals, incredible places and adventures from National Geographic.'},
@@ -568,9 +628,45 @@ const FILMS = [
   desc:'Full episodes and clips with Peppa, George and their family.'},
  {id:'ksupersimple',list:'UULFLsooMJoIpl_7ux2jvdPB-Q',title:'Super Simple Songs',channel:'Super Simple Songs',year:'Always new',genres:['Kids', 'Songs', 'Learning'],scene:'kids',hue:190,match:96,kidsOnly:true,
   desc:'Gentle sing-along songs for little kids: animals, colors, counting and bedtime.'},
+
+ {id:'chnba',list:'UULFWJ2lWNubArHWmf3FIHbfcQ',title:'NBA',channel:'NBA',year:'Always new',genres:['Channels', 'Sports'],scene:'city',hue:25,match:95,
+  desc:'Game highlights, buzzer beaters and the best dunks from the NBA.'},
+ {id:'chnfl',list:'UULFDVYQ4Zhbm3S2dlz7P1GBDg',title:'NFL',channel:'NFL',year:'Always new',genres:['Channels', 'Sports'],scene:'city',hue:210,match:95,
+  desc:'Big plays, game highlights and trick plays from the NFL.'},
+ {id:'chtasty',list:'UULFJFp8uSYCjXOMnkUyb3CQ3Q',title:'Tasty',channel:'Tasty',year:'Always new',genres:['Channels', 'Food'],scene:'kids',hue:15,match:94,
+  desc:'Fast, fun recipe videos: desserts, snacks and giant food experiments.'},
+ {id:'chdodo',list:'UULFINb0wqPz-A0dV9nARjJlOQ',title:'The Dodo',channel:'The Dodo',year:'Always new',genres:['Channels', 'Animals', 'Feel-Good'],scene:'forest',hue:35,match:97,
+  desc:'Heartwarming animal rescues and the funniest pets on the internet.'},
+ {id:'chbrave',list:'UULF6E2mP01ZLH_kbAyeazCNdg',title:'Brave Wilderness',channel:'Brave Wilderness',year:'Always new',genres:['Channels', 'Animals', 'Nature'],scene:'forest',hue:100,match:94,teen:true,
+  desc:'Coyote Peterson finds wild animals up close. Some bites and stings are part of the adventure!'},
+ {id:'chspacex',list:'UULFtI0Hodo5o5dUb67FeUjDeA',title:'SpaceX',channel:'SpaceX',year:'Always new',genres:['Channels', 'Science & Tech', 'Space'],scene:'space',hue:210,match:96,
+  desc:'Rocket launches and landings, including Starship test flights, straight from SpaceX.'},
+
+ {id:'chh1t1pop',list:'UULPE7spuKzxP1k8A-XucxxUAQ',title:'H1T1 — Most Popular',channel:'John Casterline (H1T1)',year:'Always new',genres:['Channels', 'H1T1'],scene:'synth',hue:20,match:99,teen:true,
+  desc:'H1T1’s most-watched videos of all time, back to back.'},
+ {id:'chh1t1all',list:'UUE7spuKzxP1k8A-XucxxUAQ',title:'H1T1 — Everything New',channel:'John Casterline (H1T1)',year:'Always new',genres:['Channels', 'H1T1'],scene:'synth',hue:35,match:98,teen:true,
+  desc:'Every new H1T1 upload, Shorts and long videos, newest first.'},
+ {id:'chkreek',list:'UULFxsk7hqE_CwZWGEJEkGanbA',title:'KreekCraft',channel:'KreekCraft',year:'Always new',genres:['Channels', 'Gaming', 'Roblox'],scene:'blocks',hue:120,match:97,
+  desc:'The biggest Roblox news, new games and funny moments from KreekCraft. Newest videos first.'},
+ {id:'chkreekpop',list:'UULPxsk7hqE_CwZWGEJEkGanbA',title:'KreekCraft — Most Popular',channel:'KreekCraft',year:'Always new',genres:['Channels', 'Gaming', 'Roblox'],scene:'blocks',hue:140,match:96,
+  desc:'KreekCraft’s most-watched Roblox videos ever.'},
+ {id:'chflamingo',list:'UULFm-X6o81nRsXQTmqpyArkBQ',title:'Flamingo',channel:'Flamingo',year:'Always new',genres:['Channels', 'Gaming', 'Roblox'],scene:'kids',hue:330,match:95,teen:true,
+  desc:'Silly Roblox chaos, trolling and admin pranks from Flamingo. Newest videos first.'},
+ {id:'chprestonplayz',list:'UULFJZam2u1G0syq3kyqrCXrNw',title:'PrestonPlayz',channel:'PrestonPlayz',year:'Always new',genres:['Channels', 'Gaming', 'Minecraft', 'Roblox'],scene:'blocks',hue:30,match:96,
+  desc:'Minecraft, Roblox and real-life challenges with Preston and friends.'},
+ {id:'chpreston',list:'UULF70Dib4MvFfT1tU6MqeyHpQ',title:'Preston',channel:'Preston',year:'Always new',genres:['Channels', 'Challenges'],scene:'desert',hue:200,match:95,
+  desc:'Huge real-life challenges, hide and seek and giant builds from Preston.'},
+ {id:'chaphmau',list:'UULFzYfz8uibvnB7Yc1LjePi4g',title:'Aphmau',channel:'Aphmau',year:'Always new',genres:['Channels', 'Gaming', 'Minecraft', 'Roblox'],scene:'kids',hue:300,match:96,
+  desc:'Minecraft and Roblox stories, roleplay and funny adventures with Aphmau and friends.'},
+ {id:'chssundee',list:'UULFke6I9N4KfC968-yRcd5YRg',title:'SSundee',channel:'SSundee',year:'Always new',genres:['Channels', 'Gaming', 'Minecraft'],scene:'blocks',hue:90,match:95,
+  desc:'Funny Minecraft, Among Us and Fortnite videos where SSundee yells a lot.'},
 ];
 const SHORTS=[
  {name:'H1T1',list:'UUSHE7spuKzxP1k8A-XucxxUAQ',handle:'H1T1',teen:true,hue:20},
+ {name:'KreekCraft',list:'UUSHxsk7hqE_CwZWGEJEkGanbA',handle:'KreekCraft',hue:120},
+ {name:'Preston',list:'UUSH70Dib4MvFfT1tU6MqeyHpQ',handle:'Preston',hue:200},
+ {name:'SSundee',list:'UUSHke6I9N4KfC968-yRcd5YRg',handle:'SSundee',hue:90},
+ {name:'Aphmau',list:'UUSHzYfz8uibvnB7Yc1LjePi4g',handle:'Aphmau',hue:300},
  {name:'hxsain',list:'UUSHZfTWLrTkaoZoSx5fkrAPJA',handle:'hxsain',teen:true,hue:250},
  {name:'MrBeast',list:'UUSHX6OQ3DkcsbYNE6H8uQQuVA',handle:'MrBeast',hue:200},
  {name:'Dude Perfect',list:'UUSHRijo3ddMTht_IHyNSNXpNQ',handle:'DudePerfect',hue:205},
@@ -583,7 +679,7 @@ const SHORTS=[
 ];
 FILMS.forEach((f,i)=>{f.seed=i*37+5;f.color=true});
 const byId=id=>FILMS.find(f=>f.id===id);
-const GENRES=['All','Ultra HD','Kids','Channels','Gaming','MrBeast','Challenges','Minecraft','Science & Tech','Nature','Feel-Good','Nintendo','Live Shows'];
+const GENRES=['All','Ultra HD','Kids','Channels','Gaming','Roblox','Sports','Animals','Food','MrBeast','Challenges','Minecraft','Science & Tech','Space','Nature','Feel-Good'];
 const ytURL=f=>f.list?`https://www.youtube.com/playlist?list=${f.list}`:`https://www.youtube.com/watch?v=${f.yt}`;
 const IN_TV_APP=/MarqueeTV/.test(navigator.userAgent);
 const CAN_EMBED=/^https?:$/.test(location.protocol)&&!/(claude|anthropic|claudeusercontent)/i.test(location.hostname);
@@ -823,6 +919,25 @@ document.addEventListener('pointerover',e=>{if(e.pointerType==='touch')return;co
 document.addEventListener('click',e=>{if(e.target.closest('.card,.mc,.btn,nav a,.chip,.prof,.lcard,.grow,.menu button,.big,.ib'))SFX.click()},true);
 document.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)&&document.activeElement&&document.activeElement!==document.body)SFX.tick()},true);
 
+/* ---------- screensaver after 10 minutes idle (Roku-style animated scenes) ---------- */
+let idleAt=Date.now(),ssOn=false,ssRaf=0,ssCard=null;
+['pointermove','pointerdown','keydown','wheel','touchstart'].forEach(ev=>document.addEventListener(ev,e=>{idleAt=Date.now();if(ssOn){stopSaver();e.preventDefault&&ev==='keydown'&&e.preventDefault()}},{passive:false,capture:true}));
+setInterval(()=>{const busy=(typeof P!=='undefined'&&P.open)||view==='live'||view==='shorts';if(!ssOn&&!busy&&Date.now()-idleAt>10*60000)startSaver()},15000);
+const SS_SCENES=[['city',210],['space',240],['ocean',195],['desert',25],['forest',120],['snow',200],['synth',300],['blocks',205]];
+function startSaver(){ssOn=true;const ov=document.createElement('div');ov.id='saver';
+ ov.innerHTML=`<canvas id="sscv"></canvas><div class="ss-shade"></div><div class="ss-logo">MARQUEE</div><div class="ss-time" id="ssTime"></div><div class="ss-date" id="ssDate"></div><div class="ss-now" id="ssNow"></div>`;
+ document.body.appendChild(ov);const cv=ov.querySelector('#sscv'),ctx=cv.getContext('2d');let i=Math.floor(Math.random()*SS_SCENES.length),t0=performance.now(),sceneStart=t0;
+ const card=()=>{const L=LIB();const f=L[Math.floor(Math.random()*L.length)];const n=ov.querySelector('#ssNow');if(!f||!n)return;
+  n.classList.remove('in');setTimeout(()=>{n.innerHTML=`<img src="${thumb(f)}" alt=""><div><small>NOW ON MARQUEE</small><b>${esc(f.title)}</b><span>Press any button to start watching</span></div>`;n.classList.add('in')},400)};
+ const clock=()=>{const t=new Date();const a=ov.querySelector('#ssTime'),b=ov.querySelector('#ssDate');if(a){a.textContent=t.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});b.textContent=t.toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'})}};
+ clock();card();ssCard=setInterval(()=>{clock();card()},15000);
+ const frame=now=>{if(!ssOn)return;const w=Math.round(innerWidth*Math.min(devicePixelRatio||1,1.5)),h=Math.round(innerHeight*Math.min(devicePixelRatio||1,1.5));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}
+  if(now-sceneStart>30000){i=(i+1)%SS_SCENES.length;sceneStart=now;cv.classList.remove('fadein');void cv.offsetWidth;cv.classList.add('fadein')}
+  const [sc,hue]=SS_SCENES[i];try{S[sc](ctx,w,h,(now-t0)/1000+i*50,hue)}catch(e){}
+  ssRaf=requestAnimationFrame(frame)};ssRaf=requestAnimationFrame(frame)}
+function stopSaver(){ssOn=false;cancelAnimationFrame(ssRaf);clearInterval(ssCard);const o=document.getElementById('saver');if(o)o.remove()}
+setInterval(()=>{const c=document.getElementById('hclock');if(c)c.textContent=new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})},10000);
+
 let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2000)}
 const metaHTML=f=>`<span class="m">${f.match}% Match</span><span>${f.channel}</span><span>${f.year}</span>${f.teen?'<span class="r">T</span>':'<span class="r">E</span>'}<span>${f.genres.join(' · ')}</span>`;
 const inList=id=>myList.includes(id);
@@ -837,6 +952,46 @@ function row(title,list,ranked){if(!list.length)return'';return `<section class=
 const G=g=>LIB().filter(f=>f.genres.includes(g));
 
 let view='home',browseG='All';
+/* ---------- ratings: thumbs up / down ---------- */
+const rates=()=>store.get('rate_'+PID,{});
+function setRate(id,v){const r=rates();r[id]=r[id]===v?0:v;if(!r[id])delete r[id];store.set('rate_'+PID,r);SFX.click();
+ toast(r[id]===1?'👍 Thanks! We’ll show you more like this.':r[id]===-1?'👎 Got it. We’ll show less like this.':'Rating removed');syncRate();if(view==='home'&&!P.open)render();try{window.cloudTouch&&cloudTouch()}catch(e){}}
+function syncRate(){const r=rates(),f=M.f;if(!f)return;const up=$('#mUp'),dn=$('#mDn');if(up){up.classList.toggle('on',r[f.id]===1);dn.classList.toggle('on',r[f.id]===-1)}}
+/* ---------- interests: what you like (picked on first visit) ---------- */
+const INTEREST_CATS=[
+ ['h1t1','😂','H1T1 & Friends',f=>f.genres.includes('H1T1')||['chh1t1','chhxsain'].includes(f.id)],
+ ['roblox','🟥','Roblox',f=>f.genres.includes('Roblox')],['minecraft','⛏️','Minecraft',f=>f.genres.includes('Minecraft')],
+ ['mrbeast','💰','MrBeast',f=>f.genres.includes('MrBeast')],['challenges','🏆','Challenges',f=>f.genres.includes('Challenges')],
+ ['gaming','🎮','Gaming',f=>f.genres.includes('Gaming')],['science','🔬','Science & Tech',f=>f.genres.includes('Science & Tech')],
+ ['space','🚀','Space',f=>f.genres.includes('Space')],['sports','🏀','Sports',f=>f.genres.includes('Sports')],
+ ['animals','🐶','Animals',f=>f.genres.includes('Animals')],['nature','🌿','Nature & 4K',f=>f.genres.includes('Nature')||f.genres.includes('Ultra HD')],
+ ['food','🍕','Food',f=>f.genres.includes('Food')],['feelgood','😊','Feel-Good',f=>f.genres.includes('Feel-Good')],
+ ['kids','🧸','Cartoons & Kids',f=>f.genres.includes('Kids')]];
+const interests=()=>store.get('interests_'+PID,null);
+const isCreator=f=>!!f.list&&f.year==='Always new';
+function interestScore(f){const I=interests();if(!I)return 0;let s=0;if((I.creators||[]).includes(f.id))s+=3;
+ INTEREST_CATS.forEach(([k,,,t])=>{if((I.cats||[]).includes(k)&&t(f))s+=2});return s}
+function showInterests(first){const I=interests()||{cats:[],creators:[]};const pick={cats:new Set(I.cats),creators:new Set(I.creators)};
+ const ov=document.createElement('div');ov.className='intov';
+ const draw=()=>{const cats=INTEREST_CATS.filter(c=>CUR&&CUR.kids?LIB().some(c[3]):c[0]!=='kids'),cr=LIB().filter(isCreator);
+  ov.innerHTML=`<div class="intbox"><div class="logo">MARQUEE</div><h1>${first?`Welcome, ${esc(CUR.name)}! What do you like?`:'Your interests'}</h1>
+   <p>Pick a few. We’ll put them first on your home page.</p>
+   <h3>Categories</h3><div class="intcats">${cats.map(([k,e,l])=>`<button class="intcat ${pick.cats.has(k)?'on':''}" data-ic="${k}"><span>${e}</span>${l}</button>`).join('')}</div>
+   <h3>Creators</h3><div class="intcr">${cr.map(f=>`<button class="intc ${pick.creators.has(f.id)?'on':''}" data-icr="${f.id}"><img src="${thumb(f)}" alt=""><b>${esc(f.channel.replace(/ \\(.*\\)/,''))}</b><i>✓</i></button>`).join('')}</div>
+   <div class="intact"><button class="btn play" data-idone="1">${pick.cats.size+pick.creators.size?`Done · ${pick.cats.size+pick.creators.size} picked`:'Done'}</button>${first?'<button class="btn ghost" data-iskip="1">Skip for now</button>':''}</div></div>`};
+ ov.addEventListener('click',e=>{const c=e.target.closest('[data-ic]'),r=e.target.closest('[data-icr]');
+  if(c){const k=c.dataset.ic;pick.cats.has(k)?pick.cats.delete(k):pick.cats.add(k);SFX.click();const y=ov.scrollTop;draw();ov.scrollTop=y;return}
+  if(r){const k=r.dataset.icr;pick.creators.has(k)?pick.creators.delete(k):pick.creators.add(k);SFX.click();const y=ov.scrollTop;draw();ov.scrollTop=y;return}
+  if(e.target.closest('[data-idone]')){store.set('interests_'+PID,{cats:[...pick.cats],creators:[...pick.creators]});ov.remove();document.body.style.overflow='';SFX.chime();
+   toast(pick.cats.size+pick.creators.size?'Your home page is all set!':'You can pick interests any time from your profile menu');try{window.cloudTouch&&cloudTouch()}catch(x){};render();return}
+  if(e.target.closest('[data-iskip]')){store.set('interests_'+PID,{cats:[],creators:[],skipped:true});ov.remove();document.body.style.overflow='';render()}});
+ document.body.appendChild(ov);document.body.style.overflow='hidden';draw();setTimeout(()=>{const b=ov.querySelector('button');if(b)b.focus()},60)}
+function forYou(){const r=rates(),liked=Object.keys(r).filter(k=>r[k]===1).map(byId).filter(Boolean),bad=new Set(Object.keys(r).filter(k=>r[k]===-1));
+ const score={};liked.forEach(f=>f.genres.forEach(g=>{if(g!=='Channels')score[g]=(score[g]||0)+1}));
+ const picks=LIB().filter(f=>r[f.id]!==1&&!bad.has(f.id)).map(f=>({f,s:f.genres.reduce((a,g)=>a+(score[g]||0),0)+interestScore(f)+(f.match||0)/100})).filter(x=>x.s>=1).sort((a,b)=>b.s-a.s).map(x=>x.f).slice(0,16);
+ if(!liked.length)return{picks,because:null};
+ const last=liked[liked.length-1];const because=LIB().filter(f=>f.id!==last.id&&!bad.has(f.id)&&f.genres.some(g=>last.genres.includes(g)&&g!=='Channels')).slice(0,12);
+ return{picks,because:{title:last.title,list:because}}}
 function render(){
  const main=$('#main'),q=$('#q').value.trim().toLowerCase();
  if(view!=='shorts'||q)destroyShorts();
@@ -851,13 +1006,14 @@ function render(){
   main.innerHTML=`<div class="ph"><h1>Browse</h1><span>${list.length} films</span></div><div class="chips">${GENRES.map(g=>`<button class="chip ${g===browseG?'on':''}" data-g="${g}">${g}</button>`).join('')}</div><div class="grid">${list.map(f=>card(f)).join('')}</div>`;return}
  if(view==='my-list'){const list=myList.map(byId).filter(f=>f&&visible(f));
   main.innerHTML=`<div class="ph"><h1>My List</h1><span>${list.length} saved</span></div>`+(list.length?`<div class="grid">${list.map(f=>card(f)).join('')}</div>`:`<div class="empty"><b>Your list is empty</b>Tap + on any movie to save it here.</div>`);return}
- const top=['mbsquid','mbcircle','mbwonka','mkwdirect','mbages','mclivemar25','mbblind','mbburied'].map(byId).filter(visible);
+ const top=['mbsquid','mbcircle','mbwonka','chh1t1pop','mbages','chkreek','mbblind','mbburied'].map(byId).filter(visible);
  const ok=x=>x&&visible(x);
  if(CUR&&CUR.kids){const K=LIB();main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok))+row('My List',myList.map(byId).filter(ok))+
    row('Cartoons & Shows',K.filter(f=>f.genres.includes('Cartoons')))+row('Learn & Play',K.filter(f=>f.genres.includes('Learning')||f.genres.includes('Songs')))+
    row('Fun for Everyone',K.filter(f=>!f.kidsOnly&&(f.genres.includes('Channels')||f.genres.includes('Feel-Good'))&&!f.genres.includes('Science & Tech')))+row('Cool Science',K.filter(f=>f.genres.includes('Science & Tech')))+row('Amazing Animals in Ultra HD',K.filter(f=>f.genres.includes('Nature')))+row('MrBeast',K.filter(f=>f.genres.includes('MrBeast')&&!f.list))+row('Minecraft',K.filter(f=>f.genres.includes('Minecraft')));return}
- main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok))+row('My List',myList.map(byId).filter(ok))+row('Top 10 Videos',top,true)+row('Ultra HD — 4K & 8K',G('Ultra HD'))+row('New This Year',LIB().filter(f=>f.added))+
-  row('H1T1 & hxsain — Long Videos',LIB().filter(f=>f.id==='chh1t1'||f.id==='chhxsain'))+row('Latest From Your Favorite Channels',G('Channels').filter(f=>!f.kidsOnly))+row('MrBeast',G('MrBeast'))+row('Insane Challenges',G('Challenges'))+row('Minecraft',G('Minecraft'))+row('Science & Tech',G('Science & Tech'))+row('Nintendo',G('Nintendo'))+row('For Little Kids',G('Kids'))+row('Live Shows & Directs',G('Live Shows'));
+ const FY=forYou(),hideBad=x=>rates()[x.id]!==-1;
+ main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok))+row('My List',myList.map(byId).filter(ok))+row('Your Creators',((interests()||{}).creators||[]).map(byId).filter(ok))+row('Top Picks for '+esc(CUR?CUR.name:'You'),FY.picks)+row('Top 10 Videos',top.filter(hideBad),true)+(FY.because&&FY.because.list.length?row('Because You Liked '+esc(FY.because.title),FY.because.list):'')+row('Sports Highlights',G('Sports'))+row('Amazing Animals',G('Animals'))+row('Space & Rockets',G('Space'))+row('Food & Cooking',G('Food'))+row('Ultra HD — 4K & 8K',G('Ultra HD'))+row('New This Year',LIB().filter(f=>f.added))+
+  row('H1T1',LIB().filter(f=>f.genres.includes('H1T1')||f.id==='chh1t1'||f.id==='chhxsain'))+row('Roblox',G('Roblox'))+row('Latest From Your Favorite Channels',G('Channels').filter(f=>!f.kidsOnly))+row('MrBeast',G('MrBeast'))+row('Insane Challenges',G('Challenges'))+row('Minecraft',G('Minecraft'))+row('Science & Tech',G('Science & Tech'))+row('Nintendo',G('Nintendo'))+row('For Little Kids',G('Kids'))+row('Live Shows & Directs',G('Live Shows'));
 }
 function route(){const v=(location.hash||'#home').slice(1);view=['home','live','shorts','browse','my-list'].includes(v)?v:'home';$('#q').value='';render();window.scrollTo(0,0)}
 window.addEventListener('hashchange',route);
@@ -872,7 +1028,7 @@ document.addEventListener('click',e=>{
 window.addEventListener('scroll',()=>$('#hdr').classList.toggle('solid',scrollY>40),{passive:true});
 
 /* ---------- Hero ---------- */
-let FEATURED=['mbsquid','mbwonka','mbcircle','mclivemar25','mkwdirect'].map(byId);
+let FEATURED=['mbsquid','mbwonka','mbcircle','chh1t1pop','chkreek'].map(byId);
 let heroI=0,heroF=FEATURED[0],heroTimer;
 function showHeroText(){$('#hT').textContent=heroF.title;$('#hM').innerHTML=metaHTML(heroF);$('#hD').textContent=heroF.desc;syncListBtns();
  document.querySelectorAll('#hDots button').forEach((b,j)=>b.classList.toggle('on',j===heroI))}
@@ -891,10 +1047,11 @@ function openModal(id){const f=byId(id);M.f=f;M.open=true;SFX.open();
  $('#mS').innerHTML=`<div>Channel: <span>${f.channel}</span></div><div>Year: <span>${f.year}</span></div><div>Categories: <span>${f.genres.join(', ')}</span></div><div>Source: <span>YouTube · official channel</span></div>`;
  const more=LIB().filter(x=>x.id!==f.id&&x.genres.some(g=>f.genres.includes(g))).slice(0,6);
  $('#mMore').innerHTML=more.map(x=>`<div class="mc" tabindex="0" data-id="${x.id}"><img src="${thumb(x)}" alt=""><div><b>${x.title}</b><small>${x.channel} · ${x.desc}</small></div></div>`).join('');
- syncListBtns();$('#modal').classList.add('on');document.body.style.overflow='hidden';$('#modal').scrollTop=0}
+ syncListBtns();syncRate();$('#modal').classList.add('on');document.body.style.overflow='hidden';$('#modal').scrollTop=0}
 function closeModal(){M.open=false;$('#modal').classList.remove('on');if(!P.open)document.body.style.overflow=''}
 $('#mX').onclick=closeModal;$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
 $('#mPlay').onclick=()=>play(M.f.id);$('#mList').onclick=()=>toggleList(M.f.id);
+$('#mUp').onclick=()=>setRate(M.f.id,1);$('#mDn').onclick=()=>setRate(M.f.id,-1);
 
 /* ---------- Player ---------- */
 const P={open:false,f:null};
@@ -932,7 +1089,7 @@ function startVideo(f,body){SFX.intro();
   <div class="vctl"><input type="range" class="vseek" id="vseek" min="0" max="1000" value="0" aria-label="Seek">
    <div class="vrow"><button class="ib" id="vpp">${VI.play}</button><button class="ib" id="vbk" title="Back 10s">${VI.back}</button><button class="ib" id="vfw" title="Forward 10s">${VI.fwd}</button>${f.list?`<button class="ib" id="vnx" title="Next video"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm10-12v12h2V6h-2z"/></svg></button>`:''}
    <button class="ib" id="vmute">${VI.vol}</button><input type="range" class="vvol" id="vvol" min="0" max="100" value="${vVol}" aria-label="Volume"><span class="vtime" id="vtime">0:00 / 0:00</span>
-   <span class="sp"></span><button class="ib" id="vfs" title="Fullscreen (F)">${VI.fs}</button></div></div></div>`;
+   <span class="sp"></span><button class="ib sleepb" id="vsleep" title="Sleep timer">🌙<b id="vsleepT"></b></button><button class="ib" id="vfs" title="Fullscreen (F)">${VI.fs}</button></div></div></div>`;
  vfill($('#vvol'));
  ensureYT().then(()=>{if(!P.open||P.f!==f)return;
   const pv={autoplay:1,controls:0,rel:0,playsinline:1,iv_load_policy:3,disablekb:1,fs:0,modestbranding:1,cc_load_policy:0,vq:f.uhd?'highres':'hd1080'};if(f.list){pv.listType='playlist';pv.list=f.list}
@@ -957,7 +1114,16 @@ function vSeekBy(d){if(YTP&&YTP.seekTo)YTP.seekTo(Math.max(0,YTP.getCurrentTime(
 function vSetMute(m){vMuted=m;if(YTP&&YTP.mute)m?YTP.mute():YTP.unMute();$('#vmute').innerHTML=m||vVol==0?VI.mute:VI.vol;const v=$('#vvol');v.value=m?0:vVol;vfill(v)}
 function vFS(){const el=$('#player');try{if(document.fullscreenElement)document.exitFullscreen();else{const r=(el.requestFullscreen||el.webkitRequestFullscreen).call(el);if(r&&r.catch)r.catch(()=>{})}}catch(e){}}
 function vPoke(){const p=$('#player');p.classList.remove('idle');clearTimeout(vIdle);vIdle=setTimeout(()=>{try{if(P.open&&YTP&&YTP.getPlayerState&&YTP.getPlayerState()===1)p.classList.add('idle')}catch(e){}},2600)}
+/* ---------- sleep timer ---------- */
+let sleepAt=0,sleepT=null;const SLEEP_OPTS=[0,15,30,60,90];
+function sleepLabel(){const b=$('#vsleepT');if(!b)return;if(!sleepAt){b.textContent='';return}const m=Math.max(0,Math.ceil((sleepAt-Date.now())/60000));b.textContent=' '+m+'m'}
+function cycleSleep(){const cur=sleepAt?Math.round((sleepAt-Date.now())/60000):0;const i=SLEEP_OPTS.findIndex(x=>x>cur);const next=SLEEP_OPTS[i<0?0:i];
+ sleepAt=next?Date.now()+next*60000:0;clearInterval(sleepT);if(sleepAt)sleepT=setInterval(()=>{sleepLabel();if(Date.now()>=sleepAt){clearInterval(sleepT);sleepAt=0;sleepLabel();try{YTP&&YTP.pauseVideo()}catch(e){};showSleep()}},10000);
+ sleepLabel();toast(next?`🌙 Video will stop in ${next} minutes`:'🌙 Sleep timer off')}
+function showSleep(){const ov=document.createElement('div');ov.className='pinov sleepov';ov.innerHTML=`<div class="pinbox"><div style="font-size:54px">🌙</div><h2>Good night!</h2><p class="muted">The sleep timer paused your video.</p><button class="btn play" id="sleepGo">Keep watching</button></div>`;
+ document.body.appendChild(ov);const go=ov.querySelector('#sleepGo');go.focus();go.onclick=()=>{ov.remove();try{YTP&&YTP.playVideo()}catch(e){}}}
 function wireV(){
+ $('#vsleep').onclick=cycleSleep;sleepLabel();
  $('#vshield').onclick=vToggle;$('#vshield').ondblclick=vFS;$('#vpp').onclick=vToggle;
  $('#vbk').onclick=()=>vSeekBy(-10);const nb=$('#vnx');if(nb)nb.onclick=()=>{try{YTP.nextVideo()}catch(e){}};$('#vfw').onclick=()=>vSeekBy(10);$('#vfs').onclick=vFS;
  $('#vmute').onclick=()=>vSetMute(!vMuted);
@@ -991,15 +1157,29 @@ function loop(now){const dt=Math.min(.1,(now-last)/1000);last=now;clock+=dt;
  else if(!document.hidden&&$('#hero').style.display!=='none'&&scrollY<innerHeight*.85)drawScene($('#heroCv'),heroF,clock);
  requestAnimationFrame(loop)}
 /* ---------- Profiles ---------- */
-function renderMe(){$('#me').innerHTML=`${avHTML(CUR)}<div class="menu"><div class="cur">Watching as<b>${esc(CUR.name)}${CUR.kids?' · Kids':''}</b></div>${ACC.user?`<div class="acct">☁ Saved to ${esc(ACC.user.email||'your Google account')}</div>`:''}<hr>${profiles.filter(p=>p.id!==PID).map(p=>`<button data-pick="${p.id}">${avHTML(p)}${esc(p.name)}</button>`).join('')}<hr><button data-act="manage">✎&nbsp; Manage Profiles</button><button data-act="switch">⇄&nbsp; Switch Profile</button><button data-act="surprise">🎲&nbsp; Surprise me</button><button data-act="sound" class="${SFX.on?'sfxon':''}">${SFX.on?'🔊':'🔈'}&nbsp; Sounds: ${SFX.on?'On':'Off'}</button>${ACC.user?'<button data-act="signout">↩&nbsp; Sign out</button>':'<button data-act="signin">G&nbsp; Sign in with Google</button>'}</div>`}
+function renderMe(){$('#me').innerHTML=`${avHTML(CUR)}<div class="menu"><div class="cur">Watching as<b>${esc(CUR.name)}${CUR.kids?' · Kids':''}</b></div>${ACC.user?`<div class="acct">☁ Saved to ${esc(ACC.user.email||'your Google account')}</div>`:''}<hr>${profiles.filter(p=>p.id!==PID).map(p=>`<button data-pick="${p.id}">${avHTML(p)}${esc(p.name)}</button>`).join('')}<hr><button data-act="manage">✎&nbsp; Manage Profiles</button><button data-act="switch">⇄&nbsp; Switch Profile</button><button data-act="interests">⭐&nbsp; My interests</button><button data-act="surprise">🎲&nbsp; Surprise me</button><button data-act="sound" class="${SFX.on?'sfxon':''}">${SFX.on?'🔊':'🔈'}&nbsp; Sounds: ${SFX.on?'On':'Off'}</button>${ACC.user?'<button data-act="signout">↩&nbsp; Sign out</button>':'<button data-act="signin">G&nbsp; Sign in with Google</button>'}</div>`}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let managing=false;
 function showWho(manage){managing=!!manage;$('#signin').classList.remove('on');closeModal();if(P.open)closePlayer();$('#me').classList.remove('open');
  $('#whoT').textContent=managing?'Manage Profiles':"Who's watching?";$('#mng').textContent=managing?'Done':'Manage Profiles';$('#mng').classList.toggle('done',managing);
- $('#pgrid').innerHTML=profiles.map((p,i)=>`<div class="prof ${managing?'edit':''}" tabindex="0" data-prof="${p.id}" style="animation-delay:${i*.07}s">${avHTML(p)}<div class="nm">${esc(p.name)}</div></div>`).join('')+
+ $('#pgrid').innerHTML=profiles.map((p,i)=>`<div class="prof ${managing?'edit':''}" tabindex="0" data-prof="${p.id}" style="animation-delay:${i*.07}s">${avHTML(p)}<div class="nm">${p.pin?'🔒 ':''}${esc(p.name)}</div></div>`).join('')+
   (profiles.length<5?`<div class="prof" tabindex="0" data-prof="new" style="animation-delay:${profiles.length*.07}s"><div class="av addav">+</div><div class="nm">Add Profile</div></div>`:'');
  $('#who').classList.add('on');document.body.style.overflow='hidden'}
-function pick(id){const p=profiles.find(x=>x.id===id);if(!p)return;PID=id;CUR=p;store.set('last',id);SFX.chime();
+const UNLOCKED=new Set();
+function pick(id){const p=profiles.find(x=>x.id===id);if(!p)return;
+ if(p.pin&&!UNLOCKED.has(id)&&PID!==id){askPin(p,()=>{UNLOCKED.add(id);pickNow(id)});return}pickNow(id)}
+function askPin(p,ok){let typed='';const ov=document.createElement('div');ov.className='pinov';
+ const draw=()=>{ov.innerHTML=`<div class="pinbox">${avHTML(p)}<h2>Enter PIN for ${esc(p.name)}</h2><div class="pindots">${[0,1,2,3].map(i=>`<i class="${i<typed.length?'on':''}"></i>`).join('')}</div>
+  <div class="pinpad">${[1,2,3,4,5,6,7,8,9,'✕',0,'⌫'].map(k=>`<button data-k="${k}">${k}</button>`).join('')}</div><button class="btn ghost" data-k="cancel">Cancel</button></div>`;
+  const b=ov.querySelector('.pinpad button');if(b)b.focus()};
+ const press=k=>{if(k==='cancel'||k==='✕'){ov.remove();document.removeEventListener('keydown',kd,true);return}
+  if(k==='⌫'){typed=typed.slice(0,-1);draw();return}if(typed.length<4){typed+=k;SFX.tick()}draw();
+  if(typed.length===4){if(typed===p.pin){ov.remove();document.removeEventListener('keydown',kd,true);ok()}else{ov.querySelector('.pindots').classList.add('shake');SFX.close();typed='';setTimeout(draw,450)}}};
+ const kd=e=>{if(/^\d$/.test(e.key)){e.preventDefault();e.stopPropagation();press(e.key)}else if(e.key==='Backspace'){e.preventDefault();press('⌫')}else if(e.key==='Escape'){press('cancel')}};
+ ov.addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(b)press(b.dataset.k)});document.addEventListener('keydown',kd,true);
+ document.body.appendChild(ov);draw()}
+function pickNow(id){const p=profiles.find(x=>x.id===id);if(!p)return;PID=id;CUR=p;store.set('last',id);SFX.chime();
+ if(!store.get('interests_'+id,null))setTimeout(()=>showInterests(true),900);
  myList=store.get('list_'+id,[]);recent=store.get('recent_'+id,[]);browseG='All';
  renderMe();setFeatured();$('#who').classList.remove('on');$('#me').classList.remove('open');document.body.style.overflow='';
  location.hash='home';route();toast(`Welcome, ${p.name}!`)}
@@ -1009,6 +1189,7 @@ $('#pgrid').addEventListener('click',e=>{const el=e.target.closest('[data-prof]'
 $('#me').addEventListener('click',e=>{
  const pk=e.target.closest('[data-pick]');if(pk){pick(pk.dataset.pick);return}
  const ac=e.target.closest('[data-act]');if(ac){const a=ac.dataset.act;if(a==='sound'){SFX.on=!SFX.on;if(SFX.on)SFX.chime();renderMe();$('#me').classList.add('open');return}
+  if(a==='interests'){$('#me').classList.remove('open');showInterests(false);return}
   if(a==='surprise'){$('#me').classList.remove('open');const pool=FILMS.filter(f=>CUR&&CUR.kids?(f.kidsOnly||(!f.teen&&f.genres.includes('Kids'))):!f.kidsOnly);const f=pool[Math.floor(Math.random()*pool.length)];if(f)openModal(f.id);return}
   if(a==='signout'){accSignOut();return}if(a==='signin'){$('#me').classList.remove('open');showSignIn();return}showWho(a==='manage');return}
  if(e.target.closest('#me>.av'))$('#me').classList.toggle('open')});
@@ -1016,7 +1197,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('#me'))$('#me').class
 let draft=null;
 function openEditor(id){const p=id?profiles.find(x=>x.id===id):null;
  draft=p?{...p}:{id:'p'+Date.now(),name:'',color:Math.floor(Math.random()*COLORS.length),face:Math.floor(Math.random()*FACES.length),kids:false,isNew:true};
- $('#peT').textContent=p?'Edit Profile':'Add Profile';$('#peName').value=draft.name;$('#peKids').checked=draft.kids;
+ $('#peT').textContent=p?'Edit Profile':'Add Profile';$('#peName').value=draft.name;$('#peKids').checked=draft.kids;$('#pePin').value=draft.pin||'';
  $('#peDel').style.display=p&&profiles.length>1?'':'none';drawEditor();$('#pe').classList.add('on');setTimeout(()=>$('#peName').focus(),50)}
 function drawEditor(){$('#pePrev').innerHTML=avHTML(draft);
  $('#peColors').innerHTML=COLORS.map((c,i)=>`<button data-c="${i}" class="${i===draft.color?'on':''}" style="background:linear-gradient(135deg,${c[0]},${c[1]})" aria-label="Color ${i+1}"></button>`).join('');
@@ -1028,6 +1209,7 @@ $('#peName').addEventListener('input',e=>draft.name=e.target.value);
 $('#peName').addEventListener('keydown',e=>{if(e.key==='Enter')$('#peSave').click()});
 $('#peCancel').onclick=()=>$('#pe').classList.remove('on');
 $('#peSave').onclick=()=>{const name=draft.name.trim();if(!name){toast('Give your profile a name');$('#peName').focus();return}
+ const pin=$('#pePin').value.trim();if(pin&&!/^\d{4}$/.test(pin)){toast('The PIN needs exactly 4 numbers');$('#pePin').focus();return}draft.pin=pin||'';if(!pin)delete draft.pin;
  const{isNew,...p}={...draft,name};const i=profiles.findIndex(x=>x.id===p.id);if(i>=0)profiles[i]=p;else profiles.push(p);
  store.set('profiles',profiles);$('#pe').classList.remove('on');
  if(PID===p.id){CUR=p;renderMe();setFeatured();render()}
@@ -1052,7 +1234,7 @@ ACC.ready=(async()=>{if(!CAN_EMBED)throw new Error('not on website');
   if(u&&!was){await pullCloud();if($('#signin').classList.contains('on')){$('#signin').classList.remove('on');showWho(false)}else if(CUR){renderMe();render()}toast('Signed in! Your profiles are saved.')}
   if(!u&&was&&CUR)renderMe()})});
  return ACC.F})().catch(e=>{console.warn('Accounts unavailable',e);return null});
-function cloudData(){const lists={},recents={};profiles.forEach(p=>{lists[p.id]=store.get('list_'+p.id,[]);recents[p.id]=store.get('recent_'+p.id,[])});return{profiles,lists,recents,t:Date.now()}}
+function cloudData(){const lists={},recents={},rates={},ints={};profiles.forEach(p=>{lists[p.id]=store.get('list_'+p.id,[]);recents[p.id]=store.get('recent_'+p.id,[]);rates[p.id]=store.get('rate_'+p.id,{});ints[p.id]=store.get('interests_'+p.id,null)});return{profiles,lists,recents,rates,ints,t:Date.now()}}
 async function pushCloud(){const F=ACC.F,u=ACC.user;if(!F||!u||ACC.pulling)return;
  try{await F.fs.setDoc(F.fs.doc(F.db,'marquee',u.uid),{marquee:cloudData()},{merge:true})}catch(e){console.warn('Marquee save failed',e)}}
 window.cloudTouch=()=>{if(!ACC.user||ACC.pulling)return;clearTimeout(pushT);pushT=setTimeout(pushCloud,1200)};
@@ -1060,7 +1242,7 @@ async function pullCloud(){const F=ACC.F,u=ACC.user;if(!F||!u)return;
  let d=null;try{const snap=await F.fs.getDoc(F.fs.doc(F.db,'marquee',u.uid));d=snap.exists()?snap.data().marquee:null}catch(e){console.warn('Marquee load failed',e);return}
  if(d&&Array.isArray(d.profiles)&&d.profiles.length){ACC.pulling=true;
   profiles=d.profiles;store.set('profiles',profiles);
-  profiles.forEach(p=>{store.set('list_'+p.id,(d.lists&&d.lists[p.id])||[]);store.set('recent_'+p.id,(d.recents&&d.recents[p.id])||[])});
+  profiles.forEach(p=>{store.set('list_'+p.id,(d.lists&&d.lists[p.id])||[]);store.set('recent_'+p.id,(d.recents&&d.recents[p.id])||[]);store.set('rate_'+p.id,(d.rates&&d.rates[p.id])||{});if(d.ints&&d.ints[p.id])store.set('interests_'+p.id,d.ints[p.id])});
   ACC.pulling=false;
   const keep=CUR&&profiles.find(p=>p.id===CUR.id);CUR=keep||profiles[0];PID=CUR.id;myList=store.get('list_'+PID,[]);recent=store.get('recent_'+PID,[])}
  else await pushCloud()}
@@ -1124,7 +1306,7 @@ const LIVE=[
  {n:101,name:'Challenge TV',icon:'🏆',src:[['MrBeast','0e3GPea1Tyg'],['Ryan Trahan','VmqwfEw4UoU'],['Dude Perfect','PrCiTJY6Uqg'],['MrBeast','zxYjTTXc-J8'],['Airrack','iYZ77j7v4GM'],['Unspeakable','RsGGOT9wZwg'],['MrBeast','FM7Z-Xq8Drc'],['Good Mythical Morning','IgFpP9QfYbw'],['MrBeast','Hwybp38GnZw'],['MrBeast','v9QtM6qnG50'],['MrBeast','9bqk6ZUsKyA']]},
  {n:102,name:'Minecraft TV',icon:'⛏️',src:[['Minecraft','s0w_pTOXDBQ'],['MrBeast Gaming','Ra6sNe8s2Hc'],['DanTDM','paML_p4sbCo'],['Dream','g22Z__ShvVY'],['Minecraft','jGNgh5zEFkY'],['Unspeakable','RsGGOT9wZwg']]},
  {n:103,name:'Science TV',icon:'🚀',src:[['Mark Rober','gicEOsFtMxw'],['Kurzgesagt','ujkD4SxPKOI'],['Veritasium','ONAuUyml0yI'],['Mrwhosetheboss','NrF4mkTmuTU'],['Zach King','mlJdZftpCJc'],['MrBeast','TJ2ifmkGGus']]},
- {n:104,name:'Gaming TV',icon:'🎮',src:[['Nintendo','mq4uCJDwO9U'],['MrBeast Gaming','Ra6sNe8s2Hc'],['DanTDM','paML_p4sbCo'],['Minecraft','jGNgh5zEFkY'],['Dream','g22Z__ShvVY']]},
+ {n:104,name:'Gaming TV',icon:'🎮',src:[['MrBeast Gaming','Ra6sNe8s2Hc'],['DanTDM','paML_p4sbCo'],['Dream','g22Z__ShvVY']]},
  {n:107,name:'Nature 4K TV',icon:'🌿',src:[['Peru in 8K','1La4QzGeaaQ'],['Ocean Wildlife 8K','PPAmfbMnWow'],['Costa Rica 4K','LXb3EKWsInQ'],['Our Planet','GfO-3Oir-qM'],['Chameleons 4K','5paGGUUjV2Q']]},
  {n:105,name:'Creator TV',icon:'🔥',teen:true,src:[['H1T1','3P-rZJbrGyg'],['hxsain','HpeXGZycOZc'],['Sidemen','fwqEB2HdY88']]},
  {n:106,name:'Kids TV',icon:'🎈',kidsOnly:true,src:[['Bluey','evYFRYX4Hyw'],['Sesame Street','QLC32zDmgTI'],['PBS KIDS','DVA4rAD52i0'],['Blippi','nTr4DUuvgA8'],['Kids Diana Show','yJ8DGLldq5s'],['Vlad and Niki','Is_Ih3JaBgc'],['Cocomelon','Gm_HjftxXKY'],["Ryan's World",'H7iA4Ri1H3Q']]},
