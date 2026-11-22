@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Marquee — Gaming Videos</title>
+<title>CastTV — Videos, Shorts &amp; Live TV</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<meta name="description" content="Marquee — watch your favorite YouTube creators like MrBeast, H1T1 and Unspeakable, plus Shorts, Live TV channels, storm chasers and kids shows, all in one smooth streaming app.">
-<meta property="og:title" content="Marquee"><meta property="og:description" content="Videos, Shorts and Live TV from your favorite YouTube creators.">
+<meta name="description" content="CastTV — watch your favorite YouTube creators like MrBeast, H1T1 and Unspeakable, plus Shorts, Live TV channels, storm chasers and kids shows, all in one smooth streaming app.">
+<meta property="og:title" content="CastTV"><meta property="og:description" content="Videos, Shorts and Live TV from your favorite YouTube creators.">
 <meta property="og:image" content="https://thedailybark.dog/marquee/banner.png"><meta name="theme-color" content="#030712">
 <link rel="apple-touch-icon" href="icon192.png"><link rel="manifest" href="manifest.json">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%231f6fff%22/%3E%3Cpath d=%22M24 18l24 14-24 14z%22 fill=%22white%22/%3E%3C/svg%3E">
@@ -620,11 +620,50 @@ nav a .rd{vertical-align:0;flex:none}
 .splash.go .mwrap{transform:scale(1.4);opacity:0}
 .sbar i{transition:width 2.4s cubic-bezier(.4,0,.2,1)}
 @media (prefers-reduced-motion:reduce){.mslide,.mrev,.mrevin{animation:none;transform:none}}
+
+/* ===== CastTV brand ===== */
+.logo{display:inline-flex;align-items:center;gap:.28em;white-space:nowrap}
+.logo b{font-weight:inherit;-webkit-text-fill-color:#38bdf8;color:#38bdf8;margin-left:.16em}
+.lgic{width:1.05em;height:1.05em;flex:none;filter:drop-shadow(0 0 8px rgba(56,150,255,.55));overflow:visible}
+/* intro v4 — the C draws itself, the play button pops, then CAST TV opens */
+.splash .mwrap{aspect-ratio:349.73/100;width:min(82vw,720px)}
+.mM{width:28.593%}
+.mrev{left:24.019%;width:75.981%}
+.mslide{transform:translate3d(37.42%,0,0)}
+.cArc{stroke-dasharray:100;stroke-dashoffset:100;animation:cDraw .95s cubic-bezier(.65,0,.35,1) .15s forwards}
+@keyframes cDraw{to{stroke-dashoffset:0}}
+.cPlay{transform-box:fill-box;transform-origin:40% 50%;transform:scale(0);opacity:0;animation:cPop .55s cubic-bezier(.34,1.56,.64,1) .95s forwards}
+@keyframes cPop{to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.cArc{animation:none;stroke-dashoffset:0}.cPlay{animation:none;transform:none;opacity:1}}
+/* ===== Who's watching — redone ===== */
+.who{background:#030712;overflow:hidden auto}
+.who::before,.who::after{content:"";position:fixed;width:70vmax;height:70vmax;border-radius:50%;filter:blur(60px);opacity:.35;pointer-events:none;will-change:transform}
+.who::before{background:radial-gradient(circle,#1f6fff,transparent 65%);left:-25vmax;top:-30vmax;animation:blobA 18s ease-in-out infinite alternate}
+.who::after{background:radial-gradient(circle,#06b6d4,transparent 65%);right:-30vmax;bottom:-35vmax;animation:blobB 22s ease-in-out infinite alternate}
+@keyframes blobA{to{transform:translate3d(18vmax,12vmax,0)}}
+@keyframes blobB{to{transform:translate3d(-16vmax,-10vmax,0)}}
+.who>*{position:relative;z-index:1}
+.who .logo{position:absolute;top:24px;left:4vw;font-size:30px}
+.who h1{font-weight:700;letter-spacing:-.5px;margin-bottom:44px;animation:rise .6s cubic-bezier(.22,1,.36,1) both}
+.who.on .pgrid{gap:clamp(18px,3vw,40px)}
+.prof{color:#8ea0c0;animation:profIn .6s cubic-bezier(.22,1,.36,1) both}
+@keyframes profIn{from{opacity:0;transform:translateY(26px) scale(.92)}to{opacity:1;transform:none}}
+.prof .av{border-radius:22%;transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s;will-change:transform}
+.prof:hover .av,.prof:focus-visible .av,.tv-nav .prof:focus .av{transform:translateY(-6px) scale(1.08);box-shadow:0 0 0 3px #38bdf8,0 16px 40px rgba(31,111,255,.55)}
+.prof:hover,.prof:focus-visible{color:#fff}
+.prof .nm{font-weight:600;transition:color .2s}
+.mng{animation:fi .6s ease .4s both;border-radius:999px!important}
+.who.leaving h1,.who.leaving .mng,.who.leaving .logo,.who.leaving .prof:not(.chosen){animation:leaveOut .3s ease forwards!important}
+@keyframes leaveOut{to{opacity:0;transform:translateY(10px) scale(.96)}}
+.who.leaving .prof.chosen .nm{animation:leaveOut .3s ease forwards}
+.who.leaving .prof.chosen .av{transform:scale(1.35);box-shadow:0 0 0 4px #38bdf8,0 0 80px rgba(56,189,248,.7);transition:transform .45s cubic-bezier(.22,1,.36,1),box-shadow .45s}
+.who.leaving{animation:whoOut .35s ease .38s forwards}
+@keyframes whoOut{to{opacity:0}}
 </style>
 </head>
 <body>
 <header id="hdr">
-  <div class="logo" onclick="location.hash='home'">MARQUEE</div>
+  <div class="logo" onclick="location.hash='home'"><svg class="lgic" viewBox="0 0 100 100" aria-hidden="true"><path d="M70.57,25.49A32,32 0 1 0 70.57,74.51" fill="none" stroke="url(#lgG)" stroke-width="20"/><polygon points="44,38 44,62 65,50" fill="#bfe6ff"/></svg>CAST<b>TV</b></div>
   <nav>
     <a href="#home" data-v="home">Home</a>
     <a href="#live" data-v="live"><span class="rd"></span>Live TV</a>
@@ -641,21 +680,18 @@ nav a .rd{vertical-align:0;flex:none}
   <div class="me" id="me"></div>
 </header>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="lgG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#afe1ff"/><stop offset=".5" stop-color="#2a7cff"/><stop offset="1" stop-color="#1446c8"/></linearGradient></defs></svg>
 <div class="splash" id="splash">
   <div class="mwrap" id="mwrap"><div class="mglow"></div>
    <div class="mslide">
     <svg class="mM" viewBox="0 0 100 100" aria-hidden="true">
-     <defs><linearGradient id="mgP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1856e1"/></linearGradient>
-     <linearGradient id="mgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#afe1ff"/><stop offset="1" stop-color="#38aafa"/></linearGradient>
-     <linearGradient id="mgR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e50c8"/><stop offset="1" stop-color="#0c3096"/></linearGradient></defs>
-     <g class="mp mp1"><polygon points="11,8 29.7,8 29.7,92 11,92" fill="url(#mgP)"/></g>
-     <g class="mp mp4"><polygon points="70.3,8 89,8 89,92 70.3,92" fill="url(#mgP)"/></g>
-     <g class="mp mp3"><polygon points="68.8,9.5 87.5,9.5 58.4,71.5 39.6,71.5" fill="rgba(0,6,30,.55)"/><polygon points="70.3,8 89,8 59.4,70 40.6,70" fill="url(#mgR)"/></g>
-     <g class="mp mp2"><polygon points="12.5,9.5 31.2,9.5 60.4,71.5 41.6,71.5" fill="rgba(0,6,30,.55)"/><polygon points="11,8 29.7,8 59.4,70 40.6,70" fill="url(#mgL)"/></g>
+     <path class="cArc" d="M70.57,25.49A32,32 0 1 0 70.57,74.51" fill="none" stroke="url(#lgG)" stroke-width="20" pathLength="100"/>
+     <g class="cPlay"><polygon points="44,38 44,62 65,50" fill="url(#cPG)"/></g>
+     <defs><linearGradient id="cPG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#38bdf8"/></linearGradient></defs>
     </svg>
-    <div class="mrev"><div class="mrevin"><svg class="mW" viewBox="90.5 0 301.54 100" aria-label="Marquee">
-     <defs><linearGradient id="mgW" gradientUnits="userSpaceOnUse" x1="96" y1="0" x2="381.04" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#a9d2ff"/><stop offset="1" stop-color="#38bdf8"/></linearGradient></defs>
-     <g fill="url(#mgW)"><path d="M97.43 92 105.55 8H134.04L142.01 92H126.12L124.92 78.45H114.8L113.75 92ZM116 65.03H123.63L119.96 22.32H119.2Z"/><path d="M150.36 92V8H176.14Q182.58 8 185.87 10.94Q189.17 13.87 190.29 19.14Q191.41 24.42 191.41 31.53Q191.41 38.4 189.67 42.51Q187.93 46.61 183.1 48.19Q187.07 49 188.66 52.12Q190.26 55.25 190.26 60.21V92H173.7V59.12Q173.7 55.44 172.2 54.56Q170.7 53.67 167.35 53.67V92ZM167.45 39.12H171.51Q174.99 39.12 174.99 31.53Q174.99 26.61 174.23 25.09Q173.46 23.56 171.36 23.56H167.45Z"/><path d="M237.28 100.92 223.91 92.14Q221.62 92.76 219.19 92.76Q209.36 92.76 204.18 86.94Q199 81.12 199 69.95V29.33Q199 18.5 204.32 12.87Q209.64 7.24 219.71 7.24Q229.78 7.24 235.11 12.87Q240.43 18.5 240.43 29.33V69.95Q240.43 80.35 235.75 86.32L242.96 90.9ZM219.71 77.3Q221.53 77.3 222.31 75.96Q223.1 74.63 223.32 72.67Q223.53 70.71 223.53 68.9V29.62Q223.53 26.95 222.79 24.82Q222.05 22.7 219.62 22.7Q217.14 22.7 216.37 24.78Q215.61 26.85 215.61 29.57V69.23Q215.61 70.9 215.82 72.79Q216.04 74.67 216.9 75.99Q217.76 77.3 219.71 77.3Z"/><path d="M271.02 92.76Q260.52 92.76 255.56 86.87Q250.6 80.97 250.6 69.52V8H266.92V68.85Q266.92 70.95 267.16 72.89Q267.4 74.82 268.25 76.06Q269.11 77.3 271.02 77.3Q272.98 77.3 273.84 76.08Q274.7 74.87 274.91 72.91Q275.13 70.95 275.13 68.85V8H291.45V69.52Q291.45 80.97 286.49 86.87Q281.52 92.76 271.02 92.76Z"/><path d="M301.09 92V8H334.69V24.23H318.18V40.6H334.02V56.4H318.18V75.63H335.79V92Z"/><path d="M344.53 92V8H378.13V24.23H361.61V40.6H377.46V56.4H361.61V75.63H379.23V92Z"/></g></svg></div></div>
+    <div class="mrev"><div class="mrevin"><svg class="mW" viewBox="84 0 265.73 100" aria-label="CastTV">
+     <defs><linearGradient id="mgW" gradientUnits="userSpaceOnUse" x1="88" y1="0" x2="240" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#a9d2ff"/></linearGradient></defs>
+     <g fill="url(#mgW)"><path d="M89.43 92 97.55 8H126.04L134.01 92H118.12L116.92 78.45H106.8L105.75 92ZM108 65.03H115.63L111.96 22.32H111.2Z"/><path d="M162.31 92.76Q150.81 92.76 145.73 87.04Q140.65 81.31 140.65 68.8V60.6H157.25V71.1Q157.25 74.01 158.14 75.65Q159.02 77.3 161.22 77.3Q163.51 77.3 164.39 75.96Q165.27 74.63 165.27 71.57Q165.27 67.71 164.51 65.11Q163.75 62.5 161.86 60.14Q159.98 57.78 156.63 54.63L149.09 47.47Q140.65 39.5 140.65 29.24Q140.65 18.5 145.63 12.87Q150.62 7.24 160.07 7.24Q171.62 7.24 176.46 13.39Q181.31 19.55 181.31 32.1H164.22V26.33Q164.22 24.61 163.24 23.65Q162.27 22.7 160.6 22.7Q158.59 22.7 157.66 23.82Q156.73 24.94 156.73 26.71Q156.73 28.47 157.68 30.53Q158.64 32.58 161.45 35.25L171.14 44.56Q174.05 47.33 176.49 50.41Q178.92 53.48 180.4 57.56Q181.88 61.65 181.88 67.52Q181.88 79.35 177.51 86.06Q173.15 92.76 162.31 92.76Z"/><path d="M197.87 92V24.13H187.9V8H224.65V24.13H214.67V92Z"/></g><g fill="#38bdf8"><path d="M264.93 92V24.13H254.96V8H291.71V24.13H281.73V92Z"/><path d="M307.32 92 296.96 7.95H312.95L319.1 65.13L324.59 7.95H340.58L330.23 92Z"/></g></svg></div></div>
    </div>
   </div>
   <div class="streaks"><i style="--x:0%;--h:205;--d:0.00s;--w:1px"></i><i style="--x:37%;--h:195;--d:0.13s;--w:3px"></i><i style="--x:74%;--h:215;--d:0.26s;--w:5px"></i><i style="--x:11%;--h:225;--d:0.39s;--w:2px"></i><i style="--x:48%;--h:190;--d:0.12s;--w:4px"></i><i style="--x:85%;--h:260;--d:0.25s;--w:1px"></i><i style="--x:22%;--h:200;--d:0.38s;--w:3px"></i><i style="--x:59%;--h:185;--d:0.11s;--w:5px"></i><i style="--x:96%;--h:205;--d:0.24s;--w:2px"></i><i style="--x:33%;--h:195;--d:0.37s;--w:4px"></i><i style="--x:70%;--h:215;--d:0.10s;--w:1px"></i><i style="--x:7%;--h:225;--d:0.23s;--w:3px"></i><i style="--x:44%;--h:190;--d:0.36s;--w:5px"></i><i style="--x:81%;--h:260;--d:0.09s;--w:2px"></i></div>
@@ -666,15 +702,15 @@ nav a .rd{vertical-align:0;flex:none}
 
 
 <div class="who" id="signin">
-  <div class="logo">MARQUEE</div>
-  <h1>Sign in to Marquee</h1>
+  <div class="logo"><svg class="lgic" viewBox="0 0 100 100" aria-hidden="true"><path d="M70.57,25.49A32,32 0 1 0 70.57,74.51" fill="none" stroke="url(#lgG)" stroke-width="20"/><polygon points="44,38 44,62 65,50" fill="#bfe6ff"/></svg>CAST<b>TV</b></div>
+  <h1>Sign in to CastTV</h1>
   <p class="signp">Sign in with Google and your profiles, My List and Continue Watching follow you to any phone, tablet or computer.</p>
   <button class="gbtn" id="gbtn"><svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Sign in with Google</button>
   <button class="skip" id="skipSign">Continue without signing in</button>
 </div>
 
 <div class="who" id="who">
-  <div class="logo">MARQUEE</div>
+  <div class="logo"><svg class="lgic" viewBox="0 0 100 100" aria-hidden="true"><path d="M70.57,25.49A32,32 0 1 0 70.57,74.51" fill="none" stroke="url(#lgG)" stroke-width="20"/><polygon points="44,38 44,62 65,50" fill="#bfe6ff"/></svg>CAST<b>TV</b></div>
   <h1 id="whoT">Who's watching?</h1>
   <div class="pgrid" id="pgrid"></div>
   <button class="mng" id="mng">Manage Profiles</button>
@@ -713,7 +749,7 @@ nav a .rd{vertical-align:0;flex:none}
 <main id="main"></main>
 
 <footer>
-  Marquee shows videos from official YouTube channels like MrBeast, Minecraft and Nintendo of America.
+  CastTV shows videos from official YouTube channels like MrBeast, Minecraft and Nintendo of America.
   Videos belong to their creators and play through YouTube. Sign in with Google to save your profiles and lists to your account.
 </footer>
 
@@ -1180,10 +1216,10 @@ let idleAt=Date.now(),ssOn=false,ssRaf=0,ssCard=null;
 setInterval(()=>{const busy=(typeof P!=='undefined'&&P.open)||view==='live'||view==='shorts';if(!ssOn&&!busy&&Date.now()-idleAt>10*60000)startSaver()},15000);
 const SS_SCENES=[['city',210],['space',240],['ocean',195],['desert',25],['forest',120],['snow',200],['synth',300],['blocks',205]];
 function startSaver(){ssOn=true;const ov=document.createElement('div');ov.id='saver';
- ov.innerHTML=`<canvas id="sscv"></canvas><div class="ss-shade"></div><div class="ss-logo">MARQUEE</div><div class="ss-time" id="ssTime"></div><div class="ss-date" id="ssDate"></div><div class="ss-now" id="ssNow"></div>`;
+ ov.innerHTML=`<canvas id="sscv"></canvas><div class="ss-shade"></div><div class="ss-logo">CAST TV</div><div class="ss-time" id="ssTime"></div><div class="ss-date" id="ssDate"></div><div class="ss-now" id="ssNow"></div>`;
  document.body.appendChild(ov);const cv=ov.querySelector('#sscv'),ctx=cv.getContext('2d');let i=Math.floor(Math.random()*SS_SCENES.length),t0=performance.now(),sceneStart=t0;
  const card=()=>{const L=LIB();const f=L[Math.floor(Math.random()*L.length)];const n=ov.querySelector('#ssNow');if(!f||!n)return;
-  n.classList.remove('in');setTimeout(()=>{n.innerHTML=`<img src="${thumb(f)}" onerror="thumbFail(this,'${f.id}')" alt=""><div><small>NOW ON MARQUEE</small><b>${esc(f.title)}</b><span>Press any button to start watching</span></div>`;n.classList.add('in')},400)};
+  n.classList.remove('in');setTimeout(()=>{n.innerHTML=`<img src="${thumb(f)}" onerror="thumbFail(this,'${f.id}')" alt=""><div><small>NOW ON CASTTV</small><b>${esc(f.title)}</b><span>Press any button to start watching</span></div>`;n.classList.add('in')},400)};
  const clock=()=>{const t=new Date();const a=ov.querySelector('#ssTime'),b=ov.querySelector('#ssDate');if(a){a.textContent=t.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});b.textContent=t.toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'})}};
  clock();card();ssCard=setInterval(()=>{clock();card()},15000);
  const frame=now=>{if(!ssOn)return;const w=Math.round(innerWidth*Math.min(devicePixelRatio||1,1.5)),h=Math.round(innerHeight*Math.min(devicePixelRatio||1,1.5));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}
@@ -1284,7 +1320,7 @@ function interestScore(f){const I=interests();if(!I)return 0;let s=0;if((I.creat
 function showInterests(first){const I=interests()||{cats:[],creators:[]};const pick={cats:new Set(I.cats),creators:new Set(I.creators)};
  const ov=document.createElement('div');ov.className='intov';
  const draw=()=>{const cats=INTEREST_CATS.filter(c=>CUR&&CUR.kids?LIB().some(c[3]):c[0]!=='kids'),cr=LIB().filter(isCreator).filter((f,i,a)=>a.findIndex(x=>x.channel===f.channel)===i);
-  ov.innerHTML=`<div class="intbox"><div class="logo">MARQUEE</div><h1>${first?`Welcome, ${esc(CUR.name)}! What do you like?`:'Your interests'}</h1>
+  ov.innerHTML=`<div class="intbox"><div class="logo"><svg class="lgic" viewBox="0 0 100 100" aria-hidden="true"><path d="M70.57,25.49A32,32 0 1 0 70.57,74.51" fill="none" stroke="url(#lgG)" stroke-width="20"/><polygon points="44,38 44,62 65,50" fill="#bfe6ff"/></svg>CAST<b>TV</b></div><h1>${first?`Welcome, ${esc(CUR.name)}! What do you like?`:'Your interests'}</h1>
    <p>Pick a few. We’ll put them first on your home page.</p>
    <h3>Categories</h3><div class="intcats">${cats.map(([k,e,l])=>`<button class="intcat ${pick.cats.has(k)?'on':''}" data-ic="${k}"><span>${e}</span>${l}</button>`).join('')}</div>
    <h3>Creators</h3><div class="intcr">${cr.map(f=>`<button class="intc ${pick.creators.has(f.id)?'on':''}" data-icr="${f.id}"><img src="${thumb(f)}" onerror="thumbFail(this,'${f.id}')" alt=""><b>${esc(f.channel.replace(/ \\(.*\\)/,''))}</b><i>✓</i></button>`).join('')}</div>
@@ -1388,7 +1424,7 @@ function play(id){buildShows();let f=byId(id);if(!f)return;if(f.show){f=f.main;i
  else{body.innerHTML=`<div class="launch"><canvas id="lCv"></canvas><div class="ov"></div><div class="in">
    <div class="kicker">${f.channel} · ${f.year}</div><h2>${f.title}</h2>
    <a class="big" href="${ytURL(f)}" target="_blank" rel="noopener">▶&nbsp; Watch on YouTube</a>
-   <p>The video opens on YouTube in a new tab.<br>Put Marquee on your own website and videos will play right here instead.</p></div></div>`}
+   <p>The video opens on YouTube in a new tab.<br>Put CastTV on your own website and videos will play right here instead.</p></div></div>`}
  $('#player').classList.add('on');document.body.style.overflow='hidden'}
 function closePlayer(){P.open=false;stopVideo();try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}$('#pBody').innerHTML='';$('#player').classList.remove('idle');const pd=document.getElementById('pDl');if(pd)pd.remove();$('#player').classList.remove('on');document.body.style.overflow='';render()}
 $('#pBack').onclick=closePlayer;
@@ -1409,7 +1445,7 @@ const vfill=el=>{const p=(el.value-el.min)/(el.max-el.min)*100;el.style.setPrope
 function startVideo(f,body){SFX.intro();
  body.innerHTML=`<div class="vp paused" id="vp"><div id="ytp"></div><div class="vshield" id="vshield"></div>
   <div class="vdim">${VI.play}</div><div class="vspin vbuf"></div>
-  <div class="vintro" id="vintro"><div class="slogo">MARQUEE</div><div class="vt">${esc(f.title)}</div><div class="vspin"></div></div>
+  <div class="vintro" id="vintro"><div class="slogo">CAST TV</div><div class="vt">${esc(f.title)}</div><div class="vspin"></div></div>
   <div class="vend" id="vend"></div>
   <div class="vctl"><input type="range" class="vseek" id="vseek" min="0" max="1000" value="0" aria-label="Seek">
    <div class="vrow"><button class="ib" id="vpp">${VI.play}</button><button class="ib" id="vbk" title="Back 10s">${VI.back}</button><button class="ib" id="vfw" title="Forward 10s">${VI.fwd}</button>${f.list?`<button class="ib" id="vnx" title="Next video"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm10-12v12h2V6h-2z"/></svg></button>`:''}
@@ -1493,8 +1529,10 @@ function showWho(manage){managing=!!manage;$('#signin').classList.remove('on');c
   (profiles.length<5?`<div class="prof" tabindex="0" data-prof="new" style="animation-delay:${profiles.length*.07}s"><div class="av addav">+</div><div class="nm">Add Profile</div></div>`:'');
  $('#who').classList.add('on');document.body.style.overflow='hidden'}
 const UNLOCKED=new Set();
+function whoGo(id){const w=$('#who'),el=w&&w.querySelector(`[data-prof="${id}"]`);if(!w||!w.classList.contains('on')||!el||matchMedia('(prefers-reduced-motion:reduce)').matches){pickNow(id);return}
+ el.classList.add('chosen');w.classList.add('leaving');setTimeout(()=>{pickNow(id);w.classList.remove('leaving');el.classList.remove('chosen')},700)}
 function pick(id){const p=profiles.find(x=>x.id===id);if(!p)return;
- if(p.pin&&!UNLOCKED.has(id)&&PID!==id){askPin(p,()=>{UNLOCKED.add(id);pickNow(id)});return}pickNow(id)}
+ if(p.pin&&!UNLOCKED.has(id)&&PID!==id){askPin(p,()=>{UNLOCKED.add(id);pickNow(id)});return}whoGo(id)}
 function askPin(p,ok){let typed='';const ov=document.createElement('div');ov.className='pinov';
  const draw=()=>{ov.innerHTML=`<div class="pinbox">${avHTML(p)}<h2>Enter PIN for ${esc(p.name)}</h2><div class="pindots">${[0,1,2,3].map(i=>`<i class="${i<typed.length?'on':''}"></i>`).join('')}</div>
   <div class="pinpad">${[1,2,3,4,5,6,7,8,9,'✕',0,'⌫'].map(k=>`<button data-k="${k}">${k}</button>`).join('')}</div><button class="btn ghost" data-k="cancel">Cancel</button></div>`;

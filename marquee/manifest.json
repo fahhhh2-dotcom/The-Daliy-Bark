@@ -1,6 +1,6 @@
 {
-  "name": "Marquee",
-  "short_name": "Marquee",
+  "name": "CastTV",
+  "short_name": "CastTV",
   "description": "Watch your favorite YouTube creators, Shorts and always-on Live TV channels in one smooth streaming app.",
   "start_url": "./",
   "display": "standalone",
