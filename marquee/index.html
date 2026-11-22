@@ -403,6 +403,27 @@ nav a.on::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:3
 .intc.on{border-color:var(--accent2);background:rgba(31,111,255,.16)}.intc.on i{display:grid}
 .intc:hover,.intc:focus{transform:scale(1.04);outline:none;border-color:#fff}
 .intact{position:sticky;bottom:0;display:flex;gap:12px;padding:20px 0 6px;margin-top:20px;background:linear-gradient(transparent,#050a14 40%)}
+
+/* show pages & episodes */
+.showtag{position:absolute;top:8px;left:8px;background:rgba(5,10,20,.75);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 7px;border-radius:5px;pointer-events:none}
+#mEps{padding:0 40px 10px}
+.eph{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:12px;margin-bottom:8px}
+.eph h3{padding:0!important;margin:0!important}
+.eptabs{display:flex;gap:8px;flex-wrap:wrap}
+.eptab{padding:8px 16px;border-radius:999px;background:var(--panel2);font-weight:700;font-size:14px;border:2px solid transparent;transition:background .2s,border-color .2s}
+.eptab.on{background:var(--accent);color:#fff}.eptab:hover,.eptab:focus{border-color:#fff;outline:none}
+.eplist{display:flex;flex-direction:column}
+.ep{display:grid;grid-template-columns:34px 190px 1fr;gap:16px;align-items:center;padding:14px 12px;border-radius:10px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);transition:background .2s}
+.ep:hover,.ep:focus{background:rgba(31,111,255,.14);outline:none}
+.epn{font-size:22px;color:var(--muted);text-align:center;font-weight:700}
+.ept{position:relative}.ept img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px;display:block}
+.epp{position:absolute;inset:0;margin:auto;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.55);border:2px solid #fff;display:grid;place-items:center;opacity:0;transition:opacity .2s}
+.ep:hover .epp,.ep:focus .epp{opacity:1}
+.epi b{display:block;margin-bottom:4px;font-size:16px}.epi small{color:var(--muted);font-size:13px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.epall{margin:12px 0 6px;align-self:flex-start}
+.epmore{margin:16px auto 6px}
+.eploading{display:flex;align-items:center;gap:12px;color:var(--muted);padding:24px 12px}.eploading .vspin{position:static;width:26px;height:26px;margin:0;opacity:1}
+@media(max-width:700px){#mEps{padding:0 20px 10px}.ep{grid-template-columns:110px 1fr;gap:12px}.epn{display:none}}
 </style>
 </head>
 <body>
@@ -504,7 +525,8 @@ nav a.on::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:3
       <div><div class="meta" id="mM"></div><p id="mD"></p></div>
       <div class="side" id="mS"></div>
     </div>
-    <h3>More Like This</h3>
+    <div id="mEps"></div>
+    <h3>More Shows Like This</h3>
     <div class="mgrid" id="mMore"></div>
   </div>
 </div>
@@ -678,7 +700,8 @@ const SHORTS=[
  {name:'Sesame Street',list:'UUSHoookXUzPciGrEZEXmh4Jjg',handle:'sesamestreet',hue:45,kidsOnly:true},
 ];
 FILMS.forEach((f,i)=>{f.seed=i*37+5;f.color=true});
-const byId=id=>FILMS.find(f=>f.id===id);
+var SHOWS={},EPS={},PLC={},QUEUE=[];
+const byId=id=>FILMS.find(f=>f.id===id)||SHOWS[id]||EPS[id];
 const GENRES=['All','Ultra HD','Kids','Channels','Gaming','Roblox','Sports','Animals','Food','MrBeast','Challenges','Minecraft','Science & Tech','Space','Nature','Feel-Good'];
 const ytURL=f=>f.list?`https://www.youtube.com/playlist?list=${f.list}`:`https://www.youtube.com/watch?v=${f.yt}`;
 const IN_TV_APP=/MarqueeTV/.test(navigator.userAgent);
@@ -944,11 +967,62 @@ const inList=id=>myList.includes(id);
 function toggleList(id){if(inList(id)){myList=myList.filter(x=>x!==id);toast('Removed from My List')}else{myList.unshift(id);toast('Added to My List')}store.set('list_'+PID,myList);syncListBtns();render()}
 function syncListBtns(){$('#hList').textContent=inList(heroF.id)?'✓':'+';if(M.f)$('#mList').textContent=inList(M.f.id)?'✓':'+'}
 
+/* ---------- Shows: each creator is one show with all their videos inside as episodes ---------- */
+const chName=c=>c==='John Casterline (H1T1)'?'H1T1':c;
+const showKey=c=>'sh_'+String(c).toLowerCase().replace(/[^a-z0-9]+/g,'');
+function buildShows(){SHOWS={};try{Object.assign(EPS,store.get('eps',{}))}catch(e){}
+ LIB().forEach(f=>{const k=showKey(f.channel);let s=SHOWS[k];
+  if(!s)s=SHOWS[k]={id:k,show:true,channel:f.channel,title:chName(f.channel),films:[],genres:[],match:0,desc:'',teen:false,
+   img:f.img,scene:f.scene,hue:f.hue,seed:f.seed,color:true,tv:null,base:null,main:null,uhd:null};
+  s.films.push(f);f.genres.forEach(g=>{if(!s.genres.includes(g))s.genres.push(g)});s.match=Math.max(s.match,f.match||0);s.teen=s.teen||!!f.teen;
+  if(f.list&&f.list.startsWith('UULF')&&!s.base){s.base=f.list.slice(4);s.main=f;s.desc=f.desc;s.img=f.img;s.scene=f.scene;s.hue=f.hue;s.seed=f.seed;if(f.tv)s.tv=f.tv}
+  if(!s.tv&&(f.tv||f.yt))s.tv=f.tv||f.yt;if(!s.desc)s.desc=f.desc;if(f.uhd&&!s.uhd)s.uhd=f.uhd;if(f.kidsOnly)s.kidsOnly=true});
+ Object.values(SHOWS).forEach(s=>{s.eps=s.films.filter(f=>f.yt);if(!s.main)s.main=s.films.find(f=>f.list)||s.eps[0]||s.films[0];
+  s.year=s.base?'New episodes all the time':`${s.eps.length} episode${s.eps.length===1?'':'s'}`;
+  if(!s.base&&s.eps.length>1)s.desc=`${s.eps.length} videos from ${s.title}. `+s.eps[0].desc})}
+const showOf=f=>!f?null:f.show?f:SHOWS[f.sid||showKey(f.channel)]||null;
+function toShows(list){const seen=new Set(),out=[];list.forEach(f=>{const s=showOf(f);if(s&&!seen.has(s.id)){seen.add(s.id);out.push(s)}});return out}
+function saveEps(){const k=Object.keys(EPS);if(k.length>400)k.slice(0,k.length-400).forEach(x=>delete EPS[x]);store.set('eps',EPS)}
+function epFilm(vid,s,n){const id='ep_'+vid;if(!EPS[id])EPS[id]={id,yt:vid,title:'Episode '+n,channel:s.channel,sid:s.id,genres:s.genres,teen:s.teen,match:s.match,year:'Episode '+n,desc:'From '+s.title,img:s.img,scene:s.scene,hue:s.hue,seed:s.seed,color:true,ep:true};return EPS[id]}
+function plFilm(list,s,label){const id='pl_'+list;if(!EPS[id])EPS[id]={id,list,title:s.title+' — '+label,channel:s.channel,sid:s.id,genres:s.genres,teen:s.teen,match:s.match,year:label,desc:s.desc,img:s.img,tv:s.tv,scene:s.scene,hue:s.hue,seed:s.seed,color:true,ep:true};return EPS[id]}
+/* read a channel playlist's video list with a hidden YouTube player */
+function loadPL(list){if(PLC[list])return Promise.resolve(PLC[list]);if(!CAN_EMBED)return Promise.resolve([]);
+ return ensureYT().then(()=>new Promise(res=>{const d=document.createElement('div');d.style.cssText='position:fixed;left:-9999px;top:0;width:320px;height:180px;opacity:0;pointer-events:none';
+  const inner=document.createElement('div');d.appendChild(inner);document.body.appendChild(d);let done=false,pl=null,iv=0,to=0;
+  const fin=ids=>{if(done)return;done=true;clearInterval(iv);clearTimeout(to);try{pl&&pl.destroy()}catch(e){}d.remove();if(ids&&ids.length)PLC[list]=ids.slice();res(ids||[])};
+  try{pl=new YT.Player(inner,{host:'https://www.youtube-nocookie.com',playerVars:{listType:'playlist',list,autoplay:0,controls:0,mute:1}})}catch(e){return fin([])}
+  iv=setInterval(()=>{try{const ids=pl.getPlaylist&&pl.getPlaylist();if(ids&&ids.length)fin(ids)}catch(e){}},400);to=setTimeout(()=>fin([]),10000)})).catch(()=>[])}
+/* episode titles from YouTube */
+const EPT=store.get('ept',{});let eptSave=0;
+function epTitle(vid,cb){if(EPT[vid])return cb(EPT[vid]);
+ fetch('https://www.youtube.com/oembed?format=json&url='+encodeURIComponent('https://www.youtube.com/watch?v='+vid)).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.title){EPT[vid]=j.title;clearTimeout(eptSave);eptSave=setTimeout(()=>store.set('ept',EPT),800);cb(j.title)}}).catch(()=>{})}
+const SH={s:null,tab:null,shown:30};
+function showTabs(s){const t=[];if(s.base){t.push(['new','Newest','UULF'+s.base]);t.push(['pop','Most Popular','UULP'+s.base])}
+ if(s.eps.length)t.push(['feat',s.base?'Best Of':'Episodes',null]);if(s.base)t.push(['shorts','Shorts','UUSH'+s.base]);return t}
+function renderShowPage(s){SH.s=s;const tabs=showTabs(s);if(!SH.tab||!tabs.some(t=>t[0]===SH.tab))SH.tab=tabs[0]?tabs[0][0]:null;
+ $('#mEps').innerHTML=`<div class="eph"><h3>Episodes</h3><div class="eptabs">${tabs.map(([k,l])=>`<button class="eptab ${k===SH.tab?'on':''}" data-eptab="${k}">${l}</button>`).join('')}</div></div><div class="eplist" id="epL"></div>`;
+ drawEps()}
+function epRow(f,n,vid){return `<div class="ep" tabindex="0" role="button" data-ep="${f.id}"><span class="epn">${n}</span><div class="ept"><img src="${thumb(f)}" alt="" loading="lazy"><span class="epp">▶</span></div><div class="epi"><b ${vid?`data-vt="${vid}"`:''}>${esc(f.title)}</b><small>${esc(f.desc||'')}</small></div></div>`}
+function drawEps(){const s=SH.s,L=$('#epL');if(!s||!L)return;const tab=showTabs(s).find(t=>t[0]===SH.tab);if(!tab){L.innerHTML='';return}
+ if(tab[0]==='feat'){QUEUE=s.eps.map(f=>f.id);L.innerHTML=s.eps.map((f,i)=>epRow(f,i+1)).join('');return}
+ const list=tab[2],all=plFilm(list,s,tab[1]);
+ const head=`<button class="btn play epall" data-ep="${all.id}">▶&nbsp; Play all ${tab[1].toLowerCase()}</button>`;
+ if(!PLC[list])L.innerHTML=head+'<div class="eploading"><div class="vspin"></div>Loading episodes…</div>';
+ loadPL(list).then(ids=>{if(SH.s!==s||SH.tab!==tab[0])return;
+  if(!ids.length){L.innerHTML=head+`<div class="eploading">Press “Play all” to watch every ${tab[1].toLowerCase()} video in order.</div>`;return}
+  const eps=ids.map((v,i)=>epFilm(v,s,i+1));QUEUE=eps.map(f=>f.id);saveEps();
+  L.innerHTML=head+eps.slice(0,SH.shown).map((f,i)=>epRow(f,i+1,ids[i])).join('')+(ids.length>SH.shown?`<button class="btn ghost epmore" data-epmore="1">Show more episodes (${ids.length-SH.shown} more)</button>`:'');
+  L.querySelectorAll('[data-vt]').forEach(b=>{const v=b.dataset.vt;epTitle(v,t=>{b.textContent=t;const e=EPS['ep_'+v];if(e&&e.title!==t){e.title=t;saveEps()}})})})}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-eptab]');if(t){SH.tab=t.dataset.eptab;SH.shown=30;SFX.click();renderShowPage(SH.s);return}
+ if(e.target.closest('[data-epmore]')){SH.shown+=30;drawEps();return}
+ const ep=e.target.closest('[data-ep]');if(ep){e.stopPropagation();play(ep.dataset.ep)}},true);
+document.addEventListener('keydown',e=>{if(e.key==='Enter'){const ep=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.ep');if(ep){e.preventDefault();play(ep.dataset.ep)}}});
+
 /* ---------- Rows ---------- */
 function card(f,rank){return `<div class="card" data-id="${f.id}" tabindex="0" role="button" aria-label="${f.title}"><img src="${thumb(f)}" alt="" loading="lazy">${rank?`<span class="rank">TOP ${rank}</span>`:''}${f.uhd&&f.uhd!=='HD'?`<span class="uhd">${f.uhd}</span>`:''}
- <div class="hov"><span class="pl" data-play="${f.id}" title="Play">▶</span><div class="ci"><b>${f.title}</b><small>${f.channel} · ${f.year}</small></div></div></div>`}
+ <div class="hov"><span class="pl" data-play="${f.id}" title="Play">▶</span><div class="ci"><b>${f.title}</b><small>${f.show?f.year:f.channel+' · '+f.year}</small></div></div>${f.show?`<span class="showtag">${f.base?'SHOW':f.eps.length+' EP'}</span>`:''}</div>`}
 let REAL_THUMBS=false;const thumb=f=>REAL_THUMBS&&(f.yt||f.tv)?`https://i.ytimg.com/vi/${f.yt||f.tv}/hqdefault.jpg`:f.img;
-function row(title,list,ranked){if(!list.length)return'';return `<section class="row"><h2>${title}</h2><div class="rw"><button class="arr l" aria-label="Scroll left">‹</button><div class="track">${list.map((f,i)=>card(f,ranked?i+1:0)).join('')}</div><button class="arr r" aria-label="Scroll right">›</button></div></section>`}
+function row(title,list,ranked,raw){if(!raw)list=toShows(list);if(!list.length)return'';return `<section class="row"><h2>${title}</h2><div class="rw"><button class="arr l" aria-label="Scroll left">‹</button><div class="track">${list.map((f,i)=>card(f,ranked?i+1:0)).join('')}</div><button class="arr r" aria-label="Scroll right">›</button></div></section>`}
 const G=g=>LIB().filter(f=>f.genres.includes(g));
 
 let view='home',browseG='All';
@@ -973,7 +1047,7 @@ function interestScore(f){const I=interests();if(!I)return 0;let s=0;if((I.creat
  INTEREST_CATS.forEach(([k,,,t])=>{if((I.cats||[]).includes(k)&&t(f))s+=2});return s}
 function showInterests(first){const I=interests()||{cats:[],creators:[]};const pick={cats:new Set(I.cats),creators:new Set(I.creators)};
  const ov=document.createElement('div');ov.className='intov';
- const draw=()=>{const cats=INTEREST_CATS.filter(c=>CUR&&CUR.kids?LIB().some(c[3]):c[0]!=='kids'),cr=LIB().filter(isCreator);
+ const draw=()=>{const cats=INTEREST_CATS.filter(c=>CUR&&CUR.kids?LIB().some(c[3]):c[0]!=='kids'),cr=LIB().filter(isCreator).filter((f,i,a)=>a.findIndex(x=>x.channel===f.channel)===i);
   ov.innerHTML=`<div class="intbox"><div class="logo">MARQUEE</div><h1>${first?`Welcome, ${esc(CUR.name)}! What do you like?`:'Your interests'}</h1>
    <p>Pick a few. We’ll put them first on your home page.</p>
    <h3>Categories</h3><div class="intcats">${cats.map(([k,e,l])=>`<button class="intcat ${pick.cats.has(k)?'on':''}" data-ic="${k}"><span>${e}</span>${l}</button>`).join('')}</div>
@@ -988,32 +1062,32 @@ function showInterests(first){const I=interests()||{cats:[],creators:[]};const p
  document.body.appendChild(ov);document.body.style.overflow='hidden';draw();setTimeout(()=>{const b=ov.querySelector('button');if(b)b.focus()},60)}
 function forYou(){const r=rates(),liked=Object.keys(r).filter(k=>r[k]===1).map(byId).filter(Boolean),bad=new Set(Object.keys(r).filter(k=>r[k]===-1));
  const score={};liked.forEach(f=>f.genres.forEach(g=>{if(g!=='Channels')score[g]=(score[g]||0)+1}));
- const picks=LIB().filter(f=>r[f.id]!==1&&!bad.has(f.id)).map(f=>({f,s:f.genres.reduce((a,g)=>a+(score[g]||0),0)+interestScore(f)+(f.match||0)/100})).filter(x=>x.s>=1).sort((a,b)=>b.s-a.s).map(x=>x.f).slice(0,16);
+ const picks=LIB().filter(f=>r[f.id]!==1&&!bad.has(f.id)&&!bad.has(showKey(f.channel))&&r[showKey(f.channel)]!==1).map(f=>({f,s:f.genres.reduce((a,g)=>a+(score[g]||0),0)+interestScore(f)+(f.match||0)/100})).filter(x=>x.s>=1).sort((a,b)=>b.s-a.s).map(x=>x.f).slice(0,16);
  if(!liked.length)return{picks,because:null};
- const last=liked[liked.length-1];const because=LIB().filter(f=>f.id!==last.id&&!bad.has(f.id)&&f.genres.some(g=>last.genres.includes(g)&&g!=='Channels')).slice(0,12);
+ const last=liked[liked.length-1];const because=LIB().filter(f=>f.id!==last.id&&showKey(f.channel)!==showKey(last.channel)&&!bad.has(f.id)&&f.genres.some(g=>last.genres.includes(g)&&g!=='Channels')).slice(0,12);
  return{picks,because:{title:last.title,list:because}}}
-function render(){
+function render(){buildShows();
  const main=$('#main'),q=$('#q').value.trim().toLowerCase();
  if(view!=='shorts'||q)destroyShorts();
  if(view!=='live'||q)destroyLive();
  document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',!q&&a.dataset.v===view));
  const showHero=!q&&view==='home';$('#hero').style.display=showHero?'':'none';main.classList.toggle('flat',!showHero);
  if(q){const res=LIB().filter(f=>[f.title,f.desc,f.channel,f.year,...f.genres].join(' ').toLowerCase().includes(q));
-  main.innerHTML=`<div class="ph"><h1>Results for “${q.replace(/</g,'&lt;')}”</h1><span>${res.length} title${res.length===1?'':'s'}</span></div>`+(res.length?`<div class="grid">${res.map(f=>card(f)).join('')}</div>`:`<div class="empty"><b>No matches</b>Try “MrBeast”, “Minecraft” or “challenge”.</div>`);return}
+  const rs=toShows(res);main.innerHTML=`<div class="ph"><h1>Results for “${q.replace(/</g,'&lt;')}”</h1><span>${rs.length} show${rs.length===1?'':'s'}</span></div>`+(rs.length?`<div class="grid">${rs.map(f=>card(f)).join('')}</div>`:`<div class="empty"><b>No matches</b>Try “MrBeast”, “Minecraft” or “challenge”.</div>`);return}
  if(view==='shorts'){renderShorts(main);return}
  if(view==='live'){renderLive(main);return}
  if(view==='browse'){const list=browseG==='All'?LIB():G(browseG);
-  main.innerHTML=`<div class="ph"><h1>Browse</h1><span>${list.length} films</span></div><div class="chips">${GENRES.map(g=>`<button class="chip ${g===browseG?'on':''}" data-g="${g}">${g}</button>`).join('')}</div><div class="grid">${list.map(f=>card(f)).join('')}</div>`;return}
- if(view==='my-list'){const list=myList.map(byId).filter(f=>f&&visible(f));
+  main.innerHTML=`<div class="ph"><h1>Browse</h1><span>${toShows(list).length} shows</span></div><div class="chips">${GENRES.map(g=>`<button class="chip ${g===browseG?'on':''}" data-g="${g}">${g}</button>`).join('')}</div><div class="grid">${toShows(list).map(f=>card(f)).join('')}</div>`;return}
+ if(view==='my-list'){const list=toShows(myList.map(byId).filter(f=>f&&(f.show||visible(f))));
   main.innerHTML=`<div class="ph"><h1>My List</h1><span>${list.length} saved</span></div>`+(list.length?`<div class="grid">${list.map(f=>card(f)).join('')}</div>`:`<div class="empty"><b>Your list is empty</b>Tap + on any movie to save it here.</div>`);return}
- const top=['mbsquid','mbcircle','mbwonka','chh1t1pop','mbages','chkreek','mbblind','mbburied'].map(byId).filter(visible);
- const ok=x=>x&&visible(x);
- if(CUR&&CUR.kids){const K=LIB();main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok))+row('My List',myList.map(byId).filter(ok))+
+ const top=['chmrbeast','chh1t1','chkreek','chmbgaming','chdude','chrober','chprestonplayz','chunspeakable','chaphmau','chtrahan'].map(byId).filter(x=>x&&visible(x));
+ const ok=x=>x&&(x.show||x.ep||visible(x));
+ if(CUR&&CUR.kids){const K=LIB();main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok),0,1)+row('My List',myList.map(byId).filter(ok))+
    row('Cartoons & Shows',K.filter(f=>f.genres.includes('Cartoons')))+row('Learn & Play',K.filter(f=>f.genres.includes('Learning')||f.genres.includes('Songs')))+
    row('Fun for Everyone',K.filter(f=>!f.kidsOnly&&(f.genres.includes('Channels')||f.genres.includes('Feel-Good'))&&!f.genres.includes('Science & Tech')))+row('Cool Science',K.filter(f=>f.genres.includes('Science & Tech')))+row('Amazing Animals in Ultra HD',K.filter(f=>f.genres.includes('Nature')))+row('MrBeast',K.filter(f=>f.genres.includes('MrBeast')&&!f.list))+row('Minecraft',K.filter(f=>f.genres.includes('Minecraft')));return}
  const FY=forYou(),hideBad=x=>rates()[x.id]!==-1;
- main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok))+row('My List',myList.map(byId).filter(ok))+row('Your Creators',((interests()||{}).creators||[]).map(byId).filter(ok))+row('Top Picks for '+esc(CUR?CUR.name:'You'),FY.picks)+row('Top 10 Videos',top.filter(hideBad),true)+(FY.because&&FY.because.list.length?row('Because You Liked '+esc(FY.because.title),FY.because.list):'')+row('Sports Highlights',G('Sports'))+row('Amazing Animals',G('Animals'))+row('Space & Rockets',G('Space'))+row('Food & Cooking',G('Food'))+row('Ultra HD — 4K & 8K',G('Ultra HD'))+row('New This Year',LIB().filter(f=>f.added))+
-  row('H1T1',LIB().filter(f=>f.genres.includes('H1T1')||f.id==='chh1t1'||f.id==='chhxsain'))+row('Roblox',G('Roblox'))+row('Latest From Your Favorite Channels',G('Channels').filter(f=>!f.kidsOnly))+row('MrBeast',G('MrBeast'))+row('Insane Challenges',G('Challenges'))+row('Minecraft',G('Minecraft'))+row('Science & Tech',G('Science & Tech'))+row('Nintendo',G('Nintendo'))+row('For Little Kids',G('Kids'))+row('Live Shows & Directs',G('Live Shows'));
+ main.innerHTML=row('Continue Watching',recent.map(byId).filter(ok),0,1)+row('My List',myList.map(byId).filter(ok))+row('Your Creators',((interests()||{}).creators||[]).map(byId).filter(ok))+row('Top Picks for '+esc(CUR?CUR.name:'You'),FY.picks)+row('Top 10 Shows',top.filter(hideBad),true)+(FY.because&&FY.because.list.length?row('Because You Liked '+esc(FY.because.title),FY.because.list):'')+row('Sports Highlights',G('Sports'))+row('Amazing Animals',G('Animals'))+row('Space & Rockets',G('Space'))+row('Food & Cooking',G('Food'))+row('Ultra HD — 4K & 8K',G('Ultra HD'))+row('New This Year',LIB().filter(f=>f.added))+
+  row('H1T1 & Friends',LIB().filter(f=>f.genres.includes('H1T1')||f.id==='chh1t1'||f.id==='chhxsain'))+row('Roblox',G('Roblox'))+row('Latest From Your Favorite Channels',G('Channels').filter(f=>!f.kidsOnly))+row('MrBeast',G('MrBeast'))+row('Insane Challenges',G('Challenges'))+row('Minecraft',G('Minecraft'))+row('Science & Tech',G('Science & Tech'))+row('Nintendo',G('Nintendo'))+row('For Little Kids',G('Kids'))+row('Live Shows & Directs',G('Live Shows'));
 }
 function route(){const v=(location.hash||'#home').slice(1);view=['home','live','shorts','browse','my-list'].includes(v)?v:'home';$('#q').value='';render();window.scrollTo(0,0)}
 window.addEventListener('hashchange',route);
@@ -1042,11 +1116,12 @@ $('#hPlay').onclick=()=>play(heroF.id);$('#hInfo').onclick=()=>openModal(heroF.i
 
 /* ---------- Modal ---------- */
 const M={open:false,f:null};
-function openModal(id){const f=byId(id);M.f=f;M.open=true;SFX.open();
+function openModal(id){buildShows();const f0=byId(id),f=showOf(f0)||f0;if(!f)return;M.f=f;M.open=true;SFX.open();
  $('#mT').textContent=f.title;$('#mM').innerHTML=metaHTML(f);$('#mD').textContent=f.desc;
- $('#mS').innerHTML=`<div>Channel: <span>${f.channel}</span></div><div>Year: <span>${f.year}</span></div><div>Categories: <span>${f.genres.join(', ')}</span></div><div>Source: <span>YouTube · official channel</span></div>`;
- const more=LIB().filter(x=>x.id!==f.id&&x.genres.some(g=>f.genres.includes(g))).slice(0,6);
- $('#mMore').innerHTML=more.map(x=>`<div class="mc" tabindex="0" data-id="${x.id}"><img src="${thumb(x)}" alt=""><div><b>${x.title}</b><small>${x.channel} · ${x.desc}</small></div></div>`).join('');
+ $('#mS').innerHTML=`<div>Creator: <span>${esc(chName(f.channel))}</span></div><div>Episodes: <span>${f.show?(f.base?'Hundreds · new ones all the time':f.eps.length):1}</span></div><div>Categories: <span>${f.genres.filter(g=>g!=='Channels').join(', ')}</span></div><div>Source: <span>YouTube · official channel</span></div>`;
+ SH.tab=null;SH.shown=30;if(f.show)renderShowPage(f);else $('#mEps').innerHTML='';
+ const more=toShows(LIB().filter(x=>showKey(x.channel)!==f.id&&x.genres.some(g=>g!=='Channels'&&f.genres.includes(g)))).slice(0,6);
+ $('#mMore').innerHTML=more.map(x=>`<div class="mc" tabindex="0" data-id="${x.id}"><img src="${thumb(x)}" alt=""><div><b>${esc(x.title)}</b><small>${x.year} · ${esc(x.desc)}</small></div></div>`).join('');
  syncListBtns();syncRate();$('#modal').classList.add('on');document.body.style.overflow='hidden';$('#modal').scrollTop=0}
 function closeModal(){M.open=false;$('#modal').classList.remove('on');if(!P.open)document.body.style.overflow=''}
 $('#mX').onclick=closeModal;$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
@@ -1055,7 +1130,7 @@ $('#mUp').onclick=()=>setRate(M.f.id,1);$('#mDn').onclick=()=>setRate(M.f.id,-1)
 
 /* ---------- Player ---------- */
 const P={open:false,f:null};
-function play(id){const f=byId(id);closeModal();stopVideo();P.f=f;P.open=true;
+function play(id){buildShows();let f=byId(id);if(!f)return;if(f.show){f=f.main;id=f.id}if(!QUEUE.includes(id))QUEUE=[];closeModal();stopVideo();P.f=f;P.open=true;
  recent=[id,...recent.filter(x=>x!==id)].slice(0,10);store.set('recent_'+PID,recent);
  $('#pName').textContent=f.title;
  const body=$('#pBody');
@@ -1130,7 +1205,8 @@ function wireV(){
  $('#vvol').oninput=e=>{vVol=+e.target.value;store.set('vol',vVol);vfill(e.target);if(YTP&&YTP.setVolume){YTP.setVolume(vVol);if(vVol>0&&vMuted)vSetMute(false)}$('#vmute').innerHTML=vVol==0?VI.mute:VI.vol};
  const sk=$('#vseek');sk.oninput=()=>{vDrag=true;vfill(sk);try{$('#vtime').textContent=vfmt(sk.value/1000*YTP.getDuration())+' / '+vfmt(YTP.getDuration())}catch(e){}};
  sk.onchange=()=>{vDrag=false;try{YTP.seekTo(sk.value/1000*YTP.getDuration(),true)}catch(e){}}}
-function vEnded(f){const L=LIB(),i=L.indexOf(f),nx=L.filter(x=>x!==f&&x.genres.some(g=>f.genres.includes(g)))[0]||L[(i+1)%L.length];
+function vEnded(f){const L=LIB(),i=L.indexOf(f),qi=QUEUE.indexOf(f.id);let nx=qi>=0&&qi<QUEUE.length-1?byId(QUEUE[qi+1]):null;
+ if(!nx){const s=showOf(f);const sib=s?s.eps.filter(x=>x!==f):[];nx=sib[0]||L.filter(x=>x!==f&&x.genres.some(g=>f.genres.includes(g)))[0]||L[(i+1)%L.length]}
  const ve=$('#vend');let n=6;
  ve.innerHTML=`<div><div class="kicker">Finished</div><h2 style="font-family:'Bebas Neue';font-size:52px;line-height:1">${esc(f.title)}</h2><div class="btns" style="margin-top:18px"><button class="btn play" id="vagain">↺&nbsp;Replay</button><button class="btn ghost" id="vback">Back to Browse</button></div></div>
   <div class="nx" id="vnext"><img src="${thumb(nx)}" alt=""><div><small>UP NEXT IN <span id="vcount">${n}</span></small><b style="display:block;margin:4px 0">${esc(nx.title)}</b><span style="color:#aaa;font-size:13px">${nx.channel}</span></div></div>`;
