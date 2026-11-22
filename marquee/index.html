@@ -605,6 +605,21 @@ nav a{white-space:nowrap;display:inline-flex;align-items:center}
 nav a .rd{vertical-align:0;flex:none}
 .search{flex:0 1 260px;min-width:0}
 @media(min-width:761px) and (max-width:1100px){header{gap:20px}nav{gap:16px}.hclock{display:none}}
+
+/* ===== Intro v3: smooth on TVs (only transform/opacity animate) ===== */
+.splash .mwrap{position:relative;width:min(84vw,780px);aspect-ratio:392.04/100;transition:transform .8s cubic-bezier(.55,0,.8,.2),opacity .7s ease;will-change:transform,opacity;transform:translateZ(0)}
+.splash .mwrap::after{display:none}
+.mglow{position:absolute;left:-10%;right:-10%;top:-60%;bottom:-60%;background:radial-gradient(closest-side,rgba(56,150,255,.30),transparent);opacity:0;animation:fi 1.6s ease 1.1s forwards;will-change:opacity}
+.mslide{position:absolute;inset:0;transform:translate3d(37.25%,0,0);animation:mSlide 1s cubic-bezier(.65,0,.25,1) 1.45s forwards;will-change:transform}
+@keyframes mSlide{to{transform:translate3d(0,0,0)}}
+.mM{position:absolute;left:0;top:0;height:100%;width:25.508%;overflow:visible}
+.mrev{position:absolute;top:0;height:100%;left:23.084%;width:76.916%;overflow:hidden;transform:translate3d(-100%,0,0);animation:mSlide 1s cubic-bezier(.65,0,.25,1) 1.45s forwards;will-change:transform}
+.mrevin{width:100%;height:100%;transform:translate3d(100%,0,0);animation:mSlide 1s cubic-bezier(.65,0,.25,1) 1.45s forwards;will-change:transform}
+.mW{display:block;width:100%;height:100%}
+.splash .mp{opacity:0}
+.splash.go .mwrap{transform:scale(1.4);opacity:0}
+.sbar i{transition:width 2.4s cubic-bezier(.4,0,.2,1)}
+@media (prefers-reduced-motion:reduce){.mslide,.mrev,.mrevin{animation:none;transform:none}}
 </style>
 </head>
 <body>
@@ -627,22 +642,23 @@ nav a .rd{vertical-align:0;flex:none}
 </header>
 
 <div class="splash" id="splash">
-  <div class="mwrap" id="mwrap"><svg class="mlogo" viewBox="0 0 392.04 100" aria-label="Marquee">
-   <defs><linearGradient id="mgP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1856e1"/></linearGradient>
-   <linearGradient id="mgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#afe1ff"/><stop offset="1" stop-color="#38aafa"/></linearGradient>
-   <linearGradient id="mgR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e50c8"/><stop offset="1" stop-color="#0c3096"/></linearGradient>
-   <linearGradient id="mgW" gradientUnits="userSpaceOnUse" x1="96" y1="0" x2="381.04" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#a9d2ff"/><stop offset="1" stop-color="#38bdf8"/></linearGradient>
-   <clipPath id="mgC"><rect class="mclip" x="90.5" y="-10" width="392.04" height="120"/></clipPath>
-   <filter id="mgS" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.6"/></filter></defs>
-   <g class="mall">
-    <g class="mword" clip-path="url(#mgC)" fill="url(#mgW)"><g class="ml" style="--i:0"><path d="M97.43 92 105.55 8H134.04L142.01 92H126.12L124.92 78.45H114.8L113.75 92ZM116 65.03H123.63L119.96 22.32H119.2Z"/></g><g class="ml" style="--i:1"><path d="M150.36 92V8H176.14Q182.58 8 185.87 10.94Q189.17 13.87 190.29 19.14Q191.41 24.42 191.41 31.53Q191.41 38.4 189.67 42.51Q187.93 46.61 183.1 48.19Q187.07 49 188.66 52.12Q190.26 55.25 190.26 60.21V92H173.7V59.12Q173.7 55.44 172.2 54.56Q170.7 53.67 167.35 53.67V92ZM167.45 39.12H171.51Q174.99 39.12 174.99 31.53Q174.99 26.61 174.23 25.09Q173.46 23.56 171.36 23.56H167.45Z"/></g><g class="ml" style="--i:2"><path d="M237.28 100.92 223.91 92.14Q221.62 92.76 219.19 92.76Q209.36 92.76 204.18 86.94Q199 81.12 199 69.95V29.33Q199 18.5 204.32 12.87Q209.64 7.24 219.71 7.24Q229.78 7.24 235.11 12.87Q240.43 18.5 240.43 29.33V69.95Q240.43 80.35 235.75 86.32L242.96 90.9ZM219.71 77.3Q221.53 77.3 222.31 75.96Q223.1 74.63 223.32 72.67Q223.53 70.71 223.53 68.9V29.62Q223.53 26.95 222.79 24.82Q222.05 22.7 219.62 22.7Q217.14 22.7 216.37 24.78Q215.61 26.85 215.61 29.57V69.23Q215.61 70.9 215.82 72.79Q216.04 74.67 216.9 75.99Q217.76 77.3 219.71 77.3Z"/></g><g class="ml" style="--i:3"><path d="M271.02 92.76Q260.52 92.76 255.56 86.87Q250.6 80.97 250.6 69.52V8H266.92V68.85Q266.92 70.95 267.16 72.89Q267.4 74.82 268.25 76.06Q269.11 77.3 271.02 77.3Q272.98 77.3 273.84 76.08Q274.7 74.87 274.91 72.91Q275.13 70.95 275.13 68.85V8H291.45V69.52Q291.45 80.97 286.49 86.87Q281.52 92.76 271.02 92.76Z"/></g><g class="ml" style="--i:4"><path d="M301.09 92V8H334.69V24.23H318.18V40.6H334.02V56.4H318.18V75.63H335.79V92Z"/></g><g class="ml" style="--i:5"><path d="M344.53 92V8H378.13V24.23H361.61V40.6H377.46V56.4H361.61V75.63H379.23V92Z"/></g></g>
-    <g class="mp mp1"><polygon points="11,8 29.7,8 29.7,92 11,92" fill="url(#mgP)"/></g>
-    <g class="mp mp4"><polygon points="70.3,8 89,8 89,92 70.3,92" fill="url(#mgP)"/></g>
-    <g class="mp mp3"><polygon points="70.3,8 89,8 59.4,70 40.6,70" fill="#000a" filter="url(#mgS)"/><polygon points="70.3,8 89,8 59.4,70 40.6,70" fill="url(#mgR)"/></g>
-    <g class="mp mp2"><polygon points="11,8 29.7,8 59.4,70 40.6,70" fill="#000a" filter="url(#mgS)"/><polygon points="11,8 29.7,8 59.4,70 40.6,70" fill="url(#mgL)"/></g>
-   </g>
-  </svg></div>
-  <div class="streaks"><i style="--x:0%;--h:205;--d:0.00s;--w:1px"></i><i style="--x:37%;--h:195;--d:0.13s;--w:3px"></i><i style="--x:74%;--h:215;--d:0.26s;--w:5px"></i><i style="--x:11%;--h:225;--d:0.39s;--w:2px"></i><i style="--x:48%;--h:190;--d:0.12s;--w:4px"></i><i style="--x:85%;--h:260;--d:0.25s;--w:1px"></i><i style="--x:22%;--h:200;--d:0.38s;--w:3px"></i><i style="--x:59%;--h:185;--d:0.11s;--w:5px"></i><i style="--x:96%;--h:205;--d:0.24s;--w:2px"></i><i style="--x:33%;--h:195;--d:0.37s;--w:4px"></i><i style="--x:70%;--h:215;--d:0.10s;--w:1px"></i><i style="--x:7%;--h:225;--d:0.23s;--w:3px"></i><i style="--x:44%;--h:190;--d:0.36s;--w:5px"></i><i style="--x:81%;--h:260;--d:0.09s;--w:2px"></i><i style="--x:18%;--h:200;--d:0.22s;--w:4px"></i><i style="--x:55%;--h:185;--d:0.35s;--w:1px"></i><i style="--x:92%;--h:205;--d:0.08s;--w:3px"></i><i style="--x:29%;--h:195;--d:0.21s;--w:5px"></i><i style="--x:66%;--h:215;--d:0.34s;--w:2px"></i><i style="--x:3%;--h:225;--d:0.07s;--w:4px"></i><i style="--x:40%;--h:190;--d:0.20s;--w:1px"></i><i style="--x:77%;--h:260;--d:0.33s;--w:3px"></i><i style="--x:14%;--h:200;--d:0.06s;--w:5px"></i><i style="--x:51%;--h:185;--d:0.19s;--w:2px"></i><i style="--x:88%;--h:205;--d:0.32s;--w:4px"></i><i style="--x:25%;--h:195;--d:0.05s;--w:1px"></i><i style="--x:62%;--h:215;--d:0.18s;--w:3px"></i><i style="--x:99%;--h:225;--d:0.31s;--w:5px"></i></div>
+  <div class="mwrap" id="mwrap"><div class="mglow"></div>
+   <div class="mslide">
+    <svg class="mM" viewBox="0 0 100 100" aria-hidden="true">
+     <defs><linearGradient id="mgP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5aa5ff"/><stop offset="1" stop-color="#1856e1"/></linearGradient>
+     <linearGradient id="mgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#afe1ff"/><stop offset="1" stop-color="#38aafa"/></linearGradient>
+     <linearGradient id="mgR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e50c8"/><stop offset="1" stop-color="#0c3096"/></linearGradient></defs>
+     <g class="mp mp1"><polygon points="11,8 29.7,8 29.7,92 11,92" fill="url(#mgP)"/></g>
+     <g class="mp mp4"><polygon points="70.3,8 89,8 89,92 70.3,92" fill="url(#mgP)"/></g>
+     <g class="mp mp3"><polygon points="68.8,9.5 87.5,9.5 58.4,71.5 39.6,71.5" fill="rgba(0,6,30,.55)"/><polygon points="70.3,8 89,8 59.4,70 40.6,70" fill="url(#mgR)"/></g>
+     <g class="mp mp2"><polygon points="12.5,9.5 31.2,9.5 60.4,71.5 41.6,71.5" fill="rgba(0,6,30,.55)"/><polygon points="11,8 29.7,8 59.4,70 40.6,70" fill="url(#mgL)"/></g>
+    </svg>
+    <div class="mrev"><div class="mrevin"><svg class="mW" viewBox="90.5 0 301.54 100" aria-label="Marquee">
+     <defs><linearGradient id="mgW" gradientUnits="userSpaceOnUse" x1="96" y1="0" x2="381.04" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#a9d2ff"/><stop offset="1" stop-color="#38bdf8"/></linearGradient></defs>
+     <g fill="url(#mgW)"><path d="M97.43 92 105.55 8H134.04L142.01 92H126.12L124.92 78.45H114.8L113.75 92ZM116 65.03H123.63L119.96 22.32H119.2Z"/><path d="M150.36 92V8H176.14Q182.58 8 185.87 10.94Q189.17 13.87 190.29 19.14Q191.41 24.42 191.41 31.53Q191.41 38.4 189.67 42.51Q187.93 46.61 183.1 48.19Q187.07 49 188.66 52.12Q190.26 55.25 190.26 60.21V92H173.7V59.12Q173.7 55.44 172.2 54.56Q170.7 53.67 167.35 53.67V92ZM167.45 39.12H171.51Q174.99 39.12 174.99 31.53Q174.99 26.61 174.23 25.09Q173.46 23.56 171.36 23.56H167.45Z"/><path d="M237.28 100.92 223.91 92.14Q221.62 92.76 219.19 92.76Q209.36 92.76 204.18 86.94Q199 81.12 199 69.95V29.33Q199 18.5 204.32 12.87Q209.64 7.24 219.71 7.24Q229.78 7.24 235.11 12.87Q240.43 18.5 240.43 29.33V69.95Q240.43 80.35 235.75 86.32L242.96 90.9ZM219.71 77.3Q221.53 77.3 222.31 75.96Q223.1 74.63 223.32 72.67Q223.53 70.71 223.53 68.9V29.62Q223.53 26.95 222.79 24.82Q222.05 22.7 219.62 22.7Q217.14 22.7 216.37 24.78Q215.61 26.85 215.61 29.57V69.23Q215.61 70.9 215.82 72.79Q216.04 74.67 216.9 75.99Q217.76 77.3 219.71 77.3Z"/><path d="M271.02 92.76Q260.52 92.76 255.56 86.87Q250.6 80.97 250.6 69.52V8H266.92V68.85Q266.92 70.95 267.16 72.89Q267.4 74.82 268.25 76.06Q269.11 77.3 271.02 77.3Q272.98 77.3 273.84 76.08Q274.7 74.87 274.91 72.91Q275.13 70.95 275.13 68.85V8H291.45V69.52Q291.45 80.97 286.49 86.87Q281.52 92.76 271.02 92.76Z"/><path d="M301.09 92V8H334.69V24.23H318.18V40.6H334.02V56.4H318.18V75.63H335.79V92Z"/><path d="M344.53 92V8H378.13V24.23H361.61V40.6H377.46V56.4H361.61V75.63H379.23V92Z"/></g></svg></div></div>
+   </div>
+  </div>
+  <div class="streaks"><i style="--x:0%;--h:205;--d:0.00s;--w:1px"></i><i style="--x:37%;--h:195;--d:0.13s;--w:3px"></i><i style="--x:74%;--h:215;--d:0.26s;--w:5px"></i><i style="--x:11%;--h:225;--d:0.39s;--w:2px"></i><i style="--x:48%;--h:190;--d:0.12s;--w:4px"></i><i style="--x:85%;--h:260;--d:0.25s;--w:1px"></i><i style="--x:22%;--h:200;--d:0.38s;--w:3px"></i><i style="--x:59%;--h:185;--d:0.11s;--w:5px"></i><i style="--x:96%;--h:205;--d:0.24s;--w:2px"></i><i style="--x:33%;--h:195;--d:0.37s;--w:4px"></i><i style="--x:70%;--h:215;--d:0.10s;--w:1px"></i><i style="--x:7%;--h:225;--d:0.23s;--w:3px"></i><i style="--x:44%;--h:190;--d:0.36s;--w:5px"></i><i style="--x:81%;--h:260;--d:0.09s;--w:2px"></i></div>
   <div class="sbar"><i id="sbar"></i></div>
   <div class="stip" id="stip"></div>
 </div>
@@ -1239,8 +1255,8 @@ function card(f,rank){return `<div class="card" data-id="${f.id}" tabindex="0" r
  <div class="hov"><span class="pl" data-play="${f.id}" title="Play">▶</span><div class="ci"><b>${f.title}</b><small>${f.show?f.year:f.channel+' · '+f.year}</small></div></div>${f.show?`<span class="showtag">${f.base?'SHOW':f.eps.length+' EP'}</span>`:''}</div><div class="cap"><b>${esc(capT(f))}</b><small>${esc(capS(f))}</small></div></div>`}
 const capT=f=>String(f.title||'').replace(/\s+[—-]\s+(Latest|Newest) Videos$/i,'');
 const capS=f=>{const c=String(f.channel||'').replace(/\s*\(.*\)$/,''),t=capT(f).toLowerCase(),who=c&&!t.includes(c.toLowerCase())&&!c.toLowerCase().includes(t)?c+' · ':'';return f.show?who+(f.base?'Show · New videos':f.eps.length+' videos'):who+(f.year||'')};
-let REAL_THUMBS=false;const vidOf=f=>f&&(f.yt||f.tv);const thumb=f=>vidOf(f)?`https://i.ytimg.com/vi/${vidOf(f)}/hqdefault.jpg`:f.img;
-window.thumbFail=(el,id)=>{el.onerror=null;const f=byId(id);if(f&&f.img)el.src=f.img};
+let REAL_THUMBS=false;const vidOf=f=>f&&(f.yt||f.tv);const thumb=f=>vidOf(f)?`https://i.ytimg.com/vi/${vidOf(f)}/hqdefault.jpg`:(f.img||(f.scene&&makePoster(f),f.img)||'');
+window.thumbFail=(el,id)=>{el.onerror=null;const f=byId(id);if(f&&!f.img&&f.scene)makePoster(f);if(f&&f.img)el.src=f.img};
 function liveRow(){if(!CAN_EMBED)return'';const L=liveList();return `<section class="row"><h2>📺 On Live TV Now <a class="seeall" href="#live">Open guide ›</a></h2><div class="rw"><button class="arr l" aria-label="Scroll left">‹</button><div class="track">${L.map((c,i)=>{const s=slotInfo(c);return `<div class="card lvc" data-live="${i}" tabindex="0" role="button" aria-label="Watch ${esc(c.name)}"><div class="cv"><span class="lvicon">${c.icon}</span><img src="${lThumb(s.src)}" alt="" loading="lazy" onload="this.classList.add('ld');this.parentNode.classList.add('ld')" onerror="this.remove()"><span class="lvbadge"><span class="ldot"></span>LIVE · ${c.n}</span><span class="gbar lvbar"><i style="width:${slotPct(s)}%"></i></span></div><div class="cap"><b>${esc(c.name)}</b><small>Now: ${esc(s.src[0])} · Next ${hhmm(s.ends)}</small></div></div>`}).join('')}</div><button class="arr r" aria-label="Scroll right">›</button></div></section>`}
 function row(title,list,ranked,raw){if(!raw)list=toShows(list);if(!(CUR&&CUR.kids)&&title!=='My List'&&!raw)list=list.filter(f=>!f.kidFav);if(!list.length)return'';return `<section class="row"><h2>${title}</h2><div class="rw"><button class="arr l" aria-label="Scroll left">‹</button><div class="track">${list.map((f,i)=>card(f,ranked?i+1:0)).join('')}</div><button class="arr r" aria-label="Scroll right">›</button></div></section>`}
 const G=g=>LIB().filter(f=>f.genres.includes(g));
@@ -1466,7 +1482,7 @@ function loop(now){requestAnimationFrame(loop);if(now-lastDraw<FRAME_MS)return;l
  const dt=Math.min(.1,(now-last)/1000);last=now;clock+=dt;if(document.hidden)return;
  if(P.open){const l=document.getElementById('lCv');if(l)drawScene(l,P.f,clock)}
  else if(M.open){if(!bigOn($('#mImg')))drawScene($('#mCv'),M.f,clock)}
- else if($('#hero').style.display!=='none'&&scrollY<innerHeight*.85&&!bigOn($('#heroImg')))drawScene($('#heroCv'),heroF,clock)}
+ else if($('#hero').style.display!=='none'&&scrollY<innerHeight*.85&&!bigOn($('#heroImg'))&&!document.querySelector('#splash,.who.on'))drawScene($('#heroCv'),heroF,clock)}
 /* ---------- Profiles ---------- */
 function renderMe(){$('#me').innerHTML=`${avHTML(CUR)}<div class="menu"><div class="cur">Watching as<b>${esc(CUR.name)}${CUR.kids?' · Kids':''}</b></div>${ACC.user?`<div class="acct">☁ Saved to ${esc(ACC.user.email||'your Google account')}</div>`:''}<hr>${profiles.filter(p=>p.id!==PID).map(p=>`<button data-pick="${p.id}">${avHTML(p)}${esc(p.name)}</button>`).join('')}<hr><button data-act="manage">✎&nbsp; Manage Profiles</button><button data-act="switch">⇄&nbsp; Switch Profile</button><button data-act="interests">⭐&nbsp; My interests</button><button data-act="surprise">🎲&nbsp; Surprise me</button><button data-act="sound" class="${SFX.on?'sfxon':''}">${SFX.on?'🔊':'🔈'}&nbsp; Sounds: ${SFX.on?'On':'Off'}</button>${ACC.user?'<button data-act="signout">↩&nbsp; Sign out</button>':'<button data-act="signin">G&nbsp; Sign in with Google</button>'}</div>`}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -1759,24 +1775,27 @@ document.addEventListener('mousemove',()=>document.documentElement.classList.rem
 (function(){const n=document.createElement('canvas');n.width=n.height=160;const c=n.getContext('2d'),d=c.createImageData(160,160);
  for(let i=0;i<d.data.length;i+=4){const v=Math.random()*255;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255}c.putImageData(d,0,0);
  {const g=document.getElementById('grain');if(g)g.style.backgroundImage=`url(${n.toDataURL()})`}})();
-const TADUM=(()=>{let url=null,played=false;
- function make(){const sr=22050,len=Math.floor(sr*3.2),x=new Float32Array(len);
-  const hit=(t0,amp,f)=>{const s0=Math.floor(t0*sr);for(let i=0;i<sr*1.2&&s0+i<len;i++){const t=i/sr,env=Math.exp(-t*5.5)*amp,pf=f*(1+.6*Math.exp(-t*30));
-    x[s0+i]+=env*(Math.sin(2*Math.PI*pf*t)+.5*Math.sin(2*Math.PI*pf*2*t)+.25*Math.sin(2*Math.PI*pf*3.01*t))+(i<sr*.02?(Math.random()*2-1)*amp*.5*(1-i/(sr*.02)):0)}};
-  hit(0.0,.5,49);hit(0.42,.75,41);
-  const chord=[82.4,123.5,164.8,207.7,246.9,329.6,415.3],s0=Math.floor(.42*sr);
-  for(let i=0;s0+i<len;i++){const t=i/sr,env=Math.min(1,t/.9)*Math.exp(-Math.max(0,t-.9)*1.3)*.16;let v=0;chord.forEach((f,k)=>{v+=Math.sin(2*Math.PI*f*t*(1+.0015*Math.sin(t*5+k)))/(1+k*.35)});x[s0+i]+=env*v}
-  let pk=0;for(const v of x)pk=Math.max(pk,Math.abs(v));const g=.9/pk;
+const TADUM=(()=>{let url=null,played=false,ready=null;
+ // the sound is built in a background worker so it never stutters the intro
+ const SRC=`onmessage=()=>{const sr=22050,len=Math.floor(sr*3.2),x=new Float32Array(len),TAU=Math.PI*2;
+  function hit(t0,amp,f){const s0=Math.floor(t0*sr),n=Math.min(Math.floor(sr*1.2),len-s0),nc=Math.floor(sr*.02);for(let i=0;i<n;i++){const t=i/sr,env=Math.exp(-t*5.5)*amp,pf=f*(1+.6*Math.exp(-t*30)),ph=TAU*pf*t;x[s0+i]+=env*(Math.sin(ph)+.5*Math.sin(ph*2)+.25*Math.sin(ph*3.01))+(i<nc?(Math.random()*2-1)*amp*.5*(1-i/nc):0)}}
+  hit(0,.5,49);hit(.42,.75,41);
+  const ch=[82.4,123.5,164.8,207.7,246.9,329.6,415.3],s0=Math.floor(.42*sr);
+  for(let i=0;s0+i<len;i++){const t=i/sr,env=Math.min(1,t/.9)*Math.exp(-Math.max(0,t-.9)*1.3)*.16;let v=0;for(let k=0;k<ch.length;k++)v+=Math.sin(TAU*ch[k]*t*(1+.0015*Math.sin(t*5+k)))/(1+k*.35);x[s0+i]+=env*v}
+  let pk=0;for(let i=0;i<len;i++){const a=Math.abs(x[i]);if(a>pk)pk=a}const g=.9/pk;
   const buf=new ArrayBuffer(44+len*2),dv=new DataView(buf),w=(o,str)=>{for(let i=0;i<str.length;i++)dv.setUint8(o+i,str.charCodeAt(i))};
   w(0,'RIFF');dv.setUint32(4,36+len*2,true);w(8,'WAVEfmt ');dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,1,true);dv.setUint32(24,sr,true);dv.setUint32(28,sr*2,true);dv.setUint16(32,2,true);dv.setUint16(34,16,true);w(36,'data');dv.setUint32(40,len*2,true);
   for(let i=0;i<len;i++)dv.setInt16(44+i*2,Math.max(-1,Math.min(1,x[i]*g))*32767,true);
-  return URL.createObjectURL(new Blob([buf],{type:'audio/wav'}))}
- return{play(){if(played||localStorage.getItem('marquee_sfx')==='off')return Promise.resolve(played);try{url=url||make();const a=new Audio(url);a.volume=.8;
-   return a.play().then(()=>{played=true;return true}).catch(()=>false)}catch(e){return Promise.resolve(false)}},get played(){return played}}})();
+  postMessage(buf,[buf])}`;
+ function build(){if(ready)return ready;ready=new Promise(res=>{try{const wk=new Worker(URL.createObjectURL(new Blob([SRC],{type:'text/javascript'})));
+   wk.onmessage=e=>{url=URL.createObjectURL(new Blob([e.data],{type:'audio/wav'}));wk.terminate();res(url)};wk.onerror=()=>res(null);wk.postMessage(0)}catch(e){res(null)}});return ready}
+ if(localStorage.getItem('marquee_sfx')!=='off')build();
+ return{play(){if(played||localStorage.getItem('marquee_sfx')==='off')return Promise.resolve(played);
+   return build().then(u=>{if(!u)return false;const a=new Audio(u);a.volume=.8;return a.play().then(()=>{played=true;return true}).catch(()=>false)})},get played(){return played}}})();
 const TIPS=['Loading chunks…','Mining diamonds…','Crafting the menu…','Spawning videos…','Pressing start…'];
 async function boot(){const t0=performance.now(),bar=$('#sbar'),tip=$('#stip');setTimeout(()=>TADUM.play(),1000);
  await Promise.race([document.fonts?document.fonts.ready:Promise.resolve(),new Promise(r=>setTimeout(r,1500))]);
- for(let i=0;i<FILMS.length;i++){makePoster(FILMS[i]);bar.style.width=((i+1)/FILMS.length*85)+'%';tip.textContent=TIPS[Math.floor(i/FILMS.length*TIPS.length)];await new Promise(r=>setTimeout(r,40))}
+ bar.style.width='85%';
  const wait=Math.max(0,3500-(performance.now()-t0));await new Promise(r=>setTimeout(r,wait));
  bar.style.width='100%';tip.textContent='Enjoy the show';await new Promise(r=>setTimeout(r,450));
  REAL_THUMBS=await new Promise(r=>{const im=new Image();const to=setTimeout(()=>r(false),2500);im.onload=()=>{clearTimeout(to);r(im.naturalWidth>130)};im.onerror=()=>{clearTimeout(to);r(false)};im.src=`https://i.ytimg.com/vi/${FILMS[0].yt}/hqdefault.jpg`});
@@ -1785,7 +1804,7 @@ async function boot(){const t0=performance.now(),bar=$('#sbar'),tip=$('#stip');s
  await Promise.race([ACC.ready,new Promise(r=>setTimeout(r,3500))]);
  if(ACC.user){await pullCloud();showWho(false)}
  else if(store.get('nosignin',false)||!CAN_EMBED||IN_TV_APP)showWho(false);else showSignIn();
- $('#splash').classList.add('go','out');setTimeout(()=>{const sp=$('#splash');if(sp)sp.remove()},1000)}
+ setTimeout(()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{const sp=$('#splash');if(!sp)return;sp.classList.add('go','out');setTimeout(()=>sp.remove(),1000)})),120)}
 boot();
 </script>
 </body>
