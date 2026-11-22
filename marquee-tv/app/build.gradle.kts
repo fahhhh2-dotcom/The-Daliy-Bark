@@ -12,8 +12,8 @@ android {
         applicationId = "dog.thedailybark.marquee"
         minSdk = 22
         targetSdk = 34
-        versionCode = 7
-        versionName = "2.0"
+        versionCode = 8
+        versionName = "2.1"
     }
 
     // One permanent key (from the MARQUEE_KEYSTORE_B64 GitHub secret) so every new build
