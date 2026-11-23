@@ -35,6 +35,26 @@
   .item i{display:block;font-style:normal;font-size:28px;line-height:1.15}
   .item.on{border-color:#7dff7a;background:#1f4a2a;color:#fff}
   @media (max-width:620px){ .tb span{display:none} .top h1{font-size:17px} #hint{top:auto!important;bottom:calc(env(safe-area-inset-bottom) + 120px);white-space:normal;max-width:80vw;text-align:center} }
+  #pad{position:fixed;left:0;right:0;bottom:calc(var(--dock,110px) + 10px);z-index:6;display:flex;justify-content:space-between;padding:0 12px;pointer-events:none}
+  #pad[hidden]{display:none}
+  #pad div{display:flex;gap:10px;pointer-events:auto}
+  #pad button{width:62px;height:62px;border-radius:50%;border:2px solid #ffffff44;background:#000000aa;color:#fff;font-size:26px;touch-action:none;-webkit-user-select:none;user-select:none}
+  #pad button.on{background:#7dff7a;color:#123}
+  #netBox{position:fixed;inset:0;z-index:20;background:#000a;display:flex;align-items:center;justify-content:center;padding:16px}
+  #netBox[hidden]{display:none}
+  .nb{position:relative;width:100%;max-width:360px;background:#141c2c;border:2px solid #ffffff22;border-radius:18px;padding:20px;text-align:center}
+  .nb h3{margin:0 0 6px;font-size:22px}
+  .nb p{margin:0 0 12px;font-size:14px;opacity:.8;line-height:1.4}
+  .nb input{width:100%;height:44px;border-radius:12px;border:2px solid #ffffff22;background:#0b111c;color:#fff;font:600 17px Fredoka,sans-serif;text-align:center;margin-bottom:10px}
+  .nb .row{display:flex;gap:8px}.nb .row input{margin:0;text-transform:uppercase;letter-spacing:4px}
+  .nbtn{border:0;border-radius:12px;height:44px;padding:0 18px;font:700 16px Fredoka,sans-serif;background:#7dff7a;color:#123;cursor:pointer;width:100%}
+  .nbtn.blue{background:#5ab0ff;width:auto}.nbtn.red{background:#ff6b6b;color:#fff;margin-top:10px}
+  .nb .or{margin:12px 0 8px;font-size:12px;opacity:.6;letter-spacing:.1em}
+  .nb .x{position:absolute;right:12px;top:10px;background:none;border:0;color:#fff;font-size:20px;cursor:pointer}
+  #netCodeShow{font:700 38px Fredoka,sans-serif;letter-spacing:8px;background:#000;border-radius:12px;padding:6px;margin:6px 0}
+  #netPlayers{font-size:14px;opacity:.85;line-height:1.6}
+  #netMsg{min-height:18px;font-size:13px;color:#8fe3ff;margin-top:10px}
+  .tb.live{background:#5ab0ff;color:#012}
   #hint{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 56px);transform:translateX(-50%);background:#000a;padding:7px 14px;border-radius:20px;font-size:13px;z-index:4;pointer-events:none;transition:opacity .4s;white-space:nowrap}
 </style>
 </head>
@@ -43,6 +63,8 @@
 <div class="top">
   <h1>🍉 Melon Lab</h1>
   <div class="sp"></div>
+  <button class="tb" id="playBtn">🎮<span> Play</span></button>
+  <button class="tb" id="netBtn">👥<span> Online</span></button>
   <button class="tb" id="gravBtn">🌍<span> Gravity</span></button>
   <button class="tb on" id="juiceBtn">💧<span> Juice</span></button>
   <button class="tb" id="slowBtn">🐢<span> Slow-mo</span></button>
@@ -59,6 +81,29 @@
   <button data-t="heal">❤️<span>Heal / revive</span></button>
   <button data-t="delete">🗑️<span>Delete</span></button>
 </div>
+<div id="pad" hidden>
+  <div class="padL"><button data-k="l">◀</button><button data-k="r">▶</button></div>
+  <div class="padR"><button data-k="j">⤒</button><button data-k="p">👊</button></div>
+</div>
+<div id="netBox" hidden>
+  <div class="nb">
+    <button class="x" id="netClose">✕</button>
+    <h3>👥 Play online</h3>
+    <p>Play in the same lab with friends. Everyone can spawn stuff, use tools and play as their own guy.</p>
+    <input id="netName" maxlength="14" placeholder="Your name">
+    <div id="netIdle">
+      <button class="nbtn" id="hostBtn">🏠 Host a lab</button>
+      <div class="or">or join a friend</div>
+      <div class="row"><input id="netCode" maxlength="5" placeholder="CODE"><button class="nbtn blue" id="joinBtn">Join</button></div>
+    </div>
+    <div id="netOn" hidden>
+      <div id="netCodeShow"></div>
+      <div id="netPlayers"></div>
+      <button class="nbtn red" id="leaveBtn">Leave</button>
+    </div>
+    <div id="netMsg"></div>
+  </div>
+</div>
 <div id="hint">Pick something below, then tap the world to drop it in</div>
 <div class="dock">
   <div class="cats" id="cats"></div>
@@ -66,11 +111,13 @@
 </div>
 
 <script src="matter.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js" async></script>
 <script>
 (() => {
 const { Engine, Bodies, Body, Composite, Constraint, Query, Events, Vector } = Matter;
 const cv = document.getElementById('cv'), g = cv.getContext('2d');
 let W = 0, H = 0, DPR = 1;
+let FW = 0, FH = 0, VS = 1, VX = 0, VY = 0, fixedWorld = null;   // world size (shared in online play) and how it fits the screen
 const engine = Engine.create({ enableSleeping: false });
 const world = engine.world;
 engine.gravity.y = 1;
@@ -81,9 +128,11 @@ const SKEY = 'melonLabStats';
 let stats = { spawned: 0, booms: 0, kos: 0, cuts: 0, shots: 0 }; try { stats = Object.assign(stats, JSON.parse(localStorage.getItem(SKEY)) || {}); } catch (e) {}
 let saveT = 0; function bump(k, n = 1){ stats[k] += n; clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(SKEY, JSON.stringify(stats)); } catch (e) {} }, 800); }
 
+function addWord(w){ words.push(w); netFx('wd', [w]); }
 // ---------- sound ----------
 let ac = null;
 function snd(type){
+  netFx('sn', [type]);
   try {
     ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume();
     const t = ac.currentTime;
@@ -103,19 +152,24 @@ function snd(type){
 // ---------- world edges ----------
 function buildBounds(){
   bounds.forEach(b => Composite.remove(world, b));
-  const t = 200, floorY = H - dockH();
+  const t = 200, floorY = FH;
   bounds = [
-    Bodies.rectangle(W / 2, floorY + t / 2, W * 3, t, { isStatic: true, kind: 'floor', friction: .9 }),
-    Bodies.rectangle(-t / 2, H / 2, t, H * 4, { isStatic: true, kind: 'wall' }),
-    Bodies.rectangle(W + t / 2, H / 2, t, H * 4, { isStatic: true, kind: 'wall' }),
-    Bodies.rectangle(W / 2, -H * 1.5, W * 3, t, { isStatic: true, kind: 'wall' })
+    Bodies.rectangle(FW / 2, floorY + t / 2, FW * 3, t, { isStatic: true, kind: 'floor', friction: .9 }),
+    Bodies.rectangle(-t / 2, FH / 2, t, FH * 4, { isStatic: true, kind: 'wall' }),
+    Bodies.rectangle(FW + t / 2, FH / 2, t, FH * 4, { isStatic: true, kind: 'wall' }),
+    Bodies.rectangle(FW / 2, -FH * 1.5, FW * 3, t, { isStatic: true, kind: 'wall' })
   ];
   Composite.add(world, bounds);
 }
 const dockH = () => document.querySelector('.dock').offsetHeight;
 function resize(){
   DPR = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight;
-  cv.width = W * DPR; cv.height = H * DPR; buildBounds(); gun.y = 0;
+  cv.width = W * DPR; cv.height = H * DPR;
+  const avail = H - dockH(); document.documentElement.style.setProperty('--dock', dockH() + 'px');
+  if (fixedWorld){ FW = fixedWorld.w; FH = fixedWorld.h; }
+  else if (!(NET.mode === 'host' && FW)){ FW = W; FH = avail; }
+  VS = Math.min(W / FW, avail / FH); VX = (W - FW * VS) / 2; VY = Math.max(0, avail - FH * VS);
+  buildBounds(); gun.y = 0;
 }
 addEventListener('resize', resize);
 
@@ -164,12 +218,14 @@ function avatarLook(){
   catch (e) { return LOOKS.melon; }
 }
 
-function spawn(id, x, y){
+function spawn(id, x, y, opt){
+  opt = opt || {};
   let made = null;
   const B = (b) => { Composite.add(world, b); made = b; return b; };
   switch (id){
     case 'melon': case 'pumpkin': case 'lemon': made = makeRagdoll(x, y, LOOKS[id]); break;
-    case 'me': made = makeRagdoll(x, y, avatarLook()); break;
+    case 'me': made = makeRagdoll(x, y, opt.look || avatarLook()); break;
+    case 'cannonball': B(Bodies.circle(x, y, 16, { kind: 'cannonball', density: .02, frictionAir: .002, restitution: .2 })); made.life = 400; break;
     case 'box': B(Bodies.rectangle(x, y, 50, 50, { kind: 'box', friction: .6, chamfer: { radius: 4 } })); break;
     case 'crate': B(Bodies.rectangle(x, y, 80, 80, { kind: 'crate', density: .004, friction: .7, chamfer: { radius: 4 } })); break;
     case 'ball': B(Bodies.circle(x, y, 24, { kind: 'ball', restitution: .85, friction: .05, density: .0008 })); break;
@@ -197,7 +253,10 @@ function spawn(id, x, y){
       w.motor = .35; break;
     }
   }
-  if (made){ bump('spawned'); snd('pop'); }
+  if (made){
+    netTag(made, id, x, y, opt);
+    if (id !== 'cannonball' && opt.nid == null){ bump('spawned'); snd('pop'); }
+  }
   return made;
 }
 
@@ -229,20 +288,19 @@ document.getElementById('tools').onclick = e => {
   document.querySelectorAll('#tools button').forEach(x => x.classList.toggle('on', x === b));
   hint({ cut: 'Swipe across an arm or leg to cut it off. Heal ❤️ puts it back!', hammer: 'Tap a fruit person to bonk them with the hammer', heal: 'Tap a fruit person to heal them and put their arms and legs back', drag: 'Grab things and throw them', pin: 'Tap something to pin it in the air (tap again to unpin)', poke: 'Tap things to give them a push. Poke TNT to blow it up!', delete: 'Tap something to delete it' }[tool]);
 };
-let hintT; function hint(t){ const h = document.getElementById('hint'); h.textContent = t; h.style.opacity = 1; clearTimeout(hintT); hintT = setTimeout(() => h.style.opacity = 0, 2600); }
+let hintT; function hint(t){ if (typeof CUR !== 'undefined' && CUR !== LOCAL) return; const h = document.getElementById('hint'); h.textContent = t; h.style.opacity = 1; clearTimeout(hintT); hintT = setTimeout(() => h.style.opacity = 0, 2600); }
 
 // ---------- top buttons ----------
 const GRAV = [['🌍 Gravity', 1], ['🌙 Moon', .25], ['🚀 Zero-G', 0], ['🙃 Upside', -.6]]; let gi = 0;
-document.getElementById('gravBtn').onclick = () => { gi = (gi + 1) % GRAV.length; engine.gravity.y = GRAV[gi][1]; document.getElementById('gravBtn').innerHTML = GRAV[gi][0].replace(' ', '<span> ') + '</span>'; snd('pin'); };
+document.getElementById('gravBtn').onclick = () => { if (NET.mode === 'client'){ sendHost({ k: 'cmd', c: 'grav' }); return; } gi = (gi + 1) % GRAV.length; engine.gravity.y = GRAV[gi][1]; document.getElementById('gravBtn').innerHTML = GRAV[gi][0].replace(' ', '<span> ') + '</span>'; snd('pin'); };
 let slow = false; document.getElementById('slowBtn').onclick = e => { slow = !slow; e.currentTarget.classList.toggle('on', slow); snd('pin'); };
 let paused = false; document.getElementById('pauseBtn').onclick = e => { paused = !paused; e.target.textContent = paused ? '▶' : '⏸'; e.target.classList.toggle('on', paused); };
 let clearArm = 0;
 document.getElementById('clearBtn').onclick = e => {
   if (Date.now() - clearArm > 2500){ clearArm = Date.now(); e.currentTarget.innerHTML = '🧹<span> Sure?</span> ?'; const btn = e.currentTarget; setTimeout(() => btn.innerHTML = '🧹<span> Clear</span>', 2500); return; }
-  Composite.allComposites(world).forEach(c => Composite.remove(world, c, true));
-  Composite.allConstraints(world).forEach(c => Composite.remove(world, c));
-  Composite.allBodies(world).filter(b => !bounds.includes(b)).forEach(b => Composite.remove(world, b));
-  ragdolls.clear(); parts.length = 0; splats.length = 0; e.currentTarget.innerHTML = '🧹<span> Clear</span>'; snd('del');
+  e.currentTarget.innerHTML = '🧹<span> Clear</span>';
+  if (NET.mode === 'client'){ sendHost({ k: 'cmd', c: 'clear' }); return; }
+  clearAll(); netSend({ k: 'clear' }); snd('del');
 };
 
 // ---------- pointer: spawn, grab, pin, poke, delete ----------
@@ -256,15 +314,15 @@ const bodyAt = (x, y) => {
   return hit.sort((a, b) => (b.kind === 'head') - (a.kind === 'head'))[0] || null;
 };
 function removeThing(b){
+  netDel(b.rag || b);
   if (b.rag){ Composite.remove(world, b.rag, true); ragdolls.delete(b.rag.id); }
   else {
     Composite.allConstraints(world).filter(c => c.bodyA === b || c.bodyB === b).forEach(c => Composite.remove(world, c));
     Composite.remove(world, b);
   }
 }
-cv.addEventListener('pointerdown', e => {
-  const x = e.clientX, y = e.clientY; ptr = { x, y }; lastPtr = { x, y, t: performance.now() };
-  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+function pDown(x, y){
+  ptr = { x, y }; lastPtr = { x, y, t: performance.now() };
   const b = bodyAt(x, y);
   if (tool === 'cut'){
     slash = { last: { x, y }, pts: [{ x, y }], life: 1 };
@@ -275,7 +333,7 @@ cv.addEventListener('pointerdown', e => {
   if (tool === 'hammer'){
     if (b){
       Body.applyForce(b, b.position, { x: (Math.random() - .5) * .05 * b.mass, y: .06 * b.mass });
-      words.push({ x, y: y - 20, t: .8, s: .8, w: ['BONK!', 'WHACK!', 'BOP!'][Math.floor(Math.random() * 3)] }); shake = 6;
+      addWord({ x, y: y - 20, t: .8, s: .8, w: ['BONK!', 'WHACK!', 'BOP!'][Math.floor(Math.random() * 3)] }); shake = 6;
       if (b.rag) hurt(b, 34, { x, y }); else if (b.kind === 'tnt') explode(b);
       snd('bonk');
     }
@@ -298,16 +356,16 @@ cv.addEventListener('pointerdown', e => {
     const local = Vector.sub({ x, y }, b.position);
     grab = Constraint.create({ pointA: { x, y }, bodyB: b, pointB: Vector.rotate(local, -b.angle), stiffness: .12, damping: .1, length: 0, kind: 'grab' });
     Composite.add(world, grab); if (b.rag) ragdolls.get(b.rag.id).head.face.shock = 1;
-  } else if (pick && y < H - dockH() - 10){ spawn(pick, x, y); }
+  } else if (pick && y < FH - 10){ spawn(pick, x, y); }
   else if (!pick && !b) hint('Pick something from the bottom bar to drop it in');
-});
-cv.addEventListener('pointermove', e => {
-  const now = performance.now(), x = e.clientX, y = e.clientY, dt = Math.max(1, now - lastPtr.t);
+}
+function pMove(x, y){
+  const now = performance.now(), dt = Math.max(1, now - lastPtr.t);
   vel = { x: (x - lastPtr.x) / dt, y: (y - lastPtr.y) / dt }; lastPtr = { x, y, t: now }; ptr = { x, y };
   if (grab) grab.pointA = { x, y };
   if (slash) slashTo(x, y);
-  if (gun.held){ gun.x = Math.max(30, Math.min(W - 30, x)); gun.y = Math.max(60, Math.min(H - dockH() - 20, y)); }
-});
+  if (gun.held){ gun.x = Math.max(30, Math.min(FW - 30, x)); gun.y = Math.max(60, Math.min(FH - 20, y)); }
+}
 const release = () => {
   gun.held = false; if (slash) slash.done = true;
   if (!grab) return;
@@ -316,13 +374,14 @@ const release = () => {
   const push = { x: Math.max(-30, Math.min(30, vel.x * 16)), y: Math.max(-30, Math.min(30, vel.y * 16)) };
   (b.rag ? Composite.allBodies(b.rag) : [b]).forEach(p => Body.setVelocity(p, { x: p.velocity.x + push.x * .5, y: p.velocity.y + push.y * .5 }));
 };
-cv.addEventListener('pointerup', release); cv.addEventListener('pointercancel', release);
+
 
 // ---------- health, juice and knock-outs ----------
 let juiceOn = true;
 const splats = [];   // juice stains left on the floor and walls
 document.getElementById('juiceBtn').onclick = e => { juiceOn = !juiceOn; e.currentTarget.classList.toggle('on', juiceOn); if (!juiceOn) splats.length = 0; snd('pin'); };
 function squirt(x, y, col, n, spd){
+  netFx('sq', [x, y, col, n, spd]);
   for (let i = 0; i < n; i++){ const a = Math.random() * Math.PI * 2, sp = Math.random() * spd; parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2.5, life: 1, c: col, r: 2 + Math.random() * 3.5, juice: true }); }
 }
 function hurt(b, dmg, at){
@@ -330,6 +389,7 @@ function hurt(b, dmg, at){
   const R = ragdolls.get(b.rag.id); if (!R || dmg <= 0) return;
   if (R.fx.immortal){ burst(b.position.x, b.position.y, '#ffd700', 4, 3); return; }
   if (R.fx.giant) dmg *= .15;   // giants are really tough
+  if (R.ctrl && !(CUR !== LOCAL)) dmg *= .4;   // the guy you play as is tougher
   if (b.kind === 'head') dmg *= 1.5;
   const p = at || b.position;
   if (juiceOn && R.look.juice) squirt(p.x, p.y, R.look.juice, Math.min(40, 4 + dmg * .6), 3 + dmg / 12);
@@ -339,7 +399,7 @@ function hurt(b, dmg, at){
   if (R.hp <= 0){
     R.hp = 0; R.ko = true; R.head.face.ko = true;
     R.joints.forEach(j => { j.stiffness = .45; });          // goes floppy
-    words.push({ x: R.head.position.x, y: R.head.position.y - 30, t: 1, s: 1, w: 'K.O.!' });
+    addWord({ x: R.head.position.x, y: R.head.position.y - 30, t: 1, s: 1, w: 'K.O.!' });
     snd('bonk'); bump('kos');
     if (juiceOn && R.look.juice) squirt(R.head.position.x, R.head.position.y, R.look.juice, 45, 7);
   }
@@ -351,7 +411,7 @@ function heal(b){
   R.hp = 100; R.ko = false; R.head.face.ko = false; R.head.face.dizzy = 0; R.hpShow = 2; R.fx = wasGiant ? { giant: true } : {}; R.head.face.sleep = R.head.face.scream = false;
   R.joints.forEach(j => { j.stiffness = .9; }); R.stun = 0; reattach(R);
   burst(R.head.position.x, R.head.position.y, '#ff6fa8', 14, 4); burst(R.head.position.x, R.head.position.y, '#fff', 8, 3);
-  words.push({ x: R.head.position.x, y: R.head.position.y - 30, t: 1, s: .8, w: 'HEALED!' });
+  addWord({ x: R.head.position.x, y: R.head.position.y - 30, t: 1, s: .8, w: 'HEALED!' });
   snd('boing'); return true;
 }
 
@@ -364,15 +424,14 @@ const GUNS = {
 };
 const gun = { x: 70, y: 0, ang: 0, flash: 0, last: 0, held: false };
 const tracers = [];
-function placeGun(){ gun.y = H - dockH() - 34; if (gun.x > W - 40) gun.x = W * .12; }
+function placeGun(){ gun.y = FH - 34; if (gun.x > FW - 40) gun.x = FW * .12; }
 function shoot(tx, ty){
   const G = GUNS[pick]; const now = performance.now(); if (now - gun.last < G.cool) return; gun.last = now;
   gun.ang = Math.atan2(ty - gun.y, tx - gun.x); gun.flash = 1;
   const mx = gun.x + Math.cos(gun.ang) * 34, my = gun.y + Math.sin(gun.ang) * 34;
   if (G.cannon){
-    const ball = Bodies.circle(mx, my, 16, { kind: 'cannonball', density: .02, frictionAir: .002, restitution: .2 });
-    Composite.add(world, ball); Body.setVelocity(ball, { x: Math.cos(gun.ang) * 28, y: Math.sin(gun.ang) * 28 });
-    ball.life = 400; snd('boom'); shake = 6; burst(mx, my, '#ffd23f', 10, 4); return;
+    const ball = spawn('cannonball', mx, my); Body.setVelocity(ball, { x: Math.cos(gun.ang) * 28, y: Math.sin(gun.ang) * 28 });
+    snd('boom'); shake = 6; burst(mx, my, '#ffd23f', 10, 4); return;
   }
   snd('bonk');
   const all = Composite.allBodies(world).filter(b => !bounds.includes(b) && b.kind !== 'cannonball');
@@ -383,7 +442,7 @@ function shoot(tx, ty){
     let hit = null, hitP = far;
     for (let d = 0; d < 2200; d += 7){
       const pt = { x: mx + Math.cos(a) * d, y: my + Math.sin(a) * d };
-      if (pt.x < -50 || pt.x > W + 50 || pt.y < -50 || pt.y > H) break;
+      if (pt.x < -50 || pt.x > FW + 50 || pt.y < -50 || pt.y > FH + 60) break;
       const q = Query.point(all, pt);
       if (q.length){ hit = q.sort((u, v) => (v.kind === 'head') - (u.kind === 'head'))[0]; break; }
     }
@@ -395,7 +454,7 @@ function shoot(tx, ty){
       if (hit.rag) hurt(hit, G.dmg, hitP);
       else { burst(hitP.x, hitP.y, '#fff', 5, 3); if (hit.kind === 'tnt') explode(hit); if (hit.kind === 'balloon'){ removeThing(hit); burst(hitP.x, hitP.y, hit.color, 12, 5); snd('pop'); } }
     }
-    tracers.push({ x1: mx, y1: my, x2: hitP.x, y2: hitP.y, life: 1, col: G.col, laser: !!G.laser });
+    const tr = { x1: mx, y1: my, x2: hitP.x, y2: hitP.y, life: 1, col: G.col, laser: !!G.laser }; tracers.push(tr); netFx('tr', [tr]);
   }
 }
 
@@ -466,13 +525,43 @@ function inject(b, id, at){
   if (id === 's_giant'){ if (!fx.giant){ fx.giant = true; if (R.ko || R.cut.size){ heal(R.head); } resizeRag(R, 2.2); R.hp = 100; shake = 10; } }
   if (id === 's_cure'){ if (fx.giant) resizeRag(R, 1 / (R.scale || 1)); R.fx = {}; R.head.face.sleep = R.head.face.scream = false; }
   needles.push({ b, off: Vector.sub(at, b.position), ang: -0.8, life: 1.4 });
-  words.push({ x: R.head.position.x, y: R.head.position.y - 34, t: 1, s: .7, w: FX_NAMES[id] });
+  addWord({ x: R.head.position.x, y: R.head.position.y - 34, t: 1, s: .7, w: FX_NAMES[id] });
   snd(id === 's_scream' ? 'boing' : 'pin'); bump('shots');
+}
+function punch(R, dir){
+  const reach = 70 * (R.scale || 1);
+  let best = null, bd = 1e9;
+  ragdolls.forEach(O => { if (O === R) return; const dx = O.torso.position.x - R.torso.position.x, dy = Math.abs(O.torso.position.y - R.torso.position.y);
+    const score = Math.abs(dx) + (dx * dir < 0 ? 25 : 0);
+    if (Math.abs(dx) < reach && dy < reach * 1.3 && score < bd){ bd = score; best = O; } });
+  if (best){ dir = Math.sign(best.torso.position.x - R.torso.position.x) || dir; R.faceDir = dir; }
+  if (!best){ Body.setAngularVelocity(R.arms[dir > 0 ? 1 : 0], -dir * 1.1); snd('pin'); return; }
+  Body.setAngularVelocity(R.arms[dir > 0 ? 1 : 0], -dir * 1.1);
+  const tgt = Math.random() < .5 ? best.head : best.torso, pw = R.fx.giant ? 1.6 : 1;
+  Composite.allBodies(best.comp).forEach(p => Body.setVelocity(p, { x: p.velocity.x + dir * 8 * pw, y: p.velocity.y - 5 * pw }));
+  hurt(tgt, 24 * pw, tgt.position);
+  if (Math.random() < .2){ const j = best.joints[1 + Math.floor(Math.random() * 8)]; if (j) cutJoint(best, j); }
+  addWord({ x: tgt.position.x, y: tgt.position.y - 20, t: .8, s: .8, w: ['POW!', 'BAM!', 'WHAP!', 'OOF!'][Math.floor(Math.random() * 4)] });
+  shake = 5; snd('bonk');
 }
 function tickFx(dt){
   const sec = dt / 1000, now = performance.now();
   ragdolls.forEach(R => {
     const fx = R.fx, f = R.head.face, all = Composite.allBodies(R.comp);
+    if (R.ctrl && !R.ko && !(fx.sleep > 0)){
+      const k = R.ctrl.keys || {}, dir = (k.r ? 1 : 0) - (k.l ? 1 : 0), grounded = R.feet.some(ft => engine.timing.timestamp - (ft.ground || -1e9) < 120);
+      R.stun = Math.min(R.stun, .4);
+      if (dir){
+        R.faceDir = dir;
+        const want = dir * 3.6 * Math.sqrt(R.scale || 1);
+        [R.torso, R.head].forEach(b => Body.setVelocity(b, { x: b.velocity.x + (want - b.velocity.x) * .25, y: b.velocity.y }));
+        R.feet.forEach((ft, i) => Body.setAngularVelocity(ft, Math.sin(now / 90 + i * 3) * .35));
+      }
+      if ((k.j || k.jt) && grounded && !R.jumped){ R.jumped = true; k.jt = false; all.forEach(p => Body.setVelocity(p, { x: p.velocity.x, y: -12 * Math.sqrt(R.scale || 1) })); }
+      if (!k.j && !k.jt) R.jumped = false;
+      if ((k.p || k.pt) && !R.punched){ R.punched = true; k.pt = false; punch(R, R.faceDir || 1); }
+      if (!k.p && !k.pt) R.punched = false;
+    }
     f.sleep = fx.sleep > 0; f.scream = fx.scream > 0 && !R.ko;
     if (fx.acid > 0){
       fx.acid -= sec;
@@ -483,7 +572,7 @@ function tickFx(dt){
       fx.scream -= sec;
       if (!R.ko && !fx.sleep){
         if (!R.runDir || Math.random() < .01) R.runDir = Math.random() < .5 ? -1 : 1;
-        if (R.torso.position.x < 60) R.runDir = 1; if (R.torso.position.x > W - 60) R.runDir = -1;
+        if (R.torso.position.x < 60) R.runDir = 1; if (R.torso.position.x > FW - 60) R.runDir = -1;
         Body.applyForce(R.torso, R.torso.position, { x: R.runDir * .0009 * R.torso.mass * 10, y: 0 });
         R.arms.forEach((a, i) => Body.setAngularVelocity(a, Math.sin(now / 70 + i) * .5));
         R.feet.forEach((ft, i) => Body.setAngularVelocity(ft, Math.sin(now / 90 + i * 3) * .4));
@@ -512,7 +601,7 @@ function tickFx(dt){
           Composite.allBodies(best.comp).forEach(p => Body.setVelocity(p, { x: p.velocity.x + dir * 10, y: p.velocity.y - 7 }));
           hurt(tgt, 34, tgt.position);
           if (Math.random() < .4){ const j = best.joints[1 + Math.floor(Math.random() * 8)]; if (j) cutJoint(best, j); }
-          words.push({ x: tgt.position.x, y: tgt.position.y - 20, t: .9, s: .9, w: ['SMASH!', 'POW!', 'WHAM!', 'CRUNCH!'][Math.floor(Math.random() * 4)] });
+          addWord({ x: tgt.position.x, y: tgt.position.y - 20, t: .9, s: .9, w: ['SMASH!', 'POW!', 'WHAM!', 'CRUNCH!'][Math.floor(Math.random() * 4)] });
           shake = 9; snd('bonk');
         }
       }
@@ -526,7 +615,7 @@ function tickFx(dt){
 
 // ---------- explosions & machines ----------
 const parts = [];
-function burst(x, y, col, n, spd = 6){ for (let i = 0; i < n; i++){ const a = Math.random() * Math.PI * 2, s = Math.random() * spd; parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 2, life: 1, c: col, r: 2 + Math.random() * 4 }); } }
+function burst(x, y, col, n, spd = 6){ netFx('bu', [x, y, col, n, spd]); for (let i = 0; i < n; i++){ const a = Math.random() * Math.PI * 2, s = Math.random() * spd; parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 2, life: 1, c: col, r: 2 + Math.random() * 4 }); } }
 let shake = 0, flash = 0;
 const words = [];
 function explode(t){
@@ -552,8 +641,8 @@ function explode(t){
     if (b.kind === 'tnt' && !b.gone) setTimeout(() => explode(b), 120 + Math.random() * 120);   // chain reaction
   });
   burst(x, y, '#ffd23f', big ? 70 : 40, big ? 14 : 10); burst(x, y, '#ff6a2a', big ? 50 : 26, 8); burst(x, y, '#555', 20, 5);
-  words.push({ x, y, t: 1, s: big ? 1.6 : 1, w: ['BOOM!', 'KABOOM!', 'POW!', 'BLAM!'][Math.floor(Math.random() * 4)] });
-  shake = big ? 22 : 12; flash = big ? .6 : .35; snd('boom'); bump('booms');
+  addWord({ x, y, t: 1, s: big ? 1.6 : 1, w: ['BOOM!', 'KABOOM!', 'POW!', 'BLAM!'][Math.floor(Math.random() * 4)] });
+  shake = big ? 22 : 12; flash = big ? .6 : .35; netFx('sh', [shake, flash]); snd('boom'); bump('booms');
 }
 Events.on(engine, 'collisionActive', ev => {
   const now = engine.timing.timestamp;
@@ -589,7 +678,7 @@ function balance(dt){
     if ([...R.cut].some(j => R.legs.includes(j.bodyB) || R.feet.includes(j.bodyB))) return;   // can't stand without both legs
     if (R.stun > 0){ R.stun -= dt / 1000; return; }
     if (R.head.face.dizzy > 1.5) return;
-    const held = grab && grab.bodyB && grab.bodyB.rag === R.comp;
+    const held = [...players.values()].some(pl => { const gb = pl === LOCAL ? grab : pl.grab; return gb && gb.bodyB && gb.bodyB.rag === R.comp; });
     if (held || engine.gravity.y <= 0) return;
     const grounded = R.feet.some(f => now - (f.ground || -1e9) < 120);
     const tilt = Math.abs(wrapA(R.torso.angle));
@@ -630,7 +719,7 @@ Events.on(engine, 'beforeUpdate', () => {
   }
   for (const b of all) if (b.kind === 'cannonball' && --b.life <= 0) removeThing(b);
   // stop things that fall out of the world
-  for (const b of all) if (b.position.y > H + 600 || b.position.y < -H * 3) removeThing(b);
+  for (const b of all) if (b.position.y > FH + 600 || b.position.y < -FH * 3) removeThing(b);
 });
 
 // ---------- drawing ----------
@@ -723,7 +812,7 @@ function drawBody(b){
     poly(b); g.fillStyle = '#5a6a80'; g.fill();
     g.translate(b.position.x + b.dir * 22, b.position.y); g.rotate(performance.now() / 60);
     g.fillStyle = '#cfe'; for (let i = 0; i < 3; i++){ g.rotate(2.094); g.beginPath(); g.ellipse(0, 10, 4, 12, 0, 0, 7); g.fill(); }
-    g.setTransform(DPR, 0, 0, DPR, 0, 0); g.strokeStyle = '#ffffff22'; g.lineWidth = 2;
+    g.setTransform(DPR * VS, 0, 0, DPR * VS, DPR * VX, DPR * VY); g.strokeStyle = '#ffffff22'; g.lineWidth = 2;
     for (let i = 0; i < 4; i++){ const off = ((performance.now() / 4 + i * 80) % 320); g.beginPath(); g.moveTo(b.position.x + b.dir * (30 + off), b.position.y - 24 + i * 16); g.lineTo(b.position.x + b.dir * (60 + off), b.position.y - 24 + i * 16); g.stroke(); }
   } else if (k === 'wheel'){
     g.translate(b.position.x, b.position.y); g.rotate(b.angle); g.fillStyle = '#222'; g.beginPath(); g.arc(0, 0, 34, 0, 7); g.fill();
@@ -738,9 +827,11 @@ function draw(){
   // background: lab grid
   const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#22304a'); bg.addColorStop(1, '#1a2233'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
   g.strokeStyle = '#ffffff08'; g.lineWidth = 1; for (let x = 0; x < W; x += 40){ g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); } for (let y = 0; y < H; y += 40){ g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+  g.setTransform(DPR * VS, 0, 0, DPR * VS, DPR * VX, DPR * VY);
+  if (VX > 1){ g.fillStyle = '#0006'; g.fillRect(-VX / VS - 10, -5000, VX / VS + 10, 9000); g.fillRect(FW, -5000, VX / VS + 10, 9000); }
   g.translate(sx, sy);
   // floor
-  const fy = H - dockH(); g.fillStyle = '#2d3748'; g.fillRect(-50, fy, W + 100, 200); g.fillStyle = '#7dff7a33'; g.fillRect(-50, fy, W + 100, 3);
+  const fy = FH; g.fillStyle = '#2d3748'; g.fillRect(-50, fy, FW + 100, 200); g.fillStyle = '#7dff7a33'; g.fillRect(-50, fy, FW + 100, 3);
   for (const sp of splats){ g.globalAlpha = sp.a; g.fillStyle = sp.c; g.beginPath(); g.ellipse(sp.x, sp.y, sp.r * 1.6, sp.r * .45, 0, 0, 7); g.fill(); sp.a = Math.max(.25, sp.a - .0004); }
   g.globalAlpha = 1;
   // strings and grab line
@@ -754,6 +845,8 @@ function draw(){
     if (fx.immortal){ const gl = g.createRadialGradient(t.x, t.y - 20, 5, t.x, t.y - 20, 70); gl.addColorStop(0, 'rgba(255,215,0,.35)'); gl.addColorStop(1, 'rgba(255,215,0,0)'); g.fillStyle = gl; g.beginPath(); g.arc(t.x, t.y - 20, 70, 0, 7); g.fill();
       g.strokeStyle = '#ffd700'; g.lineWidth = 2; g.beginPath(); g.ellipse(h.x, h.y - 24, 12, 4, 0, 0, 7); g.stroke(); }
     if (fx.strong){ g.font = '14px sans-serif'; g.fillText('🦴', t.x + 14, t.y - 10); }
+    const nm = R.ctrl ? R.ctrl.name : R.ctrlName;
+    if (nm){ g.font = '700 13px Fredoka,sans-serif'; g.textAlign = 'center'; g.lineWidth = 4; g.strokeStyle = '#000'; const yy = h.y - 26 * (R.scale || 1) - 22; g.strokeText('🎮 ' + nm, h.x, yy); g.fillStyle = '#7dff7a'; g.fillText('🎮 ' + nm, h.x, yy); g.textAlign = 'left'; }
     if (fx.adren > 0){ g.strokeStyle = `rgba(255,230,60,${.5 + .5 * Math.sin(now / 60)})`; g.lineWidth = 2; for (let i = 0; i < 3; i++){ const a = now / 200 + i * 2.1; g.beginPath(); g.moveTo(t.x + Math.cos(a) * 26, t.y + Math.sin(a) * 30); g.lineTo(t.x + Math.cos(a) * 34, t.y + Math.sin(a) * 38); g.stroke(); } }
     if (fx.sleep > 0){ g.fillStyle = '#cfe3ff'; g.font = '700 14px Fredoka,sans-serif'; for (let i = 0; i < 3; i++){ const k = ((now / 900) + i / 3) % 1; g.globalAlpha = 1 - k; g.fillText('Z', h.x + 10 + k * 18, h.y - 18 - k * 30); } g.globalAlpha = 1; }
     if (R.head.face.scream){ g.font = '700 15px Fredoka,sans-serif'; g.textAlign = 'center'; g.lineWidth = 4; g.strokeStyle = '#000'; const wob = Math.sin(now / 40) * 2; g.strokeText('AAAAH!', h.x + wob, h.y - 30); g.fillStyle = '#fff'; g.fillText('AAAAH!', h.x + wob, h.y - 30); }
@@ -768,12 +861,15 @@ function draw(){
     g.fillStyle = R.look.inside; g.strokeStyle = R.look.juice; g.lineWidth = 1.5;
     for (const c of [p, q]){ g.beginPath(); g.ellipse(c.x, c.y, 5.5, 4, 0, 0, 7); g.fill(); g.stroke(); }
   }));
-  if (slash){
+  const drawSl = sl => {
+    if (!sl) return null;
     g.strokeStyle = '#ffffff'; g.lineCap = 'round'; g.lineJoin = 'round';
-    g.globalAlpha = slash.life; g.lineWidth = 4; g.shadowColor = '#bff'; g.shadowBlur = 10;
-    g.beginPath(); slash.pts.forEach((pt, i) => i ? g.lineTo(pt.x, pt.y) : g.moveTo(pt.x, pt.y)); g.stroke(); g.shadowBlur = 0; g.globalAlpha = 1;
-    if (slash.done){ slash.life -= .12; if (slash.life <= 0) slash = null; }
-  }
+    g.globalAlpha = sl.life; g.lineWidth = 4; g.shadowColor = '#bff'; g.shadowBlur = 10;
+    g.beginPath(); sl.pts.forEach((pt, i) => i ? g.lineTo(pt.x, pt.y) : g.moveTo(pt.x, pt.y)); g.stroke(); g.shadowBlur = 0; g.globalAlpha = 1;
+    if (sl.done){ sl.life -= .12; if (sl.life <= 0) return null; }
+    return sl;
+  };
+  slash = drawSl(slash); players.forEach(pl => { if (pl !== LOCAL) pl.slash = drawSl(pl.slash); });
   ragdolls.forEach(R => {
     if (R.hpShow <= 0 && !R.ko) return; R.hpShow -= .016;
     const h = R.head.position, w = 40;
@@ -817,15 +913,307 @@ function draw(){
 let last = performance.now();
 function loop(now){
   const dt = Math.min(33, now - last); last = now;
-  if (!paused){ const step = (slow ? dt / 4 : dt) / 2; Engine.update(engine, step); Engine.update(engine, step); }
+  if (NET.mode === 'client') followSnap();
+  else if (!paused){ const step = (slow ? dt / 4 : dt) / 2; Engine.update(engine, step); Engine.update(engine, step); }
+  if (NET.mode === 'host') hostTick(now);
   draw(); requestAnimationFrame(loop);
 }
-window.__lab = { world, Composite };
+
+// ================= players, playing as a guy, and online play =================
+const mkPlayer = (pid, name, look) => ({ pid, name, look, grab: null, slash: null, vel: { x: 0, y: 0 }, lastPtr: { x: 0, y: 0, t: 0 }, gunHeld: false, tool: 'drag', pick: null, keys: {}, guy: null, gun: { x: 70, y: 0, ang: 0, flash: 0, last: 0 } });
+const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
+const myName = () => (document.getElementById('netName').value.trim() || LS.get('melonName') || LS.get('lastEmberName') || 'Player').slice(0, 14);
+const LOCAL = mkPlayer('local', myName(), null);
+const players = new Map([['local', LOCAL]]);
+let CUR = LOCAL;
+// run a friend's action with their own tool, pick, grab and gun
+function withPl(pl, fn){
+  if (pl === LOCAL) return fn();
+  const sv = { grab, slash, vel, lastPtr, tool, pick, gun: Object.assign({}, gun) };
+  grab = pl.grab; slash = pl.slash; vel = pl.vel; lastPtr = pl.lastPtr; tool = pl.tool; pick = pl.pick; Object.assign(gun, pl.gun, { held: pl.gunHeld }); CUR = pl;
+  try { fn(); }
+  finally {
+    pl.grab = grab; pl.slash = slash; pl.vel = vel; pl.lastPtr = lastPtr; pl.gunHeld = gun.held; pl.gun = { x: gun.x, y: gun.y, ang: gun.ang, flash: gun.flash, last: gun.last };
+    grab = sv.grab; slash = sv.slash; vel = sv.vel; lastPtr = sv.lastPtr; tool = sv.tool; pick = sv.pick; Object.assign(gun, sv.gun); CUR = LOCAL;
+  }
+}
+function clearAll(){
+  Composite.allComposites(world).forEach(c => Composite.remove(world, c, true));
+  Composite.allConstraints(world).forEach(c => Composite.remove(world, c));
+  Composite.allBodies(world).filter(b => !bounds.includes(b)).forEach(b => Composite.remove(world, b));
+  ragdolls.clear(); parts.length = 0; splats.length = 0; ents.clear(); byNid.clear();
+  players.forEach(pl => { pl.guy = null; pl.grab = null; }); grab = null; paintPad();
+}
+
+// ---------- 🎮 play as a guy ----------
+function doPlay(pl){
+  const R = pl.guy != null && ragdolls.get(pl.guy);
+  if (R){ R.ctrl = null; pl.guy = null; paintPad(); return; }
+  const look = pl === LOCAL ? avatarLook() : pl.look;
+  const comp = spawn('me', FW * (.3 + Math.random() * .4), FH - 90, { look: look || avatarLook() });
+  const R2 = ragdolls.get(comp.id); R2.ctrl = pl; pl.guy = comp.id; R2.hp = 100;
+  paintPad();
+}
+function iPlay(){ // am I playing right now?
+  if (NET.mode === 'client') return !!myGuyOnline;
+  return LOCAL.guy != null && ragdolls.has(LOCAL.guy);
+}
+function paintPad(){
+  const on = iPlay();
+  document.getElementById('pad').hidden = !(on && (('ontouchstart' in window) || navigator.maxTouchPoints > 0));
+  document.getElementById('playBtn').classList.toggle('on', on);
+}
+document.getElementById('playBtn').onclick = () => {
+  if (NET.mode === 'client'){ sendHost({ k: 'play' }); return; }
+  doPlay(LOCAL);
+  if (iPlay()) hint(('ontouchstart' in window) ? 'Use ◀ ▶ to walk, ⤒ to jump and 👊 to punch!' : 'A / D or ← → to walk, W / ↑ / Space to jump, F to punch!');
+};
+function setKey(k, v){
+  if (!!LOCAL.keys[k] === v) return;
+  LOCAL.keys[k] = v; if (v && (k === 'j' || k === 'p')) LOCAL.keys[k + 't'] = true;
+  if (NET.mode === 'client') sendHost({ k: 'keys', v: LOCAL.keys });
+}
+const KEYMAP = { a: 'l', arrowleft: 'l', d: 'r', arrowright: 'r', w: 'j', arrowup: 'j', ' ': 'j', f: 'p', j: 'p', e: 'p' };
+addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; const k = KEYMAP[e.key.toLowerCase()]; if (k && iPlay()){ setKey(k, true); e.preventDefault(); } });
+addEventListener('keyup', e => { const k = KEYMAP[e.key.toLowerCase()]; if (k) setKey(k, false); });
+document.querySelectorAll('#pad button').forEach(b => {
+  const k = b.dataset.k;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); setKey(k, true); b.classList.add('on'); try { b.setPointerCapture(e.pointerId); } catch (_) {} });
+  const up = e => { setKey(k, false); b.classList.remove('on'); };
+  b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
+});
+
+// ---------- screen -> world, and the pointer ----------
+const toWorld = e => ({ x: (e.clientX - VX) / VS, y: (e.clientY - VY) / VS });
+cv.addEventListener('pointerdown', e => {
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  const { x, y } = toWorld(e);
+  if (NET.mode === 'client'){
+    if (pick && pick.startsWith('g_') && Math.hypot(x - gun.x, y - gun.y) < 40) gun.held = true;
+    lastPtr = { x, y, t: performance.now() };
+    sendHost({ k: 'pd', x, y, tool, pick }); return;
+  }
+  pDown(x, y);
+});
+cv.addEventListener('pointermove', e => {
+  const { x, y } = toWorld(e);
+  if (NET.mode === 'client'){
+    if (gun.held){ gun.x = Math.max(30, Math.min(FW - 30, x)); gun.y = Math.max(60, Math.min(FH - 20, y)); }
+    if (e.buttons || e.pressure) sendHost({ k: 'pm', x, y }); return;
+  }
+  pMove(x, y);
+});
+const upH = () => { if (NET.mode === 'client'){ gun.held = false; sendHost({ k: 'pu' }); return; } release(); };
+cv.addEventListener('pointerup', upH); cv.addEventListener('pointercancel', upH);
+
+// ---------- network ids for everything in the lab ----------
+let NIDc = 1;
+const ents = new Map(), byNid = new Map();
+function netTag(made, id, x, y, opt){
+  const bodies = made.type === 'composite' ? Composite.allBodies(made) : [made];
+  const n = opt.nid != null ? opt.nid : NIDc;
+  if (opt.nid == null) NIDc += bodies.length; else NIDc = Math.max(NIDc, n + bodies.length);
+  const rec = { n, id, x: Math.round(x), y: Math.round(y) };
+  if (made.label === 'ragdoll'){ const R = ragdolls.get(made.id); if (id === 'me') rec.look = R.look; }
+  if (made.color) rec.c = made.color;
+  bodies.forEach((b, i) => { b.nid = n + i; byNid.set(b.nid, b); });
+  made.rec = rec; ents.set(n, rec);
+  if (NET.mode === 'host' && opt.nid == null) netSend({ k: 'add', r: rec });
+}
+function netDel(thing){
+  const rec = thing && thing.rec; if (!rec) return;
+  ents.delete(rec.n);
+  (thing.type === 'composite' ? Composite.allBodies(thing) : [thing]).forEach(b => byNid.delete(b.nid));
+  if (NET.mode === 'host') netSend({ k: 'del', n: rec.n });
+}
+function makeFromRec(r){
+  if (byNid.has(r.n)) return;
+  const m = spawn(r.id, r.x, r.y, { nid: r.n, look: r.look });
+  if (m && r.c) m.color = r.c;
+}
+
+// ---------- online play ----------
+const NET = { mode: 'solo', peer: null, conns: new Map(), host: null, code: '', myPid: null, ch: null, snapT: 0 };
+let myGuyOnline = false, lastSnap = null, netFxBusy = false;
+const PREFIX = 'melonlab-room-';
+const USE_BC = /[#&]bc\b/.test(location.hash);   // test mode: two tabs on the same computer
+const newCode = () => { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 5; i++) s += A[Math.floor(Math.random() * A.length)]; return s; };
+function netSend(msg, except){ if (NET.mode !== 'host') return; NET.conns.forEach((c, id) => { if (id !== except) try { c.send(msg); } catch (e) {} }); }
+function sendHost(msg){ if (NET.host) try { NET.host.send(msg); } catch (e) {} }
+function netFx(t, a){ if (NET.mode === 'host' && !netFxBusy && NET.conns.size) netSend({ k: 'fx', t, a }); }
+const netMsg = t => document.getElementById('netMsg').textContent = t || '';
+function paintNet(){
+  const on = NET.mode !== 'solo';
+  document.getElementById('netIdle').hidden = on; document.getElementById('netOn').hidden = !on;
+  document.getElementById('netBtn').classList.toggle('live', on);
+  document.getElementById('netBtn').innerHTML = on ? '👥<span> ' + NET.code + '</span>' : '👥<span> Online</span>';
+  document.getElementById('netCodeShow').textContent = NET.code;
+  const names = NET.mode === 'host' ? [...players.values()].map(p => p === LOCAL ? p.name + ' (you, host)' : p.name) : (lastSnap && lastSnap.pl) || [];
+  document.getElementById('netPlayers').innerHTML = (NET.mode === 'host' ? 'Give friends this code. ' : 'In the lab: ') + '<br>' + names.map(n => '🍉 ' + String(n).replace(/</g, '&lt;')).join('<br>');
+}
+document.getElementById('netBtn').onclick = () => { document.getElementById('netBox').hidden = false; paintNet(); };
+document.getElementById('netClose').onclick = () => document.getElementById('netBox').hidden = true;
+document.getElementById('netName').value = LS.get('melonName') || LS.get('lastEmberName') || '';
+document.getElementById('netName').oninput = e => { LS.set('melonName', e.target.value.trim()); LOCAL.name = myName(); };
+document.getElementById('leaveBtn').onclick = () => { try { NET.peer && NET.peer.destroy(); } catch (e) {} location.reload(); };
+
+// a tiny "connection" made from a BroadcastChannel (only used for testing in two tabs)
+function bcPeer(myId){
+  const ch = new BroadcastChannel('melonlab-test'), handlers = {};
+  ch.onmessage = e => { const m = e.data; if (m.to === myId && handlers.msg) handlers.msg(m.from, m.d); };
+  return { ch, send: (to, d) => ch.postMessage({ to, from: myId, d }), on: (n, f) => handlers[n] = f };
+}
+
+function hostLab(){
+  LOCAL.name = myName();
+  const code = newCode();
+  const ready = () => { NET.mode = 'host'; NET.code = code; NET.myPid = 'local'; netMsg('Your lab is open!'); paintNet(); hint('👥 Friends can join with code ' + code); };
+  if (USE_BC){
+    const bp = bcPeer('host-' + code); NET.ch = bp;
+    bp.on('msg', (from, d) => {
+      let c = NET.conns.get(from); if (!c){ c = { id: from, send: m => bp.send(from, m) }; NET.conns.set(from, c); }
+      onHostData(c, d);
+    });
+    return ready();
+  }
+  if (!window.Peer){ netMsg('Online play is still loading. Try again in a second.'); return; }
+  netMsg('Opening your lab…');
+  const peer = new Peer(PREFIX + code, { debug: 0 }); NET.peer = peer;
+  peer.on('open', ready);
+  peer.on('error', e => netMsg('Online problem: ' + (e.type || 'unknown') + '. Try again.'));
+  peer.on('connection', conn => {
+    conn.on('open', () => NET.conns.set(conn.peer, conn));
+    conn.on('data', d => onHostData(conn, d));
+    conn.on('close', () => dropPlayer(conn.peer));
+  });
+}
+function dropPlayer(id){
+  const pl = players.get(id); NET.conns.delete(id);
+  if (pl){ const R = pl.guy != null && ragdolls.get(pl.guy); if (R) R.ctrl = null; if (pl.grab) Composite.remove(world, pl.grab); players.delete(id); addWord({ x: FW / 2, y: 80, t: 1, s: .6, w: pl.name + ' left' }); }
+  paintNet();
+}
+function onHostData(conn, d){
+  const id = conn.peer || conn.id;
+  let pl = players.get(id);
+  if (d.k === 'hello'){
+    pl = mkPlayer(id, String(d.name || 'Friend').slice(0, 14), d.look); players.set(id, pl);
+    conn.send({ k: 'welcome', w: FW, h: FH, you: id, ents: [...ents.values()], gi });
+    addWord({ x: FW / 2, y: 80, t: 1, s: .6, w: pl.name + ' joined!' }); snd('boing'); paintNet();
+    return;
+  }
+  if (!pl) return;
+  if (d.k === 'pd'){ pl.tool = d.tool || 'drag'; pl.pick = d.pick || null; withPl(pl, () => { lastPtr = { x: d.x, y: d.y, t: performance.now() }; pDown(d.x, d.y); }); }
+  else if (d.k === 'pm') withPl(pl, () => pMove(d.x, d.y));
+  else if (d.k === 'pu') withPl(pl, () => release());
+  else if (d.k === 'keys') pl.keys = d.v || {};
+  else if (d.k === 'play') doPlay(pl);
+  else if (d.k === 'cmd'){
+    if (d.c === 'clear'){ clearAll(); netSend({ k: 'clear' }); snd('del'); }
+    if (d.c === 'grav') document.getElementById('gravBtn').onclick();
+  }
+}
+// host: send everyone where everything is, ~14 times a second
+function hostTick(now){
+  if (!NET.conns.size || now - NET.snapT < 70) return; NET.snapT = now;
+  const b = [];
+  Composite.allBodies(world).forEach(o => { if (o.nid != null) b.push([o.nid, Math.round(o.position.x * 10) / 10, Math.round(o.position.y * 10) / 10, Math.round(o.angle * 100) / 100, o.isStatic ? 1 : 0]); });
+  const r = [];
+  ragdolls.forEach(R => {
+    const fx = R.fx, f = R.head.face;
+    const fb = (fx.immortal ? 1 : 0) | (fx.strong ? 2 : 0) | (fx.adren > 0 ? 4 : 0) | (fx.sleep > 0 ? 8 : 0) | (fx.float > 0 ? 16 : 0) | (fx.giant ? 32 : 0) | (fx.acid > 0 ? 64 : 0) | (fx.scream > 0 ? 128 : 0);
+    const face = (f.dizzy > .3 ? 1 : 0) | (f.shock > .2 ? 2 : 0) | (f.angry ? 4 : 0);
+    let cut = 0; R.joints.forEach((j, i) => { if (R.cut.has(j)) cut |= 1 << i; });
+    r.push([R.head.nid - 9, Math.round(R.hp), R.ko ? 1 : 0, fb, face, cut, Math.round((R.scale || 1) * 100) / 100, R.ctrl ? R.ctrl.pid : '', R.ctrl ? R.ctrl.name : '', Math.round(R.hpShow * 10) / 10]);
+  });
+  const pl = [...players.values()].map(p => p.name);
+  NET.conns.forEach((c, id) => { try { c.send({ k: 's', b, r, gi, pl, g: (players.get(id) || {}).gun }); } catch (e) {} });
+}
+
+function joinLab(code){
+  code = code.trim().toUpperCase();
+  if (code.length < 5){ netMsg('Type the 5-letter code your friend sees.'); return; }
+  LOCAL.name = myName();
+  const hello = () => sendHost({ k: 'hello', name: LOCAL.name, look: avatarLook() });
+  if (USE_BC){
+    const me = 'c-' + Math.random().toString(36).slice(2, 8), bp = bcPeer(me);
+    NET.ch = bp; NET.host = { send: m => bp.send('host-' + code, m) };
+    bp.on('msg', (from, d) => onClientData(d));
+    NET.mode = 'client'; NET.code = code; hello(); netMsg('Joining…'); return;
+  }
+  if (!window.Peer){ netMsg('Online play is still loading. Try again in a second.'); return; }
+  netMsg('Joining ' + code + '…');
+  const peer = new Peer({ debug: 0 }); NET.peer = peer;
+  const t = setTimeout(() => { netMsg("Couldn't find that lab. Check the code and that your friend is hosting."); try { peer.destroy(); } catch (e) {} NET.mode = 'solo'; paintNet(); }, 12000);
+  peer.on('open', () => {
+    const conn = peer.connect(PREFIX + code, { reliable: true, serialization: 'json' });
+    conn.on('open', () => { clearTimeout(t); NET.host = conn; NET.mode = 'client'; NET.code = code; hello(); });
+    conn.on('data', onClientData);
+    conn.on('close', () => { alertBox('The host left the lab.'); });
+  });
+  peer.on('error', e => { clearTimeout(t); netMsg(e.type === 'peer-unavailable' ? "Couldn't find that lab. Check the code." : 'Online problem: ' + (e.type || 'unknown')); NET.mode = 'solo'; paintNet(); });
+}
+function alertBox(t){ document.getElementById('netBox').hidden = false; netMsg(t + ' Tap Leave to go back to your own lab.'); }
+function onClientData(d){
+  if (d.k === 'welcome'){
+    NET.myPid = d.you; fixedWorld = { w: d.w, h: d.h }; clearAll(); resize();
+    d.ents.forEach(makeFromRec);
+    netMsg('You joined the lab!'); paintNet(); document.getElementById('netBox').hidden = true;
+    hint('👥 You joined! Tap 🎮 Play to be a guy.');
+    return;
+  }
+  if (d.k === 'add') return makeFromRec(d.r);
+  if (d.k === 'del'){ const b = byNid.get(d.n); if (b){ const thing = b.rag || b; NET.mode = 'solo'; removeThing(b); NET.mode = 'client'; } return; }
+  if (d.k === 'clear'){ clearAll(); return; }
+  if (d.k === 'fx'){
+    netFxBusy = true;
+    try {
+      const a = d.a;
+      if (d.t === 'sq') squirt(...a); else if (d.t === 'bu') burst(...a); else if (d.t === 'wd') words.push(a[0]);
+      else if (d.t === 'sn') snd(a[0]); else if (d.t === 'tr') tracers.push(a[0]); else if (d.t === 'sh'){ shake = a[0]; flash = a[1]; }
+    } finally { netFxBusy = false; }
+    return;
+  }
+  if (d.k === 's'){ lastSnap = d; applySnap(d); }
+}
+function applySnap(d){
+  d.b.forEach(([n, x, y, a, st]) => { const b = byNid.get(n); if (!b) return; b.tx = x; b.ty = y; b.ta = a; b.pinned = !!st && !['spring', 'fan', 'block', 'ramp', 'floor', 'wall'].includes(b.kind); if (b.tx0 == null){ b.tx0 = 1; Body.setPosition(b, { x, y }); Body.setAngle(b, a); } });
+  let mine = false;
+  d.r.forEach(([n, hp, ko, fb, face, cut, scale, cpid, cname, hpShow]) => {
+    const tb = byNid.get(n); if (!tb || !tb.rag) return;
+    const R = ragdolls.get(tb.rag.id); if (!R) return;
+    R.hp = hp; R.ko = !!ko; R.head.face.ko = !!ko; R.hpShow = hpShow;
+    R.fx = { immortal: !!(fb & 1), strong: !!(fb & 2), adren: fb & 4 ? 1 : 0, sleep: fb & 8 ? 1 : 0, float: fb & 16 ? 1 : 0, giant: !!(fb & 32), acid: fb & 64 ? 1 : 0, scream: fb & 128 ? 1 : 0 };
+    R.head.face.dizzy = face & 1 ? 2 : 0; if (face & 2) R.head.face.shock = 1; R.head.face.angry = !!(face & 4);
+    R.head.face.sleep = !!(fb & 8); R.head.face.scream = !!(fb & 128) && !ko;
+    R.joints.forEach((j, i) => { const c = !!(cut & (1 << i)); if (c && !R.cut.has(j)){ Composite.remove(R.comp, j); R.cut.add(j); } else if (!c && R.cut.has(j)){ Composite.add(R.comp, j); R.cut.delete(j); } });
+    if (Math.abs((R.scale || 1) - scale) > .01) resizeRag(R, scale / (R.scale || 1));
+    R.ctrlName = cname || null; if (cpid && cpid === NET.myPid) mine = true;
+  });
+  if (mine !== myGuyOnline){ myGuyOnline = mine; paintPad(); }
+  if (d.gi !== gi){ gi = d.gi; engine.gravity.y = GRAV[gi][1]; document.getElementById('gravBtn').innerHTML = GRAV[gi][0].replace(' ', '<span> ') + '</span>'; }
+  if (d.g){ gun.ang = d.g.ang; if (!gun.held){ gun.x = d.g.x; gun.y = d.g.y || gun.y; } if (d.g.flash > gun.flash) gun.flash = d.g.flash; }
+  if (!document.getElementById('netBox').hidden) paintNet();
+}
+// clients: glide everything toward where the host says it is
+function followSnap(){
+  byNid.forEach(b => {
+    if (b.tx == null) return;
+    const k = .45;
+    Body.setPosition(b, { x: b.position.x + (b.tx - b.position.x) * k, y: b.position.y + (b.ty - b.position.y) * k });
+    Body.setAngle(b, b.angle + Math.atan2(Math.sin(b.ta - b.angle), Math.cos(b.ta - b.angle)) * k);
+  });
+}
+document.getElementById('hostBtn').onclick = hostLab;
+document.getElementById('joinBtn').onclick = () => joinLab(document.getElementById('netCode').value);
+document.getElementById('netCode').addEventListener('keydown', e => { if (e.key === 'Enter') joinLab(e.target.value); });
+
+window.__lab = { world, Composite, NET, players, ragdolls };
 paintDock(); resize();
 // a starting scene so there's something to play with
 setTimeout(() => {
-  const fy = H - dockH();
-  spawn('melon', W * .3, fy - 70); spawn('me', W * .5, fy - 70); spawn('box', W * .7, fy - 30); spawn('box', W * .7, fy - 80); spawn('spring', W * .85, fy - 10);
+  if (NET.mode === 'client') return;
+  const fy = FH;
+  spawn('melon', FW * .3, fy - 70); spawn('me', FW * .5, fy - 70); spawn('box', FW * .7, fy - 30); spawn('box', FW * .7, fy - 80); spawn('spring', FW * .85, fy - 10);
   stats.spawned = Math.max(0, stats.spawned - 5);
   hint('Grab a melon and throw it! Pick more things from the bottom bar.');
 }, 50);
