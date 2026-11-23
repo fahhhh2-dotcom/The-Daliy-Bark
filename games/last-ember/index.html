@@ -236,7 +236,7 @@
   </div>
   <div class="worlds">
     <h4>🏕 Friend Worlds</h4>
-    <small>A world that belongs to you and your friends. Anyone in it can open it any time — if a friend is already there you join them, if not you open it for everyone. It saves for all of you.</small>
+    <small>A world that belongs to you and your friends. Anyone in it can open it any time — if a friend is already there you join them, if not you open it for everyone. It saves for all of you. Up to 4 players at a time.</small>
     <div class="row"><input class="txt" id="wName" maxlength="20" placeholder="World name" style="width:180px;padding:9px 14px;font-size:14px"><button class="btn blue" id="wCreate" style="font-size:14px;padding:9px 20px">CREATE</button></div>
     <div id="wList"></div>
   </div>
@@ -298,6 +298,7 @@ function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.im
 const BLEED = 60;              // seconds a downed player has before dying
 const RADII = [80,110,140,170,200];   // forest size at each fire level
 const KIDS = 5;
+const MAX_PLAYERS = 4;          // you + 3 friends per world
 
 // =============== renderer / scene ===============
 const renderer = new THREE.WebGLRenderer({ antialias: !isTouch, powerPreference:'high-performance' });
@@ -869,8 +870,8 @@ function toHost(msg){ if (NET.host && NET.host.open) try { NET.host.send(msg); }
 function emit(ev){ applyEvent(ev); if (NET.mode==='host') broadcast(ev); }
 function emitFeed(m){ feed(m); broadcast({k:'feed',m}); }
 function roomInfo(){
-  if (NET.mode==='host') $('roomInfo').innerHTML = `🌐 Room code: <b style="color:#fff">${NET.code}</b><br>${NET.conns.size+1} player${NET.conns.size?'s':''}`;
-  else if (NET.mode==='client') $('roomInfo').innerHTML = `🌐 In ${NET.code} · ${others.size+1} players`;
+  if (NET.mode==='host') $('roomInfo').innerHTML = `🌐 Room code: <b style="color:#fff">${NET.code}</b><br>👥 ${others.size+1}/${MAX_PLAYERS} players`;
+  else if (NET.mode==='client') $('roomInfo').innerHTML = `🌐 In ${NET.code} · 👥 ${others.size+1}/${MAX_PLAYERS} players`;
   else $('roomInfo').textContent = '';
 }
 function newCode(){ const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<5;i++) s+=A[Math.floor(Math.random()*A.length)]; return s; }
@@ -892,7 +893,7 @@ function startHosting(tries=0, fixed=null){
     conn.on('data', d => onHostData(conn, d));
     conn.on('error', () => {});
     conn.on('close', () => {
-      if (NET.conns.get(conn.peer) !== conn) return;
+      if (NET.conns.has(conn.peer) && NET.conns.get(conn.peer) !== conn) return;
       const o = others.get(conn.peer); NET.conns.delete(conn.peer);
       if (o){ feed(`👋 ${o.name||'A friend'} left`); removeOther(conn.peer); }
       roomInfo();
@@ -916,7 +917,9 @@ function joinGame(code, attempt=1, onEmpty=null){
     me.id = id;
     const conn = peer.connect(PREFIX+code, { reliable:true, serialization:'json' }); NET.host = conn;
     conn.on('open', () => conn.send({ k:'hello', name:me.name, look:lookCode() }));
-    conn.on('data', d => { if (d && d.k==='snap'){ clearTimeout(timer); done=true; } onClientData(d); });
+    conn.on('data', d => {
+      if (d && d.k==='full'){ clearTimeout(timer); fail(`That world is full — only ${MAX_PLAYERS} players can be in it at a time. Try again when someone leaves.`); return; }
+      if (d && d.k==='snap'){ clearTimeout(timer); done=true; } onClientData(d); });
     conn.on('error', () => {});
     conn.on('close', () => { if (running && !over){ over=true; showOver(FW.code ? 'The friend who was hosting left. Press Rejoin — whoever opens it first keeps the world going.' : 'The host left the game.'); } });
   });
@@ -934,9 +937,16 @@ function snapshot(){
 
 function onHostData(conn, d){
   if (!d || !d.k) return;
+  if (d.k!=='hello' && !others.has(conn.peer)) return;   // ignore anyone who wasn't let in
   if (!NET.conns.has(conn.peer)) NET.conns.set(conn.peer, conn);
   if (d.k==='hello'){
     const name = String(d.name||'Friend').slice(0,14);
+    if (!others.has(conn.peer) && others.size >= MAX_PLAYERS-1){
+      try { conn.send({ k:'full' }); } catch(e){}
+      NET.conns.delete(conn.peer); setTimeout(()=>{ try { conn.close(); } catch(e){} }, 400);
+      feed(`🚫 ${name} tried to join, but the world is full (${MAX_PLAYERS} players max)`);
+      return;
+    }
     conn.send(snapshot());
     if (FW.code) setTimeout(saveGame, 500);
     getOther(conn.peer, name, d.look|0);
