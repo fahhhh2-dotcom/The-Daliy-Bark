@@ -66,7 +66,7 @@ def main():
     out, ok = [], 0
     for c in creators:
         prev = old.get(c["name"], {})
-        entry = {k: c[k] for k in ("name", "game", "desc", "handle") if k in c}
+        entry = {k: c[k] for k in ("name", "game", "genre", "desc", "handle") if k in c}
         entry["id"] = c.get("id") or prev.get("id")
         entry["avatar"] = prev.get("avatar", "")
         entry["videos"] = prev.get("videos", [])

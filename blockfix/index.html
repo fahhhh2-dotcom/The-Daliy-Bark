@@ -254,6 +254,39 @@
   .pui button:focus-visible{outline:none}.pui button:focus-visible svg{transform:scale(1.25);filter:drop-shadow(0 0 6px #fff)}
   body.tv .vt{flex-basis:clamp(220px,19vw,320px)}
   body.tv .ptitle{font-size:20px}
+.mt{flex:0 0 clamp(130px,13vw,180px);scroll-snap-align:start;cursor:pointer;transition:transform .2s}
+  .mt .art{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;background:#222;box-shadow:0 6px 16px rgba(0,0,0,.5)}
+  .mt .art img{width:100%;height:100%;object-fit:cover}
+  .mt .art .pl{position:absolute;right:8px;bottom:8px;width:40px;height:40px;border-radius:50%;background:var(--red);display:grid;place-items:center;opacity:0;transform:translateY(6px);transition:.2s;box-shadow:0 4px 10px rgba(0,0,0,.5)}
+  .mt .art .pl svg{width:18px;height:18px}
+  .mt:hover .art .pl,.mt:focus .art .pl,.mt.now .art .pl{opacity:1;transform:none}
+  .mt .mtt{font-size:13px;font-weight:700;margin-top:8px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .mt .mta{font-size:12px;color:#8c8c8c;margin-top:2px}
+  .mt.now .mtt{color:var(--red)}
+  .mt:hover,.mt:focus{transform:scale(1.05);outline:none}.mt:focus .art{box-shadow:0 0 0 3px #fff}
+  .at{flex:0 0 clamp(110px,11vw,150px);scroll-snap-align:start;cursor:pointer;text-align:center;transition:transform .2s}
+  .at img{width:100%;aspect-ratio:1;border-radius:50%;object-fit:cover;background:#222;image-rendering:pixelated;box-shadow:0 6px 16px rgba(0,0,0,.5)}
+  .at span{display:block;font-size:13px;font-weight:700;margin-top:8px}
+  .at small{display:block;font-size:12px;color:#8c8c8c}
+  .at:hover,.at:focus{transform:scale(1.06);outline:none}.at:focus img{box-shadow:0 0 0 3px #fff}
+  #mini{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#181818;border-top:1px solid #2a2a2a;display:flex;align-items:center;gap:14px;padding:10px 14px;padding-bottom:max(10px,env(safe-area-inset-bottom));transition:transform .3s}
+  #mini.off{transform:translateY(110%);pointer-events:none}
+  #mini .mbar{position:absolute;left:0;right:0;top:-3px;height:3px;background:#333;cursor:pointer}
+  #mini .mbar i{display:block;height:100%;background:var(--red);width:0}
+  #mini .mv{flex:none;width:178px;height:100px;border-radius:4px;overflow:hidden;background:#000;position:relative}
+  #mini .mv iframe{width:100%;height:100%;border:0}
+  #mini .mi{flex:1;min-width:0}
+  #mini .mi b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #mini .mi span{font-size:12px;color:#aaa}
+  #mini .mc{display:flex;align-items:center;gap:6px}
+  #mini .mc button{width:40px;height:40px;border-radius:50%;display:grid;place-items:center}
+  #mini .mc button svg{width:24px;height:24px}
+  #mini .mc .big{background:#fff;width:46px;height:46px}
+  #mini .mc .big svg{filter:invert(1)}
+  #mini .mc button.on svg{filter:drop-shadow(0 0 0 var(--red))}
+  #mini .mc #mShuf.on{background:rgba(229,9,20,.25)}
+  @media (max-width:640px){#mini .mv{width:112px;height:63px}#mini #mShuf,#mini #mPrev{display:none}}
+  body.musicon .rows{padding-bottom:140px}
   footer{color:#757575;font-size:13px;padding:10px 4% 50px;line-height:1.6;max-width:900px}
 </style>
 </head>
@@ -312,6 +345,18 @@
 
 <footer>BlockFix is a fan site for watching gaming YouTubers. Every video plays from the creator's own official YouTube channel. Not affiliated with Netflix, Minecraft, Epic Games, Roblox or YouTube.<br><span id="upd"></span></footer>
 
+<div id="mini" class="off">
+  <div class="mbar" id="mBar"><i id="mFill"></i></div>
+  <div class="mv"><div id="mYT"></div></div>
+  <div class="mi"><b id="mT"></b><span id="mA"></span></div>
+  <div class="mc">
+    <button id="mShuf" aria-label="Shuffle"></button>
+    <button id="mPrev" aria-label="Previous song"></button>
+    <button id="mPlay2" class="big" aria-label="Play or pause music"></button>
+    <button id="mNext" aria-label="Next song"></button>
+    <button id="mClose" aria-label="Close music">✕</button>
+  </div>
+</div>
 <div id="gameview" class="hidden"><button class="gback" id="gBack"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M19 12H5m6-7-7 7 7 7"/></svg>BlockFix</button><div id="gframe"></div></div>
 <div class="modal hidden" id="modal"><div class="sheet" id="sheet"></div></div>
 
@@ -374,7 +419,7 @@ const I={
 /* ===== DATA ===== */
 const GAMES=["Minecraft","Fortnite","Roblox","Horror","Variety"];
 const GAME_TITLES={Minecraft:"Minecraft",Fortnite:"Fortnite",Roblox:"Roblox",Horror:"Scary Games",Variety:"Gaming Mix"};
-let CREATORS=[],ALLV=[],UPDATED=null;
+let CREATORS=[],ALLV=[],UPDATED=null,MUSIC=[],ALLM=[];
 const PAD='<svg viewBox="0 0 24 24" fill="#fff"><path d="M7 7h10a5 5 0 0 1 4.9 6l-.8 3.8a2.6 2.6 0 0 1-4.5 1.1L14.6 16H9.4l-2 1.9a2.6 2.6 0 0 1-4.5-1.1L2.1 13A5 5 0 0 1 7 7zm0 3v1.5H5.5v1H7V14h1v-1.5h1.5v-1H8V10zm9.5.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm-2 1.6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>';
 const PLAYABLE=[
   {key:'fishing',title:'Deep Blue Fishing',genre:'Relaxing · Fishing',url:'../games/fishing/',art:'art/fishing.jpg',desc:'Cast your line, reel in rare fish and explore new islands. Sell your catch, upgrade your rod and fill your collection.'},
@@ -410,8 +455,11 @@ async function loadData(){
   try{const r=await fetch('videos.json?'+Math.floor(Date.now()/6e5));if(r.ok)data=await r.json()}catch{}
   if(!data){try{const r=await fetch('creators.json');data={creators:await r.json()}}catch{data={creators:[]}}}
   UPDATED=data.updated||null;
-  CREATORS=data.creators.map(c=>({...c,videos:(c.videos||[]).filter(v=>v.id)}));
+  const all=data.creators.map(c=>({...c,videos:(c.videos||[]).filter(v=>v.id)}));
+  CREATORS=all.filter(c=>c.game!=='Music');MUSIC=all.filter(c=>c.game==='Music');
   ALLV=[];CREATORS.forEach(c=>c.videos.forEach(v=>{v.c=c;ALLV.push(v)}));
+  ALLM=[];MUSIC.forEach(c=>{c.videos=c.videos.filter(v=>!v.short);c.videos.forEach(v=>{v.c=c;ALLM.push(v)})});
+  ALLM.sort((a,b)=>new Date(b.published)-new Date(a.published));
   ALLV.sort((a,b)=>new Date(b.published)-new Date(a.published));
   if(UPDATED)$('#upd').textContent='Videos updated '+ago(UPDATED).toLowerCase()+'.';
 }
@@ -578,7 +626,7 @@ function toast(t){const d=document.createElement('div');d.className='toast';d.te
 
 /* ===== nav ===== */
 let view='home',term='';
-const VIEWS=[['home','Home'],['play','Play Games'],...GAMES.map(g=>[g,GAME_TITLES[g]]),['list','My List']];
+const VIEWS=[['home','Home'],['play','Play Games'],['music','Music'],...GAMES.map(g=>[g,GAME_TITLES[g]]),['list','My List']];
 $('#links').innerHTML=VIEWS.map(([v,t])=>`<button data-v="${v}">${t}</button>`).join('');
 $('#chips').innerHTML=VIEWS.slice(1).map(([v,t])=>`<button data-v="${v}">${t}</button>`).join('');
 document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{view=(view===b.dataset.v&&b.closest('#chips'))?'home':b.dataset.v;render();scrollTo({top:0,behavior:'smooth'})});
@@ -607,6 +655,81 @@ function row(title,items,make,icon){
   r.innerHTML=`<h3>${icon?`<img src="${esc(icon)}" alt="" referrerpolicy="no-referrer">`:''}${esc(title)}</h3>`;
   if(!items.length){r.insertAdjacentHTML('beforeend','<p class="empty">Nothing here yet.</p>');return r}
   const tr=document.createElement('div');tr.className='track';items.forEach((x,i)=>tr.appendChild(make(x,i)));r.appendChild(tr);return r;
+}
+
+/* ===== MUSIC ===== */
+const MI={shuf:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 6h3.5a5 5 0 0 1 4 2l3 4a5 5 0 0 0 4 2H21m0 0-3-3m3 3-3 3M3 18h3.5a5 5 0 0 0 4-2l.8-1M21 6h-3.5a5 5 0 0 0-3.5 1.4M21 6l-3-3m3 3-3 3"/></svg>',
+ prev:'<svg viewBox="0 0 24 24" fill="#fff"><path d="M20 4v16L9 12z"/><rect x="4" y="4" width="3" height="16" rx=".5"/></svg>'};
+const cleanTitle=t=>String(t).replace(/\s*[\[(](official|music|lyric|audio|video|hd|4k|full)[^\])]*[\])]/gi,'').trim();
+function mtile(v,list){
+  const t=document.createElement('div');t.className='mt'+(mcur&&mcur.id===v.id?' now':'');t.tabIndex=0;t.dataset.vid=v.id;
+  t.innerHTML=`<div class="art"><img src="${thumb(v.id,'hqdefault')}" alt="" loading="lazy"><span class="pl">${I.play}</span></div><div class="mtt">${esc(cleanTitle(v.title))}</div><div class="mta">${esc(v.c.name)}</div>`;
+  t.onclick=()=>playMusic(v,list);return t;
+}
+function atile(c){
+  const t=document.createElement('div');t.className='at';t.tabIndex=0;
+  t.innerHTML=`<img src="${esc(avatarOf(c))}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${esc(c.name)}</span><small>${esc(c.genre||'Artist')}</small>`;
+  t.onclick=()=>openArtist(c);return t;
+}
+function openArtist(c){
+  $('#sheet').innerHTML=`<div class="top"><img src="${esc(c.videos[0]?thumb(c.videos[0].id,'maxresdefault'):avatarOf(c))}" alt="" referrerpolicy="no-referrer"${c.videos[0]?` onerror="this.onerror=null;this.src='${thumb(c.videos[0].id,'hqdefault')}'"`:''}><button class="x" id="mx">✕</button>
+    <div class="copy"><h2><img src="${esc(avatarOf(c))}" alt="" referrerpolicy="no-referrer">${esc(c.name)}</h2><div class="btns">
+    <button class="b-play" id="aPlay">${I.playBig}Play</button><button class="b-info" id="aShuf">${MI.shuf}Shuffle</button>
+    <a class="circle" href="${chanURL(c)}" target="_blank" rel="noopener" title="Open on YouTube">↗</a></div></div></div>
+    <div class="body"><div class="meta"><span class="match">Music</span><span>${esc(c.genre||'')}</span>${c.videos.length?`<span>${c.videos.length} songs</span>`:''}</div><p>${esc(c.desc)}</p>
+    ${c.videos.length?`<div class="eps-h"><h4>Songs</h4><span>Newest first</span></div><div id="eps">${epList(c)}</div>`:'<p style="color:#aaa;margin-top:14px">Songs show up here after the next update.</p>'}</div>`;
+  $('#mx').onclick=closeInfo;
+  $('#aPlay').onclick=()=>{closeInfo();c.videos[0]&&playMusic(c.videos[0],c.videos)};
+  $('#aShuf').onclick=()=>{closeInfo();if(!c.videos.length)return;shuffleOn=true;syncShuf();const l=[...c.videos].sort(()=>Math.random()-.5);playMusic(l[0],l)};
+  document.querySelectorAll('#eps .ep').forEach(e=>e.onclick=()=>{closeInfo();playMusic(c.videos.find(v=>v.id===e.dataset.id),c.videos)});
+  modal.classList.remove('hidden');modal.scrollTop=0;document.body.style.overflow='hidden';setTimeout(()=>$('#aPlay')?.focus({preventScroll:true}),80);
+}
+let myt=null,mReady=false,mcur=null,mlist=[],shuffleOn=false,mTick=null;
+const mini=$('#mini');
+$('#mShuf').innerHTML=MI.shuf;$('#mPrev').innerHTML=MI.prev;$('#mNext').innerHTML=I.next;$('#mPlay2').innerHTML=I.pause;
+function syncShuf(){$('#mShuf').classList.toggle('on',shuffleOn)}
+async function playMusic(v,list){
+  if(!v)return;mcur=v;mlist=list&&list.length?list:[v];
+  if(yt&&ytReady){try{yt.pauseVideo()}catch{}}
+  $('#mT').textContent=cleanTitle(v.title);$('#mA').textContent=v.c.name;
+  mini.classList.remove('off');document.body.classList.add('musicon');
+  document.querySelectorAll('.mt.now').forEach(x=>x.classList.remove('now'));
+  const r=await loadYT();if(r==='fail'){toast('Music player couldn\'t load');return}
+  if(myt&&mReady)myt.loadVideoById(v.id);
+  else if(!myt){myt=new YT.Player('mYT',{videoId:v.id,host:'https://www.youtube-nocookie.com',
+    playerVars:{autoplay:1,controls:0,rel:0,playsinline:1,modestbranding:1,iv_load_policy:3,disablekb:1,fs:0},
+    events:{onReady:()=>{mReady=true;myt.playVideo();startMTick()},
+      onStateChange:e=>{$('#mPlay2').innerHTML=e.data===1?I.pause:I.play;if(e.data===0)musicNext()},
+      onError:()=>{toast('That song can\'t play here. Skipping…');setTimeout(musicNext,800)}}})}
+  document.querySelectorAll(`.mt[data-vid="${v.id}"]`).forEach(x=>x.classList.add('now'));
+}
+function musicNext(){if(!mcur)return;let n;if(shuffleOn&&mlist.length>1){do{n=mlist[Math.floor(Math.random()*mlist.length)]}while(n===mcur)}else{const i=mlist.indexOf(mcur);n=mlist[(i+1)%mlist.length]}playMusic(n,mlist)}
+function musicPrev(){if(!mcur)return;if(mReady&&myt.getCurrentTime()>5){myt.seekTo(0,true);return}const i=mlist.indexOf(mcur);playMusic(mlist[(i-1+mlist.length)%mlist.length],mlist)}
+function musicToggle(){if(!myt||!mReady)return;myt.getPlayerState()===1?myt.pauseVideo():myt.playVideo()}
+function startMTick(){clearInterval(mTick);mTick=setInterval(()=>{if(!myt||!mReady)return;try{const t=myt.getCurrentTime(),d=myt.getDuration();if(d)$('#mFill').style.width=(t/d*100)+'%'}catch{}},500)}
+$('#mPlay2').onclick=musicToggle;$('#mNext').onclick=musicNext;$('#mPrev').onclick=musicPrev;
+$('#mShuf').onclick=()=>{shuffleOn=!shuffleOn;syncShuf();toast(shuffleOn?'Shuffle on':'Shuffle off')};
+$('#mClose').onclick=()=>{try{myt&&myt.stopVideo()}catch{};mcur=null;mini.classList.add('off');document.body.classList.remove('musicon');render()};
+$('#mBar').onclick=e=>{if(!myt||!mReady)return;const r=e.currentTarget.getBoundingClientRect();myt.seekTo((e.clientX-r.left)/r.width*myt.getDuration(),true)};
+function musicRows(rows){
+  if(!ALLM.length){rows.insertAdjacentHTML('beforeend','<p class="empty">Music is loading in. Check back in a few minutes!</p>');rows.appendChild(row('Artists',MUSIC,atile));return}
+  rows.appendChild(row('New Music',ALLM.slice(0,24),v=>mtile(v,ALLM.slice(0,24))));
+  const mine=ALLM.filter(v=>/minecraft|c418|lena raine/i.test(v.title+' '+v.c.name));
+  if(mine.length>2)rows.appendChild(row('Minecraft Music',mine.slice(0,24),v=>mtile(v,mine)));
+  rows.appendChild(row('Artists',MUSIC.filter(c=>c.videos.length),atile));
+  [...new Set(MUSIC.map(c=>c.genre))].forEach(g=>{const l=ALLM.filter(v=>v.c.genre===g);if(l.length)rows.appendChild(row(g,l.slice(0,24),v=>mtile(v,l)))});
+  const mix=shuffle(ALLM).slice(0,30);rows.appendChild(row('Daily Mix',mix,v=>mtile(v,mix)));
+}
+function musicHero(){
+  const v=shuffle(ALLM.filter(v=>age(v)<30*864e5))[0]||ALLM[0];const h=$('#hero');
+  if(!v){hero(null,MUSIC[0]);return}
+  h.innerHTML=`<img class="bg" src="${thumb(v.id,'maxresdefault')}" alt="" onerror="this.onerror=null;this.src='${thumb(v.id,'hqdefault')}'">
+   <div class="copy"><div class="badge"><b>B</b> MUSIC</div><div class="by"><img src="${esc(avatarOf(v.c))}" alt="" referrerpolicy="no-referrer">${esc(v.c.name)}</div>
+   <h2>${esc(cleanTitle(v.title))}</h2><div class="meta"><span class="match">Video Game Music</span><span>${ago(v.published)}</span></div>
+   <p>Listen while you browse. Music keeps playing at the bottom of the screen.</p>
+   <div class="btns"><button class="b-play" id="hPlay">${I.playBig}Listen</button><button class="b-info" id="hInfo">${MI.shuf}Shuffle All</button></div></div>`;
+  $('#hPlay').onclick=()=>playMusic(v,ALLM);
+  $('#hInfo').onclick=()=>{shuffleOn=true;syncShuf();const l=shuffle(ALLM,String(Math.random()));playMusic(l[0],l)};
 }
 
 /* ===== playable games ===== */
@@ -670,10 +793,13 @@ function render(){
     $('#hero').style.display='none';rows.style.marginTop='110px';
     const gs=PLAYABLE.filter(g=>(g.title+' '+g.genre+' game games play').toLowerCase().includes(term));
     if(gs.length)rows.appendChild(row('Games',gs,gtile));
+    const ms=ALLM.filter(v=>(v.title+' '+v.c.name+' music song').toLowerCase().includes(term)).slice(0,30);
+    if(ms.length)rows.appendChild(row('Music',ms,v=>mtile(v,ms)));
     if(cs.length)rows.appendChild(row('Creators',cs,(c,i)=>ctile(c,i)));
     rows.appendChild(row(`Videos matching "${q.value}"`,vs,v=>vtile(v)));return;
   }
   $('#hero').style.display='';rows.style.marginTop='';
+  if(view==='music'){musicHero();musicRows(rows);return}
   if(view==='play'){
     gameHero(PLAYABLE[hash(daySeed)%PLAYABLE.length]);
     rows.appendChild(row('Play Now',PLAYABLE,gtile));
@@ -700,6 +826,7 @@ function render(){
     if(hasV){
       const week=longOnly(ALLV.filter(v=>age(v)<7*864e5));
       rows.appendChild(row('Games You Can Play',PLAYABLE,gtile));
+      if(ALLM.length){const mm=shuffle(ALLM).slice(0,20);rows.appendChild(row('Video Game Music',mm,v=>mtile(v,mm)))}
       if(week.length)rows.appendChild(row('Trending Now',[...week].sort((a,b)=>b.views-a.views).slice(0,20),v=>vtile(v)));
       rows.appendChild(row('Top 10 Creators Today',shuffle(CREATORS.filter(c=>c.videos.length)).slice(0,10),(c,i)=>ctile(c,i,true)));
       rows.appendChild(row('New Releases',longOnly(ALLV).slice(0,24),v=>vtile(v)));
@@ -753,7 +880,7 @@ function loadYT(){return new Promise(res=>{if(window.YT&&YT.Player)return res();
   setTimeout(()=>res(window.YT&&YT.Player?undefined:'fail'),12000)})}
 
 async function play(v){
-  if(!v)return;cur=v;queue=v.c.videos;
+  if(!v)return;cur=v;queue=v.c.videos;if(myt&&mReady){try{myt.pauseVideo()}catch{}}
   const p=progress()[v.id];const start=p?Math.floor(p.t):0;
   openPlayer();
   $('#pTitle').innerHTML=`<b>${esc(v.c.name)}</b>&nbsp; ${esc(v.title)}`;
@@ -880,7 +1007,7 @@ function layer(){
   if(shown(modal))return $('#sheet');
   return document.body;
 }
-const FOCUSABLE='button,a[href],input,[tabindex="0"],.vt,.ct,.gt,.ep,.prof';
+const FOCUSABLE='button,a[href],input,[tabindex="0"],.vt,.ct,.gt,.ep,.prof,.mt,.at';
 function candidates(root){
   return [...root.querySelectorAll(FOCUSABLE)].filter(el=>{
     if(el.closest('.gone,.hidden'))return false;
@@ -916,7 +1043,7 @@ window.tvBack=function(){
   if(view!=='home'){view='home';render();scrollTo({top:0});focusFirst();return true}
   return false;
 };
-window.tvPlayPause=function(){if(shown(P)){toggle();wake()}};
+window.tvPlayPause=function(){if(shown(P)){toggle();wake()}else if(mcur)musicToggle()};
 addEventListener('keydown',e=>{
   const k=e.key,tag=(document.activeElement&&document.activeElement.tagName)||'';
   const typing=tag==='INPUT'&&document.activeElement.type!=='range';
@@ -929,7 +1056,7 @@ addEventListener('keydown',e=>{
   }
   const dirs={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'};
   if(dirs[k]){if(typing&&(k==='ArrowLeft'||k==='ArrowRight'))return;e.preventDefault();moveFocus(dirs[k]);return}
-  if(k==='Enter'&&!typing){const el=document.activeElement;if(el&&el.matches('.vt,.ct,.gt,.ep,[tabindex="0"]')&&el.tagName!=='BUTTON'){e.preventDefault();remember();el.click()}}
+  if(k==='Enter'&&!typing){const el=document.activeElement;if(el&&el.matches('.vt,.ct,.gt,.ep,.mt,.at,[tabindex="0"]')&&el.tagName!=='BUTTON'){e.preventDefault();remember();el.click()}}
   if((k==='Escape'||(k==='Backspace'&&!typing))&&!shown(P)){if(tvBack())e.preventDefault()}
 },true);
 document.addEventListener('click',e=>{if(e.target.closest('.vt,.ct,.gt,.ep'))remember()},true);
