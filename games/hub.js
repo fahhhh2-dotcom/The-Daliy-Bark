@@ -22,7 +22,8 @@
     melon: { name: "Melon Lab Sandbox", key: "melonLabStats", genre: "Physics Sandbox", desc: "A physics playground like Melon Playground. Drop in floppy melon, pumpkin and lemon people (or yourself!), then throw them around, bounce them on spring pads, blow them across the lab with fans, float them away with balloons and set off chain reactions of TNT. Cartoon booms, dizzy stars, no blood.", how: "<b>Pick</b> something from the bottom bar and <b>tap</b> to drop it in. <b>Drag</b> things to throw them. Use 👉 Poke on TNT to blow it up." },
     spelling: { name: "Spelling Quest", key: "sq9-best-mix", genre: "Spelling", desc: "Practice your spelling words with 9 different mini-games: hangman, word scramble, hear-and-spell, match, fill the gap, beat the clock and more. Try to set a best score in every mode.", how: "<b>Pick a game mode</b>, listen to the word and spell it. Every mode keeps your best score." }
   };
-  const ORDER = ["fishing", "graveyard", "runner", "bugs", "last-ember", "melon", "nebula", "tycoon", "peaks", "spelling"];
+  const ORDER = ["melon", "fishing", "graveyard", "runner", "bugs", "last-ember", "nebula", "tycoon", "peaks", "spelling"];
+  const NEW_GAMES = ["melon", "nebula", "tycoon", "peaks", "spelling"];
 
   // pictures (ids made unique for every copy)
   let artN = 0;
@@ -120,7 +121,7 @@
     let meta = p ? `<span>▶ ${p} play${p === 1 ? "" : "s"}</span>` : `<span>🆕 New</span>`;
     if (st) { const l = statList(g, S)[0]; meta += `<span>${esc(l[1])}</span>`; }
     const prog = opts.progress ? `<div class="bar"><i style="width:${Math.min(100, 15 + (gotBadges(S).filter(id => (BADGES.find(b => b.id === id) || {}).g === g).length / BADGES.filter(b => b.g === g).length) * 85)}%"></i></div>` : "";
-    return `<div class="tile" data-g="${g}"><div class="thumb">${art(g)}${g === gotd ? '<span class="tag">⭐ TODAY</span>' : ""}${prog}</div><b>${GAMES[g].name}</b><div class="meta">${meta}</div></div>`;
+    return `<div class="tile" data-g="${g}"><div class="thumb">${art(g)}${g === gotd ? '<span class="tag">⭐ TODAY</span>' : NEW_GAMES.includes(g) && !plays()[g] ? '<span class="tag" style="background:#3fc679;color:#fff">🆕 NEW</span>' : ""}${prog}</div><b>${GAMES[g].name}</b><div class="meta">${meta}</div></div>`;
   }
   document.addEventListener("click", e => {
     const t = e.target.closest(".tile[data-g]"); if (t) { sfx("tap"); location.hash = "game-" + t.dataset.g; return; }
@@ -142,7 +143,9 @@
     $("badgeRow").innerHTML = [...got, ...next].slice(0, 10).map(b => `<div class="tile" style="cursor:default">${badgeHTML(b, ids.includes(b.id))}</div>`).join("");
   }
   function paintGames(q) {
-    const list = ORDER.filter(g => !q || (GAMES[g].name + " " + GAMES[g].genre).toLowerCase().includes(q.toLowerCase()));
+    const EXTRA = { melon: "melon sandbox playground ragdoll physics tnt", nebula: "space shooter galaxy rocket", tycoon: "phone money business", peaks: "mountains map geography", spelling: "words school", "last-ember": "99 nights forest survival horror", fishing: "fish ocean", graveyard: "zombie halloween tower", runner: "subway run sandwich", bugs: "bug catching net forest" };
+    const words = (q || "").toLowerCase().split(/\s+/).filter(Boolean);
+    const list = ORDER.filter(g => { const hay = (GAMES[g].name + " " + GAMES[g].genre + " " + (EXTRA[g] || "")).toLowerCase(); return words.every(w => hay.includes(w)); });
     $("gamesTitle").textContent = q ? `Results for "${q}"` : "All Games";
     $("allRow").innerHTML = list.length ? list.map(g => tile(g, S)).join("") : `<div class="empty" style="grid-column:1/-1">No games match "${esc(q)}"</div>`;
   }
@@ -223,6 +226,7 @@
   }
   addEventListener("hashchange", () => route(true));
   $("q").addEventListener("input", () => { if (location.hash !== "#games") location.hash = "games"; else paintGames($("q").value.trim()); });
+  $("q2").addEventListener("input", () => { $("q").value = $("q2").value; paintGames($("q2").value.trim()); });
 
   // menu (phones)
   $("burger").onclick = () => document.body.classList.toggle("menu");
