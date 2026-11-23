@@ -26,7 +26,8 @@
     "peakFinderBest",                    // Peak Finder
     "sq9-best-abc", "sq9-best-clock", "sq9-best-gap", "sq9-best-hangman", "sq9-best-hear", "sq9-best-match", "sq9-best-mix", "sq9-best-scramble", "sq9-best-spot",   // Spelling Quest
     "arcade_avatar", "arcade_wallet",    // Arcade avatar + coins
-    "melonLabStats"                      // Melon Lab
+    "melonLabStats",                     // Melon Lab
+    "spaceSusStats", "susName", "susColor"   // Space Suspects
   ];
   const META = "arcade_sync_times";
   const IS_HUB = !!window.ARCADE_HUB;

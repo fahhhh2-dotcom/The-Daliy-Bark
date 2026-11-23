@@ -19,11 +19,12 @@
     nebula: { name: "Nebula Blaster", key: "nebulaBest", genre: "Space Shooter", desc: "Blast asteroids, zigzag saucers and dive-bombing alien ships in a glowing neon nebula. Grab triple shot, shields, extra lives and bombs, build up combos, and survive a giant boss every 5 waves.", how: "<b>Arrow keys / WASD</b> to fly (it fires by itself). <b>Space</b> drops a bomb. On a phone, <b>drag your finger</b> to fly and <b>double-tap</b> for a bomb." },
     tycoon: { name: "Phone Factory Tycoon", key: "phoneTycoon", genre: "Tycoon", desc: "Start a phone company in a garage. Design phones, build them on the assembly line, set your prices, hire workers, research new tech like 5G and folding screens, and grow into a phone empire worth $1,000,000.", how: "<b>Design</b> a phone and save it, <b>click the parts in order</b> to build it, then set a fair price so shoppers buy it." },
     peaks: { name: "Peak Finder", key: "peakFinderBest", genre: "Geography", desc: "Find the biggest mountains and mountain ranges of North and South America on the map, from Denali to Aconcagua and the Andes. Study the map first, then go for 3 stars on every place.", how: "<b>Tap the dot</b> where the mountain is. Stuck? Use a <b>hint</b>, or try <b>Study the map</b> first." },
+    sus: { name: "Space Suspects", key: "spaceSusStats", genre: "Hide & Find · Online", desc: "Fix the space station with your crew of jelly-bots… but someone is a sneaky Saboteur! Do task mini-games, report bodies, call emergency meetings, chat and vote out the suspect. Play against bots, or host a game and friends join with a code.", how: "<b>WASD</b> or the <b>joystick</b> to move. <b>USE</b> at a ! to do a task. Saboteurs <b>ZAP</b> crew when nobody's looking. <b>REPORT</b> bodies, then vote!" },
     melon: { name: "Melon Lab Sandbox", key: "melonLabStats", genre: "Physics Sandbox · Online", desc: "A physics playground like Melon Playground. Drop in floppy melon, pumpkin and lemon people, then throw them, smash them with the hammer, shoot them with cartoon guns, cut off arms and legs, blow them up with TNT, or try out syringes like Acid, Immortal and Giant Rage. Play as your own guy, and host a lab so friends can join you online.", how: "<b>Pick</b> something from the bottom bar and <b>tap</b> to drop it in. <b>🎮 Play</b> to be a guy (A/D to walk, W to jump, F to punch). <b>👥 Online</b> to host or join a friend's lab." },
     spelling: { name: "Spelling Quest", key: "sq9-best-mix", genre: "Spelling", desc: "Practice your spelling words with 9 different mini-games: hangman, word scramble, hear-and-spell, match, fill the gap, beat the clock and more. Try to set a best score in every mode.", how: "<b>Pick a game mode</b>, listen to the word and spell it. Every mode keeps your best score." }
   };
-  const ORDER = ["melon", "fishing", "graveyard", "runner", "bugs", "last-ember", "nebula", "tycoon", "peaks", "spelling"];
-  const NEW_GAMES = ["melon", "nebula", "tycoon", "peaks", "spelling"];
+  const ORDER = ["sus", "melon", "fishing", "graveyard", "runner", "bugs", "last-ember", "nebula", "tycoon", "peaks", "spelling"];
+  const NEW_GAMES = ["sus", "melon", "nebula", "tycoon", "peaks", "spelling"];
 
   // pictures (ids made unique for every copy)
   let artN = 0;
@@ -43,6 +44,7 @@
       nebula: ls.get("nebulaBest") !== null ? { best: +ls.get("nebulaBest") || 0 } : null,
       tycoon: (() => { const t = ls.json("phoneTycoon"); return t && t.company ? { money: t.money || 0, sold: t.sold || 0, day: t.day || 1, models: (t.models || []).length, research: count(t.unlocked) } : null; })(),
       peaks: ls.get("peakFinderBest") !== null ? { stars: +ls.get("peakFinderBest") || 0 } : null,
+      sus: (() => { const m = ls.json("spaceSusStats"); return m && m.games ? { games: m.games || 0, wins: m.wins || 0, impWins: m.impWins || 0, tasks: m.tasks || 0, zaps: m.zaps || 0 } : null; })(),
       melon: (() => { const m = ls.json("melonLabStats"); return m && { spawned: m.spawned || 0, booms: m.booms || 0, kos: m.kos || 0 }; })(),
       spelling: (() => { const modes = ["abc","clock","gap","hangman","hear","match","mix","scramble","spot"]; let played = 0, best = 0; modes.forEach(m => { const v = parseFloat(ls.get("sq9-best-" + m)); if (!isNaN(v)) { played++; best = Math.max(best, v); } }); return played ? { modes: played, best } : null; })()
     };
@@ -58,6 +60,7 @@
       nebula: [["High score", fmt(s.best)]],
       tycoon: [["Money", "$" + fmt(s.money)], ["Phones sold", fmt(s.sold)], ["Day", s.day], ["Research", s.research + " / 6"]],
       peaks: [["Best stars", s.stars + " / 24"]],
+      sus: [["Games", s.games], ["Wins", s.wins], ["Tasks done", s.tasks], ["Saboteur wins", s.impWins]],
       melon: [["Things made", fmt(s.spawned)], ["Explosions", fmt(s.booms)], ["Knock-outs", fmt(s.kos)]],
       spelling: [["Modes played", s.modes + " / 9"], ["Top score", fmt(s.best)]]
     }[g];
@@ -94,8 +97,11 @@
     { id: "m1", g: "melon", ic: "🍉", name: "Mad Scientist", how: "Make 50 things in Melon Lab", ok: S => S.melon && S.melon.spawned >= 50 },
     { id: "m2", g: "melon", ic: "💥", name: "Demolition Crew", how: "Set off 25 explosions in Melon Lab", ok: S => S.melon && S.melon.booms >= 25 },
     { id: "m3", g: "melon", ic: "🥊", name: "Fruit Fighter", how: "Knock out 10 fruit people in Melon Lab", ok: S => S.melon && S.melon.kos >= 10 },
+    { id: "su1", g: "sus", ic: "🔧", name: "Good Crewmate", how: "Finish 20 tasks in Space Suspects", ok: S => S.sus && S.sus.tasks >= 20 },
+    { id: "su2", g: "sus", ic: "⚡", name: "Sneaky Saboteur", how: "Win as the Saboteur", ok: S => S.sus && S.sus.impWins >= 1 },
+    { id: "su3", g: "sus", ic: "🕵️", name: "Detective", how: "Win 5 games of Space Suspects", ok: S => S.sus && S.sus.wins >= 5 },
     { id: "w1", g: "spelling", ic: "✏️", name: "Word Wizard", how: "Play 5 Spelling Quest modes", ok: S => S.spelling && S.spelling.modes >= 5 },
-    { id: "all", g: null, ic: "🕹️", name: "Arcade Explorer", how: "Play all 10 games", ok: S => ORDER.every(g => S[g]) },
+    { id: "all", g: null, ic: "🕹️", name: "Arcade Explorer", how: "Play all 11 games", ok: S => ORDER.every(g => S[g]) },
     { id: "day", g: null, ic: "⭐", name: "Daily Player", how: "Play the Game of the Day", ok: () => ls.get("arcade_gotd_played") === today() },
     { id: "lucky", g: null, ic: "🎲", name: "Feeling Lucky", how: "Use Surprise Me", ok: () => !!ls.get("arcade_surprised") }
   ];
@@ -144,7 +150,7 @@
     $("badgeRow").innerHTML = [...got, ...next].slice(0, 10).map(b => `<div class="tile" style="cursor:default">${badgeHTML(b, ids.includes(b.id))}</div>`).join("");
   }
   function paintGames(q) {
-    const EXTRA = { melon: "melon sandbox playground ragdoll physics tnt", nebula: "space shooter galaxy rocket", tycoon: "phone money business", peaks: "mountains map geography", spelling: "words school", "last-ember": "99 nights forest survival horror", fishing: "fish ocean", graveyard: "zombie halloween tower", runner: "subway run sandwich", bugs: "bug catching net forest" };
+    const EXTRA = { sus: "among us impostor saboteur crew space vote sus", melon: "melon sandbox playground ragdoll physics tnt", nebula: "space shooter galaxy rocket", tycoon: "phone money business", peaks: "mountains map geography", spelling: "words school", "last-ember": "99 nights forest survival horror", fishing: "fish ocean", graveyard: "zombie halloween tower", runner: "subway run sandwich", bugs: "bug catching net forest" };
     const words = (q || "").toLowerCase().split(/\s+/).filter(Boolean);
     const list = ORDER.filter(g => { const hay = (GAMES[g].name + " " + GAMES[g].genre + " " + (EXTRA[g] || "")).toLowerCase(); return words.every(w => hay.includes(w)); });
     $("gamesTitle").textContent = q ? `Results for "${q}"` : "All Games";

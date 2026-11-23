@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>window.ARCADE_NO_BACK = true;</script>
+<script src="../account.js"></script>
+<script src="../avatar.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Space Suspects</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js" async></script>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#05070f;color:#fff;font-family:Fredoka,system-ui,sans-serif;touch-action:none;-webkit-user-select:none;user-select:none}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .scr{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;text-align:center;
+    background:radial-gradient(circle at 50% 30%,#1a2350,#05070f 70%)}
+  .scr[hidden]{display:none}
+  h1{margin:0;font-size:clamp(34px,8vw,58px);color:#7cf3ff;text-shadow:0 0 24px #7cf3ff88;line-height:1}
+  .sub{opacity:.8;max-width:420px;line-height:1.4;margin:0}
+  input.t{height:46px;border-radius:14px;border:2px solid #ffffff33;background:#0b1020;color:#fff;font:600 18px Fredoka;text-align:center;width:min(280px,80vw)}
+  .b{border:0;border-radius:14px;height:50px;padding:0 24px;font:700 18px Fredoka;cursor:pointer;background:#7cf3ff;color:#012;min-width:220px}
+  .b.g{background:#4ade80}.b.p{background:#c084fc}.b.d{background:#ffffff22;color:#fff}.b.r{background:#ff6b6b;color:#fff}
+  .b:disabled{opacity:.45}
+  .row{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .cols{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:340px}
+  .cols i{width:30px;height:30px;border-radius:50%;border:3px solid transparent;cursor:pointer}
+  .cols i.on{border-color:#fff}
+  .msg{min-height:20px;color:#8fe3ff;font-size:14px}
+  .code{font:700 44px Fredoka;letter-spacing:10px;background:#000;border-radius:14px;padding:4px 16px}
+  .plist{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:460px}
+  .plist span{background:#ffffff14;border-radius:20px;padding:6px 12px;font-size:14px}
+  .home{position:absolute;top:calc(env(safe-area-inset-top) + 12px);left:12px;color:#fff;text-decoration:none;background:#ffffff18;border-radius:20px;padding:8px 14px;font-weight:600}
+  /* in-game HUD */
+  #hud{position:fixed;inset:0;z-index:5;pointer-events:none}
+  #hud[hidden]{display:none}
+  .topbar{position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:70px;right:10px;display:flex;gap:10px;align-items:center}
+  .tbar{flex:1;max-width:300px;height:18px;border-radius:9px;background:#0008;border:2px solid #ffffff44;overflow:hidden;position:relative}
+  .tbar i{position:absolute;left:0;top:0;bottom:0;background:#4ade80;width:0;transition:width .4s}
+  .tbar b{position:absolute;inset:0;font-size:11px;text-align:center;line-height:14px}
+  #roleTag{padding:5px 12px;border-radius:20px;font-weight:700;font-size:14px;background:#0008}
+  #taskList{position:absolute;top:calc(env(safe-area-inset-top) + 40px);left:70px;background:#0009;border-radius:12px;padding:8px 12px;font-size:13px;line-height:1.6;max-width:240px}
+  #taskList .d{color:#4ade80;text-decoration:line-through;opacity:.8}
+  .acts{position:absolute;right:14px;bottom:calc(env(safe-area-inset-bottom) + 16px);display:flex;gap:10px;pointer-events:auto}
+  .act{width:82px;height:82px;border-radius:50%;border:3px solid #fff8;background:#000a;color:#fff;font:700 13px Fredoka;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;opacity:.35}
+  .act span{font-size:28px;line-height:1}
+  .act.on{opacity:1;border-color:#fff}
+  .act.kill.on{background:#b91c1c}.act.rep.on{background:#c2410c}.act.use.on{background:#0e7490}
+  .act small{font-size:11px}
+  #joy{position:absolute;left:24px;bottom:calc(env(safe-area-inset-bottom) + 24px);width:130px;height:130px;border-radius:50%;background:#ffffff12;border:2px solid #ffffff33;pointer-events:auto;touch-action:none}
+  #joy i{position:absolute;left:40px;top:40px;width:50px;height:50px;border-radius:50%;background:#ffffff55}
+  #banner{position:fixed;inset:0;z-index:15;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000c;text-align:center;padding:20px}
+  #banner[hidden]{display:none}
+  #banner h2{font-size:clamp(28px,7vw,52px);margin:0 0 10px}
+  #banner p{font-size:18px;opacity:.9;margin:0 0 16px;max-width:520px}
+  /* meeting */
+  #meet{position:fixed;inset:0;z-index:12;background:#0b1226f2;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 12px);gap:10px}
+  #meet[hidden]{display:none}
+  .mtop{display:flex;justify-content:space-between;align-items:center}
+  .mtop h3{margin:0;font-size:22px}
+  .mtimer{font-weight:700;background:#000;border-radius:20px;padding:4px 12px}
+  .mwrap{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:10px;min-height:0}
+  @media (max-width:640px){.mwrap{grid-template-columns:1fr}}
+  .vgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;align-content:start;overflow:auto}
+  .vc{display:flex;align-items:center;gap:8px;background:#ffffff12;border:2px solid transparent;border-radius:12px;padding:6px 8px;cursor:pointer;text-align:left;color:#fff;font:600 14px Fredoka;position:relative}
+  .vc.dead{opacity:.35;cursor:default}
+  .vc.sel{border-color:#7cf3ff}
+  .vc canvas{position:static;width:34px;height:34px}
+  .vc .vt{position:absolute;right:8px;font-size:12px;color:#4ade80}
+  .chat{display:flex;flex-direction:column;background:#0008;border-radius:12px;padding:8px;min-height:0}
+  .clog{flex:1;overflow:auto;font-size:14px;line-height:1.45;min-height:80px}
+  .clog div{margin-bottom:4px}
+  .clog b{font-weight:700}
+  .qc{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .qc button{border:0;border-radius:14px;background:#ffffff18;color:#fff;font:600 12px Fredoka;padding:6px 10px}
+  .cin{display:flex;gap:6px;margin-top:6px}
+  .cin input{flex:1;height:36px;border-radius:10px;border:0;background:#ffffff18;color:#fff;font:600 14px Fredoka;padding:0 10px}
+  .cin button{border:0;border-radius:10px;background:#7cf3ff;color:#012;font:700 14px Fredoka;padding:0 12px}
+  #skipBtn{border:0;border-radius:12px;background:#ffffff22;color:#fff;font:700 15px Fredoka;padding:10px}
+  #skipBtn.sel{background:#7cf3ff;color:#012}
+  /* task mini-game */
+  #task{position:fixed;inset:0;z-index:11;background:#000b;display:flex;align-items:center;justify-content:center}
+  #task[hidden]{display:none}
+  .tbox{background:#1b2440;border:3px solid #7cf3ff66;border-radius:18px;padding:18px;width:min(420px,92vw);text-align:center;position:relative}
+  .tbox h4{margin:0 0 12px;font-size:20px}
+  .tbox .x{position:absolute;right:10px;top:8px;background:none;border:0;color:#fff;font-size:22px}
+  .wires{display:flex;justify-content:space-between}
+  .wires div{display:flex;flex-direction:column;gap:14px}
+  .wires button{width:70px;height:28px;border:3px solid #0006;border-radius:8px}
+  .wires button.done{opacity:.35}
+  .wires button.sel{outline:3px solid #fff}
+  .nums{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .nums button{height:56px;border-radius:10px;border:0;font:700 22px Fredoka;background:#2a3560;color:#fff}
+  .nums button.ok{background:#4ade80;color:#012}
+  .holdb{width:150px;height:150px;border-radius:50%;border:0;font:700 18px Fredoka;background:#0e7490;color:#fff;touch-action:none}
+  .pbar{height:18px;border-radius:9px;background:#0008;margin-top:14px;overflow:hidden}
+  .pbar i{display:block;height:100%;width:0;background:#4ade80}
+  .swipe{position:relative;height:70px;border-radius:12px;background:#0b1020;margin-top:8px}
+  .swipe i{position:absolute;left:6px;top:6px;width:90px;height:58px;border-radius:8px;background:linear-gradient(135deg,#ffd23f,#ff8a3d);touch-action:none}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<!-- start / lobby -->
+<div class="scr" id="startScr">
+  <a class="home" href="../">‹ Arcade</a>
+  <h1>SPACE<br>SUSPECTS</h1>
+  <p class="sub">Fix the station with your crew… but one of you is a sneaky <b>Saboteur</b>. Do tasks, report what you find, call meetings and vote out the suspect!</p>
+  <input class="t" id="nameIn" maxlength="12" placeholder="Your name">
+  <div class="cols" id="cols"></div>
+  <button class="b g" id="soloBtn">🤖 Play with bots</button>
+  <button class="b" id="hostBtn">👥 Host online game</button>
+  <div class="row"><input class="t" id="codeIn" maxlength="5" placeholder="CODE" style="width:140px;text-transform:uppercase;letter-spacing:4px"><button class="b p" id="joinBtn" style="min-width:0">Join</button></div>
+  <div class="msg" id="startMsg"></div>
+</div>
+<div class="scr" id="lobbyScr" hidden>
+  <h1 style="font-size:36px">Waiting room</h1>
+  <p class="sub" id="lobbyTip">Give your friends this code:</p>
+  <div class="code" id="lobbyCode"></div>
+  <div class="plist" id="lobbyPlayers"></div>
+  <div class="row" id="botRow"><span>🤖 Bots:</span><button class="b d" id="botMinus" style="min-width:0">−</button><b id="botN">4</b><button class="b d" id="botPlus" style="min-width:0">+</button></div>
+  <button class="b g" id="startBtn">▶ Start game</button>
+  <button class="b d" id="leaveBtn">Leave</button>
+  <div class="msg" id="lobbyMsg"></div>
+</div>
+
+<!-- HUD -->
+<div id="hud" hidden>
+  <a class="home" href="../" style="pointer-events:auto;top:calc(env(safe-area-inset-top) + 8px);left:8px;padding:7px 12px">‹ 🏠</a>
+  <div class="topbar"><div class="tbar"><i id="tbarFill"></i><b>CREW TASKS</b></div><span id="roleTag"></span></div>
+  <div id="taskList"></div>
+  <div id="joy"><i></i></div>
+  <div class="acts">
+    <button class="act rep" id="repBtn"><span>📢</span>REPORT</button>
+    <button class="act kill" id="killBtn"><span>⚡</span>ZAP<small id="killCd"></small></button>
+    <button class="act use" id="useBtn"><span>✋</span>USE</button>
+  </div>
+</div>
+
+<div id="meet" hidden>
+  <div class="mtop"><h3 id="mTitle">Emergency meeting!</h3><span class="mtimer" id="mTimer"></span></div>
+  <div class="mwrap">
+    <div style="display:flex;flex-direction:column;gap:8px;min-height:0">
+      <div class="vgrid" id="vgrid"></div>
+      <button id="skipBtn">Skip vote</button>
+    </div>
+    <div class="chat">
+      <div class="clog" id="clog"></div>
+      <div class="qc" id="qc"></div>
+      <div class="cin"><input id="chatIn" maxlength="60" placeholder="Say something…"><button id="chatSend">Send</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="task" hidden><div class="tbox" id="tbox"></div></div>
+<div id="banner" hidden><h2 id="bnTitle"></h2><p id="bnText"></p><button class="b" id="bnBtn" hidden>Play again</button></div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const cv = $('cv'), g = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+function resize(){ DPR = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; }
+addEventListener('resize', resize); resize();
+const LS = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
+// ---------------- the station ----------------
+const ROOMS = [
+  { n: 'Cafeteria', x: 900, y: 200, w: 600, h: 450, c: '#2a3a5c' },
+  { n: 'Engines', x: 200, y: 250, w: 400, h: 400, c: '#3a2f4a' },
+  { n: 'Reactor', x: 200, y: 900, w: 400, h: 400, c: '#4a2a2a' },
+  { n: 'Medbay', x: 900, y: 900, w: 300, h: 350, c: '#21424a' },
+  { n: 'Storage', x: 1300, y: 900, w: 400, h: 500, c: '#3a3a2a' },
+  { n: 'Lab', x: 1700, y: 150, w: 400, h: 300, c: '#2a4a3a' },
+  { n: 'Bridge', x: 1900, y: 500, w: 400, h: 400, c: '#2a2f5a' }
+];
+const HALLS = [   // each hall pokes a little into the rooms it joins, so you can walk through doorways
+  { x: 560, y: 400, w: 380, h: 110 }, { x: 345, y: 610, w: 110, h: 330 }, { x: 560, y: 1040, w: 380, h: 110 },
+  { x: 990, y: 610, w: 110, h: 330 }, { x: 1160, y: 1040, w: 180, h: 110 }, { x: 1460, y: 240, w: 280, h: 110 },
+  { x: 1660, y: 1000, w: 490, h: 110 }, { x: 2040, y: 860, w: 110, h: 250 }, { x: 1945, y: 410, w: 110, h: 130 }
+];
+const WALK = [...ROOMS, ...HALLS];
+const PR = 18;   // player radius
+const canStand = (x, y) => WALK.some(r => x > r.x + PR - 2 && x < r.x + r.w - PR + 2 && y > r.y + PR - 2 && y < r.y + r.h - PR + 2);
+const roomAt = (x, y) => (ROOMS.find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) || { n: 'the halls' }).n;
+const BUTTON = { x: 1200, y: 425 };
+const SPAWN = { x: 1200, y: 360 };
+const STATIONS = [
+  { id: 0, x: 960, y: 260, t: 'wires', n: 'Fix wiring' }, { id: 1, x: 1440, y: 600, t: 'hold', n: 'Download data' },
+  { id: 2, x: 260, y: 300, t: 'hold', n: 'Fuel engines' }, { id: 3, x: 540, y: 600, t: 'wires', n: 'Fix wiring' },
+  { id: 4, x: 300, y: 1250, t: 'nums', n: 'Start reactor' }, { id: 5, x: 540, y: 950, t: 'swipe', n: 'Calibrate' },
+  { id: 6, x: 1050, y: 1180, t: 'nums', n: 'Run scan' }, { id: 7, x: 1650, y: 1350, t: 'hold', n: 'Empty trash' },
+  { id: 8, x: 1350, y: 950, t: 'swipe', n: 'Swipe card' }, { id: 9, x: 2040, y: 200, t: 'nums', n: 'Mix samples' },
+  { id: 10, x: 2240, y: 700, t: 'wires', n: 'Fix wiring' }, { id: 11, x: 1960, y: 850, t: 'hold', n: 'Chart course' }
+];
+const COLORS = ['#e8412c', '#3d6bff', '#3fc679', '#ffd23f', '#ff7ab6', '#ff8a3d', '#9b5cff', '#1fc8db', '#f2f3f5', '#8a5a32', '#7cff4f', '#1b1c21'];
+const BOT_NAMES = ['Zip', 'Bolt', 'Nova', 'Pixel', 'Gizmo', 'Comet', 'Sprocket', 'Luna', 'Rivet', 'Blip', 'Orbit', 'Fuse'];
+const KILL_R = 70, USE_R = 60, REPORT_R = 95, VIEW = 260, KILL_CD = 22;
+
+// ---------------- game state (the host owns it) ----------------
+let G = null;            // full state (host) or what the host sends (client)
+let me = 'local';         // my player id
+const NET = { mode: 'solo', peer: null, conns: new Map(), host: null, code: '', ch: null };
+let inputs = { local: { x: 0, y: 0 } };
+const S = { games: 0, wins: 0, impWins: 0, tasks: 0, zaps: 0 };
+try { Object.assign(S, JSON.parse(LS.get('spaceSusStats')) || {}); } catch (e) {}
+const saveS = () => LS.set('spaceSusStats', JSON.stringify(S));
+
+const avLook = () => { try { const c = ArcadeAvatar.colors(); return { hat: c.hat, hatC: c.hatC }; } catch (e) { return { hat: 'none', hatC: '#e8412c' }; } };
+let myColor = LS.get('susColor') || (() => { try { return ArcadeAvatar.colors().shirt; } catch (e) { return COLORS[1]; } })();
+$('cols').innerHTML = COLORS.map(c => `<i style="background:${c}" data-c="${c}" class="${c === myColor ? 'on' : ''}"></i>`).join('');
+$('cols').onclick = e => { const i = e.target.closest('[data-c]'); if (!i) return; myColor = i.dataset.c; LS.set('susColor', myColor); $('cols').querySelectorAll('i').forEach(x => x.classList.toggle('on', x === i)); };
+$('nameIn').value = LS.get('susName') || LS.get('melonName') || LS.get('lastEmberName') || '';
+const myName = () => { const n = ($('nameIn').value.trim() || 'You').slice(0, 12); LS.set('susName', n); return n; };
+
+function newPlayer(id, name, color, look, bot){
+  return { id, name, color, hat: look.hat, hatC: look.hatC, x: SPAWN.x, y: SPAWN.y, alive: true, role: 'crew', bot: !!bot, tasks: [], killCd: 12, btn: 1, face: 1, mv: 0,
+    ai: { goal: null, wait: 0, saw: [], says: [] } };
+}
+function lobbyPlayers(){ return [...lobby.values()]; }
+const lobby = new Map();   // id -> {name, color, look}
+
+function startGame(nBots){
+  const ps = [];
+  lobby.forEach((v, id) => ps.push(newPlayer(id, v.name, v.color, v.look, false)));
+  const used = new Set(ps.map(p => p.color));
+  for (let i = 0; i < nBots; i++){
+    const col = COLORS.find(c => !used.has(c)) || COLORS[i % COLORS.length]; used.add(col);
+    ps.push(newPlayer('bot' + i, BOT_NAMES[i], col, { hat: Math.random() < .35 ? ['cap', 'beanie', 'cowboy', 'crown', 'wizard'][i % 5] : 'none', hatC: COLORS[(i * 3 + 1) % COLORS.length] }, true));
+  }
+  // roles: 1 saboteur (2 when there are 8+ players)
+  const nImp = ps.length >= 8 ? 2 : 1, order = ps.map((p, i) => i).sort(() => Math.random() - .5);
+  order.slice(0, nImp).forEach(i => ps[i].role = 'imp');
+  // spread everyone around the table, give tasks
+  ps.forEach((p, i) => {
+    const a = i / ps.length * Math.PI * 2; p.x = SPAWN.x + Math.cos(a) * 110; p.y = SPAWN.y + 70 + Math.sin(a) * 60;
+    p.tasks = STATIONS.slice().sort(() => Math.random() - .5).slice(0, 4).map(s => ({ st: s.id, done: false }));
+  });
+  G = { phase: 'play', t: 0, players: ps, bodies: [], meeting: null, winner: null, msg: '', round: 1 };
+  ps.forEach(p => inputs[p.id] = inputs[p.id] || { x: 0, y: 0 });
+  showIntro();
+}
+const P = id => G && G.players.find(p => p.id === id);
+const alive = () => G.players.filter(p => p.alive);
+const crewTasks = () => { let t = 0, d = 0; G.players.forEach(p => { if (p.role === 'crew') p.tasks.forEach(k => { t++; if (k.done) d++; }); }); return { t, d }; };
+
+// ---------------- host: the rules ----------------
+function step(dt){
+  if (!G) return;
+  G.t += dt;
+  if (G.phase === 'play'){
+    G.players.forEach(p => {
+      if (p.killCd > 0) p.killCd = Math.max(0, p.killCd - dt);
+      let v = p.bot ? botThink(p, dt) : (inputs[p.id] || { x: 0, y: 0 });
+      move(p, v.x, v.y, dt);
+    });
+    checkWin();
+  } else if (G.phase === 'meeting'){
+    const M = G.meeting;
+    M.left -= dt;
+    botsTalk(dt);
+    if (M.stage === 'talk' && M.left <= 0){ M.stage = 'vote'; M.left = isOnline() ? 30 : 20; botsVote(); }
+    if (M.stage === 'vote' && (M.left <= 0 || alive().every(p => M.votes[p.id] !== undefined))) endVote();
+  } else if (G.phase === 'eject'){
+    G.ejectT -= dt;
+    if (G.ejectT <= 0){ G.phase = 'play'; G.bodies = []; G.players.forEach((p, i) => { const a = i / G.players.length * Math.PI * 2; p.x = SPAWN.x + Math.cos(a) * 110; p.y = SPAWN.y + 70 + Math.sin(a) * 60; if (p.role === 'imp') p.killCd = 15; p.ai.goal = null; }); checkWin(); }
+  }
+}
+function move(p, vx, vy, dt){
+  const sp = p.alive ? 190 : 230, m = Math.hypot(vx, vy);
+  if (m < .05){ p.mv = 0; return; }
+  const nx = p.x + vx / Math.max(1, m) * sp * dt, ny = p.y + vy / Math.max(1, m) * sp * dt;
+  if (!p.alive){ p.x = Math.max(150, Math.min(2350, nx)); p.y = Math.max(100, Math.min(1450, ny)); }   // ghosts float through walls
+  else { if (canStand(nx, p.y)) p.x = nx; if (canStand(p.x, ny)) p.y = ny; }
+  p.mv = 1; if (Math.abs(vx) > .1) p.face = vx > 0 ? 1 : -1;
+}
+function canZap(p){
+  if (!p || p.role !== 'imp' || !p.alive || p.killCd > 0 || G.phase !== 'play') return null;
+  let best = null, bd = KILL_R;
+  G.players.forEach(o => { if (o !== p && o.alive && o.role !== 'imp'){ const d = Math.hypot(o.x - p.x, o.y - p.y); if (d < bd){ bd = d; best = o; } } });
+  return best;
+}
+function doZap(p){
+  const v = canZap(p); if (!v) return;
+  v.alive = false; p.killCd = KILL_CD; p.x = v.x; p.y = v.y;
+  G.bodies.push({ id: v.id, x: v.x, y: v.y, color: v.color, room: roomAt(v.x, v.y) });
+  // anyone close enough saw it
+  G.players.forEach(o => { if (o.alive && o !== p && o.bot && Math.hypot(o.x - v.x, o.y - v.y) < VIEW) o.ai.saw.push(p.id); });
+  fx('zap', v.x, v.y);
+  if (p.id === me){ S.zaps++; saveS(); }
+  checkWin();
+}
+function nearBody(p){ return G.bodies.find(b => Math.hypot(b.x - p.x, b.y - p.y) < REPORT_R); }
+function nearButton(p){ return p.btn > 0 && Math.hypot(BUTTON.x - p.x, BUTTON.y - p.y) < 75; }
+function nearTask(p){
+  if (p.role === 'imp') return null;
+  for (const k of p.tasks){ if (k.done) continue; const s = STATIONS[k.st]; if (Math.hypot(s.x - p.x, s.y - p.y) < USE_R) return s; }
+  return null;
+}
+function callMeeting(p, body){
+  if (G.phase !== 'play') return;
+  if (!body){ if (!nearButton(p)) return; p.btn--; }
+  G.phase = 'meeting';
+  G.meeting = { caller: p.id, body: body ? body.id : null, bodyRoom: body ? body.room : null, stage: 'talk', left: isOnline() ? 25 : 12, votes: {}, chat: [], talkT: 1.2, said: {} };
+  G.players.forEach(o => { o.mv = 0; });
+  fx('meeting', 0, 0);
+}
+function sayIn(id, text){
+  if (!G.meeting) return;
+  const p = P(id); if (!p) return;
+  G.meeting.chat.push({ id, name: p.name, color: p.color, text: String(text).slice(0, 60), dead: !p.alive });
+  if (G.meeting.chat.length > 60) G.meeting.chat.shift();
+}
+function castVote(id, target){
+  const M = G.meeting, p = P(id);
+  if (!M || M.stage !== 'vote' || !p || !p.alive || M.votes[id] !== undefined) return;
+  if (target !== 'skip' && !(P(target) && P(target).alive)) return;
+  M.votes[id] = target;
+}
+function endVote(){
+  const M = G.meeting, tally = {};
+  Object.values(M.votes).forEach(t => tally[t] = (tally[t] || 0) + 1);
+  let top = 'skip', n = 0, tie = false;
+  Object.entries(tally).forEach(([t, c]) => { if (c > n){ top = t; n = c; tie = false; } else if (c === n) tie = true; });
+  if (tie) top = 'skip';
+  M.tally = tally;
+  let text;
+  if (top === 'skip'){ text = 'No one was ejected.'; }
+  else { const p = P(top); p.alive = false; text = `${p.name} was ${p.role === 'imp' ? '' : 'NOT '}the Saboteur.`; G.ejected = { color: p.color, name: p.name }; }
+  if (top === 'skip') G.ejected = null;
+  G.phase = 'eject'; G.ejectT = 5; G.ejectText = text;
+  G.players.forEach(p => p.ai.saw = p.ai.saw.filter(id => P(id) && P(id).alive));
+}
+function checkWin(){
+  if (!G || G.winner) return;
+  const a = alive(), imps = a.filter(p => p.role === 'imp').length, crew = a.length - imps;
+  const tk = crewTasks();
+  if (imps === 0) return endGame('crew', 'The Saboteur was caught!');
+  if (tk.t && tk.d >= tk.t) return endGame('crew', 'All tasks done. The station is fixed!');
+  if (imps >= crew) return endGame('imp', 'The Saboteur took over the station!');
+}
+function endGame(w, why){
+  G.winner = w; G.phase = 'end'; G.msg = why;
+  G.imps = G.players.filter(p => p.role === 'imp').map(p => p.name);
+}
+
+// ---------------- bots ----------------
+function goTo(p, tx, ty){
+  // simple path: go through room centers / hall centers using a little graph
+  const route = p.ai.route;
+  if (!route || route.tx !== tx || route.ty !== ty){ p.ai.route = { tx, ty, pts: plan(p.x, p.y, tx, ty), i: 0 }; }
+  const r = p.ai.route, pt = r.pts[r.i];
+  if (!pt) return { x: 0, y: 0 };
+  const dx = pt.x - p.x, dy = pt.y - p.y, d = Math.hypot(dx, dy);
+  if (d < 14){ r.i++; return goTo(p, tx, ty); }
+  return { x: dx / d, y: dy / d };
+}
+// nodes: room centers + hall centers; edges between overlapping/touching areas
+const NODES = WALK.map((r, i) => ({ i, x: r.x + r.w / 2, y: r.y + r.h / 2, r }));
+const touch = (a, b) => a.x <= b.x + b.w + 2 && b.x <= a.x + a.w + 2 && a.y <= b.y + b.h + 2 && b.y <= a.y + a.h + 2;
+const EDGES = NODES.map(a => NODES.filter(b => b !== a && touch(a.r, b.r)).map(b => b.i));
+const areaOf = (x, y) => WALK.findIndex(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+function plan(x, y, tx, ty){
+  const s = areaOf(x, y), e = areaOf(tx, ty);
+  if (s < 0 || e < 0 || s === e) return [{ x: tx, y: ty }];
+  const prev = new Map([[s, -1]]), q = [s];
+  while (q.length){ const c = q.shift(); if (c === e) break; for (const n of EDGES[c]) if (!prev.has(n)){ prev.set(n, c); q.push(n); } }
+  const path = []; let c = e; while (c !== -1 && c !== undefined){ path.unshift(c); c = prev.get(c); }
+  // walk through the middle of each doorway (the overlap of two areas)
+  const pts = [];
+  for (let i = 0; i < path.length - 1; i++){
+    const a = WALK[path[i]], b = WALK[path[i + 1]];
+    const x1 = Math.max(a.x, b.x), x2 = Math.min(a.x + a.w, b.x + b.w), y1 = Math.max(a.y, b.y), y2 = Math.min(a.y + a.h, b.y + b.h);
+    pts.push({ x: (x1 + x2) / 2, y: (y1 + y2) / 2 });
+  }
+  pts.push({ x: tx, y: ty });
+  return pts;
+}
+function botThink(p, dt){
+  const A = p.ai;
+  if (!p.alive){ // ghost bots finish their tasks
+    const k = p.role === 'crew' && p.tasks.find(t => !t.done);
+    if (!k) return { x: 0, y: 0 };
+    const s = STATIONS[k.st]; const d = Math.hypot(s.x - p.x, s.y - p.y);
+    if (d < 20){ A.wait += dt; if (A.wait > 2.5){ k.done = true; A.wait = 0; } return { x: 0, y: 0 }; }
+    return { x: (s.x - p.x) / d, y: (s.y - p.y) / d };
+  }
+  // see a body? report it (the saboteur only sometimes "finds" its own work)
+  const seen = G.bodies.find(b => Math.hypot(b.x - p.x, b.y - p.y) < VIEW * .75);
+  if (seen && (p.role === 'crew' || (Math.random() < .002 && !A.justZapped))){
+    if (Math.hypot(seen.x - p.x, seen.y - p.y) < REPORT_R){ A.found = seen.id; callMeeting(p, seen); return { x: 0, y: 0 }; }
+    return goTo(p, seen.x, seen.y);
+  }
+  // saboteur: hunt someone who's alone
+  if (p.role === 'imp'){
+    A.justZapped = Math.max(0, (A.justZapped || 0) - dt);
+    if (p.killCd <= 0){
+      const prey = G.players.filter(o => o.alive && o.role !== 'imp' && G.players.every(w => w === o || w === p || !w.alive || Math.hypot(w.x - o.x, w.y - o.y) > VIEW * .9));
+      if (prey.length){
+        const t = prey.sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
+        if (Math.hypot(t.x - p.x, t.y - p.y) < KILL_R - 10){ doZap(p); A.justZapped = 6; A.goal = null; return { x: 0, y: 0 }; }
+        return goTo(p, t.x, t.y);
+      }
+    }
+  }
+  // wander to tasks (the saboteur pretends)
+  if (!A.goal || A.goal.done){
+    const left = p.role === 'crew' ? p.tasks.filter(t => !t.done) : [];
+    const st = left.length ? STATIONS[left[Math.floor(Math.random() * left.length)].st] : STATIONS[Math.floor(Math.random() * STATIONS.length)];
+    A.goal = { st, task: left.length ? p.tasks.find(t => t.st === st.id) : null, done: false }; A.wait = 0;
+  }
+  const s = A.goal.st, d = Math.hypot(s.x - p.x, s.y - p.y);
+  if (d < 24){
+    A.wait += dt;
+    if (A.wait > 3 + Math.random()){ if (A.goal.task) A.goal.task.done = true; A.goal.done = true; A.lastRoom = roomAt(p.x, p.y); }
+    return { x: 0, y: 0 };
+  }
+  return goTo(p, s.x, s.y);
+}
+function botsTalk(dt){
+  const M = G.meeting; M.talkT -= dt; if (M.talkT > 0) return;
+  M.talkT = .9 + Math.random() * 1.3;
+  const bots = alive().filter(p => p.bot && !M.said[p.id]);
+  if (!bots.length) return;
+  const b = bots[Math.floor(Math.random() * bots.length)]; M.said[b.id] = true;
+  let line;
+  const sawId = b.ai.saw[b.ai.saw.length - 1], saw = sawId && P(sawId);
+  if (b.ai.found && b.ai.found === M.body){ line = `I found ${P(M.body).name} in ${M.bodyRoom}!`; b.ai.found = null; }
+  else if (saw && saw.alive && b.role === 'crew'){ line = `It was ${saw.name}! I SAW it!!`; M.accused = saw.id; }
+  else if (b.role === 'imp' && Math.random() < .5){ const others = alive().filter(o => o !== b && o.role !== 'imp'); const o = others[Math.floor(Math.random() * others.length)]; line = o ? `${o.name} is acting kinda sus…` : 'Where?'; if (o && !M.accused) M.fakeAccused = o.id; }
+  else line = [`I was in ${b.ai.lastRoom || roomAt(b.x, b.y)} doing tasks.`, 'Where was the body?', 'I didn\'t see anything.', 'Skip? I have no idea.', `Who was near ${M.bodyRoom || 'there'}?`, 'Not me, I was fixing stuff!'][Math.floor(Math.random() * 6)];
+  sayIn(b.id, line);
+}
+function botsVote(){
+  const M = G.meeting;
+  alive().filter(p => p.bot).forEach((b, i) => {
+    setTimeout(() => {
+      if (!G.meeting || G.meeting !== M || M.stage !== 'vote' || !b.alive) return;
+      const sawId = b.ai.saw.find(id => P(id) && P(id).alive);
+      let t = 'skip';
+      if (b.role === 'imp'){ const crew = alive().filter(o => o.role !== 'imp'); const sus = M.accused && P(M.accused) && P(M.accused).role !== 'imp' ? M.accused : null; t = sus || (Math.random() < .5 && crew.length ? crew[Math.floor(Math.random() * crew.length)].id : 'skip'); }
+      else if (sawId) t = sawId;
+      else if (M.accused && P(M.accused).alive && Math.random() < .75) t = M.accused;
+      else if (M.fakeAccused && P(M.fakeAccused) && P(M.fakeAccused).alive && Math.random() < .3) t = M.fakeAccused;
+      else if (Math.random() < .25){ const o = alive().filter(o => o !== b); t = o[Math.floor(Math.random() * o.length)].id; }
+      castVote(b.id, t);
+    }, 1500 + i * 900 + Math.random() * 2000);
+  });
+}
+
+// ---------------- actions from anyone ----------------
+function act(id, a, arg){
+  const p = P(id); if (!G || !p) return;
+  if (a === 'zap') doZap(p);
+  else if (a === 'report'){ const b = nearBody(p); if (b && p.alive) callMeeting(p, b); }
+  else if (a === 'button'){ if (p.alive) callMeeting(p, null); }
+  else if (a === 'task'){ const k = p.tasks.find(t => t.st === arg && !t.done); if (k && p.role === 'crew'){ k.done = true; checkWin(); } }
+  else if (a === 'vote') castVote(id, arg);
+  else if (a === 'chat') sayIn(id, arg);
+}
+const isOnline = () => NET.mode !== 'solo';
+function doAct(a, arg){ if (NET.mode === 'client') sendHost({ k: 'act', a, arg }); else act(me, a, arg); }
+
+// ---------------- what each player is allowed to see ----------------
+function viewFor(id){
+  const mine = P(id), imp = mine && mine.role === 'imp';
+  return {
+    phase: G.phase, round: G.round,
+    players: G.players.map(p => ({ id: p.id, name: p.name, color: p.color, hat: p.hat, hatC: p.hatC, x: Math.round(p.x), y: Math.round(p.y), alive: p.alive, face: p.face, mv: p.mv,
+      role: (p.id === id || (imp && p.role === 'imp') || G.phase === 'end') ? p.role : undefined })),
+    bodies: G.bodies, meeting: G.meeting && { caller: G.meeting.caller, body: G.meeting.body, bodyRoom: G.meeting.bodyRoom, stage: G.meeting.stage, left: G.meeting.left, chat: G.meeting.chat, voted: Object.keys(G.meeting.votes), tally: G.meeting.tally },
+    me: mine && { tasks: mine.tasks, role: mine.role, killCd: mine.killCd, btn: mine.btn },
+    tasks: crewTasks(), ejectText: G.ejectText, ejected: G.ejected, ejectT: G.ejectT, winner: G.winner, msg: G.msg, imps: G.imps
+  };
+}
+let V = null;    // what I see
+
+// ---------------- online ----------------
+const PREFIX = 'spacesus-room-';
+const USE_BC = /[#&]bc\b/.test(location.hash);
+const newCode = () => { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 5; i++) s += A[Math.floor(Math.random() * A.length)]; return s; };
+function sendHost(m){ try { NET.host && NET.host.send(m); } catch (e) {} }
+function bcPeer(myId){ const ch = new BroadcastChannel('spacesus-test'), h = {}; ch.onmessage = e => { const m = e.data; if (m.to === myId && h.msg) h.msg(m.from, m.d); }; return { send: (to, d) => ch.postMessage({ to, from: myId, d }), on: (n, f) => h[n] = f }; }
+let botN = 4;
+function showLobby(){
+  $('startScr').hidden = true; $('lobbyScr').hidden = false;
+  const host = NET.mode === 'host';
+  $('lobbyCode').textContent = NET.code; $('lobbyCode').hidden = !NET.code;
+  $('lobbyTip').textContent = NET.code ? 'Give your friends this code:' : '';
+  $('botRow').hidden = !host; $('startBtn').hidden = !host; $('botN').textContent = botN;
+  const names = host ? lobbyPlayers().map(p => [p.name, p.color]) : (lobbyView || []);
+  $('lobbyPlayers').innerHTML = names.map(([n, c]) => `<span><b style="color:${c}">●</b> ${String(n).replace(/</g, '&lt;')}</span>`).join('') + (host ? `<span>🤖 × ${botN}</span>` : '');
+  $('lobbyMsg').textContent = host ? (lobby.size + botN < 4 ? 'You need at least 4 players (add bots).' : '') : 'Waiting for the host to start…';
+  $('startBtn').disabled = lobby.size + botN < 4;
+}
+let lobbyView = null;
+$('botMinus').onclick = () => { botN = Math.max(0, botN - 1); showLobby(); netLobby(); };
+$('botPlus').onclick = () => { botN = Math.min(9, botN + 1 - Math.max(0, lobby.size + botN + 1 - 10)); showLobby(); netLobby(); };
+$('leaveBtn').onclick = () => { try { NET.peer && NET.peer.destroy(); } catch (e) {} location.reload(); };
+function netLobby(){ NET.conns.forEach(c => { try { c.send({ k: 'lobby', p: lobbyPlayers().map(p => [p.name, p.color]), bots: botN }); } catch (e) {} }); }
+
+function hostGame(){
+  const code = newCode();
+  lobby.clear(); lobby.set('local', { name: myName(), color: myColor, look: avLook() });
+  const ready = () => { NET.mode = 'host'; NET.code = code; showLobby(); };
+  const onData = (c, d) => {
+    if (d.k === 'hello'){
+      if (G && G.phase !== 'end'){ c.send({ k: 'busy' }); return; }
+      let col = d.color; const used = new Set(lobbyPlayers().map(p => p.color)); if (used.has(col)) col = COLORS.find(x => !used.has(x)) || col;
+      lobby.set(c.id, { name: String(d.name || 'Friend').slice(0, 12), color: col, look: d.look || { hat: 'none' } });
+      if (lobby.size + botN > 10) botN = Math.max(0, 10 - lobby.size);
+      showLobby(); netLobby(); return;
+    }
+    if (!G) return;
+    if (d.k === 'in') inputs[c.id] = { x: +d.x || 0, y: +d.y || 0 };
+    if (d.k === 'act') act(c.id, d.a, d.arg);
+  };
+  if (USE_BC){
+    const bp = bcPeer('host-' + code);
+    bp.on('msg', (from, d) => { let c = NET.conns.get(from); if (!c){ c = { id: from, send: m => bp.send(from, m) }; NET.conns.set(from, c); } onData(c, d); });
+    return ready();
+  }
+  if (!window.Peer){ $('startMsg').textContent = 'Online play is still loading. Try again in a second.'; return; }
+  $('startMsg').textContent = 'Opening your game…';
+  const peer = new Peer(PREFIX + code, { debug: 0 }); NET.peer = peer;
+  peer.on('open', ready);
+  peer.on('error', e => $('startMsg').textContent = 'Online problem: ' + (e.type || 'unknown'));
+  peer.on('connection', conn => {
+    conn.on('open', () => NET.conns.set(conn.peer, Object.assign(conn, { id: conn.peer })));
+    conn.on('data', d => onData(Object.assign(conn, { id: conn.peer }), d));
+    conn.on('close', () => { NET.conns.delete(conn.peer); lobby.delete(conn.peer); const p = G && P(conn.peer); if (p){ p.bot = true; p.name += ' 🤖'; } showLobbyIfOpen(); netLobby(); });
+  });
+}
+function showLobbyIfOpen(){ if (!$('lobbyScr').hidden) showLobby(); }
+function joinGame(code){
+  code = code.trim().toUpperCase(); if (code.length < 5){ $('startMsg').textContent = 'Type the 5-letter code.'; return; }
+  const hello = () => sendHost({ k: 'hello', name: myName(), color: myColor, look: avLook() });
+  const onData = d => {
+    if (d.k === 'busy'){ $('startMsg').textContent = 'That game already started. Wait for the next round!'; return; }
+    if (d.k === 'lobby'){ lobbyView = d.p; botN = d.bots; me = NET.me; if (!G) showLobby(); return; }
+    if (d.k === 'fx'){ if (d.t === 'zap') for (let i = 0; i < 24; i++){ const a = Math.random() * 7, sp = Math.random() * 5; sparks.push({ x: d.x, y: d.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1 }); } playFx(d.t, d.x, d.y); return; }
+    if (d.k === 'v'){ if (!V || V.phase === 'end' && d.v.phase === 'play') showIntroFor(d.v); V = d.v; onView(); return; }
+  };
+  if (USE_BC){
+    const id = 'c-' + Math.random().toString(36).slice(2, 7), bp = bcPeer(id);
+    NET.me = id; me = id; NET.host = { send: m => bp.send('host-' + code, m) }; NET.mode = 'client'; NET.code = code;
+    bp.on('msg', (f, d) => onData(d)); hello(); $('startMsg').textContent = 'Joining…'; return;
+  }
+  if (!window.Peer){ $('startMsg').textContent = 'Online play is still loading. Try again in a second.'; return; }
+  $('startMsg').textContent = 'Joining ' + code + '…';
+  const peer = new Peer({ debug: 0 }); NET.peer = peer;
+  const t = setTimeout(() => { $('startMsg').textContent = "Couldn't find that game. Check the code."; try { peer.destroy(); } catch (e) {} }, 12000);
+  peer.on('open', id => {
+    NET.me = id; me = id;
+    const conn = peer.connect(PREFIX + code, { reliable: true, serialization: 'json' });
+    conn.on('open', () => { clearTimeout(t); NET.host = conn; NET.mode = 'client'; NET.code = code; hello(); });
+    conn.on('data', onData);
+    conn.on('close', () => { banner('Host left', 'The host closed the game.', true); });
+  });
+  peer.on('error', e => { clearTimeout(t); $('startMsg').textContent = e.type === 'peer-unavailable' ? "Couldn't find that game. Check the code." : 'Online problem: ' + (e.type || 'unknown'); });
+}
+$('hostBtn').onclick = hostGame;
+$('joinBtn').onclick = () => joinGame($('codeIn').value);
+$('soloBtn').onclick = () => { lobby.clear(); lobby.set('local', { name: myName(), color: myColor, look: avLook() }); me = 'local'; NET.mode = 'solo'; startGame(5); };
+$('startBtn').onclick = () => { if (lobby.size + botN >= 4){ startGame(botN); } };
+
+// ---------------- my view of the game ----------------
+let lastPhase = null, myRole = null;
+function onView(){
+  if (!V) return;
+  $('startScr').hidden = true; $('lobbyScr').hidden = true;
+  if (V.phase !== lastPhase){
+    if (V.phase === 'meeting'){ openMeeting(); }
+    if (V.phase !== 'meeting') $('meet').hidden = true;
+    if (V.phase === 'eject') showEject();
+    if (V.phase === 'play' && lastPhase === 'eject') $('banner').hidden = true;
+    if (V.phase === 'end') showEnd();
+    if (V.phase !== 'play') closeTask();
+    lastPhase = V.phase;
+  }
+  if (V.phase === 'meeting') paintMeeting();
+  paintHud();
+}
+function showIntro(){ showIntroFor(viewFor(me)); }
+function showIntroFor(v){
+  const mine = v.players.find(p => p.id === me) || {}, imp = (v.me && v.me.role) === 'imp';
+  myRole = v.me && v.me.role;
+  banner(imp ? '⚡ SABOTEUR' : '🔧 CREWMATE', imp ? 'Secretly ZAP the crew without getting caught. Pretend to do tasks!' + (v.players.filter(p => p.role === 'imp').length > 1 ? ' Your partner: ' + v.players.filter(p => p.role === 'imp' && p.id !== me).map(p => p.name).join(', ') : '') : 'Do your tasks and find the Saboteur. There is 1 Saboteur among us…', false, imp ? '#ff4d4d' : '#7cf3ff');
+  setTimeout(() => { if (!$('banner').hidden && (V || {}).phase === 'play') $('banner').hidden = true; }, 3500);
+  S.games++; saveS();
+}
+function banner(t, p, again, col){ $('bnTitle').textContent = t; $('bnTitle').style.color = col || '#fff'; $('bnText').textContent = p; $('bnBtn').hidden = !again; $('banner').hidden = false; }
+function showEject(){ banner(V.ejected ? '🚀 ' + V.ejected.name : '🚀 …', V.ejectText, false, V.ejected ? V.ejected.color : '#fff'); }
+function showEnd(){
+  const iWon = (V.winner === 'imp') === (myRole === 'imp');
+  banner(V.winner === 'imp' ? '⚡ SABOTEUR WINS' : '🔧 CREW WINS', V.msg + ' The Saboteur was ' + (V.imps || []).join(' & ') + '.', NET.mode !== 'client', V.winner === 'imp' ? '#ff4d4d' : '#4ade80');
+  if (iWon){ S.wins++; if (myRole === 'imp') S.impWins++; saveS(); }
+}
+$('bnBtn').onclick = () => {
+  $('banner').hidden = true;
+  if ($('bnTitle').textContent === 'Host left'){ location.reload(); return; }
+  if (NET.mode === 'solo'){ startGame(5); } else if (NET.mode === 'host'){ G = null; showLobby(); netLobby(); }
+};
+
+// ---------------- HUD ----------------
+function paintHud(){
+  const show = V && (V.phase === 'play' || V.phase === 'eject');
+  $('hud').hidden = !show; if (!show) return;
+  const mine = V.players.find(p => p.id === me), m = V.me || {};
+  const pct = V.tasks.t ? V.tasks.d / V.tasks.t * 100 : 0; $('tbarFill').style.width = pct + '%';
+  const imp = m.role === 'imp';
+  $('roleTag').textContent = !mine.alive ? '👻 Ghost' : imp ? '⚡ Saboteur' : '🔧 Crew'; $('roleTag').style.color = imp ? '#ff6b6b' : '#7cf3ff';
+  $('taskList').innerHTML = imp ? '<b>Fake tasks:</b><br>' + (m.tasks || []).map(k => STATIONS[k.st].n).join('<br>') + '<br><small>ZAP the crew when no one is watching!</small>'
+    : (m.tasks || []).map(k => `<div class="${k.done ? 'd' : ''}">${STATIONS[k.st].n} · ${roomAt(STATIONS[k.st].x, STATIONS[k.st].y)}</div>`).join('');
+  const meP = { ...mine, role: m.role, tasks: m.tasks || [], killCd: m.killCd, btn: m.btn };
+  $('killBtn').style.display = imp ? '' : 'none';
+  const zapT = imp && mine.alive && m.killCd <= 0 && V.players.some(o => o.id !== me && o.alive && o.role !== 'imp' && Math.hypot(o.x - mine.x, o.y - mine.y) < KILL_R);
+  $('killBtn').classList.toggle('on', !!zapT); $('killCd').textContent = imp && m.killCd > 0 ? Math.ceil(m.killCd) + 's' : '';
+  const bodyNear = mine.alive && V.bodies.some(b => Math.hypot(b.x - mine.x, b.y - mine.y) < REPORT_R);
+  $('repBtn').classList.toggle('on', bodyNear);
+  const task = !imp && (m.tasks || []).find(k => !k.done && Math.hypot(STATIONS[k.st].x - mine.x, STATIONS[k.st].y - mine.y) < USE_R);
+  const btn = mine.alive && m.btn > 0 && Math.hypot(BUTTON.x - mine.x, BUTTON.y - mine.y) < 75;
+  $('useBtn').classList.toggle('on', !!(task || btn));
+  $('useBtn').dataset.what = task ? 'task:' + task.st : btn ? 'button' : '';
+  $('joy').style.display = isTouch ? '' : 'none';
+}
+$('killBtn').onclick = () => doAct('zap');
+$('repBtn').onclick = () => doAct('report');
+$('useBtn').onclick = () => { const w = $('useBtn').dataset.what; if (!w) return; if (w === 'button') doAct('button'); else openTask(+w.split(':')[1]); };
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  const k = e.key.toLowerCase();
+  keys[k] = true;
+  if (k === 'e' || k === ' ') $('useBtn').onclick();
+  if (k === 'q') $('killBtn').onclick();
+  if (k === 'r') $('repBtn').onclick();
+});
+addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+const keys = {};
+// joystick
+const joy = { x: 0, y: 0, id: null };
+$('joy').addEventListener('pointerdown', e => { joy.id = e.pointerId; try { $('joy').setPointerCapture(e.pointerId); } catch (_) {} joyMove(e); });
+$('joy').addEventListener('pointermove', e => { if (joy.id === e.pointerId) joyMove(e); });
+const joyEnd = () => { joy.id = null; joy.x = joy.y = 0; $('joy').firstElementChild.style.transform = ''; };
+$('joy').addEventListener('pointerup', joyEnd); $('joy').addEventListener('pointercancel', joyEnd);
+function joyMove(e){ const r = $('joy').getBoundingClientRect(); let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2); const d = Math.hypot(dx, dy), m = 45; if (d > m){ dx *= m / d; dy *= m / d; } joy.x = dx / m; joy.y = dy / m; $('joy').firstElementChild.style.transform = `translate(${dx}px,${dy}px)`; }
+let lastSent = '';
+function myInput(){
+  if ($('task').hidden === false || !V || V.phase !== 'play') return { x: 0, y: 0 };
+  let x = joy.x, y = joy.y;
+  if (keys.a || keys.arrowleft) x = -1; if (keys.d || keys.arrowright) x = 1; if (keys.w || keys.arrowup) y = -1; if (keys.s || keys.arrowdown) y = 1;
+  return { x, y };
+}
+
+// ---------------- tasks (mini-games) ----------------
+let curTask = null;
+function openTask(st){
+  const s = STATIONS[st]; curTask = st; const box = $('tbox');
+  box.innerHTML = `<button class="x" id="tx">✕</button><h4>${s.n}</h4><div id="tg"></div>`;
+  $('tx').onclick = closeTask; $('task').hidden = false;
+  const tg = $('tg'), done = () => { tg.innerHTML = '<h2 style="color:#4ade80">✔ Done!</h2>'; beep(880, .1); setTimeout(() => beep(1320, .15), 90); doAct('task', st); S.tasks++; saveS(); setTimeout(closeTask, 700); };
+  if (s.t === 'wires'){
+    const cols = ['#e8412c', '#3d6bff', '#ffd23f', '#ff7ab6'], right = cols.slice().sort(() => Math.random() - .5);
+    tg.innerHTML = '<div class="wires"><div id="wl"></div><div id="wr"></div></div><p style="font-size:13px;opacity:.7">Tap a wire, then the same color on the other side</p>';
+    $('wl').innerHTML = cols.map(c => `<button style="background:${c}" data-c="${c}"></button>`).join('');
+    $('wr').innerHTML = right.map(c => `<button style="background:${c}" data-c="${c}"></button>`).join('');
+    let sel = null, n = 0;
+    $('wl').onclick = e => { const b = e.target.closest('button'); if (!b || b.classList.contains('done')) return; $('wl').querySelectorAll('button').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); sel = b; beep(500, .05); };
+    $('wr').onclick = e => { const b = e.target.closest('button'); if (!b || !sel || b.classList.contains('done')) return; if (b.dataset.c === sel.dataset.c){ b.classList.add('done'); sel.classList.add('done'); sel.classList.remove('sel'); sel = null; beep(700, .06); if (++n === 4) done(); } else { beep(160, .15); } };
+  } else if (s.t === 'nums'){
+    const order = [1, 2, 3, 4, 5, 6, 7, 8].sort(() => Math.random() - .5); let next = 1;
+    tg.innerHTML = '<div class="nums">' + order.map(n => `<button data-n="${n}">${n}</button>`).join('') + '</div><p style="font-size:13px;opacity:.7">Tap 1 to 8 in order</p>';
+    tg.querySelector('.nums').onclick = e => { const b = e.target.closest('button'); if (!b) return; if (+b.dataset.n === next){ b.classList.add('ok'); next++; beep(400 + next * 60, .05); if (next > 8) done(); } else { next = 1; tg.querySelectorAll('.nums button').forEach(x => x.classList.remove('ok')); beep(160, .15); } };
+  } else if (s.t === 'hold'){
+    tg.innerHTML = '<button class="holdb" id="hb">HOLD</button><div class="pbar"><i id="hp"></i></div>';
+    let v = 0, holding = false, raf;
+    const tick = () => { if ($('task').hidden || curTask !== st) return; if (holding){ v = Math.min(1, v + .012); $('hp').style.width = v * 100 + '%'; if (v >= 1){ holding = false; return done(); } } raf = requestAnimationFrame(tick); };
+    $('hb').onpointerdown = e => { e.preventDefault(); holding = true; }; $('hb').onpointerup = $('hb').onpointerleave = () => holding = false;
+    tick(); curTask = st; $('task').dataset.raf = raf;
+  } else if (s.t === 'swipe'){
+    tg.innerHTML = '<p style="font-size:13px;opacity:.7;margin:0">Drag the card all the way across</p><div class="swipe" id="sw"><i id="card"></i></div>';
+    const sw = $('sw'), card = $('card'); let dragging = false, sx = 0;
+    card.onpointerdown = e => { dragging = true; sx = e.clientX; try { card.setPointerCapture(e.pointerId); } catch (_) {} };
+    card.onpointermove = e => { if (!dragging) return; const max = sw.clientWidth - 102; const x = Math.max(0, Math.min(max, e.clientX - sx)); card.style.left = 6 + x + 'px'; if (x >= max - 2){ dragging = false; done(); } };
+    card.onpointerup = () => { if (dragging){ dragging = false; card.style.left = '6px'; beep(160, .12); } };
+  }
+}
+function closeTask(){ $('task').hidden = true; curTask = null; }
+
+// ---------------- meetings ----------------
+let myVote = null, chatSeen = 0;
+function openMeeting(){
+  myVote = null; chatSeen = 0; $('meet').hidden = false; $('clog').innerHTML = '';
+  const M = V.meeting, caller = V.players.find(p => p.id === M.caller);
+  $('mTitle').textContent = M.body ? `📢 ${caller.name} found ${V.players.find(p => p.id === M.body).name}'s body!` : `🚨 ${caller.name} called a meeting!`;
+  $('qc').innerHTML = ['Where?', 'I was doing tasks', 'Skip', 'Who is sus?', 'Not me!'].map(t => `<button>${t}</button>`).join('');
+  beep(440, .3); setTimeout(() => beep(330, .4), 250);
+}
+function paintMeeting(){
+  const M = V.meeting; if (!M) return;
+  const mine = V.players.find(p => p.id === me);
+  $('mTimer').textContent = (M.stage === 'talk' ? '💬 Talk ' : '🗳️ Vote ') + Math.max(0, Math.ceil(M.left)) + 's';
+  const voted = new Set(M.voted);
+  $('vgrid').innerHTML = V.players.map(p => `<button class="vc ${p.alive ? '' : 'dead'} ${myVote === p.id ? 'sel' : ''}" data-id="${p.id}"><canvas width="68" height="68" data-col="${p.color}" data-hat="${p.hat}" data-hc="${p.hatC}" data-dead="${p.alive ? '' : 1}"></canvas>${p.name}${p.id === me ? ' (you)' : ''}${voted.has(p.id) ? '<span class="vt">✔ voted</span>' : ''}</button>`).join('');
+  $('vgrid').querySelectorAll('canvas').forEach(c => { const x = c.getContext('2d'); x.setTransform(2, 0, 0, 2, 0, 0); drawBot(x, 17, 21, c.dataset.col, c.dataset.hat, c.dataset.hc, 1, 0, 0, !!c.dataset.dead, .8); });
+  $('skipBtn').classList.toggle('sel', myVote === 'skip');
+  $('skipBtn').disabled = !mine.alive || M.stage !== 'vote' || myVote !== null;
+  if (M.chat.length > chatSeen){
+    M.chat.slice(chatSeen).forEach(c => { const d = document.createElement('div'); d.innerHTML = `<b style="color:${c.color}">${esc(c.name)}${c.dead ? ' 👻' : ''}:</b> ${esc(c.text)}`; $('clog').appendChild(d); });
+    chatSeen = M.chat.length; $('clog').scrollTop = 1e9; beep(900, .03);
+  }
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+$('vgrid').onclick = e => {
+  const b = e.target.closest('.vc'); if (!b || !V.meeting || V.meeting.stage !== 'vote' || myVote !== null) return;
+  const t = V.players.find(p => p.id === b.dataset.id), mine = V.players.find(p => p.id === me);
+  if (!t.alive || !mine.alive) return;
+  myVote = t.id; doAct('vote', t.id); paintMeeting(); beep(600, .08);
+};
+$('skipBtn').onclick = () => { if (myVote !== null) return; myVote = 'skip'; doAct('vote', 'skip'); paintMeeting(); };
+const sendChat = t => { t = t.trim(); if (!t) return; doAct('chat', t); $('chatIn').value = ''; };
+$('chatSend').onclick = () => sendChat($('chatIn').value);
+$('chatIn').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(e.target.value); });
+$('qc').onclick = e => { const b = e.target.closest('button'); if (b) sendChat(b.textContent); };
+
+// ---------------- sound ----------------
+let ac = null;
+function beep(f, d, type = 'square', v = .04){ try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); const o = ac.createOscillator(), gn = ac.createGain(); o.type = type; o.frequency.value = f; gn.gain.setValueAtTime(v, ac.currentTime); gn.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + d); o.connect(gn).connect(ac.destination); o.start(); o.stop(ac.currentTime + d); } catch (e) {} }
+const sparks = [];
+function fx(type, x, y){
+  if (type === 'zap'){ for (let i = 0; i < 24; i++){ const a = Math.random() * 7, s = Math.random() * 5; sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1 }); } }
+  if (NET.mode === 'host') NET.conns.forEach(c => { try { c.send({ k: 'fx', t: type, x, y }); } catch (e) {} });
+  playFx(type, x, y);
+}
+function playFx(type, x, y){
+  if (type === 'zap' && V){ const mine = V.players.find(p => p.id === me); if (mine && Math.hypot(mine.x - x, mine.y - y) < VIEW * 1.3){ beep(120, .25, 'sawtooth', .06); } }
+}
+
+// ---------------- drawing ----------------
+// our own little crew: round jelly-bots with a screen face and an antenna
+function drawBot(c, x, y, col, hat, hatC, face, t, mv, dead, sc){
+  sc = sc || 1;
+  c.save(); c.translate(x, y); c.scale(sc * face, sc);
+  if (dead){
+    c.rotate(Math.PI / 2 * .92);
+    c.fillStyle = col; c.beginPath(); c.ellipse(0, 0, 18, 16, 0, 0, 7); c.fill();
+    c.fillStyle = '#0b1020'; c.beginPath(); c.roundRect ? c.roundRect(-10, -9, 20, 12, 5) : c.rect(-10, -9, 20, 12); c.fill();
+    c.strokeStyle = '#7cf3ff'; c.lineWidth = 2; [[-5, -3], [5, -3]].forEach(([ex, ey]) => { c.beginPath(); c.moveTo(ex - 2.5, ey - 2.5); c.lineTo(ex + 2.5, ey + 2.5); c.moveTo(ex + 2.5, ey - 2.5); c.lineTo(ex - 2.5, ey + 2.5); c.stroke(); });
+    c.strokeStyle = '#ffd23f'; c.lineWidth = 2; c.beginPath(); c.moveTo(12, -12); c.lineTo(17, -18); c.lineTo(14, -18); c.lineTo(20, -25); c.stroke();
+    c.restore(); return;
+  }
+  const bob = mv ? Math.abs(Math.sin(t * 12)) * 3 : Math.sin(t * 2) * 1;
+  // feet
+  c.fillStyle = shade(col, -45);
+  c.beginPath(); c.ellipse(-8, 16 + (mv ? Math.sin(t * 12) * 2 : 0), 6, 4, 0, 0, 7); c.fill();
+  c.beginPath(); c.ellipse(8, 16 - (mv ? Math.sin(t * 12) * 2 : 0), 6, 4, 0, 0, 7); c.fill();
+  c.translate(0, -bob);
+  // antenna
+  c.strokeStyle = shade(col, -40); c.lineWidth = 2.5; c.beginPath(); c.moveTo(0, -16); c.lineTo(3, -27); c.stroke();
+  c.fillStyle = '#ffd23f'; c.beginPath(); c.arc(3, -28, 3.5, 0, 7); c.fill();
+  // round jelly body
+  const gr = c.createRadialGradient(-6, -8, 2, 0, 0, 20); gr.addColorStop(0, shade(col, 50)); gr.addColorStop(1, col);
+  c.fillStyle = gr; c.beginPath(); c.ellipse(0, 0, 18, 17, 0, 0, 7); c.fill();
+  // screen face
+  c.fillStyle = '#0b1020'; c.beginPath(); c.roundRect ? c.roundRect(-11, -9, 22, 13, 5) : c.rect(-11, -9, 22, 13); c.fill();
+  const blink = (t * .7 + col.length) % 3 < .1;
+  c.fillStyle = '#7cf3ff'; if (blink){ c.fillRect(-7, -3, 5, 1.5); c.fillRect(3, -3, 5, 1.5); } else { c.fillRect(-6, -5, 3, 5); c.fillRect(4, -5, 3, 5); }
+  // little arms
+  c.fillStyle = shade(col, -25); c.beginPath(); c.ellipse(-17, 5, 4, 6, .3, 0, 7); c.fill(); c.beginPath(); c.ellipse(17, 5, 4, 6, -.3, 0, 7); c.fill();
+  // hat from the arcade avatar
+  if (hat && hat !== 'none'){
+    const hc = hatC || '#e8412c';
+    if (hat === 'crown'){ c.fillStyle = '#ffd700'; c.beginPath(); c.moveTo(-9, -15); c.lineTo(-9, -25); c.lineTo(-4, -20); c.lineTo(0, -27); c.lineTo(4, -20); c.lineTo(9, -25); c.lineTo(9, -15); c.fill(); }
+    else if (hat === 'wizard'){ c.fillStyle = hc; c.beginPath(); c.moveTo(-12, -14); c.lineTo(0, -40); c.lineTo(12, -14); c.fill(); }
+    else if (hat === 'cowboy'){ c.fillStyle = shade(hc, -30); c.fillRect(-18, -17, 36, 4); c.fillStyle = hc; c.fillRect(-10, -27, 20, 11); }
+    else { c.fillStyle = hc; c.beginPath(); c.ellipse(0, -15, 13, 7, 0, Math.PI, 0); c.fill(); if (hat === 'cap') c.fillRect(0, -16, 16, 3); }
+  }
+  c.restore();
+}
+function shade(hex, p){ const n = parseInt(hex.slice(1), 16); const k = v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0'); return '#' + k((n >> 16) + p) + k(((n >> 8) & 255) + p) + k((n & 255) + p); }
+const stars = Array.from({ length: 160 }, () => ({ x: Math.random() * 2600 - 100, y: Math.random() * 1800 - 100, r: Math.random() * 1.6 + .3 }));
+let cam = { x: SPAWN.x, y: SPAWN.y };
+function draw(t){
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  g.fillStyle = '#05070f'; g.fillRect(0, 0, W, H);
+  if (!V){ return; }
+  const mine = V.players.find(p => p.id === me) || V.players[0];
+  cam.x += (mine.x - cam.x) * .2; cam.y += (mine.y - cam.y) * .2;
+  const Z = Math.max(.72, Math.min(1.3, Math.min(W, H) / 560));
+  g.setTransform(DPR * Z, 0, 0, DPR * Z, DPR * (W / 2 - cam.x * Z), DPR * (H / 2 - cam.y * Z));
+  g.fillStyle = '#fff'; stars.forEach(s => { g.globalAlpha = .5; g.beginPath(); g.arc(s.x, s.y, s.r, 0, 7); g.fill(); }); g.globalAlpha = 1;
+  // hull + floors
+  g.fillStyle = '#3b4766'; WALK.forEach(r => { g.fillRect(r.x - 14, r.y - 14, r.w + 28, r.h + 28); });
+  ROOMS.forEach(r => { g.fillStyle = r.c; g.fillRect(r.x, r.y, r.w, r.h); g.strokeStyle = '#ffffff0c'; g.lineWidth = 1; for (let x = r.x; x < r.x + r.w; x += 50){ g.beginPath(); g.moveTo(x, r.y); g.lineTo(x, r.y + r.h); g.stroke(); } for (let y = r.y; y < r.y + r.h; y += 50){ g.beginPath(); g.moveTo(r.x, y); g.lineTo(r.x + r.w, y); g.stroke(); } });
+  HALLS.forEach(r => { g.fillStyle = '#26304a'; g.fillRect(r.x, r.y, r.w, r.h); });
+  ROOMS.forEach(r => { g.fillStyle = '#ffffff22'; g.font = '700 30px Fredoka,sans-serif'; g.textAlign = 'center'; g.fillText(r.n.toUpperCase(), r.x + r.w / 2, r.y + 44); });
+  // table + emergency button
+  g.fillStyle = '#56607e'; g.beginPath(); g.arc(BUTTON.x, BUTTON.y, 70, 0, 7); g.fill();
+  g.fillStyle = '#c81e1e'; g.beginPath(); g.arc(BUTTON.x, BUTTON.y, 18, 0, 7); g.fill(); g.fillStyle = '#ff6b6b'; g.beginPath(); g.arc(BUTTON.x - 4, BUTTON.y - 4, 7, 0, 7); g.fill();
+  // task stations
+  const m = V.me || {}, imp = m.role === 'imp';
+  STATIONS.forEach(s => {
+    const mineT = (m.tasks || []).find(k => k.st === s.id);
+    g.fillStyle = '#1b2440'; g.strokeStyle = '#7cf3ff55'; g.lineWidth = 2; g.fillRect(s.x - 18, s.y - 14, 36, 28); g.strokeRect(s.x - 18, s.y - 14, 36, 28);
+    g.fillStyle = '#7cf3ff55'; g.fillRect(s.x - 12, s.y - 8, 24, 10);
+    if (mineT && !mineT.done && !imp){ g.fillStyle = '#ffd23f'; g.font = '700 22px Fredoka'; g.textAlign = 'center'; g.fillText('!', s.x, s.y - 22 + Math.sin(t * 5) * 3); }
+  });
+  // bodies + players (only what you can see)
+  const ghost = !mine.alive, view = ghost ? 99999 : imp ? VIEW * 1.35 : VIEW;
+  const canSee = (x, y) => Math.hypot(x - mine.x, y - mine.y) < view;
+  V.bodies.forEach(b => { if (canSee(b.x, b.y)) drawBot(g, b.x, b.y, b.color, null, null, 1, t, 0, true); });
+  V.players.slice().sort((a, b) => a.y - b.y).forEach(p => {
+    if (!p.alive && mine.alive) return;            // only ghosts see ghosts
+    if (p.id !== me && !canSee(p.x, p.y)) return;
+    g.globalAlpha = p.alive ? 1 : .45;
+    drawBot(g, p.x, p.y, p.color, p.hat, p.hatC, p.face, t + p.x * .01, p.mv, false);
+    g.font = '600 14px Fredoka,sans-serif'; g.textAlign = 'center'; g.lineWidth = 4; g.strokeStyle = '#000';
+    const nameCol = (imp && p.role === 'imp') ? '#ff6b6b' : '#fff';
+    g.strokeText(p.name, p.x, p.y - 36); g.fillStyle = nameCol; g.fillText(p.name, p.x, p.y - 36);
+    g.globalAlpha = 1;
+  });
+  for (let i = sparks.length - 1; i >= 0; i--){ const s = sparks[i]; s.x += s.vx; s.y += s.vy; s.life -= .03; if (s.life <= 0){ sparks.splice(i, 1); continue; } g.globalAlpha = s.life; g.fillStyle = '#ffd23f'; g.fillRect(s.x, s.y, 3, 3); } g.globalAlpha = 1;
+  // darkness outside what you can see
+  if (!ghost){
+    g.setTransform(DPR, 0, 0, DPR, 0, 0);
+    const sx = W / 2 + (mine.x - cam.x) * Z, sy = H / 2 + (mine.y - cam.y) * Z, r = view * Z;
+    const gr = g.createRadialGradient(sx, sy, r * .75, sx, sy, r * 1.05); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.86)');
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  }
+}
+
+// ---------------- main loop ----------------
+let last = performance.now(), sendT = 0;
+function loop(now){
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  const inp = myInput();
+  if (NET.mode === 'client'){
+    const s = inp.x.toFixed(2) + ',' + inp.y.toFixed(2);
+    if (s !== lastSent && now - sendT > 50){ lastSent = s; sendT = now; sendHost({ k: 'in', x: inp.x, y: inp.y }); }
+  } else if (G){
+    inputs.local = inp;
+    step(dt);
+    V = viewFor(me); onView();
+    if (NET.mode === 'host' && now - sendT > 66){ sendT = now; NET.conns.forEach((c, id) => { try { c.send({ k: 'v', v: viewFor(id) }); } catch (e) {} }); }
+  }
+  draw(now / 1000);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+window.__sus = { get G(){ return G; }, get V(){ return V; }, act, NET, step, openTask };
+})();
+</script>
+</body>
+</html>
