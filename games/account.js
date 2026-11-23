@@ -96,6 +96,10 @@
     return F;
   })().catch(e => { console.warn("Arcade accounts unavailable", e); return null; });
 
+  // Google refuses to sign in from browsers built into apps (Instagram, TikTok, Snapchat, Facebook…)
+  const IN_APP = /FBAN|FBAV|Instagram|Snapchat|TikTok|musical_ly|BytedanceWebview|Line\/|; wv\)|GSA\//i.test(navigator.userAgent || "");
+  async function need() { const f = await ready; if (!f) throw { code: "auth/blocked-network" }; return f; }
+
   function nice(ex) {
     const c = (ex && ex.code) || "";
     if (c.includes("invalid-credential") || c.includes("wrong-password") || c.includes("user-not-found")) return "That email or password isn't right.";
@@ -106,7 +110,12 @@
     if (c.includes("popup-closed")) return "Sign-in window closed. Try again.";
     if (c.includes("network")) return "No internet. Check your connection.";
     if (c.includes("too-many-requests")) return "Too many tries. Wait a minute and try again.";
-    return "Something went wrong. Try again.";
+    if (c.includes("popup-blocked")) return "Your browser blocked the Google sign-in window. Allow pop-ups for this site, then tap the button again.";
+    if (c.includes("operation-not-supported") || c.includes("web-storage-unsupported") || c.includes("in-app")) return "Google sign-in doesn't work inside this app's browser. Open the page in Chrome or Safari — or use email below.";
+    if (c.includes("blocked-network")) return "Sign-in is blocked on this internet (school Wi-Fi often blocks it). Try home Wi-Fi, or play without signing in.";
+    if (c.includes("admin-restricted") || c.includes("user-disabled")) return "This Google account isn't allowed to sign in here (school accounts are often blocked). Try a personal Google account or email.";
+    if (c.includes("cancelled-popup")) return "";
+    return "Sign-in didn't work" + (c ? " (" + c.replace("auth/", "") + ")" : "") + ". Try again, or use email.";
   }
 
   window.Arcade = {
@@ -114,17 +123,17 @@
     get user() { return user; },
     onChange(fn) { listeners.push(fn); fn(user); },
     nice,
-    async signIn(email, pw) { const f = await ready; return f.au.signInWithEmailAndPassword(f.auth, email, pw); },
-    async signUp(email, pw) { const f = await ready; return f.au.createUserWithEmailAndPassword(f.auth, email, pw); },
-    async reset(email) { const f = await ready; return f.au.sendPasswordResetEmail(f.auth, email); },
+    async signIn(email, pw) { const f = await need(); return f.au.signInWithEmailAndPassword(f.auth, email, pw); },
+    async signUp(email, pw) { const f = await need(); return f.au.createUserWithEmailAndPassword(f.auth, email, pw); },
+    async reset(email) { const f = await need(); return f.au.sendPasswordResetEmail(f.auth, email); },
+    inAppBrowser: IN_APP,
     async google() {
-      const f = await ready, p = new f.au.GoogleAuthProvider();
+      if (IN_APP) throw { code: "auth/in-app-browser" };
+      const f = await need(), p = new f.au.GoogleAuthProvider();
       p.setCustomParameters({ prompt: "select_account" });
-      try { return await f.au.signInWithPopup(f.auth, p); }
-      catch (ex) {
-        if (ex.code === "auth/popup-blocked" || ex.code === "auth/operation-not-supported-in-this-environment") return f.au.signInWithRedirect(f.auth, p);
-        throw ex;
-      }
+      // Pop-up only: the redirect fallback breaks in today's browsers (the sign-in page lives on another domain),
+      // which made people land back on the page still signed out.
+      return f.au.signInWithPopup(f.auth, p);
     },
     async signOut() { await flush(); const f = await ready; try { sessionStorage.removeItem("arcade_reloaded"); } catch (e) {} return f.au.signOut(f.auth); }
   };

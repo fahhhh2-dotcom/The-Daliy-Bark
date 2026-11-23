@@ -45,6 +45,9 @@
   #down p{font-size:17px;max-width:440px}
   #downTimer{font:800 44px Inter,sans-serif;color:#fff;text-shadow:0 2px 8px #000}
   .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:radial-gradient(ellipse at center,rgba(40,14,0,.62),rgba(0,0,0,.93));z-index:10;text-align:center;padding:20px;overflow:auto}
+  .screen{justify-content:flex-start}
+  .screen>:first-child{margin-top:auto}
+  .screen>:last-child{margin-bottom:auto}
   .screen h1{font-family:Creepster,cursive;font-size:clamp(48px,10vw,88px);color:#ff8a2a;text-shadow:0 0 30px rgba(255,90,0,.8),0 4px 8px #000;letter-spacing:3px;line-height:1}
   .screen h2{font-weight:600;font-size:18px;opacity:.85}
   .screen p{max-width:560px;line-height:1.5;opacity:.85;font-size:14.5px}
@@ -57,6 +60,11 @@
   .gbtn svg{width:20px;height:20px}
   #acctRow{font-size:14px;color:#cfe8d0}
   #acctRow a{color:#ffcf9a;cursor:pointer;text-decoration:underline;margin-left:6px}
+  #acctRow{flex-direction:column;gap:6px}
+  #acctMsg{font-size:13px;color:#ffb0a0;max-width:460px;min-height:0}
+  #emailBox{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center}
+  #emailBox input{width:170px;padding:9px 12px;font-size:14px}
+  #emailBox button{font-size:13px;padding:9px 16px}
   .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
   input.txt{font:600 16px Inter,sans-serif;padding:12px 16px;border-radius:30px;border:2px solid #6b4422;background:#1c120a;color:#ffe2bd;outline:none;width:200px;text-align:center}
   input.txt:focus{border-color:#ff8a2a}
@@ -286,6 +294,7 @@ let best = +LS.get('lastEmberBest') || 0;
 if (isTouch) $('keysDesk').innerHTML = '<span>Left stick</span><span>Move</span><span>Drag right side</span><span>Look</span><span>Buttons</span><span>Swing · Use · Light · Run · Craft · Map · Chat</span>';
 $('nameIn').value = LS.get('lastEmberName') || '';
 const clamp = THREE.MathUtils.clamp;
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 const BLEED = 60;              // seconds a downed player has before dying
 const RADII = [80,110,140,170,200];   // forest size at each fire level
 const KIDS = 5;
@@ -382,11 +391,12 @@ const windU = { value:0 };
   };
   const grass = new THREE.InstancedMesh(bg, gm, N);
   const m=new THREE.Matrix4(), q=new THREE.Quaternion(), p=new THREE.Vector3(), s=new THREE.Vector3(), c=new THREE.Color(), up=new THREE.Vector3(0,1,0);
+  const GR = mulberry32(7771);   // same grass for everyone (phones just draw fewer tufts)
   for (let i=0;i<N;i++){
-    let x,z; do { x=(Math.random()*2-1)*WORLD; z=(Math.random()*2-1)*WORLD; } while (Math.hypot(x,z)<10);
-    const k=0.7+Math.random()*0.9; q.setFromAxisAngle(up, Math.random()*6.28);
-    m.compose(p.set(x,heightAt(x,z)-0.05,z), q, s.set(k,k*(0.8+Math.random()*0.7),k)); grass.setMatrixAt(i,m);
-    c.setHSL(0.22+Math.random()*0.08, 0.5, 0.28+Math.random()*0.14); grass.setColorAt(i,c);
+    let x,z; do { x=(GR()*2-1)*WORLD; z=(GR()*2-1)*WORLD; } while (Math.hypot(x,z)<10);
+    const k=0.7+GR()*0.9; q.setFromAxisAngle(up, GR()*6.28);
+    m.compose(p.set(x,heightAt(x,z)-0.05,z), q, s.set(k,k*(0.8+GR()*0.7),k)); grass.setMatrixAt(i,m);
+    c.setHSL(0.22+GR()*0.08, 0.5, 0.28+GR()*0.14); grass.setColorAt(i,c);
   }
   grass.frustumCulled = false; scene.add(grass);
 }
@@ -543,12 +553,11 @@ const campTent = makeTent(0x2f6b8a); campTent.position.set(-5,0,-3); campTent.lo
 for (let i=0;i<3;i++){ const a=i*2.1+0.4; const b=new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.28,2,8), M.log); b.rotation.z=Math.PI/2; b.rotation.y=-a+Math.PI/2; b.position.set(Math.cos(a)*3.2,0.28,Math.sin(a)*3.2); scene.add(castAll(b)); }
 
 // =============== seeded world ===============
-function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 let worldGroup = null, seed = 0;
 let trees=[], rocks=[], bushes=[], campers=[], chests=[];
 let TM = {};
 const m4=new THREE.Matrix4(), qq=new THREE.Quaternion(), v3=new THREE.Vector3(), sc=new THREE.Vector3(), UP=new THREE.Vector3(0,1,0);
-const TREE_COUNT = isTouch ? 700 : 1000;
+const TREE_COUNT = 900;   // the same on every device, so everyone in a world has exactly the same forest
 const kidColors = [0xe0582b, 0x8a4fd1, 0x2fa36b, 0xd6b52a, 0x2f8fd1];
 const CELL = 6; let grid = new Map();
 const gkey = (cx,cz) => cx*1000+cz;
@@ -1854,12 +1863,21 @@ function paintAccount(u){
     $('outLink').onclick = async () => { try { await Arcade.signOut(); } catch(e){} };
     if (!$('nameIn').value && u.displayName) $('nameIn').value = u.displayName.split(' ')[0].slice(0,14);
   } else {
-    row.innerHTML = `<button class="gbtn" id="gBtn">${GLOGO} Sign in with Google</button><span style="font-size:12px;opacity:.7;margin-left:6px">to save on every device</span>`;
-    $('gBtn').onclick = async () => {
-      $('gBtn').disabled = true;
-      try { await Arcade.google(); } catch(ex){ $('lobbyMsg').textContent = Arcade.nice ? Arcade.nice(ex) : 'Sign-in failed. Try again.'; }
-      if ($('gBtn')) $('gBtn').disabled = false;
-    };
+    const inApp = Arcade.inAppBrowser;
+    row.innerHTML = `<div class="row"><button class="gbtn" id="gBtn">${GLOGO} Sign in with Google</button><a id="emailLink">or use email</a></div>
+      ${inApp ? '<div id="acctMsg">⚠ You opened this inside an app. Google sign-in only works in Chrome or Safari — copy the link and open it there, or use email.</div>' : '<div id="acctMsg"></div>'}
+      <div id="emailBox" class="hidden"><input class="txt" id="emIn" type="email" placeholder="Email" autocomplete="email"><input class="txt" id="pwIn" type="password" placeholder="Password (6+)" autocomplete="current-password">
+        <button class="btn" id="emIn1">SIGN IN</button><button class="btn ghost" id="emUp">NEW ACCOUNT</button><a id="emForgot" style="font-size:12px">forgot password?</a></div>`;
+    const msg = t => { $('acctMsg').textContent = t || ''; };
+    const busy = b => ['gBtn','emIn1','emUp'].forEach(id => { if ($(id)) $(id).disabled = b; });
+    const run = async (fn) => { busy(true); msg(''); try { await fn(); } catch(ex){ msg(Arcade.nice ? Arcade.nice(ex) : 'Sign-in failed. Try again.'); console.warn('sign-in', ex); } busy(false); };
+    $('gBtn').onclick = () => run(() => Arcade.google());
+    $('emailLink').onclick = () => { $('emailBox').classList.toggle('hidden'); $('emIn').focus(); };
+    const creds = () => { const e=$('emIn').value.trim(), p=$('pwIn').value; if (!e || !p){ msg('Type your email and a password.'); return null; } return [e,p]; };
+    $('emIn1').onclick = () => { const c=creds(); if (c) run(() => Arcade.signIn(c[0],c[1])); };
+    $('emUp').onclick = () => { const c=creds(); if (c) run(() => Arcade.signUp(c[0],c[1])); };
+    $('emForgot').onclick = () => { const e=$('emIn').value.trim(); if (!e){ msg('Type your email first.'); return; } run(async () => { await Arcade.reset(e); msg(`Check ${e} for a link to make a new password.`); }); };
+    $('pwIn').addEventListener('keydown', e => { if (e.key==='Enter') $('emIn1').click(); });
   }
   paintContinue(); paintWorlds();
 }
