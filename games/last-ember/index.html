@@ -62,9 +62,6 @@
   #acctRow a{color:#ffcf9a;cursor:pointer;text-decoration:underline;margin-left:6px}
   #acctRow{flex-direction:column;gap:6px}
   #acctMsg{font-size:13px;color:#ffb0a0;max-width:460px;min-height:0}
-  #emailBox{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center}
-  #emailBox input{width:170px;padding:9px 12px;font-size:14px}
-  #emailBox button{font-size:13px;padding:9px 16px}
   .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
   input.txt{font:600 16px Inter,sans-serif;padding:12px 16px;border-radius:30px;border:2px solid #6b4422;background:#1c120a;color:#ffe2bd;outline:none;width:200px;text-align:center}
   input.txt:focus{border-color:#ff8a2a}
@@ -1869,25 +1866,19 @@ function paintAccount(u){
   if (!window.Arcade){ row.innerHTML=''; return; }
   if (u){
     const nm = u.displayName || (u.email||'').split('@')[0] || 'Signed in';
-    row.innerHTML = `✓ Signed in as <b style="margin-left:4px">${nm.replace(/</g,'&lt;')}</b> — your game saves to your account <a id="outLink">Sign out</a>`;
+    row.innerHTML = `✓ Signed in as <b style="margin-left:4px">${nm.replace(/</g,'&lt;')}</b> — your game saves to your Game Arcade account <a id="outLink">Sign out</a>`;
     $('outLink').onclick = async () => { try { await Arcade.signOut(); } catch(e){} };
     if (!$('nameIn').value && u.displayName) $('nameIn').value = u.displayName.split(' ')[0].slice(0,14);
   } else {
     const inApp = Arcade.inAppBrowser;
-    row.innerHTML = `<div class="row"><button class="gbtn" id="gBtn">${GLOGO} Sign in with Google</button><a id="emailLink">or use email</a></div>
-      ${inApp ? '<div id="acctMsg">⚠ You opened this inside an app. Google sign-in only works in Chrome or Safari — copy the link and open it there, or use email.</div>' : '<div id="acctMsg"></div>'}
-      <div id="emailBox" class="hidden"><input class="txt" id="emIn" type="email" placeholder="Email" autocomplete="email"><input class="txt" id="pwIn" type="password" placeholder="Password (6+)" autocomplete="current-password">
-        <button class="btn" id="emIn1">SIGN IN</button><button class="btn ghost" id="emUp">NEW ACCOUNT</button><a id="emForgot" style="font-size:12px">forgot password?</a></div>`;
+    row.innerHTML = `<div class="row"><button class="gbtn" id="gBtn">${GLOGO} Sign in with Google</button><a href="../" id="arcadeLink">or sign in on the Game Arcade</a></div>
+      <div id="acctMsg">${inApp ? '⚠ You opened this inside an app. Google sign-in only works in Chrome or Safari — copy the link and open it there.' : 'Your game is saved to your Game Arcade account.'}</div>`;
     const msg = t => { $('acctMsg').textContent = t || ''; };
-    const busy = b => ['gBtn','emIn1','emUp'].forEach(id => { if ($(id)) $(id).disabled = b; });
-    const run = async (fn) => { busy(true); msg(''); try { await fn(); } catch(ex){ msg(Arcade.nice ? Arcade.nice(ex) : 'Sign-in failed. Try again.'); console.warn('sign-in', ex); } busy(false); };
-    $('gBtn').onclick = () => run(() => Arcade.google());
-    $('emailLink').onclick = () => { $('emailBox').classList.toggle('hidden'); $('emIn').focus(); };
-    const creds = () => { const e=$('emIn').value.trim(), p=$('pwIn').value; if (!e || !p){ msg('Type your email and a password.'); return null; } return [e,p]; };
-    $('emIn1').onclick = () => { const c=creds(); if (c) run(() => Arcade.signIn(c[0],c[1])); };
-    $('emUp').onclick = () => { const c=creds(); if (c) run(() => Arcade.signUp(c[0],c[1])); };
-    $('emForgot').onclick = () => { const e=$('emIn').value.trim(); if (!e){ msg('Type your email first.'); return; } run(async () => { await Arcade.reset(e); msg(`Check ${e} for a link to make a new password.`); }); };
-    $('pwIn').addEventListener('keydown', e => { if (e.key==='Enter') $('emIn1').click(); });
+    $('gBtn').onclick = async () => {
+      $('gBtn').disabled = true; msg('');
+      try { await Arcade.google(); } catch(ex){ msg(Arcade.nice ? Arcade.nice(ex) : 'Sign-in failed. Try again.'); console.warn('sign-in', ex); }
+      if ($('gBtn')) $('gBtn').disabled = false;
+    };
   }
   paintContinue(); paintWorlds();
 }
