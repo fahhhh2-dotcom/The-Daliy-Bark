@@ -21,7 +21,11 @@
     "wild-woods-bugs-v1",                // Wild Woods Bug Catching
     "lastEmberSave", "lastEmberBest", "lastEmberWorlds",   // Last Ember: game, best, Friend Worlds
     "lastEmberName", "lastEmberSkin", "lastEmberTone", "lastEmberSens", "lastEmberOnline",   // Last Ember: name, skin, settings
-    "spaceExplorerSave"                  // Space Explorer
+    "nebulaBest",                        // Nebula Blaster
+    "phoneTycoon",                       // Phone Factory Tycoon
+    "peakFinderBest",                    // Peak Finder
+    "sq9-best-abc", "sq9-best-clock", "sq9-best-gap", "sq9-best-hangman", "sq9-best-hear", "sq9-best-match", "sq9-best-mix", "sq9-best-scramble", "sq9-best-spot",   // Spelling Quest
+    "arcade_avatar", "arcade_wallet"     // Arcade avatar + coins
   ];
   const META = "arcade_sync_times";
   const IS_HUB = !!window.ARCADE_HUB;
@@ -32,7 +36,12 @@
   const putMeta = m => { try { rawSet.call(LS, META, JSON.stringify(m)); } catch (e) {} };
 
   let F = null, user = null, synced = false, pending = new Set(), timer = null;
-  const listeners = [];
+  const listeners = [], statusFns = [];
+  // where saves live: "arcade/{uid}" (its own spot), or the older users/{uid}.arcade field as a backup
+  let where = "arcade";
+  let status = { state: "off", msg: "" };
+  const setStatus = (state, msg) => { status = { state, msg: msg || "" }; statusFns.forEach(fn => { try { fn(status); } catch (e) {} }); };
+  const code = e => (e && (e.code || e.name)) || "unknown";
   const emit = () => listeners.forEach(fn => { try { fn(user); } catch (e) {} });
 
   // notice when a game saves, and send it to the account a moment later
@@ -44,17 +53,25 @@
   Storage.prototype.setItem = function (k, v) { rawSet.call(this, k, v); if (this === LS) touched(k); };
   Storage.prototype.removeItem = function (k) { rawRemove.call(this, k); if (this === LS) touched(k); };
 
+  async function writeTo(spot, keys, m) {
+    const data = {}; keys.forEach(k => { data[k.replace(/\./g, "_")] = { v: LS.getItem(k), t: m[k] || Date.now() }; });
+    if (spot === "arcade") await F.fs.setDoc(F.fs.doc(F.db, "arcade", user.uid), { email: user.email || "", updated: Date.now(), saves: data }, { merge: true });
+    else await F.fs.setDoc(F.fs.doc(F.db, "users", user.uid), { arcade: data }, { merge: true });
+  }
   async function flush() {
     if (!F || !user || !pending.size) return;
     const keys = [...pending]; pending.clear();
-    const m = getMeta(), upd = {};
-    keys.forEach(k => { upd["arcade." + k.replace(/\./g, "_")] = { v: LS.getItem(k), t: m[k] || Date.now() }; });
-    try { await F.fs.updateDoc(F.fs.doc(F.db, "users", user.uid), upd); }
+    const m = getMeta();
+    setStatus("saving");
+    try { await writeTo(where, keys, m); setStatus("saved"); return; }
     catch (e) {
-      // doc might not exist yet
-      const arcade = {}; keys.forEach(k => arcade[k.replace(/\./g, "_")] = upd["arcade." + k.replace(/\./g, "_")]);
-      try { await F.fs.setDoc(F.fs.doc(F.db, "users", user.uid), { email: user.email || "", arcade }, { merge: true }); }
-      catch (e2) { keys.forEach(k => pending.add(k)); console.warn("Arcade save failed", e2); }
+      if (where === "arcade") {
+        try { await writeTo("users", keys, m); where = "users"; setStatus("saved"); return; } catch (e2) { e = e2; }
+      }
+      keys.forEach(k => pending.add(k));
+      console.warn("Arcade save failed", e);
+      setStatus("error", code(e).includes("permission") ? "Your account can't save game data yet. The database rules need one change." : "Couldn't save to your account (" + code(e) + "). Trying again soon.");
+      clearTimeout(timer); timer = setTimeout(flush, 15000);
     }
   }
   document.addEventListener("visibilitychange", () => { if (document.hidden) flush(); });
@@ -62,11 +79,14 @@
 
   // first sync after signing in: the newer save wins (your account's save beats progress made while signed out)
   async function syncDown() {
-    let cloud = {};
-    try {
-      const snap = await F.fs.getDoc(F.fs.doc(F.db, "users", user.uid));
-      cloud = (snap.exists() && snap.data().arcade) || {};
-    } catch (e) { console.warn("Arcade load failed", e); synced = true; return; }
+    setStatus("saving");
+    let cloud = {}, ok = false, lastErr = null;
+    const merge = obj => { for (const k in (obj || {})) if (!cloud[k] || (obj[k] && obj[k].t > cloud[k].t)) cloud[k] = obj[k]; };
+    try { const s = await F.fs.getDoc(F.fs.doc(F.db, "arcade", user.uid)); ok = true; if (s.exists()) merge(s.data().saves); }
+    catch (e) { lastErr = e; where = "users"; }
+    try { const s = await F.fs.getDoc(F.fs.doc(F.db, "users", user.uid)); ok = true; if (s.exists()) merge(s.data().arcade); }
+    catch (e) { lastErr = lastErr || e; }
+    if (!ok) { console.warn("Arcade load failed", lastErr); synced = true; setStatus("error", "Couldn't load your saved games (" + code(lastErr) + ")."); return; }
     const m = getMeta(); let changed = false;
     KEYS.forEach(k => {
       const c = cloud[k.replace(/\./g, "_")], L = LS.getItem(k), lt = m[k] || 0;
@@ -76,7 +96,7 @@
       } else if (L != null) { if (!m[k]) m[k] = Date.now(); pending.add(k); }
     });
     putMeta(m); synced = true;
-    if (pending.size) flush();
+    if (pending.size) flush(); else setStatus("saved");
     if (changed && !IS_HUB) {
       // reload once so the game opens your account's save
       let once = false; try { once = sessionStorage.getItem("arcade_reloaded") === user.uid; } catch (e) {}
@@ -91,7 +111,7 @@
     try { await au.getRedirectResult(F.auth); } catch (e) {}
     au.onAuthStateChanged(F.auth, async u => {
       user = u; synced = false;
-      if (u) await syncDown(); else synced = true;
+      if (u) await syncDown(); else { synced = true; setStatus("off"); }
       emit();
     });
     return F;
@@ -116,6 +136,9 @@
     if (c.includes("blocked-network")) return "Sign-in is blocked on this internet (school Wi-Fi often blocks it). Try home Wi-Fi, or play without signing in.";
     if (c.includes("admin-restricted") || c.includes("user-disabled")) return "This Google account isn't allowed to sign in here (school accounts are often blocked). Try a personal Google account or email.";
     if (c.includes("cancelled-popup")) return "";
+    if (c.includes("operation-not-allowed")) return "Email sign-in is turned off in Firebase. Turn on Email/Password under Authentication → Sign-in method.";
+    if (c.includes("referer") || c.includes("api-key-not-valid") || c.includes("unauthorized-domain")) return "This website isn't allowed to use sign-in yet. Add thedailybark.dog in Firebase.";
+    if (c.includes("missing-password")) return "Type your password.";
     return "Sign-in didn't work" + (c ? " (" + c.replace("auth/", "") + ")" : "") + ". Try again, or use email.";
   }
 
@@ -123,6 +146,9 @@
     ready,
     get user() { return user; },
     onChange(fn) { listeners.push(fn); fn(user); },
+    onStatus(fn) { statusFns.push(fn); fn(status); },
+    get status() { return status; },
+    saveNow() { KEYS.forEach(k => { if (LS.getItem(k) != null) pending.add(k); }); return flush(); },
     nice,
     async signIn(email, pw) { const f = await need(); return f.au.signInWithEmailAndPassword(f.auth, email, pw); },
     async signUp(email, pw) { const f = await need(); return f.au.createUserWithEmailAndPassword(f.auth, email, pw); },

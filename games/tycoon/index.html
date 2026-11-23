@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="../account.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phone Factory Tycoon</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1226; --panel:#1a1f3d; --panel2:#232a52; --line:#313a6e;
+    --text:#eef1ff; --muted:#9aa3d6; --accent:#5ee6c0; --accent2:#ffb84d; --bad:#ff6b7a; --blue:#6aa8ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Fredoka',system-ui,sans-serif;background:radial-gradient(circle at 20% 0%,#1d2457,#0f1226 60%);color:var(--text);min-height:100vh}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:12px;font-size:15px;font-weight:600;padding:9px 14px;background:var(--panel2);color:var(--text);transition:transform .08s,background .15s,opacity .15s}
+  button:hover{background:#2e3770}
+  button:active{transform:scale(.96)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.go{background:var(--accent);color:#08281f}
+  button.go:hover{background:#7ff0d0}
+  button.gold{background:var(--accent2);color:#3a2300}
+  input,select{font-family:inherit;font-size:15px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:7px 10px}
+  header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 18px;background:rgba(10,12,30,.6);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;backdrop-filter:blur(6px)}
+  .logo{font-size:22px;font-weight:700;letter-spacing:.5px}
+  .logo span{color:var(--accent)}
+  .stats{display:flex;gap:10px;flex-wrap:wrap}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 12px;font-weight:600;min-width:90px;text-align:center}
+  .stat small{display:block;color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.8px}
+  main{display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:16px;padding:16px;max-width:1400px;margin:0 auto}
+  @media (max-width:1050px){main{grid-template-columns:1fr 1fr}}
+  @media (max-width:700px){main{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}
+  .card h2{margin:0 0 12px;font-size:19px;display:flex;align-items:center;gap:8px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:10px 0 6px}
+  .opt{padding:7px 11px;font-size:14px;background:var(--bg);border:2px solid var(--line)}
+  .opt.sel{border-color:var(--accent);background:#173a3a}
+  .opt .c{display:block;font-size:11px;color:var(--muted);font-weight:500}
+  .opt.locked{opacity:.45}
+  .swatch{width:32px;height:32px;border-radius:50%;padding:0;border:3px solid transparent}
+  .swatch.sel{border-color:#fff}
+  .preview{display:flex;justify-content:center;gap:26px;align-items:flex-end;padding:18px 0 10px;min-height:290px;background:radial-gradient(circle,#2a336a 0%,transparent 70%);border-radius:14px}
+  .phone{position:relative;border-radius:22px;box-shadow:0 12px 30px rgba(0,0,0,.45),inset 0 0 0 3px rgba(255,255,255,.12);transition:all .3s}
+  .phone .scr{position:absolute;inset:6px;border-radius:17px;background:linear-gradient(160deg,#5b7cff,#b05cff 55%,#ff7aa8);overflow:hidden;display:flex;flex-direction:column;align-items:center;padding-top:22px;color:#fff}
+  .phone .scr .time{font-size:22px;font-weight:700}
+  .phone .scr .date{font-size:9px;opacity:.85}
+  .phone .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:34%;height:9px;background:#000;border-radius:8px;z-index:2}
+  .phone .crease{position:absolute;top:6px;bottom:6px;left:50%;width:2px;background:rgba(255,255,255,.35);z-index:3}
+  .phone .bump{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.25);border-radius:14px;padding:6px;display:grid;grid-template-columns:repeat(2,1fr);gap:5px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.15)}
+  .lens{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#557,#000 60%);box-shadow:0 0 0 2px #222,0 0 0 3px rgba(255,255,255,.25)}
+  .brand{position:absolute;bottom:22%;left:0;right:0;text-align:center;font-weight:700;font-size:15px;opacity:.75;letter-spacing:1px}
+  .tag5g{position:absolute;bottom:10px;right:12px;font-size:10px;font-weight:700;opacity:.7}
+  .drop{position:absolute;bottom:10px;left:12px;font-size:12px}
+  .specs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0}
+  .spec{background:var(--bg);border-radius:12px;padding:8px;text-align:center}
+  .spec b{display:block;font-size:18px}
+  .spec small{color:var(--muted);font-size:11px}
+  .bench{background:var(--bg);border-radius:16px;padding:14px;text-align:center;min-height:250px;position:relative}
+  .steps{display:flex;justify-content:center;gap:6px;margin:10px 0 14px}
+  .dot{width:26px;height:8px;border-radius:4px;background:var(--line)}
+  .dot.done{background:var(--accent)}
+  .parts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:330px;margin:0 auto}
+  .part{font-size:30px;padding:12px 0;background:var(--panel2);border-radius:14px}
+  .part small{display:block;font-size:12px;color:var(--muted)}
+  .part.used{opacity:.2;pointer-events:none}
+  .shake{animation:shake .3s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .next{font-size:17px;margin-bottom:6px}
+  .next b{color:var(--accent2)}
+  .model{background:var(--bg);border:2px solid var(--line);border-radius:14px;padding:10px;margin-bottom:10px;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center}
+  .model.sel{border-color:var(--accent)}
+  .mini{width:30px;height:56px;border-radius:8px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.2)}
+  .model h3{margin:0;font-size:16px}
+  .model .meta{font-size:12px;color:var(--muted)}
+  .model .ctrl{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px}
+  .model input[type=number]{width:90px}
+  .pill{font-size:12px;border-radius:20px;padding:2px 8px;background:var(--panel2)}
+  .pill.good{background:#174536;color:var(--accent)}
+  .pill.ok{background:#4a3a14;color:var(--accent2)}
+  .pill.bad{background:#4a1a22;color:var(--bad)}
+  .tabs{display:flex;gap:6px;margin-bottom:12px}
+  .tabs button{flex:1;font-size:14px}
+  .tabs button.on{background:var(--blue);color:#061633}
+  .shopitem{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--bg);border-radius:12px;padding:10px;margin-bottom:8px}
+  .shopitem div small{display:block;color:var(--muted);font-size:12px}
+  .feed{grid-column:1/-1;max-height:200px;overflow:auto}
+  .feed p{margin:0 0 6px;padding:7px 10px;background:var(--bg);border-radius:10px;font-size:14px}
+  .feed p .st{color:var(--accent2)}
+  .toast{position:fixed;left:50%;top:80px;transform:translateX(-50%);background:var(--accent2);color:#3a2300;padding:12px 20px;border-radius:14px;font-weight:700;font-size:17px;z-index:20;box-shadow:0 10px 30px rgba(0,0,0,.4);animation:pop .3s}
+  @keyframes pop{from{transform:translate(-50%,-20px);opacity:0}}
+  .float{position:fixed;font-weight:700;color:var(--accent);pointer-events:none;animation:up 1s forwards;z-index:30}
+  @keyframes up{to{transform:translateY(-50px);opacity:0}}
+  .overlay{position:fixed;inset:0;background:rgba(5,7,20,.85);display:flex;align-items:center;justify-content:center;z-index:50}
+  .overlay .card{max-width:420px;text-align:center}
+  .muted{color:var(--muted);font-size:13px}
+  .bar{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin-top:6px}
+  .bar i{display:block;height:100%;background:var(--accent);width:0}
+</style>
+</head>
+<body>
+
+<div class="overlay" id="startScreen">
+  <div class="card">
+    <div style="font-size:60px">📱🏭</div>
+    <h2 style="justify-content:center;font-size:26px">Phone Factory Tycoon</h2>
+    <p class="muted">Design phones, build them on the assembly line, set your prices, and grow from a garage startup into a phone empire worth $1,000,000.</p>
+    <div class="label">Name your phone company</div>
+    <input id="companyInput" maxlength="14" placeholder="e.g. Zoomtek" style="width:100%;text-align:center;font-size:18px">
+    <div style="margin-top:14px"><button class="go" id="startBtn" style="width:100%;font-size:18px">Open the factory 🚀</button></div>
+  </div>
+</div>
+
+<header>
+  <div class="logo">📱 <span id="coName">Phone</span> Factory</div>
+  <div class="stats">
+    <div class="stat"><small>Money</small><span id="money">$0</span></div>
+    <div class="stat"><small>Reputation</small><span id="rep">50</span>⭐</div>
+    <div class="stat"><small>Phones sold</small><span id="sold">0</span></div>
+    <div class="stat"><small>Day</small><span id="day">1</span></div>
+  </div>
+</header>
+
+<main>
+  <!-- DESIGN LAB -->
+  <section class="card">
+    <h2>🎨 Design Lab</h2>
+    <div class="preview" id="preview"></div>
+    <div class="specs">
+      <div class="spec"><b id="pCost">$0</b><small>Parts cost</small></div>
+      <div class="spec"><b id="pQual">0</b><small>Quality</small></div>
+      <div class="spec"><b id="pVal">$0</b><small>Fair price</small></div>
+    </div>
+    <div class="label">Color</div>
+    <div class="row" id="colors"></div>
+    <div class="label">Screen</div>
+    <div class="row" id="opt-screen"></div>
+    <div class="label">Cameras</div>
+    <div class="row" id="opt-camera"></div>
+    <div class="label">Battery</div>
+    <div class="row" id="opt-battery"></div>
+    <div class="label">Chip</div>
+    <div class="row" id="opt-chip"></div>
+    <div class="label">Extras</div>
+    <div class="row" id="opt-extras"></div>
+    <div class="label">Model name</div>
+    <div class="row">
+      <input id="modelName" maxlength="16" placeholder="Model name" style="flex:1">
+      <button class="go" id="saveModel">Save design ✅</button>
+    </div>
+    <p class="muted" id="designMsg"></p>
+  </section>
+
+  <!-- ASSEMBLY -->
+  <section class="card">
+    <h2>🔧 Assembly Line</h2>
+    <div class="bench" id="bench"></div>
+    <div class="label">Workers</div>
+    <p class="muted" id="workerInfo">No workers yet. Hire some in the Upgrades tab and they'll build your selected model automatically.</p>
+    <div class="bar"><i id="workerBar"></i></div>
+  </section>
+
+  <!-- STORE / UPGRADES -->
+  <section class="card">
+    <div class="tabs">
+      <button class="on" data-tab="store">🛒 Store</button>
+      <button data-tab="upgrades">⚙️ Upgrades</button>
+      <button data-tab="research">🔬 Research</button>
+    </div>
+    <div id="tab-store"></div>
+    <div id="tab-upgrades" hidden></div>
+    <div id="tab-research" hidden></div>
+  </section>
+
+  <!-- FEED -->
+  <section class="card feed">
+    <h2>📰 Reviews & News</h2>
+    <div id="feed"></div>
+  </section>
+</main>
+
+<script>
+// ---------- DATA ----------
+const COLORS = ['#2b2f3a','#e9ecf2','#ff5d73','#4d8dff','#3ddc97','#ffc23d','#a66bff','#ff8a3d','#1fc8db','#f0a6ca'];
+const PARTS = {
+  screen:[{name:'Small',sub:'5"',cost:20,q:5,w:86},{name:'Medium',sub:'6.1"',cost:35,q:10,w:100},{name:'Large',sub:'6.8"',cost:55,q:16,w:114}],
+  camera:[{name:'1 lens',n:1,cost:10,q:4},{name:'2 lenses',n:2,cost:25,q:9},{name:'3 lenses',n:3,cost:45,q:16,lock:'cam3'},{name:'4 lenses',n:4,cost:75,q:24,lock:'cam4'}],
+  battery:[{name:'Small',cost:10,q:3},{name:'Medium',cost:18,q:7},{name:'Huge',cost:30,q:12}],
+  chip:[{name:'Basic',cost:15,q:4},{name:'Fast',cost:40,q:12},{name:'Turbo',cost:85,q:25,lock:'turbo'},{name:'Quantum',cost:180,q:45,lock:'quantum'}],
+};
+const EXTRAS = [
+  {id:'water',name:'💧 Waterproof',cost:20,q:6},
+  {id:'g5',name:'📶 5G',cost:30,q:10,lock:'g5'},
+  {id:'fold',name:'📖 Foldable',cost:150,q:40,lock:'fold'},
+];
+const RESEARCH = [
+  {id:'cam3',name:'Triple Camera',desc:'Unlocks 3-lens cameras',cost:400},
+  {id:'g5',name:'5G Modem',desc:'Unlocks super-fast 5G',cost:700},
+  {id:'turbo',name:'Turbo Chip',desc:'Unlocks the Turbo processor',cost:1200},
+  {id:'cam4',name:'Quad Camera',desc:'Unlocks 4-lens cameras',cost:2500},
+  {id:'quantum',name:'Quantum Chip',desc:'The fastest chip ever made',cost:8000},
+  {id:'fold',name:'Folding Screen',desc:'Unlocks foldable phones',cost:20000},
+];
+const STEPS = [
+  {id:'frame',e:'🔲',n:'Frame'},{id:'board',e:'🧠',n:'Board'},{id:'battery',e:'🔋',n:'Battery'},
+  {id:'screen',e:'📱',n:'Screen'},{id:'camera',e:'📷',n:'Camera'},{id:'box',e:'📦',n:'Box it'}
+];
+const REVIEWS = {
+  5:['Best phone I have ever owned!','Totally worth it 🔥','Amazing camera, amazing price!','I bought three, one for each pocket.','Insane value. 10/10.'],
+  4:['Really solid phone.','Great for the price.','Battery lasts forever, nice.','My friends are jealous 😎'],
+  3:['It\'s okay. Does phone things.','Not bad, not amazing.','Decent, but a bit pricey.'],
+  2:['Too expensive for what you get.','Meh. Expected more.','The camera is kinda blurry.'],
+  1:['Total rip-off! 😡','Want my money back.','My old phone was better.']
+};
+const NEWS = ['Tech bloggers are talking about {co}!','A rival brand recalled 2 million phones. Shoppers are looking around…','Back-to-school sale season! More shoppers in stores.','A famous streamer was spotted using a {co} phone!','Phone prices are rising everywhere.','Rumor: {co} is working on something big…'];
+
+// ---------- STATE ----------
+const fresh = () => ({
+  company:'', money:600, rep:50, sold:0, day:1, tick:0,
+  unlocked:{}, models:[], selected:null, workers:0, robot:0, marketing:0, store:0,
+  goals:{}, design:{color:3,screen:1,camera:1,battery:1,chip:0,extras:[]}
+});
+let S = fresh();
+let build = null; // current manual build
+let workerProgress = 0;
+
+function save(){ try{ localStorage.setItem('phoneTycoon', JSON.stringify(S)); }catch(e){} }
+function load(){ try{ const d = localStorage.getItem('phoneTycoon'); if(d){ S = Object.assign(fresh(), JSON.parse(d)); return true; } }catch(e){} return false; }
+
+// ---------- HELPERS ----------
+const $ = id => document.getElementById(id);
+const fmt = n => '$' + Math.floor(n).toLocaleString();
+function calc(d){
+  let cost = PARTS.screen[d.screen].cost + PARTS.camera[d.camera].cost + PARTS.battery[d.battery].cost + PARTS.chip[d.chip].cost + 8;
+  let q = PARTS.screen[d.screen].q + PARTS.camera[d.camera].q + PARTS.battery[d.battery].q + PARTS.chip[d.chip].q;
+  d.extras.forEach(id => { const x = EXTRAS.find(e=>e.id===id); cost += x.cost; q += x.q; });
+  const value = Math.round(30 + q*7 + q*q*0.06);
+  return {cost, q, value};
+}
+let audioCtx;
+function beep(f=600, t=0.08, type='sine', vol=0.06){
+  try{
+    audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type; o.frequency.value = f; g.gain.value = vol;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + t); o.stop(audioCtx.currentTime + t);
+  }catch(e){}
+}
+function toast(msg){
+  const t = document.createElement('div'); t.className='toast'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(), 2600);
+}
+function floatText(text, x, y, color){
+  const f = document.createElement('div'); f.className='float'; f.textContent=text;
+  f.style.left = x+'px'; f.style.top = y+'px'; if(color) f.style.color = color;
+  document.body.appendChild(f); setTimeout(()=>f.remove(), 1000);
+}
+function feed(html){
+  const p = document.createElement('p'); p.innerHTML = `<span class="muted">Day ${S.day}</span> · ` + html;
+  const f = $('feed'); f.prepend(p); while(f.children.length > 40) f.lastChild.remove();
+}
+
+// ---------- PHONE DRAWING ----------
+function phoneHTML(d, side, scale=1){
+  const scr = PARTS.screen[d.screen];
+  const fold = d.extras.includes('fold');
+  const w = (fold ? scr.w*1.55 : scr.w) * scale, h = scr.w*2.05*scale;
+  const col = COLORS[d.color];
+  const light = ['#e9ecf2','#ffc23d','#3ddc97','#1fc8db','#f0a6ca'].includes(col);
+  const txt = light ? '#222' : '#fff';
+  if(side === 'front'){
+    const now = new Date();
+    return `<div class="phone" style="width:${w}px;height:${h}px;background:${col}">
+      <div class="scr"><div class="time">${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}</div><div class="date">${(S.company||'PHONE').toUpperCase()}</div></div>
+      ${fold?'<div class="crease"></div>':'<div class="notch"></div>'}</div>`;
+  }
+  const n = PARTS.camera[d.camera].n;
+  let lenses = ''; for(let i=0;i<n;i++) lenses += '<div class="lens"></div>';
+  return `<div class="phone" style="width:${w}px;height:${h}px;background:linear-gradient(150deg,${col},${shade(col,-25)});color:${txt}">
+    <div class="bump" style="grid-template-columns:repeat(${n>1?2:1},1fr)">${lenses}</div>
+    ${fold?'<div class="crease" style="background:rgba(0,0,0,.2)"></div>':''}
+    <div class="brand">${(S.company||'?').charAt(0).toUpperCase()}</div>
+    ${d.extras.includes('g5')?'<div class="tag5g">5G</div>':''}
+    ${d.extras.includes('water')?'<div class="drop">💧</div>':''}</div>`;
+}
+function shade(hex, pct){
+  const n = parseInt(hex.slice(1),16); let r=(n>>16)+pct, g=((n>>8)&255)+pct, b=(n&255)+pct;
+  const c = v => Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0');
+  return '#'+c(r)+c(g)+c(b);
+}
+
+// ---------- DESIGN LAB ----------
+function renderDesign(){
+  const d = S.design;
+  $('preview').innerHTML = phoneHTML(d,'front') + phoneHTML(d,'back');
+  const c = calc(d);
+  $('pCost').textContent = fmt(c.cost); $('pQual').textContent = c.q; $('pVal').textContent = fmt(c.value);
+  $('colors').innerHTML = COLORS.map((col,i)=>`<button class="swatch ${d.color===i?'sel':''}" style="background:${col}" data-color="${i}" aria-label="color ${i}"></button>`).join('');
+  ['screen','camera','battery','chip'].forEach(k=>{
+    $('opt-'+k).innerHTML = PARTS[k].map((p,i)=>{
+      const locked = p.lock && !S.unlocked[p.lock];
+      return `<button class="opt ${d[k]===i?'sel':''} ${locked?'locked':''}" data-part="${k}" data-i="${i}">${locked?'🔒 ':''}${p.name}${p.sub?' '+p.sub:''}<span class="c">${fmt(p.cost)}</span></button>`;
+    }).join('');
+  });
+  $('opt-extras').innerHTML = EXTRAS.map(x=>{
+    const locked = x.lock && !S.unlocked[x.lock];
+    return `<button class="opt ${d.extras.includes(x.id)?'sel':''} ${locked?'locked':''}" data-extra="${x.id}">${locked?'🔒 ':''}${x.name}<span class="c">${fmt(x.cost)}</span></button>`;
+  }).join('');
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  if(b.dataset.color){ S.design.color = +b.dataset.color; beep(700); renderDesign(); }
+  if(b.dataset.part){
+    const p = PARTS[b.dataset.part][+b.dataset.i];
+    if(p.lock && !S.unlocked[p.lock]){ $('designMsg').textContent = `🔒 Research "${RESEARCH.find(r=>r.id===p.lock).name}" to unlock this.`; beep(200,.15,'square'); return; }
+    S.design[b.dataset.part] = +b.dataset.i; beep(700); renderDesign();
+  }
+  if(b.dataset.extra){
+    const x = EXTRAS.find(z=>z.id===b.dataset.extra);
+    if(x.lock && !S.unlocked[x.lock]){ $('designMsg').textContent = `🔒 Research "${RESEARCH.find(r=>r.id===x.lock).name}" to unlock this.`; beep(200,.15,'square'); return; }
+    const ex = S.design.extras; const i = ex.indexOf(x.id); i>=0 ? ex.splice(i,1) : ex.push(x.id); beep(700); renderDesign();
+  }
+});
+$('saveModel').onclick = ()=>{
+  let name = $('modelName').value.trim();
+  if(!name) name = (S.company||'Phone') + ' ' + (S.models.length+1);
+  if(S.models.length >= 6){ $('designMsg').textContent = 'You can have up to 6 models. Retire one in the Store first.'; return; }
+  const c = calc(S.design);
+  const m = {id:Date.now(), name, d:JSON.parse(JSON.stringify(S.design)), cost:c.cost, q:c.q, value:c.value, price:Math.round(c.value/5)*5, stock:0, sold:0};
+  S.models.push(m); S.selected = m.id; $('modelName').value='';
+  $('designMsg').textContent = `✅ "${name}" saved! Build some on the assembly line.`;
+  feed(`📣 <b>${S.company}</b> announced the new <b>${name}</b>!`);
+  beep(880,.12); setTimeout(()=>beep(1180,.15),90);
+  renderStore(); renderBench(); save();
+};
+
+// ---------- ASSEMBLY ----------
+function selModel(){ return S.models.find(m=>m.id===S.selected); }
+function renderBench(){
+  const m = selModel(), el = $('bench');
+  if(!m){ el.innerHTML = `<div style="font-size:50px;margin-top:30px">🛠️</div><p class="muted">Design a phone and save it to start building.</p>`; return; }
+  if(!build){
+    el.innerHTML = `<div style="display:flex;justify-content:center;margin-bottom:8px">${phoneHTML(m.d,'back',.55)}</div>
+      <div><b>${m.name}</b> · costs ${fmt(m.cost)} in parts</div>
+      <p class="muted">Click the parts in the right order to assemble it!</p>
+      <button class="go" id="startBuild" ${S.money<m.cost?'disabled':''}>Build one (${fmt(m.cost)})</button>
+      ${S.money<m.cost?'<p class="muted" style="color:var(--bad)">Not enough money for parts.</p>':''}`;
+    $('startBuild').onclick = ()=>{
+      if(S.money < m.cost) return;
+      S.money -= m.cost; build = {model:m.id, step:0, order: shuffle(STEPS.slice())}; beep(500); renderBench(); renderTop();
+    };
+    return;
+  }
+  const next = STEPS[build.step];
+  el.innerHTML = `<div class="next">Next part: <b>${next.e} ${next.n}</b></div>
+    <div class="steps">${STEPS.map((s,i)=>`<div class="dot ${i<build.step?'done':''}"></div>`).join('')}</div>
+    <div class="parts">${build.order.map(s=>{
+      const used = STEPS.findIndex(x=>x.id===s.id) < build.step;
+      return `<button class="part ${used?'used':''}" data-step="${s.id}">${s.e}<small>${s.n}</small></button>`;}).join('')}</div>`;
+  el.querySelectorAll('[data-step]').forEach(b=> b.onclick = ev=>{
+    if(b.dataset.step === STEPS[build.step].id){
+      build.step++; beep(500 + build.step*90, .07, 'triangle');
+      if(build.step >= STEPS.length){
+        const mm = S.models.find(x=>x.id===build.model); if(mm) mm.stock++;
+        floatText('+1 📱', ev.clientX, ev.clientY);
+        build = null; beep(1200,.15); renderStore(); save();
+      }
+      renderBench();
+    } else {
+      b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); beep(160,.15,'square');
+    }
+  });
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+// ---------- STORE ----------
+function rating(m){
+  const r = m.value / m.price;
+  if(r >= 1.25) return ['good','Great deal'];
+  if(r >= 0.9) return ['ok','Fair price'];
+  return ['bad','Too pricey'];
+}
+function renderStore(){
+  const el = $('tab-store');
+  if(!S.models.length){ el.innerHTML = '<p class="muted">Your store is empty. Design a phone in the Design Lab!</p>'; return; }
+  el.innerHTML = `<p class="muted">Pick which model to build. Set prices — too high and nobody buys, too low and you lose profit.</p>` +
+  S.models.map(m=>{
+    const [cls, txt] = rating(m);
+    return `<div class="model ${S.selected===m.id?'sel':''}">
+      <div class="mini" style="background:${COLORS[m.d.color]}"></div>
+      <div>
+        <h3>${m.name}</h3>
+        <div class="meta">Quality ${m.q} · parts ${fmt(m.cost)} · fair price ${fmt(m.value)}</div>
+        <div class="meta">📦 In stock: <b style="color:var(--text)">${m.stock}</b> · Sold: ${m.sold} · <span class="pill ${cls}">${txt}</span></div>
+        <div class="ctrl">
+          $<input type="number" min="1" step="5" value="${m.price}" data-price="${m.id}">
+          <button data-pick="${m.id}" ${S.selected===m.id?'disabled':''}>${S.selected===m.id?'Building ✓':'Build this'}</button>
+          <button data-retire="${m.id}" title="Retire model">🗑️</button>
+        </div>
+      </div></div>`;
+  }).join('');
+  el.querySelectorAll('[data-price]').forEach(i=> i.onchange = ()=>{
+    const m = S.models.find(x=>x.id==i.dataset.price); m.price = Math.max(1, Math.round(+i.value||1)); renderStore(); save();
+  });
+  el.querySelectorAll('[data-pick]').forEach(b=> b.onclick = ()=>{ if(build) return toast('Finish the phone on the line first!'); S.selected = +b.dataset.pick; renderStore(); renderBench(); });
+  el.querySelectorAll('[data-retire]').forEach(b=> b.onclick = ()=>{
+    const m = S.models.find(x=>x.id==b.dataset.retire);
+    if(b.dataset.confirm !== '1'){ b.dataset.confirm='1'; b.textContent='Sure?'; return; }
+    if(build && build.model===m.id) build = null;
+    S.money += m.stock * m.cost * 0.5;
+    S.models = S.models.filter(x=>x!==m);
+    if(S.selected===m.id) S.selected = S.models[0]?.id ?? null;
+    renderStore(); renderBench(); renderTop(); save();
+  });
+}
+
+// ---------- UPGRADES ----------
+const upCost = {
+  workers: ()=> Math.round(250 * Math.pow(1.7, S.workers)),
+  robot:   ()=> Math.round(1500 * Math.pow(2.5, S.robot)),
+  store:   ()=> Math.round(800 * Math.pow(2.2, S.store)),
+  ad:      ()=> 300 + S.day*15,
+};
+function workerTime(){ return 9 / Math.pow(1.5, S.robot); }
+function renderUpgrades(){
+  $('tab-upgrades').innerHTML = `
+    <div class="shopitem"><div>👷 <b>Hire worker</b> (${S.workers})<small>Builds your selected model automatically</small></div><button class="gold" data-up="workers">${fmt(upCost.workers())}</button></div>
+    <div class="shopitem"><div>🤖 <b>Robot arms</b> (lvl ${S.robot})<small>Workers build 50% faster</small></div><button class="gold" data-up="robot" ${S.robot>=5?'disabled':''}>${S.robot>=5?'MAX':fmt(upCost.robot())}</button></div>
+    <div class="shopitem"><div>🏬 <b>Open a new store</b> (${S.store})<small>More shoppers every day</small></div><button class="gold" data-up="store">${fmt(upCost.store())}</button></div>
+    <div class="shopitem"><div>📺 <b>TV ad campaign</b>${S.marketing>0?` <span class="pill good">${Math.ceil(S.marketing)}s left</span>`:''}<small>Triple shoppers for 45 seconds</small></div><button class="gold" data-up="ad">${fmt(upCost.ad())}</button></div>`;
+  $('tab-upgrades').querySelectorAll('[data-up]').forEach(b=> b.onclick = ()=>{
+    const k = b.dataset.up, c = upCost[k]();
+    if(S.money < c){ beep(160,.15,'square'); return toast('Not enough money!'); }
+    S.money -= c;
+    if(k==='workers'){ S.workers++; feed(`👷 Hired worker #${S.workers}.`); }
+    if(k==='robot'){ S.robot++; feed(`🤖 Robot arms upgraded to level ${S.robot}.`); }
+    if(k==='store'){ S.store++; feed(`🏬 ${S.company} store #${S.store+1} is now open!`); }
+    if(k==='ad'){ S.marketing += 45; feed(`📺 Your ad is on TV! Shoppers are rushing in.`); }
+    beep(900,.1); renderUpgrades(); renderTop(); save();
+  });
+}
+function renderResearch(){
+  $('tab-research').innerHTML = RESEARCH.map(r=>`
+    <div class="shopitem"><div>🔬 <b>${r.name}</b><small>${r.desc}</small></div>
+    ${S.unlocked[r.id] ? '<span class="pill good">Done ✓</span>' : `<button class="gold" data-res="${r.id}">${fmt(r.cost)}</button>`}</div>`).join('');
+  $('tab-research').querySelectorAll('[data-res]').forEach(b=> b.onclick = ()=>{
+    const r = RESEARCH.find(x=>x.id===b.dataset.res);
+    if(S.money < r.cost){ beep(160,.15,'square'); return toast('Not enough money!'); }
+    S.money -= r.cost; S.unlocked[r.id] = true;
+    toast(`🔬 ${r.name} unlocked!`); feed(`🔬 Your engineers invented the <b>${r.name}</b>.`);
+    beep(800,.1); setTimeout(()=>beep(1100,.1),100); setTimeout(()=>beep(1400,.15),200);
+    renderResearch(); renderDesign(); renderTop(); save();
+  });
+}
+document.querySelectorAll('.tabs button').forEach(b=> b.onclick = ()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on', x===b));
+  ['store','upgrades','research'].forEach(t=> $('tab-'+t).hidden = t!==b.dataset.tab);
+});
+
+// ---------- TOP BAR ----------
+function renderTop(){
+  $('money').textContent = fmt(S.money); $('rep').textContent = Math.round(S.rep);
+  $('sold').textContent = S.sold.toLocaleString(); $('day').textContent = S.day;
+  $('coName').textContent = S.company || 'Phone';
+  const m = selModel();
+  $('workerInfo').textContent = S.workers ? `${S.workers} worker${S.workers>1?'s':''} building ${m?m.name:'nothing (pick a model)'} — a phone every ${(workerTime()/S.workers).toFixed(1)}s` : 'No workers yet. Hire some in the Upgrades tab and they\'ll build your selected model automatically.';
+}
+
+// ---------- GAME LOOP ----------
+const GOALS = [
+  [5000,'🎉 $5,000! You\'re a real startup now.'],
+  [25000,'🚀 $25,000! People are noticing your phones.'],
+  [100000,'🏢 $100,000! You moved out of the garage into a skyscraper.'],
+  [500000,'🌍 $500,000! Your phones are sold worldwide.'],
+  [1000000,'👑 $1,000,000! You built a PHONE EMPIRE! You win! (Keep playing if you like)'],
+];
+let lastUi = 0;
+function tick(){
+  const dt = 0.25; S.tick += dt;
+  if(S.tick >= 20){ S.tick = 0; S.day++; if(Math.random()<0.35) feed('🗞️ ' + NEWS[Math.floor(Math.random()*NEWS.length)].replace('{co}', S.company)); }
+  if(S.marketing > 0) S.marketing = Math.max(0, S.marketing - dt);
+
+  // workers
+  const m = selModel();
+  if(S.workers && m){
+    workerProgress += dt * S.workers / workerTime();
+    while(workerProgress >= 1){
+      workerProgress -= 1;
+      if(S.money >= m.cost){ S.money -= m.cost; m.stock++; } else { workerProgress = 0; break; }
+    }
+    $('workerBar').style.width = (workerProgress*100)+'%';
+  } else $('workerBar').style.width = '0%';
+
+  // shoppers
+  const traffic = 0.35 * (0.4 + S.rep/80) * (1 + S.store*0.6) * (S.marketing>0?3:1) * (1 + S.day*0.01);
+  let shoppers = 0, t = traffic*dt; while(t > 1){ shoppers++; t--; } if(Math.random() < t) shoppers++;
+  for(let i=0;i<shoppers;i++) shopper();
+
+  GOALS.forEach(([amt,msg])=>{ if(S.money >= amt && !S.goals[amt]){ S.goals[amt]=true; toast(msg); feed('🏆 '+msg); beep(1000,.2); } });
+
+  const now = performance.now();
+  if(now - lastUi > 500){ lastUi = now; renderTop(); renderStore(); if(!$('tab-upgrades').hidden) renderUpgrades(); if(!build) renderBench(); save(); }
+  else renderTop();
+}
+function shopper(){
+  const avail = S.models.filter(m=>m.stock>0);
+  if(!avail.length){ if(S.models.length && Math.random()<0.15) feed('😕 A shopper left — nothing was in stock!'); return; }
+  // shopper has a budget and picks the best deal they can afford
+  const budget = 150 * Math.pow(Math.random()*4, 1.6) + 80;
+  const choices = avail.filter(m=> m.price <= budget || m.price <= m.value*0.8);
+  if(!choices.length) return;
+  choices.sort((a,b)=> (b.value/b.price + b.q/200) - (a.value/a.price + a.q/200));
+  const m = choices[0];
+  const ratio = m.value / m.price;
+  const willing = ratio * (0.75 + Math.random()*0.5) * (0.8 + S.rep/250);
+  if(willing < 0.85) return;
+  m.stock--; m.sold++; S.sold++; S.money += m.price;
+  const stars = Math.max(1, Math.min(5, Math.round(ratio*3 + (Math.random()-0.5))));
+  S.rep = Math.max(0, Math.min(100, S.rep + (stars-3)*0.4));
+  if(Math.random() < 0.3 || S.sold <= 3){
+    const list = REVIEWS[stars];
+    feed(`<span class="st">${'★'.repeat(stars)}${'☆'.repeat(5-stars)}</span> <b>${m.name}</b> — "${list[Math.floor(Math.random()*list.length)]}" <span class="muted">(+${fmt(m.price)})</span>`);
+  }
+  beep(1300 + Math.random()*300, .05, 'sine', .03);
+}
+
+// ---------- START ----------
+function startGame(){
+  $('startScreen').remove();
+  renderDesign(); renderBench(); renderStore(); renderUpgrades(); renderResearch(); renderTop();
+  setInterval(tick, 250);
+}
+if(load() && S.company){
+  startGame(); feed(`👋 Welcome back to <b>${S.company}</b>!`);
+} else {
+  $('startBtn').onclick = ()=>{
+    S.company = $('companyInput').value.trim() || 'Zoomtek';
+    startGame();
+    feed(`🏭 <b>${S.company}</b> opened its very first phone factory in a garage. You have ${fmt(S.money)} to start.`);
+    feed(`💡 Tip: design a phone, save it, then click the parts in order to build it. Phones sell automatically from your store!`);
+  };
+  $('companyInput').addEventListener('keydown', e=>{ if(e.key==='Enter') $('startBtn').click(); });
+}
+</script>
+</body>
+</html>

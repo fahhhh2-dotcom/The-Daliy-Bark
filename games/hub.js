@@ -16,9 +16,12 @@
     runner: { name: "Sandwich Sprint 3D", key: "sandwichSprintSave", genre: "Endless Runner", desc: "Dash through the sandwich shop, dodge bread carts and drink coolers, and grab every cookie. Spend cookies on outfits, a cookie magnet, spring shoes and second chances.", how: "<b>Swipe ← →</b> to switch lanes, <b>↑</b> to jump, <b>↓</b> to slide. On a computer use the arrow keys." },
     bugs: { name: "Wild Woods Bug Catching", key: "wild-woods-bugs-v1", genre: "Bug Catching", desc: "Grab your net and explore five areas: Sunny Meadow, Lily Pond, Oak Forest, Steamy Jungle and Moonlit Woods. Catch butterflies, beetles, dragonflies and rare glowing bugs to fill your Bug Book.", how: "<b>Press and hold</b> on a bug to trap it in your net, and keep holding until the ring fills up." },
     "last-ember": { name: "Last Ember", key: "lastEmberSave", genre: "Survival · Co-op", desc: "Survive 99 nights in a realistic 3D forest with your friends. Pick a skin, hunt, craft gear, upgrade the fire to open up the forest, rescue 5 lost kids — and don't look away from the Watcher.", how: "<b>Gather</b> wood to keep the fire going, <b>craft</b> gear and bandages, and make a <b>Friend World</b> you and your friends can come back to any time. If you go down, a friend has 1 minute to heal you — or you become a ghost until sunrise." },
-    space: { name: "Space Explorer", key: "spaceExplorerSave", genre: "Space · Learning", desc: "Watch all eight planets orbit the Sun, tap any planet to learn about it, see what you'd weigh on other worlds, and take the Space Quiz to beat your best score.", how: "<b>Tap</b> a planet or the Sun for facts. Try the <b>Quiz</b> tab to test what you know." }
+    nebula: { name: "Nebula Blaster", key: "nebulaBest", genre: "Space Shooter", desc: "Blast asteroids, zigzag saucers and dive-bombing alien ships in a glowing neon nebula. Grab triple shot, shields, extra lives and bombs, build up combos, and survive a giant boss every 5 waves.", how: "<b>Arrow keys / WASD</b> to fly (it fires by itself). <b>Space</b> drops a bomb. On a phone, <b>drag your finger</b> to fly and <b>double-tap</b> for a bomb." },
+    tycoon: { name: "Phone Factory Tycoon", key: "phoneTycoon", genre: "Tycoon", desc: "Start a phone company in a garage. Design phones, build them on the assembly line, set your prices, hire workers, research new tech like 5G and folding screens, and grow into a phone empire worth $1,000,000.", how: "<b>Design</b> a phone and save it, <b>click the parts in order</b> to build it, then set a fair price so shoppers buy it." },
+    peaks: { name: "Peak Finder", key: "peakFinderBest", genre: "Geography", desc: "Find the biggest mountains and mountain ranges of North and South America on the map, from Denali to Aconcagua and the Andes. Study the map first, then go for 3 stars on every place.", how: "<b>Tap the dot</b> where the mountain is. Stuck? Use a <b>hint</b>, or try <b>Study the map</b> first." },
+    spelling: { name: "Spelling Quest", key: "sq9-best-mix", genre: "Spelling", desc: "Practice your spelling words with 9 different mini-games: hangman, word scramble, hear-and-spell, match, fill the gap, beat the clock and more. Try to set a best score in every mode.", how: "<b>Pick a game mode</b>, listen to the word and spell it. Every mode keeps your best score." }
   };
-  const ORDER = ["fishing", "graveyard", "runner", "bugs", "last-ember", "space"];
+  const ORDER = ["fishing", "graveyard", "runner", "bugs", "last-ember", "nebula", "tycoon", "peaks", "spelling"];
 
   // pictures (ids made unique for every copy)
   let artN = 0;
@@ -35,7 +38,10 @@
       runner: r && { best: r.best || 0, bank: r.bank || 0, outfits: (r.owned || []).length },
       bugs: b && { money: b.money || 0, species: count(b.book), areas: (b.unlocked || []).filter(Boolean).length },
       "last-ember": (ls.get("lastEmberBest") !== null || ls.get("lastEmberSave") !== null) ? { best: +ls.get("lastEmberBest") || 0 } : null,
-      space: (() => { const s = ls.json("spaceExplorerSave"); return s && { best: s.best || 0, quizzes: s.quizzes || 0, viewed: (s.viewed || []).length }; })()
+      nebula: ls.get("nebulaBest") !== null ? { best: +ls.get("nebulaBest") || 0 } : null,
+      tycoon: (() => { const t = ls.json("phoneTycoon"); return t && t.company ? { money: t.money || 0, sold: t.sold || 0, day: t.day || 1, models: (t.models || []).length, research: count(t.unlocked) } : null; })(),
+      peaks: ls.get("peakFinderBest") !== null ? { stars: +ls.get("peakFinderBest") || 0 } : null,
+      spelling: (() => { const modes = ["abc","clock","gap","hangman","hear","match","mix","scramble","spot"]; let played = 0, best = 0; modes.forEach(m => { const v = parseFloat(ls.get("sq9-best-" + m)); if (!isNaN(v)) { played++; best = Math.max(best, v); } }); return played ? { modes: played, best } : null; })()
     };
   }
   const statList = (g, S) => {
@@ -46,7 +52,10 @@
       runner: [["Best score", fmt(s.best)], ["Cookies", "🍪 " + fmt(s.bank)], ["Outfits", s.outfits]],
       bugs: [["Money", "$" + fmt(s.money)], ["Bugs found", s.species], ["Areas", s.areas + " / 5"]],
       "last-ember": [["Best nights", s.best], ["Goal", s.best >= 99 ? "🏆 Survived!" : "🔥 99 nights"]],
-      space: [["Best quiz", s.best + " / 7"], ["Quizzes taken", s.quizzes], ["Worlds explored", s.viewed + " / 9"]]
+      nebula: [["High score", fmt(s.best)]],
+      tycoon: [["Money", "$" + fmt(s.money)], ["Phones sold", fmt(s.sold)], ["Day", s.day], ["Research", s.research + " / 6"]],
+      peaks: [["Best stars", s.stars + " / 24"]],
+      spelling: [["Modes played", s.modes + " / 9"], ["Top score", fmt(s.best)]]
     }[g];
   };
 
@@ -72,10 +81,14 @@
     { id: "e1", g: "last-ember", ic: "🔥", name: "Keep It Lit", how: "Survive 5 nights in Last Ember", ok: S => S["last-ember"] && S["last-ember"].best >= 5 },
     { id: "e2", g: "last-ember", ic: "🐺", name: "Wolf Fighter", how: "Survive 25 nights in Last Ember", ok: S => S["last-ember"] && S["last-ember"].best >= 25 },
     { id: "e3", g: "last-ember", ic: "🌲", name: "99 Nights", how: "Survive all 99 nights", ok: S => S["last-ember"] && S["last-ember"].best >= 99 },
-    { id: "s1", g: "space", ic: "🪐", name: "Stargazer", how: "Learn about 5 worlds in Space Explorer", ok: S => S.space && S.space.viewed >= 5 },
-    { id: "s2", g: "space", ic: "🚀", name: "Space Cadet", how: "Score 5 or more on the Space Quiz", ok: S => S.space && S.space.best >= 5 },
-    { id: "s3", g: "space", ic: "🧑‍🚀", name: "Mission Control", how: "Get a perfect Space Quiz", ok: S => S.space && S.space.best >= 7 },
-    { id: "all", g: null, ic: "🕹️", name: "Arcade Explorer", how: "Play all 6 games", ok: S => ORDER.every(g => S[g]) },
+    { id: "n1", g: "nebula", ic: "🚀", name: "Space Ace", how: "Score 5,000 in Nebula Blaster", ok: S => S.nebula && S.nebula.best >= 5000 },
+    { id: "n2", g: "nebula", ic: "👾", name: "Boss Buster", how: "Score 25,000 in Nebula Blaster", ok: S => S.nebula && S.nebula.best >= 25000 },
+    { id: "t1", g: "tycoon", ic: "📱", name: "First Sale", how: "Sell a phone in Phone Factory Tycoon", ok: S => S.tycoon && S.tycoon.sold >= 1 },
+    { id: "t2", g: "tycoon", ic: "🏢", name: "Big Business", how: "Have $100K in Phone Factory Tycoon", ok: S => S.tycoon && S.tycoon.money >= 1e5 },
+    { id: "t3", g: "tycoon", ic: "👑", name: "Phone Empire", how: "Reach $1 million in Phone Factory Tycoon", ok: S => S.tycoon && S.tycoon.money >= 1e6 },
+    { id: "p1", g: "peaks", ic: "🏔️", name: "Mountain Master", how: "Get 20+ stars in Peak Finder", ok: S => S.peaks && S.peaks.stars >= 20 },
+    { id: "w1", g: "spelling", ic: "✏️", name: "Word Wizard", how: "Play 5 Spelling Quest modes", ok: S => S.spelling && S.spelling.modes >= 5 },
+    { id: "all", g: null, ic: "🕹️", name: "Arcade Explorer", how: "Play all 9 games", ok: S => ORDER.every(g => S[g]) },
     { id: "day", g: null, ic: "⭐", name: "Daily Player", how: "Play the Game of the Day", ok: () => ls.get("arcade_gotd_played") === today() },
     { id: "lucky", g: null, ic: "🎲", name: "Feeling Lucky", how: "Use Surprise Me", ok: () => !!ls.get("arcade_surprised") }
   ];
