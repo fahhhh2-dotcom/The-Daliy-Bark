@@ -19,7 +19,7 @@
     "graveyardTD",                       // Graveyard Defense
     "sandwichSprintSave",                // Sandwich Sprint 3D
     "wild-woods-bugs-v1",                // Wild Woods Bug Catching
-    "lastEmberSave", "lastEmberBest"     // Last Ember
+    "lastEmberSave", "lastEmberBest", "lastEmberWorlds"   // Last Ember
   ];
   const META = "arcade_sync_times";
   const IS_HUB = !!window.ARCADE_HUB;
