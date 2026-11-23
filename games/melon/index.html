@@ -55,6 +55,7 @@
   <button data-t="pin">📌<span>Pin / unpin</span></button>
   <button data-t="poke">👉<span>Poke (sets off TNT)</span></button>
   <button data-t="hammer">🔨<span>Hammer (bonk!)</span></button>
+  <button data-t="cut">✂️<span>Cut off arms &amp; legs (swipe)</span></button>
   <button data-t="heal">❤️<span>Heal / revive</span></button>
   <button data-t="delete">🗑️<span>Delete</span></button>
 </div>
@@ -77,7 +78,7 @@ let bounds = [];
 
 // ---------- save a few numbers for the arcade ----------
 const SKEY = 'melonLabStats';
-let stats = { spawned: 0, booms: 0, kos: 0 }; try { stats = Object.assign(stats, JSON.parse(localStorage.getItem(SKEY)) || {}); } catch (e) {}
+let stats = { spawned: 0, booms: 0, kos: 0, cuts: 0 }; try { stats = Object.assign(stats, JSON.parse(localStorage.getItem(SKEY)) || {}); } catch (e) {}
 let saveT = 0; function bump(k, n = 1){ stats[k] += n; clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(SKEY, JSON.stringify(stats)); } catch (e) {} }, 800); }
 
 // ---------- sound ----------
@@ -147,16 +148,16 @@ function makeRagdoll(x, y, look){
   Composite.add(comp, parts); Composite.add(comp, joints);
   parts.forEach(p => p.rag = comp);
   head.face = { dizzy: 0, shock: 0, blink: Math.random() * 4 };
-  ragdolls.set(comp.id, { comp, head, torso, legs: [ul1, ul2], feet: [ll1, ll2], arms: [ua1, ua2, la1, la2], look, hp: 100, ko: false, joints, hpShow: 0, stun: 0 });
+  ragdolls.set(comp.id, { cut: new Set(), comp, head, torso, legs: [ul1, ul2], feet: [ll1, ll2], arms: [ua1, ua2, la1, la2], look, hp: 100, ko: false, joints, hpShow: 0, stun: 0 });
   [ll1, ll2].forEach(f => f.isFoot = true);
   Composite.add(world, comp);
   return comp;
 }
 
 const LOOKS = {
-  melon: { head: '#4caf50', stripe: '#2e7d32', body: '#7ccf4f', limb: '#6bbf42', leg: '#3e8e3e', juice: '#3fdc2a' },
-  pumpkin: { head: '#ff9a2e', stripe: '#d06a10', body: '#7a4a2a', limb: '#8a5a32', leg: '#4a3020', stem: true, juice: '#ff8a1a' },
-  lemon: { head: '#ffe14a', stripe: '#e0b800', body: '#3d6bff', limb: '#ffe14a', leg: '#2a2a30', juice: '#ffe600' }
+  melon: { head: '#4caf50', stripe: '#2e7d32', body: '#7ccf4f', limb: '#6bbf42', leg: '#3e8e3e', juice: '#3fdc2a', inside: '#d8ffb0' },
+  pumpkin: { head: '#ff9a2e', stripe: '#d06a10', body: '#7a4a2a', limb: '#8a5a32', leg: '#4a3020', stem: true, juice: '#ff8a1a', inside: '#ffd59a' },
+  lemon: { head: '#ffe14a', stripe: '#e0b800', body: '#3d6bff', limb: '#ffe14a', leg: '#2a2a30', juice: '#ffe600', inside: '#fffbd0' }
 };
 function avatarLook(){
   try { const c = ArcadeAvatar.colors(); return { head: c.skin, stripe: null, body: c.shirt, limb: c.shirt, hand: c.skin, leg: c.pants, hair: c.hair, hairStyle: c.hairStyle, hat: c.hat, hatC: c.hatC, person: true }; }
@@ -224,7 +225,7 @@ document.getElementById('tools').onclick = e => {
   const b = e.target.closest('[data-t]'); if (!b) return;
   tool = b.dataset.t; pick = null; paintDock();
   document.querySelectorAll('#tools button').forEach(x => x.classList.toggle('on', x === b));
-  hint({ hammer: 'Tap a fruit person to bonk them with the hammer', heal: 'Tap a knocked-out fruit person to heal them', drag: 'Grab things and throw them', pin: 'Tap something to pin it in the air (tap again to unpin)', poke: 'Tap things to give them a push. Poke TNT to blow it up!', delete: 'Tap something to delete it' }[tool]);
+  hint({ cut: 'Swipe across an arm or leg to cut it off. Heal ❤️ puts it back!', hammer: 'Tap a fruit person to bonk them with the hammer', heal: 'Tap a fruit person to heal them and put their arms and legs back', drag: 'Grab things and throw them', pin: 'Tap something to pin it in the air (tap again to unpin)', poke: 'Tap things to give them a push. Poke TNT to blow it up!', delete: 'Tap something to delete it' }[tool]);
 };
 let hintT; function hint(t){ const h = document.getElementById('hint'); h.textContent = t; h.style.opacity = 1; clearTimeout(hintT); hintT = setTimeout(() => h.style.opacity = 0, 2600); }
 
@@ -263,6 +264,12 @@ cv.addEventListener('pointerdown', e => {
   const x = e.clientX, y = e.clientY; ptr = { x, y }; lastPtr = { x, y, t: performance.now() };
   try { cv.setPointerCapture(e.pointerId); } catch (_) {}
   const b = bodyAt(x, y);
+  if (tool === 'cut'){
+    slash = { last: { x, y }, pts: [{ x, y }], life: 1 };
+    const b2 = bodyAt(x, y);   // a tap on an arm or leg cuts it too
+    if (b2 && b2.rag && b2.kind !== 'torso' && b2.kind !== 'head'){ const R = ragdolls.get(b2.rag.id); const j = R && R.joints.find(q => q.bodyB === b2); if (j && !cutJoint(R, j) && !R.look.juice) hint('Only fruit people can be cut'); }
+    return;
+  }
   if (tool === 'hammer'){
     if (b){
       Body.applyForce(b, b.position, { x: (Math.random() - .5) * .05 * b.mass, y: .06 * b.mass });
@@ -295,10 +302,11 @@ cv.addEventListener('pointermove', e => {
   const now = performance.now(), x = e.clientX, y = e.clientY, dt = Math.max(1, now - lastPtr.t);
   vel = { x: (x - lastPtr.x) / dt, y: (y - lastPtr.y) / dt }; lastPtr = { x, y, t: now }; ptr = { x, y };
   if (grab) grab.pointA = { x, y };
+  if (slash) slashTo(x, y);
   if (gun.held){ gun.x = Math.max(30, Math.min(W - 30, x)); gun.y = Math.max(60, Math.min(H - dockH() - 20, y)); }
 });
 const release = () => {
-  gun.held = false;
+  gun.held = false; if (slash) slash.done = true;
   if (!grab) return;
   const b = grab.bodyB; Composite.remove(world, grab); grab = null;
   // throw it with the finger's speed
@@ -335,7 +343,7 @@ function heal(b){
   if (!b || !b.rag) return false;
   const R = ragdolls.get(b.rag.id); if (!R) return false;
   R.hp = 100; R.ko = false; R.head.face.ko = false; R.head.face.dizzy = 0; R.hpShow = 2;
-  R.joints.forEach(j => { j.stiffness = .9; }); R.stun = 0;
+  R.joints.forEach(j => { j.stiffness = .9; }); R.stun = 0; reattach(R);
   burst(R.head.position.x, R.head.position.y, '#ff6fa8', 14, 4); burst(R.head.position.x, R.head.position.y, '#fff', 8, 3);
   words.push({ x: R.head.position.x, y: R.head.position.y - 30, t: 1, s: .8, w: 'HEALED!' });
   snd('boing'); return true;
@@ -383,6 +391,45 @@ function shoot(tx, ty){
     }
     tracers.push({ x1: mx, y1: my, x2: hitP.x, y2: hitP.y, life: 1, col: G.col, laser: !!G.laser });
   }
+}
+
+// ---------- cutting off arms and legs (fruit people only) ----------
+const jointAt = j => Vector.add(j.bodyA.position, Vector.rotate(j.pointA, j.bodyA.angle));
+function cutJoint(R, j){
+  if (!R.look.juice || j.bodyB === R.head || R.cut.has(j)) return false;   // heads stay on; your avatar can't be cut
+  Composite.remove(R.comp, j); R.cut.add(j);
+  const p = jointAt(j);
+  if (juiceOn) squirt(p.x, p.y, R.look.juice, 22, 5);
+  burst(p.x, p.y, R.look.inside, 6, 3);
+  Body.applyForce(j.bodyB, j.bodyB.position, { x: (Math.random() - .5) * .004 * j.bodyB.mass * 10, y: -.003 * j.bodyB.mass * 10 });
+  hurt(j.bodyA, 18, p); snd('del'); bump('cuts');
+  return true;
+}
+function reattach(R){
+  R.cut.forEach(j => {
+    const p = jointAt(j);
+    // put the part back where it belongs, then join it again
+    const off = Vector.rotate(j.pointB, j.bodyB.angle);
+    Body.setPosition(j.bodyB, Vector.sub(p, off)); Body.setVelocity(j.bodyB, { x: 0, y: 0 });
+    Composite.add(R.comp, j);
+  });
+  // children of a re-attached part may need moving too: do a second pass
+  R.cut.forEach(j => { const p = jointAt(j); Body.setPosition(j.bodyB, Vector.sub(p, Vector.rotate(j.pointB, j.bodyB.angle))); });
+  R.cut.clear();
+}
+// how close a point is to a line segment
+function segDist(p, a, b){ const ab = Vector.sub(b, a), t = Math.max(0, Math.min(1, Vector.dot(Vector.sub(p, a), ab) / (Vector.magnitudeSquared(ab) || 1))); return Vector.magnitude(Vector.sub(p, Vector.add(a, Vector.mult(ab, t)))); }
+let slash = null;
+function slashTo(x, y){
+  if (!slash) return;
+  const a = slash.last, b = { x, y };
+  ragdolls.forEach(R => R.joints.forEach(j => { if (!R.cut.has(j) && segDist(jointAt(j), a, b) < 13) cutJoint(R, j); }));
+  // also cut a part if the swipe goes right through its middle
+  Composite.allBodies(world).forEach(body => {
+    if (!body.rag || body.kind === 'torso' || body.kind === 'head') return;
+    if (segDist(body.position, a, b) < 7){ const R = ragdolls.get(body.rag.id); const j = R && R.joints.find(q => q.bodyB === body); if (j) cutJoint(R, j); }
+  });
+  slash.pts.push(b); if (slash.pts.length > 14) slash.pts.shift(); slash.last = b;
 }
 
 // ---------- explosions & machines ----------
@@ -439,6 +486,7 @@ function balance(dt){
   const now = engine.timing.timestamp;
   ragdolls.forEach(R => {
     if (R.ko) return;
+    if ([...R.cut].some(j => R.legs.includes(j.bodyB) || R.feet.includes(j.bodyB))) return;   // can't stand without both legs
     if (R.stun > 0){ R.stun -= dt / 1000; return; }
     if (R.head.face.dizzy > 1.5) return;
     const held = grab && grab.bodyB && grab.bodyB.rag === R.comp;
@@ -591,6 +639,17 @@ function draw(){
     if (c.kind === 'grab'){ const b = Vector.add(c.bodyB.position, Vector.rotate(c.pointB, c.bodyB.angle)); g.strokeStyle = '#7dff7a'; g.lineWidth = 2; g.setLineDash([5, 5]); g.beginPath(); g.moveTo(c.pointA.x, c.pointA.y); g.lineTo(b.x, b.y); g.stroke(); g.setLineDash([]); g.fillStyle = '#7dff7a'; g.beginPath(); g.arc(c.pointA.x, c.pointA.y, 6, 0, 7); g.fill(); }
   });
   Composite.allBodies(world).forEach(b => { if (!bounds.includes(b)) drawBody(b); });
+  ragdolls.forEach(R => R.cut.forEach(j => {
+    const p = jointAt(j), q = Vector.add(j.bodyB.position, Vector.rotate(j.pointB, j.bodyB.angle));
+    g.fillStyle = R.look.inside; g.strokeStyle = R.look.juice; g.lineWidth = 1.5;
+    for (const c of [p, q]){ g.beginPath(); g.ellipse(c.x, c.y, 5.5, 4, 0, 0, 7); g.fill(); g.stroke(); }
+  }));
+  if (slash){
+    g.strokeStyle = '#ffffff'; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.globalAlpha = slash.life; g.lineWidth = 4; g.shadowColor = '#bff'; g.shadowBlur = 10;
+    g.beginPath(); slash.pts.forEach((pt, i) => i ? g.lineTo(pt.x, pt.y) : g.moveTo(pt.x, pt.y)); g.stroke(); g.shadowBlur = 0; g.globalAlpha = 1;
+    if (slash.done){ slash.life -= .12; if (slash.life <= 0) slash = null; }
+  }
   ragdolls.forEach(R => {
     if (R.hpShow <= 0 && !R.ko) return; R.hpShow -= .016;
     const h = R.head.position, w = 40;
