@@ -10,7 +10,8 @@
     fishing: { name: "Deep Blue Fishing", key: "deep-blue-fishing-v1" },
     graveyard: { name: "Graveyard Defense", key: "graveyardTD" },
     runner: { name: "Sandwich Sprint 3D", key: "sandwichSprintSave" },
-    bugs: { name: "Wild Woods Bug Catching", key: "wild-woods-bugs-v1" }
+    bugs: { name: "Wild Woods Bug Catching", key: "wild-woods-bugs-v1" },
+    "last-ember": { name: "Last Ember", key: "lastEmberBest" }
   };
   const fmt = n => { n = Math.floor(n || 0); return n >= 1e9 ? (n / 1e9).toFixed(1).replace(".0", "") + "B" : n >= 1e6 ? (n / 1e6).toFixed(1).replace(".0", "") + "M" : n >= 1e4 ? (n / 1e3).toFixed(1).replace(".0", "") + "K" : n.toLocaleString(); };
   const count = o => o && typeof o === "object" ? Object.keys(o).length : 0;
@@ -24,7 +25,8 @@
       fishing: f && { played: true, money: f.money || 0, species: count(f.book), worlds: 1 + count(f.unlocked), aquarium: (f.aquarium || []).length },
       graveyard: g && { played: true, kills: gs.kills || 0, won: gs.won || 0, wave: Math.max(bestWave, gs.best || 0), medals: g.medals || 0, monsters: count(g.unlocked) },
       runner: r && { played: true, best: r.best || 0, bank: r.bank || 0, outfits: (r.owned || []).length },
-      bugs: b && { played: true, money: b.money || 0, species: count(b.book), areas: (b.unlocked || []).filter(Boolean).length }
+      bugs: b && { played: true, money: b.money || 0, species: count(b.book), areas: (b.unlocked || []).filter(Boolean).length },
+      ember: ls.get("lastEmberBest") !== null ? { played: true, best: +ls.get("lastEmberBest") || 0 } : null
     };
   }
 
@@ -35,6 +37,7 @@
     $("st-graveyard").innerHTML = S.graveyard ? cell(fmt(S.graveyard.kills), "Zombies") + cell(S.graveyard.wave, "Best wave") + cell(S.graveyard.medals, "Medals") : none;
     $("st-runner").innerHTML = S.runner ? cell(fmt(S.runner.best), "Best score") + cell("🍪" + fmt(S.runner.bank), "Cookies") + cell(S.runner.outfits, "Outfits") : none;
     $("st-bugs").innerHTML = S.bugs ? cell("$" + fmt(S.bugs.money), "Money") + cell(S.bugs.species, "Bugs found") + cell(S.bugs.areas, "Areas") : none;
+    $("st-ember").innerHTML = S.ember ? cell(S.ember.best, "Best nights") + cell(S.ember.best >= 99 ? "🏆" : "🔥", "99 Nights") : none;
   }
 
   // ---------- badges ----------
@@ -90,7 +93,7 @@
 
   // ---------- game of the day ----------
   function today() { const d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
-  const order = ["fishing", "graveyard", "runner", "bugs"];
+  const order = ["fishing", "graveyard", "runner", "bugs", "last-ember"];
   const dayNum = Math.floor((Date.now() - new Date().getTimezoneOffset() * 6e4) / 864e5);
   const gotd = order[dayNum % order.length];
   document.querySelector(`.card[data-game="${gotd}"]`).classList.add("today");
