@@ -110,6 +110,27 @@
   .tbtn{position:absolute;width:66px;height:66px;border-radius:50%;background:rgba(0,0,0,.45);border:2px solid rgba(255,170,80,.7);color:#ffd9a8;font:700 11px Inter,sans-serif;display:flex;align-items:center;justify-content:center;pointer-events:auto}
   #lookpad{position:absolute;right:0;top:0;width:55%;height:100%;pointer-events:auto}
   #tPause{position:absolute;top:12px;left:50%;margin-left:150px;width:44px;height:44px;font-size:18px}
+  /* ---------- Lobby (walk into a square to pick how you play) ---------- */
+  #lobby{position:fixed;inset:0;z-index:30;background:#070a07}
+  #lobby.hidden{display:none}
+  #lobbyCv{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  .lbTop{position:absolute;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 12px) 14px 0;display:flex;align-items:center;gap:10px;pointer-events:none}
+  .lbTop h3{margin:0;font-family:Creepster,cursive;font-size:34px;letter-spacing:2px;color:#ffb347;text-shadow:0 0 16px rgba(255,120,40,.6)}
+  .lbTop .sp{flex:1}
+  .lbTop a,.lbTop button{pointer-events:auto;font:700 14px Inter,sans-serif;color:#ffe2bd;background:#1c120acc;border:2px solid #6b4422;border-radius:30px;padding:8px 14px;cursor:pointer;text-decoration:none}
+  .lbHint{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 14px);transform:translateX(-50%);background:#000a;border-radius:20px;padding:8px 16px;font-size:13px;font-weight:600;color:#ffe2bd;white-space:nowrap;pointer-events:none}
+  #lbPanel{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 54px);transform:translateX(-50%);width:min(440px,calc(100vw - 24px));
+    background:#140d07f2;border:2px solid #6b4422;border-radius:18px;padding:16px 18px;text-align:center;box-shadow:0 12px 40px #000c}
+  #lbPanel.hidden{display:none}
+  @media (min-width:900px){#lbPanel{left:auto;right:20px;bottom:auto;top:50%;transform:translateY(-50%);width:360px}}
+  @media (max-aspect-ratio:4/5){#lbPanel{max-height:46vh;overflow-y:auto}}
+  #lbPanel h4{margin:0 0 4px;font-size:20px;font-weight:800}
+  #lbPanel p{margin:0 0 10px;font-size:14px;opacity:.85;line-height:1.45}
+  #lbPanel .bigcode{font:800 34px Inter,sans-serif;letter-spacing:8px;color:#fff;background:#000;border-radius:12px;padding:6px 10px;margin:6px 0 10px;display:inline-block}
+  #lbPanel .row{margin-top:8px}
+  #lbPanel .worlds{max-height:38vh;overflow-y:auto;margin:0;background:none;padding:0}
+  #lbCount{font:800 15px Inter,sans-serif;color:#ffb347;margin-top:8px;min-height:20px}
+  #lobby #lobbyMsg{margin:8px auto 0}
 </style>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
@@ -223,6 +244,13 @@
   <a class="btn ghost" href="../" style="font-size:14px;padding:9px 24px">← Back to Arcade</a>
 </div>
 
+<div id="lobby">
+  <canvas id="lobbyCv"></canvas>
+  <div class="lbTop"><h3>Last Ember</h3><div class="sp"></div><button id="lbLook">🎨 Character</button><a href="../">← Arcade</a></div>
+  <div class="lbHint" id="lbHint">Walk into a glowing square to pick how you want to play</div>
+  <div id="lbPanel" class="hidden"><div id="lbBody"></div><div id="lbCount"></div><div id="lbMsgSlot"></div></div>
+</div>
+<button class="btn blue hidden" id="lbBack" style="position:fixed;z-index:31;top:calc(env(safe-area-inset-top) + 12px);right:14px;font-size:14px;padding:9px 20px">🏕 BACK TO LOBBY</button>
 <div class="screen hidden" id="pauseScreen">
   <h1 style="font-size:64px">Paused</h1>
   <p id="pauseNote"></p>
@@ -1903,6 +1931,188 @@ $('best').textContent = best;
 
 newWorld();
 requestAnimationFrame(loop);
+
+/* ============ LOBBY: walk into a square to choose who you play with ============ */
+(() => {
+  const lob = $('lobby'), cv = $('lobbyCv'), g = cv.getContext('2d');
+  const PADS = [
+    { id:'solo',   name:'SOLO',          sub:'Just you',            cap:'1',    col:'#4ade80', ic:'🔥', wait:3 },
+    { id:'party',  name:'PARTY',         sub:'You + friends',       cap:'+',  col:'#5ab0ff', ic:'👥', wait:20 },
+    { id:'join',   name:'JOIN A FRIEND', sub:'Use their code',      cap:'',     col:'#ffcf3f', ic:'🔑', wait:0 },
+    { id:'worlds', name:'FRIEND WORLDS', sub:'Your saved worlds',   cap:'',     col:'#c084fc', ic:'🏕', wait:0 }
+  ];
+  let W=0, H=0, DPR=1, t=0, lastT=performance.now(), on=true;
+  const P = { x:0, y:0, tx:null, ty:null, dir:0, walk:0 };
+  const keys = {};
+  let pad = null, count = 0, partyCode = '', mode = null;
+  const trees = []; for (let i=0;i<70;i++){ const a=Math.random()*Math.PI*2, r=.62+Math.random()*.5; trees.push({a, r, s:.7+Math.random()*.6}); }
+  const flies = Array.from({length:26},()=>({x:Math.random(),y:Math.random(),k:Math.random()*9}));
+
+  function size(){ const r=cv.getBoundingClientRect(); DPR=Math.min(2,devicePixelRatio||1); W=r.width; H=r.height; cv.width=W*DPR; cv.height=H*DPR; layout(); }
+  function layout(){
+    const u = Math.min(W, H*1.15), s = W < H*.8 ? Math.min(160, W*.36) : Math.max(84, Math.min(150, u*.2)), gap = s*.3;
+    const portrait = W < H*.8, wide = W >= 900, cx = wide ? W*.4 : W/2, cy = portrait ? H*.34 : H*.52;
+    PADS.forEach((p,i) => {
+      const col = portrait ? i%2 : i, row = portrait ? Math.floor(i/2) : 0;
+      const cols = portrait ? 2 : 4, rows = portrait ? 2 : 1;
+      p.w = p.h = s;
+      p.x = cx + (col-(cols-1)/2)*(s+gap) - s/2;
+      p.y = cy + (row-(rows-1)/2)*(s+gap*1.3) - s/2 + (portrait ? s*.35 : s*.55);
+    });
+    if (!P.x){ P.x = portrait ? cx : cx - s*1.3; P.y = portrait ? PADS[0].y + s + gap*.62 : cy - s*.5; }
+  }
+  addEventListener('resize', () => { if (on) size(); });
+
+  // ---- input: keyboard, or tap/click where you want to walk ----
+  addEventListener('keydown', e => { if (!on || e.target.tagName==='INPUT') return; keys[e.key.toLowerCase()] = true; });
+  addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+  let drag = false;
+  const toPt = e => { const r=cv.getBoundingClientRect(); P.tx=e.clientX-r.left; P.ty=e.clientY-r.top; };
+  cv.addEventListener('pointerdown', e => { drag = true; toPt(e); audio(); });
+  cv.addEventListener('pointermove', e => { if (drag) toPt(e); });
+  addEventListener('pointerup', () => drag = false);
+
+  // ---- panels ----
+  const body = $('lbBody');
+  function panelFor(p){
+    $('lbPanel').classList.remove('hidden'); $('lbHint').classList.add('hidden');
+    $('lbMsgSlot').appendChild($('lobbyMsg')); $('lobbyMsg').textContent = '';
+    if (mode===null){ paintContinue(); mode = existing ? 'cont' : 'new'; }   // keep your save unless you pick New game
+    if (p.id==='solo'){
+      paintContinue();
+      body.innerHTML = `<h4>🔥 Solo</h4><p>Just you, the fire, and the forest.</p>` +
+        (existing ? `<div class="row"><span class="toggle ${mode==='cont'?'on':''}" data-m="cont">▶ Continue Day ${existing.G.day}</span><span class="toggle ${mode==='new'?'on':''}" data-m="new">✨ New game</span></div>` : '');
+    } else if (p.id==='party'){
+      paintContinue();
+      if (!partyCode) partyCode = newCode();
+      body.innerHTML = `<h4>👥 Party</h4><p>Tell your friends this code. They walk into <b>JOIN A FRIEND</b> and type it in.</p><div class="bigcode">${partyCode}</div>` +
+        (existing ? `<div class="row"><span class="toggle ${mode==='cont'?'on':''}" data-m="cont">▶ Continue Day ${existing.G.day}</span><span class="toggle ${mode==='new'?'on':''}" data-m="new">✨ New game</span></div>` : '') +
+        `<div class="row"><button class="btn" id="lbGo" style="font-size:15px;padding:10px 24px">START NOW</button></div>`;
+    } else if (p.id==='join'){
+      body.innerHTML = `<h4>🔑 Join a Friend</h4><p>Type the 5-letter code your friend sees.</p><div class="row" id="lbJoinRow"></div>`;
+      $('lbJoinRow').append($('codeIn'), $('joinBtn'));
+      setTimeout(()=>{ try{ $('codeIn').focus(); }catch(e){} }, 50);
+    } else {
+      body.innerHTML = `<div id="lbWorldSlot"></div>`;
+      $('lbWorldSlot').appendChild(document.querySelector('.worlds'));
+      paintWorlds();
+    }
+    body.querySelectorAll('[data-m]').forEach(el => el.onclick = () => { mode = el.dataset.m; panelFor(p); });
+    if ($('lbGo')) $('lbGo').onclick = () => go(p);
+  }
+  // remember where the borrowed menu pieces live, so they can go back
+  const home = {};
+  ['codeIn','joinBtn','lobbyMsg'].forEach(id => { const el=$(id); home[id]={ par:el.parentNode, next:el.nextSibling }; });
+  { const wd=document.querySelector('.worlds'); home.worlds={ par:wd.parentNode, next:wd.nextSibling }; }
+  const putBack = (el, h) => { if (el.parentNode!==h.par) h.par.insertBefore(el, h.next && h.next.parentNode===h.par ? h.next : null); };
+  function closePanel(){
+    $('lbPanel').classList.add('hidden'); $('lbHint').classList.remove('hidden'); $('lbCount').textContent = '';
+    putBack($('lobbyMsg'), home.lobbyMsg); putBack(document.querySelector('.worlds'), home.worlds);
+    putBack($('joinBtn'), home.joinBtn); putBack($('codeIn'), home.codeIn);
+  }
+
+  // ---- teleport into the game ----
+  function go(p){
+    readName(); audio();
+    if (p.id==='solo'){
+      if (mode==='cont' && existing){ applySave(existing); start(); toast(`Welcome back — Day ${G.day}`,2.5); }
+      else { LS.del(SAVE_KEY); newWorld(); start(); toast('Day 1 — gather wood',3); }
+    } else if (p.id==='party'){
+      if (mode==='cont' && existing) applySave(existing); else { LS.del(SAVE_KEY); newWorld(); }
+      startHosting(0, partyCode); start();
+      toast(`👥 Party code: ${partyCode}`, 5); feed(`👥 Friends can join your party with code ${partyCode}`);
+    }
+  }
+  function hide(){ on = false; lob.classList.add('hidden'); $('lbBack').classList.add('hidden'); }
+  // the game hides the lobby when it starts (any way it starts)
+  new MutationObserver(() => { if ($('startScreen').classList.contains('hidden') && running) hide(); }).observe($('startScreen'), { attributes:true, attributeFilter:['class'] });
+
+  $('lbLook').onclick = () => { on = false; lob.classList.add('hidden'); $('lbBack').classList.remove('hidden'); };
+  $('lbBack').onclick = () => { $('lbBack').classList.add('hidden'); lob.classList.remove('hidden'); on = true; size(); lastT = performance.now(); requestAnimationFrame(frame); };
+  // the old big menu buttons live in the lobby squares now
+  ['contBtn','newBtn'].forEach(id => $(id).closest('.row').style.display='none');
+  $('onlineTgl').closest('.row').style.display='none';
+
+  // ---- drawing ----
+  function rr(x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+  function hex(n){ return '#'+n.toString(16).padStart(6,'0'); }
+  function drawKid(x,y,s){
+    const S = SKINS[me.skin] || SKINS[0], bob = Math.abs(Math.sin(P.walk))*2.5;
+    g.fillStyle='rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(x,y+s*.95,s*.55,s*.18,0,0,7); g.fill();
+    g.fillStyle=hex(S.pants); g.fillRect(x-s*.32,y+s*.25-bob,s*.26,s*.6); g.fillRect(x+s*.06,y+s*.25-bob,s*.26,s*.6);
+    g.fillStyle=hex(S.shirt); rr(x-s*.42,y-s*.35-bob,s*.84,s*.7,s*.15); g.fill();
+    g.fillStyle='#e0ac7e'; g.beginPath(); g.arc(x,y-s*.62-bob,s*.32,0,7); g.fill();
+    g.fillStyle=hex(S.hatC); g.beginPath(); g.arc(x,y-s*.72-bob,s*.33,Math.PI,0); g.fill();
+    g.font=`800 ${Math.max(12,s*.38)}px Inter,sans-serif`; g.textAlign='center'; g.fillStyle='#fff'; g.strokeStyle='#000'; g.lineWidth=3;
+    const nm = ($('nameIn').value.trim() || me.name || 'Survivor').slice(0,14);
+    g.strokeText(nm, x, y-s*1.15-bob); g.fillText(nm, x, y-s*1.15-bob);
+  }
+  function frame(now){
+    if (!on) return;
+    const dt = Math.min(.05,(now-lastT)/1000); lastT = now; t += dt;
+    // move
+    let vx=0, vy=0;
+    if (keys['w']||keys['arrowup']) vy--; if (keys['s']||keys['arrowdown']) vy++;
+    if (keys['a']||keys['arrowleft']) vx--; if (keys['d']||keys['arrowright']) vx++;
+    if (vx||vy){ P.tx=null; } else if (P.tx!==null){ const dx=P.tx-P.x, dy=P.ty-P.y, d=Math.hypot(dx,dy); if (d>4){ vx=dx/d; vy=dy/d; } else P.tx=null; }
+    const sp = Math.max(160, Math.min(W,H)*.45), m = Math.hypot(vx,vy)||1;
+    if (vx||vy){ P.x=Math.max(20,Math.min(W-20,P.x+vx/m*sp*dt)); P.y=Math.max(70,Math.min(H-30,P.y+vy/m*sp*dt)); P.walk+=dt*12; }
+    // which square am I standing in?
+    const inPad = PADS.find(p => P.x>p.x && P.x<p.x+p.w && P.y+8>p.y && P.y+8<p.y+p.h) || null;
+    if (inPad !== pad){
+      if (pad && pad.id!==inPad?.id) closePanel();
+      pad = inPad; count = pad ? pad.wait : 0;
+      if (pad) panelFor(pad);
+    }
+    if (pad && pad.wait){
+      count -= dt;
+      $('lbCount').textContent = pad.id==='party' ? `Teleporting in ${Math.ceil(Math.max(0,count))}… (or press START NOW)` : `Teleporting in ${Math.ceil(Math.max(0,count))}…`;
+      if (count <= 0){ const p = pad; pad = null; go(p); }
+    } else if (pad) $('lbCount').textContent = '';
+
+    // ---- draw ----
+    g.setTransform(DPR,0,0,DPR,0,0);
+    const fx=(PADS[0].x+PADS[PADS.length-1].x+PADS[0].w)/2, fy=H*.52 - Math.min(W,H)*.02;
+    const bg = g.createRadialGradient(fx,fy,10,fx,fy,Math.max(W,H)*.7);
+    bg.addColorStop(0,'#3a3418'); bg.addColorStop(.35,'#1d2a16'); bg.addColorStop(1,'#050805');
+    g.fillStyle=bg; g.fillRect(0,0,W,H);
+    // trees around the clearing
+    for (const tr of trees){ const R=Math.max(W,H)*.55*tr.r, x=fx+Math.cos(tr.a)*R*1.15, y=fy+Math.sin(tr.a)*R*.8, s=Math.min(W,H)*.06*tr.s;
+      g.fillStyle='#0c160c'; g.beginPath(); g.moveTo(x,y-s*2.2); g.lineTo(x-s,y); g.lineTo(x+s,y); g.fill(); g.beginPath(); g.moveTo(x,y-s*3); g.lineTo(x-s*.75,y-s*1.2); g.lineTo(x+s*.75,y-s*1.2); g.fill(); }
+    // campfire glow in the middle
+    const fl = 1 + Math.sin(t*9)*.06 + Math.sin(t*23)*.04, cr = Math.min(W,H)*.05;
+    const cy0 = PADS[0].y - (W<H*.8 ? cr*2.2 : cr*1.6);
+    const gl = g.createRadialGradient(fx,cy0,0,fx,cy0,cr*5*fl); gl.addColorStop(0,'rgba(255,150,50,.45)'); gl.addColorStop(1,'rgba(255,150,50,0)');
+    g.fillStyle=gl; g.beginPath(); g.arc(fx,cy0,cr*5*fl,0,7); g.fill();
+    g.fillStyle='#5a3a1e'; g.save(); g.translate(fx,cy0+cr*.5); g.rotate(.3); g.fillRect(-cr,-cr*.15,cr*2,cr*.3); g.rotate(-.6); g.fillRect(-cr,-cr*.15,cr*2,cr*.3); g.restore();
+    g.fillStyle='#ff6a00'; g.beginPath(); g.moveTo(fx-cr*.6,cy0+cr*.4); g.quadraticCurveTo(fx-cr*.5,cy0-cr*.8*fl,fx,cy0-cr*1.5*fl); g.quadraticCurveTo(fx+cr*.5,cy0-cr*.8*fl,fx+cr*.6,cy0+cr*.4); g.fill();
+    g.fillStyle='#ffd24a'; g.beginPath(); g.moveTo(fx-cr*.3,cy0+cr*.4); g.quadraticCurveTo(fx-cr*.2,cy0-cr*.3*fl,fx,cy0-cr*.8*fl); g.quadraticCurveTo(fx+cr*.2,cy0-cr*.3*fl,fx+cr*.3,cy0+cr*.4); g.fill();
+    // the squares
+    for (const p of PADS){
+      const here = pad===p, pulse = .5+.5*Math.sin(t*3+p.x*.01);
+      g.save(); g.shadowColor=p.col; g.shadowBlur= here ? 40 : 18+pulse*10;
+      g.fillStyle = p.col + (here ? '55' : '22'); rr(p.x,p.y,p.w,p.h,14); g.fill();
+      g.lineWidth = here ? 5 : 3; g.strokeStyle = p.col; g.stroke(); g.restore();
+      // light rising off the square
+      const lg = g.createLinearGradient(0,p.y-p.h*.6,0,p.y); lg.addColorStop(0,p.col+'00'); lg.addColorStop(1,p.col+(here?'66':'30'));
+      g.fillStyle=lg; g.fillRect(p.x+6,p.y-p.h*.6,p.w-12,p.h*.6);
+      g.textAlign='center'; g.fillStyle='#fff';
+      g.font=`${Math.round(p.w*.3)}px serif`; g.fillText(p.ic, p.x+p.w/2, p.y+p.h*.47);
+      g.font=`800 ${Math.max(11,Math.round(p.w*.12))}px Inter,sans-serif`; g.fillText(p.name, p.x+p.w/2, p.y+p.h*.7);
+      g.globalAlpha=.8; g.font=`600 ${Math.max(10,Math.round(p.w*.095))}px Inter,sans-serif`; g.fillText(p.sub, p.x+p.w/2, p.y+p.h*.86); g.globalAlpha=1;
+      if (p.cap){ g.font=`800 ${Math.max(11,Math.round(p.w*.11))}px Inter,sans-serif`; g.fillStyle=p.col; g.fillText('👤 '+(here?1:0), p.x+p.w/2, p.y-8); }
+    }
+    // fireflies
+    for (const f of flies){ const x=(f.x*W+Math.sin(t*.5+f.k)*30), y=(f.y*H+Math.cos(t*.4+f.k)*20), a=.4+.6*Math.max(0,Math.sin(t*2+f.k*3));
+      g.fillStyle=`rgba(220,255,140,${a})`; g.beginPath(); g.arc(x,y,2,0,7); g.fill(); }
+    drawKid(P.x, P.y, Math.max(16, Math.min(W,H)*.032));
+    requestAnimationFrame(frame);
+  }
+  size(); requestAnimationFrame(frame);
+  // coming back from a Friend World rejoin goes straight in — skip the lobby
+  try { if (sessionStorage.getItem('lastEmberAutoOpen')) hide(); } catch(e){}
+})();
+
 { let auto=null; try { auto=sessionStorage.getItem('lastEmberAutoOpen'); sessionStorage.removeItem('lastEmberAutoOpen'); } catch(e){}
   if (auto) setTimeout(()=>openFriendWorld(auto), 300+Math.random()*1500); }
 </script>
