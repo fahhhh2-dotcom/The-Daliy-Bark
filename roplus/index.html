@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RoPlus</title>
+<meta name="theme-color" content="#0b0e1c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0e1c; --bg2:#131733; --card:#1c2142; --text:#f9f9f9; --muted:#cacaca;
+  --accent:#0a84ff; --accent2:#00d1ff; --glow:rgba(0,170,255,.55);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;overflow-x:hidden}
+body{background:radial-gradient(ellipse at top,#1b2150 0%,#0b0e1c 55%) fixed}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+::-webkit-scrollbar{display:none}
+
+/* ---------- STARTUP ANIMATION ---------- */
+#intro{position:fixed;inset:0;z-index:999;display:grid;place-items:center;
+  background:radial-gradient(ellipse at center,#14204f 0%,#060814 70%);transition:opacity .8s ease}
+#intro.hide{opacity:0;pointer-events:none}
+.intro-stage{position:relative;width:min(560px,86vw);aspect-ratio:2/1}
+.intro-stage svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.arc{fill:none;stroke:url(#arcGrad);stroke-width:5;stroke-linecap:round;
+  stroke-dasharray:1000;stroke-dashoffset:1000;filter:drop-shadow(0 0 10px #4fc3ff) drop-shadow(0 0 26px #1e88ff);
+  animation:drawArc 1.6s cubic-bezier(.6,.05,.3,1) .3s forwards}
+.spark{fill:#fff;filter:drop-shadow(0 0 8px #fff) drop-shadow(0 0 20px #5ad1ff);opacity:0;
+  offset-path:path("M 40 250 Q 280 -60 520 250");animation:fly 1.6s cubic-bezier(.6,.05,.3,1) .3s forwards}
+@keyframes drawArc{to{stroke-dashoffset:0}}
+@keyframes fly{0%{offset-distance:0%;opacity:1}90%{opacity:1}100%{offset-distance:100%;opacity:0}}
+.intro-logo{position:absolute;left:0;right:0;top:46%;text-align:center;opacity:0;transform:scale(.85);
+  animation:logoIn 1s ease 1.2s forwards}
+@keyframes logoIn{to{opacity:1;transform:scale(1)}}
+.intro-logo .wm{font-size:clamp(54px,12vw,104px)}
+.intro-flash{position:absolute;inset:-40%;background:radial-gradient(circle,rgba(120,200,255,.35),transparent 60%);
+  opacity:0;animation:flash 1.2s ease 1.7s forwards}
+@keyframes flash{0%{opacity:0}35%{opacity:1}100%{opacity:0}}
+#skipIntro{position:absolute;bottom:28px;right:28px;background:none;border:1px solid #ffffff44;color:#fff;
+  padding:8px 16px;border-radius:6px;font-size:13px;letter-spacing:1px;opacity:.7}
+
+/* ---------- WORDMARK ---------- */
+.wm{font-family:Poppins,sans-serif;font-weight:800;letter-spacing:-1px;line-height:1;
+  background:linear-gradient(180deg,#ffffff 0%,#dbe9ff 55%,#9fc6ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.wm .plus{background:linear-gradient(180deg,#7fe0ff,#1e7bff);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 10px rgba(0,170,255,.7));margin-left:2px}
+
+/* ---------- PROFILES ---------- */
+#profiles{position:fixed;inset:0;z-index:900;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:36px}
+#profiles.show{display:flex}
+#profiles h1{font-size:32px;font-weight:600}
+.plist{display:flex;gap:34px;flex-wrap:wrap;justify-content:center}
+.prof{display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--muted);background:none;border:none;font-size:16px}
+.prof .av{width:130px;height:130px;border-radius:50%;display:grid;place-items:center;font-size:56px;
+  border:4px solid transparent;transition:.25s;box-shadow:0 10px 30px #0008}
+.prof:hover .av,.prof:focus .av{border-color:#fff;transform:scale(1.06)}
+.prof:hover,.prof:focus{color:#fff;outline:none}
+
+/* ---------- NAV ---------- */
+header{position:fixed;top:0;left:0;right:0;z-index:50;height:72px;display:flex;align-items:center;gap:36px;
+  padding:0 36px;transition:background .3s}
+header.solid{background:var(--bg)}
+header .wm{font-size:34px}
+nav{display:flex;gap:28px;flex:1}
+nav a{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;
+  position:relative;padding:6px 0;color:#f9f9f9}
+nav a svg{width:20px;height:20px}
+nav a::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:2px;background:#f9f9f9;border-radius:2px;
+  transform:scaleX(0);transform-origin:left;transition:transform .25s cubic-bezier(.25,.46,.45,.94)}
+nav a:hover::after,nav a.active::after{transform:scaleX(1)}
+.me{display:flex;align-items:center;gap:12px;font-size:14px;background:none;border:none;color:#fff}
+.me .av{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px}
+
+main{padding-top:72px}
+.page{display:none}.page.show{display:block}
+
+/* ---------- HERO CAROUSEL ---------- */
+.hero{position:relative;margin:20px 0 0;height:min(36vw,440px);min-height:220px}
+.hero-track{position:relative;height:100%}
+.slide{position:absolute;top:0;height:100%;width:calc(100% - 128px);left:64px;border-radius:8px;overflow:hidden;
+  box-shadow:0 26px 30px -10px #000c,0 16px 10px -10px #000c;opacity:0;transition:opacity .7s ease;cursor:pointer;border:4px solid transparent}
+.slide.on{opacity:1;z-index:2}
+.slide:hover{border-color:#f9f9f9cc}
+.slide img{width:100%;height:100%;object-fit:cover}
+.slide::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#000d 0%,#0008 38%,transparent 70%)}
+.slide .info{position:absolute;z-index:2;left:48px;bottom:44px;max-width:46%}
+.slide .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:2px;color:var(--accent2);margin-bottom:10px;text-transform:uppercase}
+.slide h2{font-family:Poppins;font-size:clamp(20px,3vw,40px);line-height:1.1;margin-bottom:12px;text-shadow:0 2px 12px #000}
+.slide p{color:#ddd;font-size:15px;margin-bottom:20px}
+.btn{display:inline-flex;align-items:center;gap:10px;border:none;border-radius:6px;padding:13px 26px;font-size:15px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;transition:.2s}
+.btn.play{background:#f9f9f9;color:#000}.btn.play:hover{background:#c6c6c6}
+.btn.ghost{background:#0009;color:#fff;border:1px solid #f9f9f9}.btn.ghost:hover{background:#f9f9f9;color:#000}
+.btn.round{width:48px;height:48px;padding:0;justify-content:center;border-radius:50%;background:#0009;border:2px solid #fff;color:#fff;font-size:24px}
+.hero-arrow{position:absolute;top:0;bottom:0;width:64px;z-index:3;background:none;border:none;color:#fff;font-size:42px;opacity:0;transition:.2s}
+.hero:hover .hero-arrow{opacity:.85}
+.hero-arrow.l{left:0}.hero-arrow.r{right:0}
+.dots{position:absolute;bottom:14px;right:84px;z-index:3;display:flex;gap:8px}
+.dots i{width:8px;height:8px;border-radius:50%;background:#ffffff55;transition:.3s}
+.dots i.on{background:#fff;width:22px;border-radius:4px}
+
+/* ---------- CATEGORY TILES ---------- */
+.brands{display:grid;grid-template-columns:repeat(6,1fr);gap:22px;padding:34px 64px 10px}
+.brand{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;border:3px solid #f9f9f91a;
+  background:linear-gradient(160deg,#30355a,#1a1d33);box-shadow:0 26px 30px -10px #000b,0 16px 10px -10px #000b;
+  transition:all .25s cubic-bezier(.25,.46,.45,.94);display:grid;place-items:center;cursor:pointer}
+.brand:hover,.brand:focus{transform:scale(1.05);border-color:#f9f9f9cc;box-shadow:0 40px 58px -16px #000d,0 30px 22px -10px #000b;outline:none}
+.brand .bimg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity .4s;filter:brightness(.55)}
+.brand:hover .bimg{opacity:1}
+.brand span{position:relative;font-family:Poppins;font-weight:800;font-size:clamp(13px,1.6vw,22px);letter-spacing:.5px;text-align:center;text-shadow:0 2px 10px #000}
+.brand small{display:block;font-size:.55em;letter-spacing:3px;opacity:.75;font-weight:600}
+
+/* ---------- ROWS ---------- */
+.row{padding:22px 0 6px}
+.row h3{font-size:20px;font-weight:600;padding:0 64px 12px;display:flex;align-items:center;gap:12px}
+.row h3 .see{font-size:13px;color:var(--muted);font-weight:500;opacity:0;transition:.2s}
+.row:hover h3 .see{opacity:1}
+.rowwrap{position:relative}
+.track{display:flex;gap:20px;overflow-x:auto;scroll-behavior:smooth;padding:12px 64px 26px;scroll-snap-type:x mandatory;scroll-padding:0 64px}
+.card{flex:0 0 calc((100vw - 128px - 80px)/5);scroll-snap-align:start;position:relative;border-radius:8px;overflow:hidden;
+  aspect-ratio:16/9;background:var(--card);border:3px solid #f9f9f91a;box-shadow:0 26px 30px -10px #000b,0 16px 10px -10px #000b;
+  transition:all .25s cubic-bezier(.25,.46,.45,.94);cursor:pointer}
+.card img{width:100%;height:100%;object-fit:cover;display:block}
+.card:hover,.card:focus{transform:scale(1.05);border-color:#f9f9f9cc;outline:none;z-index:2}
+.card .cap{position:absolute;left:0;right:0;bottom:0;padding:26px 12px 10px;background:linear-gradient(transparent,#000e);
+  font-size:13px;font-weight:600;opacity:0;transition:.25s;line-height:1.3}
+.card .cap em{display:block;font-style:normal;font-weight:500;color:var(--muted);font-size:11px;margin-top:3px}
+.card:hover .cap,.card:focus .cap{opacity:1}
+.card .badge{position:absolute;top:8px;left:8px;background:var(--accent);font-size:10px;font-weight:800;letter-spacing:1px;padding:3px 7px;border-radius:4px}
+.track.tall .card{flex-basis:calc((100vw - 128px - 120px)/7);aspect-ratio:9/16}
+.track.circles .card{flex:0 0 140px;aspect-ratio:1;border-radius:50%}
+.track.circles .card .cap{opacity:1;background:none;text-align:center;bottom:-38px;padding:0}
+.track.circles{padding-bottom:56px}
+.track.circles .card{overflow:visible}
+.track.circles .card img{border-radius:50%}
+.rarrow{position:absolute;top:12px;bottom:26px;width:58px;z-index:5;border:none;background:linear-gradient(90deg,#0b0e1cee,transparent);color:#fff;font-size:36px;opacity:0;transition:.2s}
+.rarrow.r{right:0;background:linear-gradient(270deg,#0b0e1cee,transparent)}
+.rarrow.l{left:0}
+.rowwrap:hover .rarrow{opacity:1}
+
+/* ---------- GRID PAGES ---------- */
+.gridpage{padding:30px 64px 60px}
+.gridpage h2{font-family:Poppins;font-size:32px;margin-bottom:22px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:22px}
+.grid .card{flex:none;width:auto}
+.search{width:100%;background:#4b4e5a;border:none;color:#fff;font-size:clamp(20px,3vw,36px);padding:24px 30px;margin-bottom:30px;border-radius:4px;font-family:inherit}
+.search:focus{outline:none;background:#5a5d69}
+.empty{color:var(--muted);font-size:17px;padding:30px 0}
+
+/* ---------- CREATOR PAGE ---------- */
+.cbanner{position:relative;height:min(42vw,480px);overflow:hidden}
+.cbanner img{width:100%;height:100%;object-fit:cover;filter:blur(2px) brightness(.55);transform:scale(1.05)}
+.cbanner::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,var(--bg) 0%,transparent 60%),linear-gradient(90deg,#0b0e1ccc,transparent 70%)}
+.cinfo{position:absolute;z-index:2;left:64px;bottom:40px;display:flex;gap:28px;align-items:flex-end;right:64px}
+.cinfo .cav{width:140px;height:140px;border-radius:50%;border:4px solid #fff;object-fit:cover;flex-shrink:0;box-shadow:0 0 40px var(--glow)}
+.cinfo h1{font-family:Poppins;font-size:clamp(28px,5vw,60px);line-height:1}
+.cinfo .meta{color:var(--muted);margin:8px 0 18px;font-size:15px}
+.cbtns{display:flex;gap:14px;align-items:center}
+
+/* ---------- PLAYER ---------- */
+#player{position:fixed;inset:0;z-index:200;background:#000;display:none;flex-direction:column}
+#player.show{display:flex}
+#player .ptop{display:flex;align-items:center;gap:18px;padding:14px 22px;background:linear-gradient(#000,transparent);position:absolute;top:0;left:0;right:0;z-index:3;transition:opacity .4s}
+#player .ptop button{background:none;border:none;color:#fff;font-size:30px}
+#player .ptop b{font-size:17px}#player .ptop span{color:var(--muted);font-size:14px}
+#player iframe{flex:1;border:0;width:100%;height:100%}
+#player.idle .ptop{opacity:0}
+
+/* toast */
+#toast{position:fixed;bottom:30px;left:50%;transform:translate(-50%,80px);background:#f9f9f9;color:#000;font-weight:600;padding:12px 22px;border-radius:6px;z-index:300;transition:.3s}
+#toast.show{transform:translate(-50%,0)}
+
+footer{padding:40px 64px 50px;color:#888;font-size:12px;text-align:center}
+footer .wm{font-size:28px;display:inline-block;margin-bottom:10px}
+
+@media (max-width:900px){
+  header{padding:0 16px;gap:16px} nav a span{display:none} nav{gap:20px}
+  .slide{width:calc(100% - 32px);left:16px}.slide .info{left:20px;bottom:20px;max-width:80%}.slide p{display:none}
+  .brands{grid-template-columns:repeat(3,1fr);padding:24px 16px 0;gap:12px}
+  .row h3{padding:0 16px 8px}.track{padding:10px 16px 20px;gap:12px;scroll-padding:0 16px}
+  .card{flex-basis:calc((100vw - 44px)/2.2)}.track.tall .card{flex-basis:calc((100vw - 44px)/3.3)}
+  .gridpage{padding:20px 16px}.cinfo{left:16px;right:16px}.cinfo .cav{width:90px;height:90px}
+  .me span{display:none}.hero-arrow{display:none}.dots{right:30px}
+}
+</style>
+</head>
+<body>
+
+<!-- STARTUP ANIMATION -->
+<div id="intro">
+  <div class="intro-stage">
+    <svg viewBox="0 0 560 280">
+      <defs>
+        <linearGradient id="arcGrad" x1="0" x2="1">
+          <stop offset="0" stop-color="#1e5bff" stop-opacity="0"/>
+          <stop offset=".25" stop-color="#2f8bff"/>
+          <stop offset=".7" stop-color="#7fe3ff"/>
+          <stop offset="1" stop-color="#ffffff"/>
+        </linearGradient>
+      </defs>
+      <path class="arc" d="M 40 250 Q 280 -60 520 250"/>
+      <circle class="spark" r="7"/>
+    </svg>
+    <div class="intro-flash"></div>
+    <div class="intro-logo"><div class="wm">RoPlus<span class="plus">+</span></div></div>
+  </div>
+  <button id="skipIntro">SKIP</button>
+</div>
+
+<!-- WHO'S WATCHING -->
+<div id="profiles">
+  <h1>Who's watching?</h1>
+  <div class="plist" id="plist"></div>
+</div>
+
+<header id="hdr">
+  <a href="#home" class="wm">RoPlus<span class="plus">+</span></a>
+  <nav>
+    <a href="#home" data-p="home"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 2 12h3v8h5v-6h4v6h5v-8h3z"/></svg><span>Home</span></a>
+    <a href="#search" data-p="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><span>Search</span></a>
+    <a href="#watchlist" data-p="watchlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg><span>Watchlist</span></a>
+    <a href="#creators" data-p="creators"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.9 7.1.6-5.4 4.7 1.7 7-6.3-3.9-6.3 3.9 1.7-7L2 9.5l7.1-.6z"/></svg><span>Creators</span></a>
+    <a href="#shorts" data-p="shorts"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="2" width="12" height="20" rx="3"/></svg><span>Shorts</span></a>
+  </nav>
+  <button class="me" id="meBtn"><span id="meName"></span><div class="av" id="meAv"></div></button>
+</header>
+
+<main>
+  <section class="page" id="p-home">
+    <div class="hero" id="hero">
+      <div class="hero-track" id="heroTrack"></div>
+      <button class="hero-arrow l" id="hL">‹</button><button class="hero-arrow r" id="hR">›</button>
+      <div class="dots" id="dots"></div>
+    </div>
+    <div class="brands" id="brands"></div>
+    <div id="rows"></div>
+  </section>
+
+  <section class="page" id="p-search"><div class="gridpage">
+    <input class="search" id="q" placeholder="Search by creator, video or game" autocomplete="off">
+    <div class="grid" id="sres"></div>
+  </div></section>
+
+  <section class="page" id="p-watchlist"><div class="gridpage"><h2>Watchlist</h2><div class="grid" id="wl"></div></div></section>
+  <section class="page" id="p-creators"><div class="gridpage"><h2>Creators</h2><div class="grid" id="clist"></div></div></section>
+  <section class="page" id="p-shorts"><div class="gridpage"><h2>Shorts</h2><div class="grid" id="slist" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))"></div></div></section>
+  <section class="page" id="p-category"><div class="gridpage"><h2 id="catTitle"></h2><div class="grid" id="catGrid"></div></div></section>
+  <section class="page" id="p-creator"><div id="cpage"></div></section>
+
+  <footer><div class="wm">RoPlus<span class="plus">+</span></div><br>Videos play from YouTube and belong to their creators.</footer>
+</main>
+
+<div id="player">
+  <div class="ptop"><button id="pBack">←</button><div><b id="pTitle"></b><br><span id="pSub"></span></div></div>
+  <iframe id="pFrame" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+</div>
+<div id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const thumb=(id,q='mqdefault')=>`https://i.ytimg.com/vi/${id}/${q}.jpg`;
+const fmtViews=n=>!n?'':n>=1e6?(n/1e6).toFixed(1).replace('.0','')+'M views':n>=1e3?Math.round(n/1e3)+'K views':n+' views';
+const ago=d=>{const s=(Date.now()-new Date(d))/1000,u=[[31536e3,'year'],[2592e3,'month'],[604800,'week'],[86400,'day'],[3600,'hour']];
+  for(const[k,n]of u){if(s>=k){const v=Math.floor(s/k);return v+' '+n+(v>1?'s':'')+' ago'}}return 'just now'};
+const store={get:(k,d)=>{try{return JSON.parse(localStorage.getItem('roplus_'+k))??d}catch(e){return d}},
+  set:(k,v)=>{try{localStorage.setItem('roplus_'+k,JSON.stringify(v))}catch(e){}}};
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),1800)}
+
+/* ---------- intro ---------- */
+let introDone=false;
+function endIntro(){if(introDone)return;introDone=true;$('#intro').classList.add('hide');setTimeout(()=>$('#intro').remove(),900);showProfiles()}
+setTimeout(endIntro,3300);$('#skipIntro').onclick=endIntro;
+
+/* ---------- profiles ---------- */
+const PROFILES=[{n:'Player 1',e:'🎮',c:'linear-gradient(135deg,#2f8bff,#00d1ff)'},{n:'Player 2',e:'🐶',c:'linear-gradient(135deg,#ff6a3d,#ffb23d)'},
+  {n:'Player 3',e:'👾',c:'linear-gradient(135deg,#8e2de2,#ff4ecd)'},{n:'Kids',e:'⭐',c:'linear-gradient(135deg,#11998e,#38ef7d)'}];
+let me=null;
+function showProfiles(){
+  $('#plist').innerHTML=PROFILES.map((p,i)=>`<button class="prof" data-i="${i}"><div class="av" style="background:${p.c}">${p.e}</div>${p.n}</button>`).join('');
+  $('#profiles').classList.add('show');
+  document.querySelectorAll('.prof').forEach(b=>b.onclick=()=>pick(+b.dataset.i));
+  $('.prof')?.focus();
+}
+function pick(i){me=i;const p=PROFILES[i];$('#meName').textContent=p.n;$('#meAv').textContent=p.e;$('#meAv').style.background=p.c;
+  $('#profiles').classList.remove('show');route()}
+$('#meBtn').onclick=showProfiles;
+const wlKey=()=>'wl'+me, histKey=()=>'hist'+me;
+const getWL=()=>store.get(wlKey(),[]), getHist=()=>store.get(histKey(),[]);
+
+/* ---------- data ---------- */
+let DATA=[],ALL=[],BYID={};
+const CATS=[
+  {k:'Minecraft',label:'MINECRAFT',sub:'BLOCK WORLDS',g:'linear-gradient(160deg,#3f8f3a,#1d3b1a)'},
+  {k:'Fortnite',label:'FORTNITE',sub:'BATTLE ROYALE',g:'linear-gradient(160deg,#6a3df0,#24135a)'},
+  {k:'Roblox',label:'ROBLOX',sub:'OBBYS & MORE',g:'linear-gradient(160deg,#e03c3c,#4a1212)'},
+  {k:'Horror',label:'HORROR',sub:'JUMP SCARES',g:'linear-gradient(160deg,#5a1a1a,#0d0606)'},
+  {k:'Variety',label:'VARIETY',sub:'ALL GAMES',g:'linear-gradient(160deg,#ff9a1f,#5a2c00)'},
+  {k:'Music',label:'MUSIC',sub:'GAME SOUNDS',g:'linear-gradient(160deg,#1fb5ff,#08304a)'}];
+
+fetch('../blockfix/videos.json?'+Date.now()).then(r=>r.json()).then(d=>{
+  DATA=d.creators.filter(c=>c.videos&&c.videos.length);
+  DATA.forEach(c=>c.videos.forEach(v=>{v.creator=c.name;v.cid=c.id;v.game=c.game;ALL.push(v);BYID[v.id]=v}));
+  ALL.sort((a,b)=>new Date(b.published)-new Date(a.published));
+  buildHome();if(me!==null)route();
+}).catch(()=>{$('#rows').innerHTML='<p class="empty" style="padding:40px 64px">Couldn\'t load videos right now. Try refreshing.</p>'});
+
+const long=v=>!v.short;
+function card(v,opts={}){
+  const tall=v.short&&opts.tall;
+  return `<div class="card" tabindex="0" data-v="${v.id}">
+    <img loading="lazy" src="${thumb(v.id,tall?'hqdefault':'mqdefault')}" alt="" ${tall?'style="object-fit:cover"':''}>
+    ${opts.badge?`<div class="badge">${opts.badge}</div>`:''}
+    <div class="cap">${esc(v.title)}<em>${esc(v.creator)} · ${fmtViews(v.views)}</em></div></div>`}
+function creatorCard(c){return `<div class="card" tabindex="0" data-c="${c.id}"><img loading="lazy" src="${esc(c.avatar||'')}" alt=""><div class="cap">${esc(c.name)}</div></div>`}
+
+function row(title,items,opts={}){
+  if(!items.length)return '';
+  const id='r'+Math.random().toString(36).slice(2,8);
+  return `<div class="row"><h3>${title}${opts.see?`<a class="see" href="${opts.see}">See all ›</a>`:''}</h3><div class="rowwrap">
+    <button class="rarrow l" data-t="${id}" data-d="-1">‹</button>
+    <div class="track ${opts.cls||''}" id="${id}">${items.join('')}</div>
+    <button class="rarrow r" data-t="${id}" data-d="1">›</button></div></div>`}
+
+function buildHome(){
+  // hero: most viewed recent long videos, one per creator
+  const seen=new Set(),heroV=[];
+  [...ALL].filter(long).sort((a,b)=>(b.views||0)-(a.views||0)).forEach(v=>{if(!seen.has(v.creator)&&heroV.length<7){seen.add(v.creator);heroV.push(v)}});
+  $('#heroTrack').innerHTML=heroV.map((v,i)=>`<div class="slide${i?'':' on'}" data-v="${v.id}">
+    <img src="${thumb(v.id,'maxresdefault')}" onerror="this.src='${thumb(v.id,'hqdefault')}'" alt="">
+    <div class="info"><div class="tag">${esc(v.creator)} · ${esc(v.game)}</div><h2>${esc(v.title)}</h2>
+    <p>${fmtViews(v.views)} · ${ago(v.published)}</p>
+    <button class="btn play" data-play="${v.id}">▶ Play</button> <button class="btn round" data-wl="${v.id}" title="Watchlist">+</button></div></div>`).join('');
+  $('#dots').innerHTML=heroV.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('');
+  startHero(heroV.length);
+
+  $('#brands').innerHTML=CATS.map(c=>{const ex=ALL.find(v=>v.game===c.k&&long(v));
+    return `<div class="brand" tabindex="0" data-cat="${c.k}" style="background:${c.g}">
+    ${ex?`<div class="bimg" style="background-image:url(${thumb(ex.id)})"></div>`:''}<span>${c.label}<small>${c.sub}</small></span></div>`}).join('');
+  renderRows();
+}
+function renderRows(){
+  const hist=getHist().map(id=>BYID[id]).filter(Boolean);
+  const wl=getWL().map(id=>BYID[id]).filter(Boolean);
+  const week=Date.now()-7*864e5;
+  let h='';
+  h+=row('Continue Watching',hist.slice(0,15).map(v=>card(v)));
+  h+=row('New on RoPlus',ALL.filter(long).slice(0,20).map(v=>card(v,{badge:new Date(v.published)>week?'NEW':''})));
+  h+=row('Trending Now',[...ALL].filter(long).sort((a,b)=>(b.views||0)-(a.views||0)).slice(0,20).map(v=>card(v)));
+  h+=row('Popular Creators',DATA.map(creatorCard),{cls:'circles',see:'#creators'});
+  h+=row('Shorts',ALL.filter(v=>v.short).slice(0,24).map(v=>card(v,{tall:true})),{cls:'tall',see:'#shorts'});
+  h+=row('My Watchlist',wl.map(v=>card(v)),{see:'#watchlist'});
+  CATS.forEach(c=>h+=row(c.k==='Music'?'Game Music':c.k==='Variety'?'Variety Gaming':c.k+' Hits',
+    ALL.filter(v=>v.game===c.k&&long(v)).slice(0,20).map(v=>card(v)),{see:'#cat/'+c.k}));
+  DATA.slice(0,6).forEach(c=>h+=row('More from '+esc(c.name),c.videos.filter(long).map(v=>card(v)),{see:'#creator/'+c.id}));
+  $('#rows').innerHTML=h;
+}
+
+let heroI=0,heroT;
+function startHero(n){
+  const go=i=>{const s=document.querySelectorAll('.slide'),d=document.querySelectorAll('.dots i');if(!s.length)return;
+    s[heroI].classList.remove('on');d[heroI].classList.remove('on');heroI=(i+n)%n;s[heroI].classList.add('on');d[heroI].classList.add('on')};
+  const auto=()=>{clearInterval(heroT);heroT=setInterval(()=>go(heroI+1),6000)};
+  $('#hL').onclick=()=>{go(heroI-1);auto()};$('#hR').onclick=()=>{go(heroI+1);auto()};auto();
+}
+
+/* ---------- pages ---------- */
+function show(p){document.querySelectorAll('.page').forEach(e=>e.classList.toggle('show',e.id==='p-'+p));
+  document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('active',a.dataset.p===p));window.scrollTo(0,0)}
+function route(){
+  if(me===null||!ALL.length&&location.hash!=='#search'){show('home');return}
+  const [p,arg]=location.hash.slice(1).split('/');
+  if(p==='search'){show('search');doSearch();setTimeout(()=>$('#q').focus(),50)}
+  else if(p==='watchlist'){show('watchlist');const w=getWL().map(id=>BYID[id]).filter(Boolean);
+    $('#wl').innerHTML=w.length?w.map(v=>card(v)).join(''):'<p class="empty">Your watchlist is empty. Press + on any video to add it.</p>'}
+  else if(p==='creators'){show('creators');$('#clist').innerHTML=DATA.map(c=>`<div class="card" tabindex="0" data-c="${c.id}" style="aspect-ratio:1">
+    <img loading="lazy" src="${esc(c.avatar||'')}" alt=""><div class="cap" style="opacity:1">${esc(c.name)}<em>${esc(c.game)}</em></div></div>`).join('')}
+  else if(p==='shorts'){show('shorts');$('#slist').innerHTML=ALL.filter(v=>v.short).map(v=>`<div class="card" tabindex="0" data-v="${v.id}" style="aspect-ratio:9/16">
+    <img loading="lazy" src="${thumb(v.id,'hqdefault')}" alt=""><div class="cap">${esc(v.title)}<em>${esc(v.creator)}</em></div></div>`).join('')}
+  else if(p==='cat'){const c=CATS.find(x=>x.k===decodeURIComponent(arg));if(!c)return show('home');show('category');
+    $('#catTitle').textContent=c.label.charAt(0)+c.label.slice(1).toLowerCase();
+    $('#catGrid').innerHTML=ALL.filter(v=>v.game===c.k&&long(v)).map(v=>card(v)).join('')}
+  else if(p==='creator'){const c=DATA.find(x=>x.id===arg);if(!c)return show('home');show('creator');creatorPage(c)}
+  else{show('home');renderRows()}
+}
+window.addEventListener('hashchange',route);
+
+function creatorPage(c){
+  const top=c.videos.filter(long)[0]||c.videos[0];
+  $('#cpage').innerHTML=`<div class="cbanner"><img src="${thumb(top.id,'maxresdefault')}" onerror="this.src='${thumb(top.id,'hqdefault')}'" alt="">
+    <div class="cinfo"><img class="cav" src="${esc(c.avatar||'')}" alt=""><div><h1>${esc(c.name)}</h1>
+    <div class="meta">${esc(c.game)} · ${esc(c.desc||'')}</div>
+    <div class="cbtns"><button class="btn play" data-play="${top.id}">▶ Play Latest</button>
+    <a class="btn ghost" href="https://www.youtube.com/channel/${esc(c.id)}" target="_blank" rel="noopener">YouTube Channel</a></div></div></div></div>
+    ${row('Videos',c.videos.filter(long).map(v=>card(v)))}
+    ${row('Shorts',c.videos.filter(v=>v.short).map(v=>card(v,{tall:true})),{cls:'tall'})}`;
+}
+
+/* ---------- search ---------- */
+function doSearch(){const q=$('#q').value.trim().toLowerCase();
+  if(!q){$('#sres').innerHTML=DATA.map(c=>creatorCard(c).replace('class="card"','class="card" style="aspect-ratio:1"').replace('class="cap"','class="cap" style="opacity:1"')).join('');return}
+  const cs=DATA.filter(c=>c.name.toLowerCase().includes(q)||c.game.toLowerCase().includes(q));
+  const vs=ALL.filter(v=>long(v)&&(v.title.toLowerCase().includes(q)||v.creator.toLowerCase().includes(q)||v.game.toLowerCase().includes(q))).slice(0,60);
+  $('#sres').innerHTML=cs.map(c=>creatorCard(c).replace('class="cap"','class="cap" style="opacity:1"')).join('')+vs.map(v=>card(v)).join('')
+    ||`<p class="empty">No results for "${esc(q)}".</p>`}
+$('#q').addEventListener('input',doSearch);
+
+/* ---------- player ---------- */
+let idleT;
+function play(id){const v=BYID[id];if(!v)return;
+  $('#pTitle').textContent=v.title;$('#pSub').textContent=v.creator+' · '+fmtViews(v.views);
+  $('#pFrame').src=`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+  $('#player').classList.add('show');document.body.style.overflow='hidden';
+  const h=getHist().filter(x=>x!==id);h.unshift(id);store.set(histKey(),h.slice(0,30));wake()}
+function closePlayer(){$('#player').classList.remove('show');$('#pFrame').src='about:blank';document.body.style.overflow='';
+  if(document.fullscreenElement)document.exitFullscreen();if(!location.hash||location.hash==='#home')renderRows()}
+function wake(){$('#player').classList.remove('idle');clearTimeout(idleT);idleT=setTimeout(()=>$('#player').classList.add('idle'),2500)}
+$('#pBack').onclick=closePlayer;$('#player').addEventListener('mousemove',wake);
+
+function toggleWL(id){let w=getWL();if(w.includes(id)){w=w.filter(x=>x!==id);toast('Removed from Watchlist')}else{w.unshift(id);toast('Added to Watchlist')}store.set(wlKey(),w)}
+
+/* ---------- clicks & keys ---------- */
+document.addEventListener('click',e=>{
+  const t=e.target;
+  const wl=t.closest('[data-wl]');if(wl){e.stopPropagation();toggleWL(wl.dataset.wl);return}
+  const pb=t.closest('[data-play]');if(pb){play(pb.dataset.play);return}
+  const ar=t.closest('.rarrow');if(ar){const tr=document.getElementById(ar.dataset.t);tr.scrollBy({left:ar.dataset.d*tr.clientWidth*.9});return}
+  const v=t.closest('[data-v]');if(v){play(v.dataset.v);return}
+  const c=t.closest('[data-c]');if(c){location.hash='creator/'+c.dataset.c;return}
+  const b=t.closest('[data-cat]');if(b){location.hash='cat/'+b.dataset.cat;return}
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'||e.key==='Backspace'&&!/INPUT/.test(document.activeElement.tagName)){if($('#player').classList.contains('show')){e.preventDefault();closePlayer()}}
+  if(e.key==='Enter'&&document.activeElement.matches('.card,.brand')){document.activeElement.click()}
+});
+window.addEventListener('scroll',()=>$('#hdr').classList.toggle('solid',scrollY>20));
+</script>
+</body>
