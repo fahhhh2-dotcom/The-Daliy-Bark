@@ -441,6 +441,14 @@ function explode(t){
   if (t.gone) return; t.gone = true;
   const big = !!t.big, R = big ? 360 : 220, P = big ? .09 : .05, { x, y } = t.position;
   removeThing(t);
+  // fruit people near the blast lose arms and legs (closer = more parts fly off)
+  ragdolls.forEach(Rd => {
+    if (!Rd.look.juice) return;
+    const d = Vector.magnitude(Vector.sub(Rd.torso.position, { x, y }));
+    if (d > R * .7) return;
+    const chance = d < R * .3 ? 1 : 1 - (d - R * .3) / (R * .4);
+    Rd.joints.forEach(j => { if (Math.random() < chance) cutJoint(Rd, j); });
+  });
   Composite.allBodies(world).forEach(b => {
     if (b.isStatic) return;
     const d = Vector.sub(b.position, { x, y }), dist = Vector.magnitude(d);
