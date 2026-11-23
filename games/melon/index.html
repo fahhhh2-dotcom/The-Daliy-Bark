@@ -147,7 +147,8 @@ function makeRagdoll(x, y, look){
   Composite.add(comp, parts); Composite.add(comp, joints);
   parts.forEach(p => p.rag = comp);
   head.face = { dizzy: 0, shock: 0, blink: Math.random() * 4 };
-  ragdolls.set(comp.id, { comp, head, look, hp: 100, ko: false, joints, hpShow: 0 });
+  ragdolls.set(comp.id, { comp, head, torso, legs: [ul1, ul2], feet: [ll1, ll2], arms: [ua1, ua2, la1, la2], look, hp: 100, ko: false, joints, hpShow: 0, stun: 0 });
+  [ll1, ll2].forEach(f => f.isFoot = true);
   Composite.add(world, comp);
   return comp;
 }
@@ -321,7 +322,7 @@ function hurt(b, dmg, at){
   if (juiceOn && R.look.juice) squirt(p.x, p.y, R.look.juice, Math.min(40, 4 + dmg * .6), 3 + dmg / 12);
   else if (!R.look.juice) for (let i = 0; i < 2; i++) R.head.face.dizzy = Math.min(5, R.head.face.dizzy + 1);
   if (R.ko) return;
-  R.hp -= dmg; R.hpShow = 2.5; R.head.face.shock = 1;
+  R.hp -= dmg; R.hpShow = 2.5; R.head.face.shock = 1; R.stun = Math.max(R.stun, Math.min(3, dmg / 18));
   if (R.hp <= 0){
     R.hp = 0; R.ko = true; R.head.face.ko = true;
     R.joints.forEach(j => { j.stiffness = .45; });          // goes floppy
@@ -334,7 +335,7 @@ function heal(b){
   if (!b || !b.rag) return false;
   const R = ragdolls.get(b.rag.id); if (!R) return false;
   R.hp = 100; R.ko = false; R.head.face.ko = false; R.head.face.dizzy = 0; R.hpShow = 2;
-  R.joints.forEach(j => { j.stiffness = .9; });
+  R.joints.forEach(j => { j.stiffness = .9; }); R.stun = 0;
   burst(R.head.position.x, R.head.position.y, '#ff6fa8', 14, 4); burst(R.head.position.x, R.head.position.y, '#fff', 8, 3);
   words.push({ x: R.head.position.x, y: R.head.position.y - 30, t: 1, s: .8, w: 'HEALED!' });
   snd('boing'); return true;
@@ -407,6 +408,13 @@ function explode(t){
   words.push({ x, y, t: 1, s: big ? 1.6 : 1, w: ['BOOM!', 'KABOOM!', 'POW!', 'BLAM!'][Math.floor(Math.random() * 4)] });
   shake = big ? 22 : 12; flash = big ? .6 : .35; snd('boom'); bump('booms');
 }
+Events.on(engine, 'collisionActive', ev => {
+  const now = engine.timing.timestamp;
+  ev.pairs.forEach(({ bodyA, bodyB }) => {
+    if (bodyA.isFoot && !(bodyB.rag && bodyB.rag === bodyA.rag)) bodyA.ground = now;
+    if (bodyB.isFoot && !(bodyA.rag && bodyA.rag === bodyB.rag)) bodyB.ground = now;
+  });
+});
 Events.on(engine, 'collisionStart', ev => {
   ev.pairs.forEach(({ bodyA, bodyB }) => {
     const speed = Vector.magnitude(Vector.sub(bodyA.velocity, bodyB.velocity));
@@ -424,7 +432,41 @@ Events.on(engine, 'collisionStart', ev => {
     }
   });
 });
+// ---------- balance: fruit people stand up and keep their balance ----------
+const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
+function upright(b, k, target){ const err = wrapA(b.angle - (target || 0)); Body.setAngularVelocity(b, b.angularVelocity * .82 - err * k); }
+function balance(dt){
+  const now = engine.timing.timestamp;
+  ragdolls.forEach(R => {
+    if (R.ko) return;
+    if (R.stun > 0){ R.stun -= dt / 1000; return; }
+    if (R.head.face.dizzy > 1.5) return;
+    const held = grab && grab.bodyB && grab.bodyB.rag === R.comp;
+    if (held || engine.gravity.y <= 0) return;
+    const grounded = R.feet.some(f => now - (f.ground || -1e9) < 120);
+    const tilt = Math.abs(wrapA(R.torso.angle));
+    // stand tall: straighten torso, head and legs
+    const k = grounded ? .16 : .05;
+    upright(R.torso, k); upright(R.head, k * .6);
+    R.legs.forEach(l => upright(l, k * .9)); R.feet.forEach(f => upright(f, k * .9));
+    // arms hang relaxed at the sides
+    R.arms.forEach((a, i) => upright(a, .02, i < 2 ? (i ? -.15 : .15) : 0));
+    if (!grounded) return;
+    // legs push the body up so it stands instead of crumpling
+    const parts = Composite.allBodies(R.comp), mass = parts.reduce((m, b) => m + b.mass, 0);
+    const lift = mass * engine.gravity.y * engine.gravity.scale * (tilt < 1 ? 1.08 : .7);
+    Body.applyForce(R.torso, R.torso.position, { x: 0, y: -lift * .75 });
+    Body.applyForce(R.head, R.head.position, { x: 0, y: -lift * .25 });
+    // keep the hips over the feet
+    const fx = (R.feet[0].position.x + R.feet[1].position.x) / 2;
+    Body.applyForce(R.torso, R.torso.position, { x: (fx - R.torso.position.x) * .00002 * mass, y: 0 });
+    // calm down bouncing
+    Body.setVelocity(R.torso, { x: R.torso.velocity.x * .98, y: R.torso.velocity.y * .9 });
+  });
+}
+
 Events.on(engine, 'beforeUpdate', () => {
+  balance(engine.timing.lastDelta || 8);
   const all = Composite.allBodies(world);
   for (const b of all){
     if (b.kind === 'balloon' && !b.isStatic) Body.applyForce(b, b.position, { x: 0, y: -b.mass * engine.gravity.y * .0013 - .00025 });
