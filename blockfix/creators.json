@@ -37,7 +37,6 @@
   {"name": "Smooth McGroove", "handle": "smoothmcgroove", "game": "Music", "genre": "Orchestra & Covers", "desc": "Video game music sung a cappella, all by one guy."},
   {"name": "Lena Raine", "handle": "LenaRaine", "game": "Music", "genre": "Composers", "desc": "Composer of Minecraft and Celeste music."},
   {"name": "C418", "handle": "C418", "game": "Music", "genre": "Composers", "desc": "The composer of the original Minecraft soundtrack."},
-  {"name": "Rockit Music", "handle": "RockitMusic", "game": "Music", "genre": "Game Songs", "desc": "Catchy Minecraft and gaming songs and music videos."},
   {"name": "TryHardNinja", "handle": "TryHardNinja", "game": "Music", "genre": "Game Songs", "desc": "Original songs about your favorite games."},
   {"name": "Dan Bull", "handle": "DanBull", "game": "Music", "genre": "Game Songs", "desc": "Video game raps and songs."},
   {"name": "Mick Gordon", "handle": "MickGordon", "game": "Music", "genre": "Composers", "desc": "Heavy, epic game soundtracks from the DOOM composer."}
