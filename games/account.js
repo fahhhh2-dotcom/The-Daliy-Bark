@@ -165,4 +165,43 @@
     },
     async signOut() { await flush(); const f = await ready; try { sessionStorage.removeItem("arcade_reloaded"); } catch (e) {} return f.au.signOut(f.auth); }
   };
+
+  // ---------- 🏠 back-to-arcade button on every game page (drag it if it's in the way) ----------
+  if (!IS_HUB) {
+    const addBack = () => {
+      if (window.ARCADE_NO_BACK || document.getElementById("arcadeBack")) return;
+      const b = document.createElement("button");
+      b.id = "arcadeBack"; b.type = "button"; b.setAttribute("aria-label", "Back to the arcade"); b.title = "Back to the arcade";
+      b.innerHTML = '<span style="font-size:15px;line-height:1">‹</span><span style="font-size:17px;line-height:1">🏠</span>';
+      b.style.cssText = "position:fixed;z-index:2147483000;left:8px;top:50%;height:40px;padding:0 10px;border-radius:20px;border:2px solid rgba(255,255,255,.35);" +
+        "background:rgba(0,0,0,.5);color:#fff;display:flex;align-items:center;gap:4px;cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent;" +
+        "box-shadow:0 4px 14px rgba(0,0,0,.35);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);font-family:system-ui,sans-serif;user-select:none;-webkit-user-select:none";
+      const KEY = "arcade_back_pos_" + location.pathname.split("/").filter(Boolean).pop();
+      try { const p = JSON.parse(localStorage.getItem(KEY)); if (p) { b.style.left = p.x + "px"; b.style.top = p.y + "px"; } } catch (e) {}
+      let down = null, moved = false;
+      const stop = e => { e.stopPropagation(); };
+      ["touchstart", "touchmove", "touchend", "mousedown", "mouseup", "click", "keydown"].forEach(t => b.addEventListener(t, stop));
+      b.addEventListener("pointerdown", e => {
+        e.stopPropagation(); e.preventDefault(); moved = false;
+        const r = b.getBoundingClientRect(); down = { dx: e.clientX - r.left, dy: e.clientY - r.top, x: e.clientX, y: e.clientY };
+        try { b.setPointerCapture(e.pointerId); } catch (_) {}
+      });
+      b.addEventListener("pointermove", e => {
+        if (!down) return; e.stopPropagation();
+        if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8) moved = true;
+        if (!moved) return;
+        const x = Math.max(0, Math.min(innerWidth - b.offsetWidth, e.clientX - down.dx)), y = Math.max(0, Math.min(innerHeight - b.offsetHeight, e.clientY - down.dy));
+        b.style.left = x + "px"; b.style.top = y + "px";
+      });
+      b.addEventListener("pointerup", async e => {
+        e.stopPropagation(); if (!down) return; down = null;
+        if (moved) { try { localStorage.setItem(KEY, JSON.stringify({ x: parseInt(b.style.left), y: parseInt(b.style.top) })); } catch (_) {} return; }
+        b.style.opacity = ".6";
+        try { await Promise.race([flush(), new Promise(r => setTimeout(r, 1200))]); } catch (_) {}
+        location.href = new URL("../", location.href).href;
+      });
+      (document.body || document.documentElement).appendChild(b);
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addBack); else addBack();
+  }
 })();
