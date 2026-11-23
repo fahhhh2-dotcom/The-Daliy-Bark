@@ -33,11 +33,11 @@
   {"name": "Thinknoodles", "handle": "Thinknoodles", "game": "Roblox", "desc": "Family-friendly Roblox and more."},
   {"name": "GameChops", "handle": "GameChops", "game": "Music", "genre": "Remixes", "desc": "Chill and hype remixes of your favorite video game songs."},
   {"name": "Materia Collective", "handle": "MateriaCollective", "game": "Music", "genre": "Orchestra & Covers", "desc": "Beautiful covers and albums of video game soundtracks."},
-  {"name": "The 8-Bit Big Band", "handle": "8bitbigband", "game": "Music", "genre": "Orchestra & Covers", "desc": "A giant jazz band playing video game music."},
+  {"name": "The 8-Bit Big Band", "game": "Music", "genre": "Orchestra & Covers", "desc": "A giant jazz band playing video game music.", "id": "UCxUheFf_jVsSkxW9DBd_6bA"},
   {"name": "Smooth McGroove", "handle": "smoothmcgroove", "game": "Music", "genre": "Orchestra & Covers", "desc": "Video game music sung a cappella, all by one guy."},
   {"name": "Lena Raine", "handle": "LenaRaine", "game": "Music", "genre": "Composers", "desc": "Composer of Minecraft and Celeste music."},
   {"name": "C418", "handle": "C418", "game": "Music", "genre": "Composers", "desc": "The composer of the original Minecraft soundtrack."},
-  {"name": "Rockit Gaming", "handle": "RockitGaming", "game": "Music", "genre": "Game Songs", "desc": "Catchy Minecraft and gaming songs and music videos."},
+  {"name": "Rockit Music", "handle": "RockitMusic", "game": "Music", "genre": "Game Songs", "desc": "Catchy Minecraft and gaming songs and music videos."},
   {"name": "TryHardNinja", "handle": "TryHardNinja", "game": "Music", "genre": "Game Songs", "desc": "Original songs about your favorite games."},
   {"name": "Dan Bull", "handle": "DanBull", "game": "Music", "genre": "Game Songs", "desc": "Video game raps and songs."},
   {"name": "Mick Gordon", "handle": "MickGordon", "game": "Music", "genre": "Composers", "desc": "Heavy, epic game soundtracks from the DOOM composer."}
