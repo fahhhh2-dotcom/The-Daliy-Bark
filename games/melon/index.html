@@ -78,7 +78,7 @@ let bounds = [];
 
 // ---------- save a few numbers for the arcade ----------
 const SKEY = 'melonLabStats';
-let stats = { spawned: 0, booms: 0, kos: 0, cuts: 0 }; try { stats = Object.assign(stats, JSON.parse(localStorage.getItem(SKEY)) || {}); } catch (e) {}
+let stats = { spawned: 0, booms: 0, kos: 0, cuts: 0, shots: 0 }; try { stats = Object.assign(stats, JSON.parse(localStorage.getItem(SKEY)) || {}); } catch (e) {}
 let saveT = 0; function bump(k, n = 1){ stats[k] += n; clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(SKEY, JSON.stringify(stats)); } catch (e) {} }, 800); }
 
 // ---------- sound ----------
@@ -148,7 +148,7 @@ function makeRagdoll(x, y, look){
   Composite.add(comp, parts); Composite.add(comp, joints);
   parts.forEach(p => p.rag = comp);
   head.face = { dizzy: 0, shock: 0, blink: Math.random() * 4 };
-  ragdolls.set(comp.id, { cut: new Set(), comp, head, torso, legs: [ul1, ul2], feet: [ll1, ll2], arms: [ua1, ua2, la1, la2], look, hp: 100, ko: false, joints, hpShow: 0, stun: 0 });
+  ragdolls.set(comp.id, { fx: {}, cut: new Set(), comp, head, torso, legs: [ul1, ul2], feet: [ll1, ll2], arms: [ua1, ua2, la1, la2], look, hp: 100, ko: false, joints, hpShow: 0, stun: 0 });
   [ll1, ll2].forEach(f => f.isFoot = true);
   Composite.add(world, comp);
   return comp;
@@ -205,6 +205,7 @@ const CATS = [
   { n: '🍉 People', items: [['melon', '🍉', 'Melon'], ['pumpkin', '🎃', 'Pumpkin'], ['lemon', '🍋', 'Lemon'], ['me', '😎', 'My Avatar']] },
   { n: '📦 Props', items: [['box', '📦', 'Box'], ['crate', '🧰', 'Big crate'], ['ball', '⚽', 'Bouncy ball'], ['bowling', '🎳', 'Heavy ball'], ['plank', '🪵', 'Plank'], ['barrel', '🛢️', 'Barrel'], ['watermelon', '🍉', 'Watermelon']] },
   { n: '⚙️ Machines', items: [['spring', '🟩', 'Spring pad'], ['fanR', '💨', 'Fan →'], ['fanL', '💨', 'Fan ←'], ['balloon', '🎈', 'Balloon'], ['wheel', '🛞', 'Motor wheel']] },
+  { n: '💉 Syringes', items: [['s_acid', '🧪', 'Acid'], ['s_immortal', '✨', 'Immortal'], ['s_joint', '🦴', 'Strong joints'], ['s_scream', '😱', 'Scream'], ['s_adren', '⚡', 'Adrenaline'], ['s_sleep', '💤', 'Sleep'], ['s_float', '🎈', 'Floaty'], ['s_giant', '👹', 'Giant Rage'], ['s_cure', '💧', 'Cure']] },
   { n: '🔫 Guns', items: [['g_pistol', '🔫', 'Pistol'], ['g_shotgun', '💥', 'Shotgun'], ['g_laser', '⚡', 'Laser'], ['g_cannon', '💣', 'Cannon']] },
   { n: '💥 Boom', items: [['tnt', '🧨', 'TNT'], ['bigtnt', '💣', 'Mega TNT']] },
   { n: '🧱 Build', items: [['floor', '▬', 'Platform'], ['wall', '▮', 'Wall'], ['ramp', '◢', 'Ramp']] }
@@ -219,6 +220,7 @@ document.getElementById('items').onclick = e => {
   const it = e.target.closest('[data-id]'); if (!it) return;
   pick = pick === it.dataset.id ? null : it.dataset.id; paintDock();
   if (pick && pick.startsWith('g_')) hint('Tap where you want to shoot! Drag the gun to move it.');
+  else if (pick && pick.startsWith('s_')) hint('Tap a person to inject the syringe 💉');
   else hint(pick ? 'Tap the world to drop it in. Drag things to throw them!' : 'Grab things to throw them');
 };
 document.getElementById('tools').onclick = e => {
@@ -286,6 +288,7 @@ cv.addEventListener('pointerdown', e => {
     if (b){ if (b.kind === 'tnt') explode(b); else { Body.applyForce(b, b.position, { x: (Math.random() - .5) * .08 * b.mass, y: -.12 * b.mass }); snd('bonk'); if (b.face) b.face.shock = 1; } }
     return;
   }
+  if (pick && pick.startsWith('s_')){ inject(bodyAt(x, y), pick, { x, y }); return; }
   if (pick && pick.startsWith('g_')){
     if (Math.hypot(x - gun.x, y - gun.y) < 40){ gun.held = true; return; }
     shoot(x, y); return;
@@ -325,6 +328,8 @@ function squirt(x, y, col, n, spd){
 function hurt(b, dmg, at){
   if (!b || !b.rag) return;
   const R = ragdolls.get(b.rag.id); if (!R || dmg <= 0) return;
+  if (R.fx.immortal){ burst(b.position.x, b.position.y, '#ffd700', 4, 3); return; }
+  if (R.fx.giant) dmg *= .15;   // giants are really tough
   if (b.kind === 'head') dmg *= 1.5;
   const p = at || b.position;
   if (juiceOn && R.look.juice) squirt(p.x, p.y, R.look.juice, Math.min(40, 4 + dmg * .6), 3 + dmg / 12);
@@ -342,7 +347,8 @@ function hurt(b, dmg, at){
 function heal(b){
   if (!b || !b.rag) return false;
   const R = ragdolls.get(b.rag.id); if (!R) return false;
-  R.hp = 100; R.ko = false; R.head.face.ko = false; R.head.face.dizzy = 0; R.hpShow = 2;
+  const wasGiant = R.fx.giant;
+  R.hp = 100; R.ko = false; R.head.face.ko = false; R.head.face.dizzy = 0; R.hpShow = 2; R.fx = wasGiant ? { giant: true } : {}; R.head.face.sleep = R.head.face.scream = false;
   R.joints.forEach(j => { j.stiffness = .9; }); R.stun = 0; reattach(R);
   burst(R.head.position.x, R.head.position.y, '#ff6fa8', 14, 4); burst(R.head.position.x, R.head.position.y, '#fff', 8, 3);
   words.push({ x: R.head.position.x, y: R.head.position.y - 30, t: 1, s: .8, w: 'HEALED!' });
@@ -396,7 +402,7 @@ function shoot(tx, ty){
 // ---------- cutting off arms and legs (fruit people only) ----------
 const jointAt = j => Vector.add(j.bodyA.position, Vector.rotate(j.pointA, j.bodyA.angle));
 function cutJoint(R, j){
-  if (!R.look.juice || j.bodyB === R.head || R.cut.has(j)) return false;   // heads stay on; your avatar can't be cut
+  if (!R.look.juice || j.bodyB === R.head || R.cut.has(j) || R.fx.immortal || R.fx.strong) return false;   // heads stay on; your avatar can't be cut
   Composite.remove(R.comp, j); R.cut.add(j);
   const p = jointAt(j);
   if (juiceOn) squirt(p.x, p.y, R.look.juice, 22, 5);
@@ -430,6 +436,92 @@ function slashTo(x, y){
     if (segDist(body.position, a, b) < 7){ const R = ragdolls.get(body.rag.id); const j = R && R.joints.find(q => q.bodyB === body); if (j) cutJoint(R, j); }
   });
   slash.pts.push(b); if (slash.pts.length > 14) slash.pts.shift(); slash.last = b;
+}
+
+// ---------- syringes ----------
+const FX_NAMES = { s_acid: 'ACID!', s_immortal: 'IMMORTAL!', s_joint: 'STRONG JOINTS!', s_scream: 'AAAAH!', s_adren: 'ADRENALINE!', s_sleep: 'Zzz…', s_float: 'FLOATY!', s_giant: 'RAAAAH!', s_cure: 'CURED!' };
+const needles = [];
+function resizeRag(R, k){
+  const c = { x: R.torso.position.x, y: R.torso.position.y };
+  const all = Composite.allBodies(R.comp);
+  all.forEach(b => {
+    Body.scale(b, k, k);
+    Body.setPosition(b, { x: c.x + (b.position.x - c.x) * k, y: c.y + (b.position.y - c.y) * k - (k > 1 ? 70 * (k - 1) : 0) });
+    Body.setVelocity(b, { x: 0, y: 0 });
+  });
+  R.joints.forEach(j => { j.pointA = Vector.mult(j.pointA, k); j.pointB = Vector.mult(j.pointB, k); });
+  R.scale = (R.scale || 1) * k;
+}
+function inject(b, id, at){
+  if (!b || !b.rag){ hint('Tap a person to inject the syringe 💉'); return; }
+  const R = ragdolls.get(b.rag.id); if (!R) return;
+  const fx = R.fx;
+  if (id === 's_acid'){ if (fx.immortal) { hint('Immortal people can’t be hurt!'); } else fx.acid = 8; }
+  if (id === 's_immortal'){ fx.immortal = true; if (R.ko || R.cut.size) heal(R.head); fx.immortal = true; }
+  if (id === 's_joint'){ fx.strong = true; }
+  if (id === 's_scream'){ fx.scream = 7; }
+  if (id === 's_adren'){ fx.adren = 12; R.stun = 0; R.head.face.dizzy = 0; }
+  if (id === 's_sleep'){ fx.sleep = 9; }
+  if (id === 's_float'){ fx.float = 10; }
+  if (id === 's_giant'){ if (!fx.giant){ fx.giant = true; if (R.ko || R.cut.size){ heal(R.head); } resizeRag(R, 2.2); R.hp = 100; shake = 10; } }
+  if (id === 's_cure'){ if (fx.giant) resizeRag(R, 1 / (R.scale || 1)); R.fx = {}; R.head.face.sleep = R.head.face.scream = false; }
+  needles.push({ b, off: Vector.sub(at, b.position), ang: -0.8, life: 1.4 });
+  words.push({ x: R.head.position.x, y: R.head.position.y - 34, t: 1, s: .7, w: FX_NAMES[id] });
+  snd(id === 's_scream' ? 'boing' : 'pin'); bump('shots');
+}
+function tickFx(dt){
+  const sec = dt / 1000, now = performance.now();
+  ragdolls.forEach(R => {
+    const fx = R.fx, f = R.head.face, all = Composite.allBodies(R.comp);
+    f.sleep = fx.sleep > 0; f.scream = fx.scream > 0 && !R.ko;
+    if (fx.acid > 0){
+      fx.acid -= sec;
+      if (!R.ko){ R.hp -= 9 * sec; R.hpShow = 1.5; if (R.hp <= 0){ R.hp = 1; hurt(R.torso, 5, R.torso.position); } }
+      if (Math.random() < .5){ const p = all[Math.floor(Math.random() * all.length)].position; parts.push({ x: p.x + (Math.random() - .5) * 14, y: p.y, vx: (Math.random() - .5) * .6, vy: -1 - Math.random(), life: .8, c: Math.random() < .5 ? '#b6ff3a' : '#e8ff8a', r: 2 + Math.random() * 3 }); }
+    }
+    if (fx.scream > 0){
+      fx.scream -= sec;
+      if (!R.ko && !fx.sleep){
+        if (!R.runDir || Math.random() < .01) R.runDir = Math.random() < .5 ? -1 : 1;
+        if (R.torso.position.x < 60) R.runDir = 1; if (R.torso.position.x > W - 60) R.runDir = -1;
+        Body.applyForce(R.torso, R.torso.position, { x: R.runDir * .0009 * R.torso.mass * 10, y: 0 });
+        R.arms.forEach((a, i) => Body.setAngularVelocity(a, Math.sin(now / 70 + i) * .5));
+        R.feet.forEach((ft, i) => Body.setAngularVelocity(ft, Math.sin(now / 90 + i * 3) * .4));
+        if (Math.random() < .004) snd('boing');
+      }
+    }
+    if (fx.adren > 0){
+      fx.adren -= sec; R.stun = 0; f.dizzy = 0;
+      const grounded = R.feet.some(ft => engine.timing.timestamp - (ft.ground || -1e9) < 120);
+      if (grounded && !R.ko && Math.random() < .02) all.forEach(p => Body.setVelocity(p, { x: p.velocity.x + (Math.random() - .5) * 6, y: -13 }));
+    }
+    if (fx.sleep > 0){ fx.sleep -= sec; }
+    if (fx.giant && !R.ko && !(fx.sleep > 0)){
+      R.stun = 0; f.dizzy = 0; f.angry = true;
+      let best = null, bd = 1e9;
+      ragdolls.forEach(O => { if (O === R) return; const d = Math.abs(O.torso.position.x - R.torso.position.x) + Math.abs(O.torso.position.y - R.torso.position.y) * .5 + (O.ko ? 500 : 0); if (d < bd){ bd = d; best = O; } });
+      if (best){
+        const dx = best.torso.position.x - R.torso.position.x, dir = Math.sign(dx) || 1, reach = 55 * R.scale;
+        if (Math.abs(dx) > reach){
+          Body.applyForce(R.torso, R.torso.position, { x: dir * .0012 * R.torso.mass * 10, y: 0 });
+          R.feet.forEach((ft, i) => Body.setAngularVelocity(ft, Math.sin(now / 110 + i * 3) * .35));
+        } else if (now - (R.lastHit || 0) > 700){
+          R.lastHit = now;
+          const arm = R.arms[dir > 0 ? 1 : 0]; Body.setAngularVelocity(arm, -dir * .9);
+          const tgt = Math.random() < .5 ? best.head : best.torso;
+          Composite.allBodies(best.comp).forEach(p => Body.setVelocity(p, { x: p.velocity.x + dir * 10, y: p.velocity.y - 7 }));
+          hurt(tgt, 34, tgt.position);
+          if (Math.random() < .4){ const j = best.joints[1 + Math.floor(Math.random() * 8)]; if (j) cutJoint(best, j); }
+          words.push({ x: tgt.position.x, y: tgt.position.y - 20, t: .9, s: .9, w: ['SMASH!', 'POW!', 'WHAM!', 'CRUNCH!'][Math.floor(Math.random() * 4)] });
+          shake = 9; snd('bonk');
+        }
+      }
+    } else f.angry = false;
+    if (fx.float > 0){
+      fx.float -= sec;
+      all.forEach(p => Body.applyForce(p, p.position, { x: 0, y: -p.mass * engine.gravity.y * engine.gravity.scale * 1.25 }));
+    }
+  });
 }
 
 // ---------- explosions & machines ----------
@@ -493,7 +585,7 @@ function upright(b, k, target){ const err = wrapA(b.angle - (target || 0)); Body
 function balance(dt){
   const now = engine.timing.timestamp;
   ragdolls.forEach(R => {
-    if (R.ko) return;
+    if (R.ko || R.fx.sleep > 0 || R.fx.float > 0) return;
     if ([...R.cut].some(j => R.legs.includes(j.bodyB) || R.feet.includes(j.bodyB))) return;   // can't stand without both legs
     if (R.stun > 0){ R.stun -= dt / 1000; return; }
     if (R.head.face.dizzy > 1.5) return;
@@ -502,7 +594,7 @@ function balance(dt){
     const grounded = R.feet.some(f => now - (f.ground || -1e9) < 120);
     const tilt = Math.abs(wrapA(R.torso.angle));
     // stand tall: straighten torso, head and legs
-    const k = grounded ? .16 : .05;
+    const k = (grounded ? .16 : .05) * (R.fx.strong || R.fx.adren > 0 || R.fx.giant ? 1.6 : 1);
     upright(R.torso, k); upright(R.head, k * .6);
     R.legs.forEach(l => upright(l, k * .9)); R.feet.forEach(f => upright(f, k * .9));
     // arms hang relaxed at the sides
@@ -522,7 +614,7 @@ function balance(dt){
 }
 
 Events.on(engine, 'beforeUpdate', () => {
-  balance(engine.timing.lastDelta || 8);
+  balance(engine.timing.lastDelta || 8); tickFx(engine.timing.lastDelta || 8);
   const all = Composite.allBodies(world);
   for (const b of all){
     if (b.kind === 'balloon' && !b.isStatic) Body.applyForce(b, b.position, { x: 0, y: -b.mass * engine.gravity.y * .0013 - .00025 });
@@ -545,8 +637,8 @@ Events.on(engine, 'beforeUpdate', () => {
 function rr(x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
 function poly(b){ g.beginPath(); b.vertices.forEach((v, i) => i ? g.lineTo(v.x, v.y) : g.moveTo(v.x, v.y)); g.closePath(); }
 function drawFace(b){
-  const L = b.look, f = b.face, r = b.circleRadius;
-  g.save(); g.translate(b.position.x, b.position.y); g.rotate(b.angle);
+  const L = b.look, f = b.face, sc = b.circleRadius / 17, r = 17;
+  g.save(); g.translate(b.position.x, b.position.y); g.rotate(b.angle); g.scale(sc, sc);
   g.fillStyle = L.head; g.beginPath(); g.arc(0, 0, r, 0, 7); g.fill();
   if (L.stripe){ g.strokeStyle = L.stripe; g.lineWidth = 3; for (const k of [-.55, 0, .55]){ g.beginPath(); g.ellipse(0, 0, r * Math.abs(Math.cos(k * 1.4)) * .95, r * .97, 0, -Math.PI / 2, Math.PI / 2, k < 0); g.stroke(); } }
   if (L.stem){ g.fillStyle = '#3a6a2a'; g.fillRect(-3, -r - 6, 6, 8); }
@@ -558,7 +650,17 @@ function drawFace(b){
   }
   const sp = Vector.magnitude(b.velocity); if (sp > 7) f.shock = Math.max(f.shock, .6);
   g.fillStyle = '#1b1c21'; g.strokeStyle = '#1b1c21'; g.lineWidth = 2.2; g.lineCap = 'round';
-  if (f.ko){ // knocked out: X eyes and a tongue
+  if (f.angry && !f.ko){
+    g.lineWidth = 3; g.beginPath(); g.moveTo(-10, -11); g.lineTo(-2, -7); g.moveTo(10, -11); g.lineTo(2, -7); g.stroke();
+    for (const ex of [-6, 6]){ g.fillStyle = '#ff2a2a'; g.beginPath(); g.arc(ex, -3, 3, 0, 7); g.fill(); }
+    g.fillStyle = '#1b1c21'; g.fillRect(-6, 5, 12, 4); g.fillStyle = '#fff'; g.fillRect(-5, 5, 2.5, 2); g.fillRect(2.5, 5, 2.5, 2);
+  } else if (f.sleep && !f.ko){
+    for (const ex of [-6, 6]){ g.beginPath(); g.arc(ex, -3, 3, .1, Math.PI - .1); g.stroke(); }
+    g.beginPath(); g.ellipse(0, 6, 2.5, 2, 0, 0, 7); g.stroke();
+  } else if (f.scream && !f.ko){
+    for (const ex of [-6, 6]){ g.fillStyle = '#fff'; g.beginPath(); g.arc(ex, -4, 4.2, 0, 7); g.fill(); g.fillStyle = '#1b1c21'; g.beginPath(); g.arc(ex, -4, 1.8, 0, 7); g.fill(); }
+    g.fillStyle = '#1b1c21'; g.beginPath(); g.ellipse(0, 8, 5, 7, 0, 0, 7); g.fill(); g.fillStyle = '#ff7a9a'; g.beginPath(); g.ellipse(0, 11, 3, 2.5, 0, 0, 7); g.fill();
+  } else if (f.ko){ // knocked out: X eyes and a tongue
     g.lineWidth = 2.6; for (const ex of [-6, 6]){ g.beginPath(); g.moveTo(ex - 3.5, -6.5); g.lineTo(ex + 3.5, .5); g.moveTo(ex + 3.5, -6.5); g.lineTo(ex - 3.5, .5); g.stroke(); }
     g.beginPath(); g.moveTo(-5, 6); g.lineTo(5, 6); g.stroke(); g.fillStyle = '#ff7a9a'; g.beginPath(); g.ellipse(2, 9, 3, 4, 0, 0, Math.PI); g.fill();
   } else if (f.dizzy > .3){ // swirly dizzy eyes
@@ -647,6 +749,20 @@ function draw(){
     if (c.kind === 'grab'){ const b = Vector.add(c.bodyB.position, Vector.rotate(c.pointB, c.bodyB.angle)); g.strokeStyle = '#7dff7a'; g.lineWidth = 2; g.setLineDash([5, 5]); g.beginPath(); g.moveTo(c.pointA.x, c.pointA.y); g.lineTo(b.x, b.y); g.stroke(); g.setLineDash([]); g.fillStyle = '#7dff7a'; g.beginPath(); g.arc(c.pointA.x, c.pointA.y, 6, 0, 7); g.fill(); }
   });
   Composite.allBodies(world).forEach(b => { if (!bounds.includes(b)) drawBody(b); });
+  ragdolls.forEach(R => {
+    const h = R.head.position, t = R.torso.position, fx = R.fx, now = performance.now();
+    if (fx.immortal){ const gl = g.createRadialGradient(t.x, t.y - 20, 5, t.x, t.y - 20, 70); gl.addColorStop(0, 'rgba(255,215,0,.35)'); gl.addColorStop(1, 'rgba(255,215,0,0)'); g.fillStyle = gl; g.beginPath(); g.arc(t.x, t.y - 20, 70, 0, 7); g.fill();
+      g.strokeStyle = '#ffd700'; g.lineWidth = 2; g.beginPath(); g.ellipse(h.x, h.y - 24, 12, 4, 0, 0, 7); g.stroke(); }
+    if (fx.strong){ g.font = '14px sans-serif'; g.fillText('🦴', t.x + 14, t.y - 10); }
+    if (fx.adren > 0){ g.strokeStyle = `rgba(255,230,60,${.5 + .5 * Math.sin(now / 60)})`; g.lineWidth = 2; for (let i = 0; i < 3; i++){ const a = now / 200 + i * 2.1; g.beginPath(); g.moveTo(t.x + Math.cos(a) * 26, t.y + Math.sin(a) * 30); g.lineTo(t.x + Math.cos(a) * 34, t.y + Math.sin(a) * 38); g.stroke(); } }
+    if (fx.sleep > 0){ g.fillStyle = '#cfe3ff'; g.font = '700 14px Fredoka,sans-serif'; for (let i = 0; i < 3; i++){ const k = ((now / 900) + i / 3) % 1; g.globalAlpha = 1 - k; g.fillText('Z', h.x + 10 + k * 18, h.y - 18 - k * 30); } g.globalAlpha = 1; }
+    if (R.head.face.scream){ g.font = '700 15px Fredoka,sans-serif'; g.textAlign = 'center'; g.lineWidth = 4; g.strokeStyle = '#000'; const wob = Math.sin(now / 40) * 2; g.strokeText('AAAAH!', h.x + wob, h.y - 30); g.fillStyle = '#fff'; g.fillText('AAAAH!', h.x + wob, h.y - 30); }
+    if (fx.float > 0){ g.fillStyle = '#ff4d6d'; g.beginPath(); g.ellipse(h.x, h.y - 60, 14, 17, 0, 0, 7); g.fill(); g.strokeStyle = '#ddd'; g.lineWidth = 1; g.beginPath(); g.moveTo(h.x, h.y - 43); g.lineTo(h.x, h.y - 16); g.stroke(); }
+  });
+  for (let i = needles.length - 1; i >= 0; i--){ const n = needles[i]; n.life -= .016; if (n.life <= 0){ needles.splice(i, 1); continue; }
+    const p = Vector.add(n.b.position, n.off); g.save(); g.translate(p.x, p.y); g.rotate(n.ang); g.globalAlpha = Math.min(1, n.life * 2);
+    g.fillStyle = '#e8f4ff'; g.fillRect(4, -4, 26, 8); g.fillStyle = '#7cf3ff'; g.fillRect(6, -3, 14, 6); g.fillStyle = '#999'; g.fillRect(30, -1, 6, 2); g.fillRect(-8, -.7, 12, 1.4); g.fillStyle = '#555'; g.fillRect(36, -5, 3, 10); g.restore(); }
+  g.textAlign = 'left';
   ragdolls.forEach(R => R.cut.forEach(j => {
     const p = jointAt(j), q = Vector.add(j.bodyB.position, Vector.rotate(j.pointB, j.bodyB.angle));
     g.fillStyle = R.look.inside; g.strokeStyle = R.look.juice; g.lineWidth = 1.5;
