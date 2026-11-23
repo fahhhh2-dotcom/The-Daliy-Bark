@@ -44,6 +44,7 @@
   <h1>🍉 Melon Lab</h1>
   <div class="sp"></div>
   <button class="tb" id="gravBtn">🌍<span> Gravity</span></button>
+  <button class="tb on" id="juiceBtn">💧<span> Juice</span></button>
   <button class="tb" id="slowBtn">🐢<span> Slow-mo</span></button>
   <button class="tb" id="pauseBtn">⏸</button>
   <button class="tb" id="clearBtn">🧹<span> Clear</span></button>
@@ -53,6 +54,8 @@
   <button data-t="drag" class="on">✋<span>Grab &amp; throw</span></button>
   <button data-t="pin">📌<span>Pin / unpin</span></button>
   <button data-t="poke">👉<span>Poke (sets off TNT)</span></button>
+  <button data-t="hammer">🔨<span>Hammer (bonk!)</span></button>
+  <button data-t="heal">❤️<span>Heal / revive</span></button>
   <button data-t="delete">🗑️<span>Delete</span></button>
 </div>
 <div id="hint">Pick something below, then tap the world to drop it in</div>
@@ -74,7 +77,7 @@ let bounds = [];
 
 // ---------- save a few numbers for the arcade ----------
 const SKEY = 'melonLabStats';
-let stats = { spawned: 0, booms: 0 }; try { stats = Object.assign(stats, JSON.parse(localStorage.getItem(SKEY)) || {}); } catch (e) {}
+let stats = { spawned: 0, booms: 0, kos: 0 }; try { stats = Object.assign(stats, JSON.parse(localStorage.getItem(SKEY)) || {}); } catch (e) {}
 let saveT = 0; function bump(k, n = 1){ stats[k] += n; clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(SKEY, JSON.stringify(stats)); } catch (e) {} }, 800); }
 
 // ---------- sound ----------
@@ -111,7 +114,7 @@ function buildBounds(){
 const dockH = () => document.querySelector('.dock').offsetHeight;
 function resize(){
   DPR = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight;
-  cv.width = W * DPR; cv.height = H * DPR; buildBounds();
+  cv.width = W * DPR; cv.height = H * DPR; buildBounds(); gun.y = 0;
 }
 addEventListener('resize', resize);
 
@@ -144,15 +147,15 @@ function makeRagdoll(x, y, look){
   Composite.add(comp, parts); Composite.add(comp, joints);
   parts.forEach(p => p.rag = comp);
   head.face = { dizzy: 0, shock: 0, blink: Math.random() * 4 };
-  ragdolls.set(comp.id, { comp, head, look });
+  ragdolls.set(comp.id, { comp, head, look, hp: 100, ko: false, joints, hpShow: 0 });
   Composite.add(world, comp);
   return comp;
 }
 
 const LOOKS = {
-  melon: { head: '#4caf50', stripe: '#2e7d32', body: '#7ccf4f', limb: '#6bbf42', leg: '#3e8e3e' },
-  pumpkin: { head: '#ff9a2e', stripe: '#d06a10', body: '#7a4a2a', limb: '#8a5a32', leg: '#4a3020', stem: true },
-  lemon: { head: '#ffe14a', stripe: '#e0b800', body: '#3d6bff', limb: '#ffe14a', leg: '#2a2a30' }
+  melon: { head: '#4caf50', stripe: '#2e7d32', body: '#7ccf4f', limb: '#6bbf42', leg: '#3e8e3e', juice: '#3fdc2a' },
+  pumpkin: { head: '#ff9a2e', stripe: '#d06a10', body: '#7a4a2a', limb: '#8a5a32', leg: '#4a3020', stem: true, juice: '#ff8a1a' },
+  lemon: { head: '#ffe14a', stripe: '#e0b800', body: '#3d6bff', limb: '#ffe14a', leg: '#2a2a30', juice: '#ffe600' }
 };
 function avatarLook(){
   try { const c = ArcadeAvatar.colors(); return { head: c.skin, stripe: null, body: c.shirt, limb: c.shirt, hand: c.skin, leg: c.pants, hair: c.hair, hairStyle: c.hairStyle, hat: c.hat, hatC: c.hatC, person: true }; }
@@ -200,6 +203,7 @@ const CATS = [
   { n: '🍉 People', items: [['melon', '🍉', 'Melon'], ['pumpkin', '🎃', 'Pumpkin'], ['lemon', '🍋', 'Lemon'], ['me', '😎', 'My Avatar']] },
   { n: '📦 Props', items: [['box', '📦', 'Box'], ['crate', '🧰', 'Big crate'], ['ball', '⚽', 'Bouncy ball'], ['bowling', '🎳', 'Heavy ball'], ['plank', '🪵', 'Plank'], ['barrel', '🛢️', 'Barrel'], ['watermelon', '🍉', 'Watermelon']] },
   { n: '⚙️ Machines', items: [['spring', '🟩', 'Spring pad'], ['fanR', '💨', 'Fan →'], ['fanL', '💨', 'Fan ←'], ['balloon', '🎈', 'Balloon'], ['wheel', '🛞', 'Motor wheel']] },
+  { n: '🔫 Guns', items: [['g_pistol', '🔫', 'Pistol'], ['g_shotgun', '💥', 'Shotgun'], ['g_laser', '⚡', 'Laser'], ['g_cannon', '💣', 'Cannon']] },
   { n: '💥 Boom', items: [['tnt', '🧨', 'TNT'], ['bigtnt', '💣', 'Mega TNT']] },
   { n: '🧱 Build', items: [['floor', '▬', 'Platform'], ['wall', '▮', 'Wall'], ['ramp', '◢', 'Ramp']] }
 ];
@@ -212,13 +216,14 @@ document.getElementById('cats').onclick = e => { const b = e.target.closest('[da
 document.getElementById('items').onclick = e => {
   const it = e.target.closest('[data-id]'); if (!it) return;
   pick = pick === it.dataset.id ? null : it.dataset.id; paintDock();
-  hint(pick ? 'Tap the world to drop it in. Drag things to throw them!' : 'Grab things to throw them');
+  if (pick && pick.startsWith('g_')) hint('Tap where you want to shoot! Drag the gun to move it.');
+  else hint(pick ? 'Tap the world to drop it in. Drag things to throw them!' : 'Grab things to throw them');
 };
 document.getElementById('tools').onclick = e => {
   const b = e.target.closest('[data-t]'); if (!b) return;
   tool = b.dataset.t; pick = null; paintDock();
   document.querySelectorAll('#tools button').forEach(x => x.classList.toggle('on', x === b));
-  hint({ drag: 'Grab things and throw them', pin: 'Tap something to pin it in the air (tap again to unpin)', poke: 'Tap things to give them a push. Poke TNT to blow it up!', delete: 'Tap something to delete it' }[tool]);
+  hint({ hammer: 'Tap a fruit person to bonk them with the hammer', heal: 'Tap a knocked-out fruit person to heal them', drag: 'Grab things and throw them', pin: 'Tap something to pin it in the air (tap again to unpin)', poke: 'Tap things to give them a push. Poke TNT to blow it up!', delete: 'Tap something to delete it' }[tool]);
 };
 let hintT; function hint(t){ const h = document.getElementById('hint'); h.textContent = t; h.style.opacity = 1; clearTimeout(hintT); hintT = setTimeout(() => h.style.opacity = 0, 2600); }
 
@@ -233,7 +238,7 @@ document.getElementById('clearBtn').onclick = e => {
   Composite.allComposites(world).forEach(c => Composite.remove(world, c, true));
   Composite.allConstraints(world).forEach(c => Composite.remove(world, c));
   Composite.allBodies(world).filter(b => !bounds.includes(b)).forEach(b => Composite.remove(world, b));
-  ragdolls.clear(); parts.length = 0; e.currentTarget.innerHTML = '🧹<span> Clear</span>'; snd('del');
+  ragdolls.clear(); parts.length = 0; splats.length = 0; e.currentTarget.innerHTML = '🧹<span> Clear</span>'; snd('del');
 };
 
 // ---------- pointer: spawn, grab, pin, poke, delete ----------
@@ -257,11 +262,25 @@ cv.addEventListener('pointerdown', e => {
   const x = e.clientX, y = e.clientY; ptr = { x, y }; lastPtr = { x, y, t: performance.now() };
   try { cv.setPointerCapture(e.pointerId); } catch (_) {}
   const b = bodyAt(x, y);
+  if (tool === 'hammer'){
+    if (b){
+      Body.applyForce(b, b.position, { x: (Math.random() - .5) * .05 * b.mass, y: .06 * b.mass });
+      words.push({ x, y: y - 20, t: .8, s: .8, w: ['BONK!', 'WHACK!', 'BOP!'][Math.floor(Math.random() * 3)] }); shake = 6;
+      if (b.rag) hurt(b, 34, { x, y }); else if (b.kind === 'tnt') explode(b);
+      snd('bonk');
+    }
+    return;
+  }
+  if (tool === 'heal'){ if (!heal(b)) hint('Tap a fruit person to heal them'); return; }
   if (tool === 'delete'){ if (b){ removeThing(b); snd('del'); burst(x, y, '#ffffff', 10); } return; }
   if (tool === 'pin'){ if (b && !bounds.includes(b) && !['spring', 'fan', 'block', 'ramp'].includes(b.kind)){ Body.setStatic(b, !b.isStatic); b.pinned = b.isStatic; snd('pin'); } return; }
   if (tool === 'poke'){
     if (b){ if (b.kind === 'tnt') explode(b); else { Body.applyForce(b, b.position, { x: (Math.random() - .5) * .08 * b.mass, y: -.12 * b.mass }); snd('bonk'); if (b.face) b.face.shock = 1; } }
     return;
+  }
+  if (pick && pick.startsWith('g_')){
+    if (Math.hypot(x - gun.x, y - gun.y) < 40){ gun.held = true; return; }
+    shoot(x, y); return;
   }
   // drag tool: grab what you touch, or drop in the picked item
   if (b && !b.isStatic){
@@ -275,8 +294,10 @@ cv.addEventListener('pointermove', e => {
   const now = performance.now(), x = e.clientX, y = e.clientY, dt = Math.max(1, now - lastPtr.t);
   vel = { x: (x - lastPtr.x) / dt, y: (y - lastPtr.y) / dt }; lastPtr = { x, y, t: now }; ptr = { x, y };
   if (grab) grab.pointA = { x, y };
+  if (gun.held){ gun.x = Math.max(30, Math.min(W - 30, x)); gun.y = Math.max(60, Math.min(H - dockH() - 20, y)); }
 });
 const release = () => {
+  gun.held = false;
   if (!grab) return;
   const b = grab.bodyB; Composite.remove(world, grab); grab = null;
   // throw it with the finger's speed
@@ -284,6 +305,84 @@ const release = () => {
   (b.rag ? Composite.allBodies(b.rag) : [b]).forEach(p => Body.setVelocity(p, { x: p.velocity.x + push.x * .5, y: p.velocity.y + push.y * .5 }));
 };
 cv.addEventListener('pointerup', release); cv.addEventListener('pointercancel', release);
+
+// ---------- health, juice and knock-outs ----------
+let juiceOn = true;
+const splats = [];   // juice stains left on the floor and walls
+document.getElementById('juiceBtn').onclick = e => { juiceOn = !juiceOn; e.currentTarget.classList.toggle('on', juiceOn); if (!juiceOn) splats.length = 0; snd('pin'); };
+function squirt(x, y, col, n, spd){
+  for (let i = 0; i < n; i++){ const a = Math.random() * Math.PI * 2, sp = Math.random() * spd; parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2.5, life: 1, c: col, r: 2 + Math.random() * 3.5, juice: true }); }
+}
+function hurt(b, dmg, at){
+  if (!b || !b.rag) return;
+  const R = ragdolls.get(b.rag.id); if (!R || dmg <= 0) return;
+  if (b.kind === 'head') dmg *= 1.5;
+  const p = at || b.position;
+  if (juiceOn && R.look.juice) squirt(p.x, p.y, R.look.juice, Math.min(40, 4 + dmg * .6), 3 + dmg / 12);
+  else if (!R.look.juice) for (let i = 0; i < 2; i++) R.head.face.dizzy = Math.min(5, R.head.face.dizzy + 1);
+  if (R.ko) return;
+  R.hp -= dmg; R.hpShow = 2.5; R.head.face.shock = 1;
+  if (R.hp <= 0){
+    R.hp = 0; R.ko = true; R.head.face.ko = true;
+    R.joints.forEach(j => { j.stiffness = .45; });          // goes floppy
+    words.push({ x: R.head.position.x, y: R.head.position.y - 30, t: 1, s: 1, w: 'K.O.!' });
+    snd('bonk'); bump('kos');
+    if (juiceOn && R.look.juice) squirt(R.head.position.x, R.head.position.y, R.look.juice, 45, 7);
+  }
+}
+function heal(b){
+  if (!b || !b.rag) return false;
+  const R = ragdolls.get(b.rag.id); if (!R) return false;
+  R.hp = 100; R.ko = false; R.head.face.ko = false; R.head.face.dizzy = 0; R.hpShow = 2;
+  R.joints.forEach(j => { j.stiffness = .9; });
+  burst(R.head.position.x, R.head.position.y, '#ff6fa8', 14, 4); burst(R.head.position.x, R.head.position.y, '#fff', 8, 3);
+  words.push({ x: R.head.position.x, y: R.head.position.y - 30, t: 1, s: .8, w: 'HEALED!' });
+  snd('boing'); return true;
+}
+
+// ---------- guns (cartoon) ----------
+const GUNS = {
+  g_pistol:  { dmg: 28, push: .035, spread: 0,   shots: 1, col: '#ffe36e', name: 'Pistol', cool: 160 },
+  g_shotgun: { dmg: 14, push: .022, spread: .16, shots: 6, col: '#ffb347', name: 'Shotgun', cool: 600 },
+  g_laser:   { dmg: 45, push: .02,  spread: 0,   shots: 1, col: '#ff3cac', name: 'Laser', cool: 300, laser: true },
+  g_cannon:  { cannon: true, name: 'Cannon', cool: 700 }
+};
+const gun = { x: 70, y: 0, ang: 0, flash: 0, last: 0, held: false };
+const tracers = [];
+function placeGun(){ gun.y = H - dockH() - 34; if (gun.x > W - 40) gun.x = W * .12; }
+function shoot(tx, ty){
+  const G = GUNS[pick]; const now = performance.now(); if (now - gun.last < G.cool) return; gun.last = now;
+  gun.ang = Math.atan2(ty - gun.y, tx - gun.x); gun.flash = 1;
+  const mx = gun.x + Math.cos(gun.ang) * 34, my = gun.y + Math.sin(gun.ang) * 34;
+  if (G.cannon){
+    const ball = Bodies.circle(mx, my, 16, { kind: 'cannonball', density: .02, frictionAir: .002, restitution: .2 });
+    Composite.add(world, ball); Body.setVelocity(ball, { x: Math.cos(gun.ang) * 28, y: Math.sin(gun.ang) * 28 });
+    ball.life = 400; snd('boom'); shake = 6; burst(mx, my, '#ffd23f', 10, 4); return;
+  }
+  snd('bonk');
+  const all = Composite.allBodies(world).filter(b => !bounds.includes(b) && b.kind !== 'cannonball');
+  for (let i = 0; i < G.shots; i++){
+    const a = gun.ang + (Math.random() - .5) * G.spread * 2;
+    const far = { x: mx + Math.cos(a) * 2000, y: my + Math.sin(a) * 2000 };
+    // find the first thing the shot touches
+    let hit = null, hitP = far;
+    for (let d = 0; d < 2200; d += 7){
+      const pt = { x: mx + Math.cos(a) * d, y: my + Math.sin(a) * d };
+      if (pt.x < -50 || pt.x > W + 50 || pt.y < -50 || pt.y > H) break;
+      const q = Query.point(all, pt);
+      if (q.length){ hit = q.sort((u, v) => (v.kind === 'head') - (u.kind === 'head'))[0]; break; }
+    }
+    if (hit){
+      // the point along the shot that's closest to what it hit
+      const t = Math.max(0, (hit.position.x - mx) * Math.cos(a) + (hit.position.y - my) * Math.sin(a));
+      hitP = { x: mx + Math.cos(a) * t, y: my + Math.sin(a) * t };
+      if (!hit.isStatic) Body.applyForce(hit, hitP, { x: Math.cos(a) * G.push * hit.mass * 4, y: Math.sin(a) * G.push * hit.mass * 4 });
+      if (hit.rag) hurt(hit, G.dmg, hitP);
+      else { burst(hitP.x, hitP.y, '#fff', 5, 3); if (hit.kind === 'tnt') explode(hit); if (hit.kind === 'balloon'){ removeThing(hit); burst(hitP.x, hitP.y, hit.color, 12, 5); snd('pop'); } }
+    }
+    tracers.push({ x1: mx, y1: my, x2: hitP.x, y2: hitP.y, life: 1, col: G.col, laser: !!G.laser });
+  }
+}
 
 // ---------- explosions & machines ----------
 const parts = [];
@@ -301,6 +400,7 @@ function explode(t){
     const f = P * (1 - dist / R) * b.mass;
     Body.applyForce(b, b.position, Vector.mult(Vector.normalise(d), f));
     if (b.kind === 'head') b.face.dizzy = 4;
+    if (b.rag) hurt(b, (big ? 70 : 45) * (1 - dist / R), b.position);
     if (b.kind === 'tnt' && !b.gone) setTimeout(() => explode(b), 120 + Math.random() * 120);   // chain reaction
   });
   burst(x, y, '#ffd23f', big ? 70 : 40, big ? 14 : 10); burst(x, y, '#ff6a2a', big ? 50 : 26, 8); burst(x, y, '#555', 20, 5);
@@ -317,6 +417,9 @@ Events.on(engine, 'collisionStart', ev => {
         all.forEach(p => Body.setVelocity(p, { x: p.velocity.x, y: -22 }));
         a.squish = 1; snd('boing');
       }
+      if (a.rag && o.kind === 'cannonball' && speed > 6) hurt(a, speed * 3, a.position);
+      if (a.kind === 'tnt' && o.kind === 'cannonball' && !a.gone) setTimeout(() => explode(a), 20);
+      if (a.rag && speed > 9 && !(o.rag && o.rag === a.rag)) hurt(a, (speed - 9) * 3.2, a.position);
       if (a.kind === 'head' && speed > 9){ a.face.dizzy = Math.min(5, a.face.dizzy + speed / 8); if (speed > 12) snd('bonk'); }
     }
   });
@@ -335,6 +438,7 @@ Events.on(engine, 'beforeUpdate', () => {
       }
     }
   }
+  for (const b of all) if (b.kind === 'cannonball' && --b.life <= 0) removeThing(b);
   // stop things that fall out of the world
   for (const b of all) if (b.position.y > H + 600 || b.position.y < -H * 3) removeThing(b);
 });
@@ -356,7 +460,10 @@ function drawFace(b){
   }
   const sp = Vector.magnitude(b.velocity); if (sp > 7) f.shock = Math.max(f.shock, .6);
   g.fillStyle = '#1b1c21'; g.strokeStyle = '#1b1c21'; g.lineWidth = 2.2; g.lineCap = 'round';
-  if (f.dizzy > .3){ // swirly dizzy eyes
+  if (f.ko){ // knocked out: X eyes and a tongue
+    g.lineWidth = 2.6; for (const ex of [-6, 6]){ g.beginPath(); g.moveTo(ex - 3.5, -6.5); g.lineTo(ex + 3.5, .5); g.moveTo(ex + 3.5, -6.5); g.lineTo(ex - 3.5, .5); g.stroke(); }
+    g.beginPath(); g.moveTo(-5, 6); g.lineTo(5, 6); g.stroke(); g.fillStyle = '#ff7a9a'; g.beginPath(); g.ellipse(2, 9, 3, 4, 0, 0, Math.PI); g.fill();
+  } else if (f.dizzy > .3){ // swirly dizzy eyes
     for (const ex of [-6, 6]){ g.beginPath(); for (let a = 0; a < 9; a += .5){ const rr2 = a * .45; g.lineTo(ex + Math.cos(a + performance.now() / 120) * rr2, -3 + Math.sin(a + performance.now() / 120) * rr2); } g.stroke(); }
     g.beginPath(); g.arc(0, 7, 4, 0, Math.PI); g.stroke();
   } else if (f.shock > .2){
@@ -421,6 +528,7 @@ function drawBody(b){
   } else if (k === 'wheel'){
     g.translate(b.position.x, b.position.y); g.rotate(b.angle); g.fillStyle = '#222'; g.beginPath(); g.arc(0, 0, 34, 0, 7); g.fill();
     g.fillStyle = '#999'; g.beginPath(); g.arc(0, 0, 18, 0, 7); g.fill(); g.strokeStyle = '#555'; g.lineWidth = 4; for (let i = 0; i < 4; i++){ g.rotate(1.57); g.beginPath(); g.moveTo(0, 0); g.lineTo(18, 0); g.stroke(); }
+  } else if (k === 'cannonball'){ g.fillStyle = '#222'; g.beginPath(); g.arc(b.position.x, b.position.y, 16, 0, 7); g.fill(); g.fillStyle = '#555'; g.beginPath(); g.arc(b.position.x - 5, b.position.y - 5, 5, 0, 7); g.fill();
   } else if (k === 'block' || k === 'ramp'){ poly(b); g.fillStyle = '#4a5568'; g.fill(); g.strokeStyle = '#2d3748'; g.lineWidth = 3; g.stroke(); }
   g.restore();
 }
@@ -433,14 +541,46 @@ function draw(){
   g.translate(sx, sy);
   // floor
   const fy = H - dockH(); g.fillStyle = '#2d3748'; g.fillRect(-50, fy, W + 100, 200); g.fillStyle = '#7dff7a33'; g.fillRect(-50, fy, W + 100, 3);
+  for (const sp of splats){ g.globalAlpha = sp.a; g.fillStyle = sp.c; g.beginPath(); g.ellipse(sp.x, sp.y, sp.r * 1.6, sp.r * .45, 0, 0, 7); g.fill(); sp.a = Math.max(.25, sp.a - .0004); }
+  g.globalAlpha = 1;
   // strings and grab line
   Composite.allConstraints(world).forEach(c => {
     if (c.kind === 'string'){ const a = c.bodyA.position, b = Vector.add(c.bodyB.position, Vector.rotate(c.pointB, c.bodyB.angle)); g.strokeStyle = '#ddd'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(a.x, a.y + 26); g.lineTo(b.x, b.y); g.stroke(); }
     if (c.kind === 'grab'){ const b = Vector.add(c.bodyB.position, Vector.rotate(c.pointB, c.bodyB.angle)); g.strokeStyle = '#7dff7a'; g.lineWidth = 2; g.setLineDash([5, 5]); g.beginPath(); g.moveTo(c.pointA.x, c.pointA.y); g.lineTo(b.x, b.y); g.stroke(); g.setLineDash([]); g.fillStyle = '#7dff7a'; g.beginPath(); g.arc(c.pointA.x, c.pointA.y, 6, 0, 7); g.fill(); }
   });
   Composite.allBodies(world).forEach(b => { if (!bounds.includes(b)) drawBody(b); });
+  ragdolls.forEach(R => {
+    if (R.hpShow <= 0 && !R.ko) return; R.hpShow -= .016;
+    const h = R.head.position, w = 40;
+    g.globalAlpha = R.ko ? .9 : Math.min(1, R.hpShow); g.fillStyle = '#000a'; g.fillRect(h.x - w / 2, h.y - 34, w, 6);
+    g.fillStyle = R.ko ? '#888' : R.hp > 50 ? '#4ade80' : R.hp > 25 ? '#ffd23f' : '#ff4d4d'; g.fillRect(h.x - w / 2 + 1, h.y - 33, (w - 2) * R.hp / 100, 4);
+    if (R.ko){ g.fillStyle = '#fff'; g.font = '700 10px Fredoka,sans-serif'; g.textAlign = 'center'; g.fillText('K.O.', h.x, h.y - 38); }
+    g.globalAlpha = 1;
+  });
+  // shots
+  for (let i = tracers.length - 1; i >= 0; i--){ const t = tracers[i]; t.life -= t.laser ? .06 : .18; if (t.life <= 0){ tracers.splice(i, 1); continue; }
+    g.globalAlpha = t.life; g.strokeStyle = t.col; g.lineWidth = t.laser ? 6 * t.life + 1 : 2.5; if (t.laser){ g.shadowColor = t.col; g.shadowBlur = 16; }
+    g.beginPath(); g.moveTo(t.x1, t.y1); g.lineTo(t.x2, t.y2); g.stroke(); g.shadowBlur = 0; }
+  g.globalAlpha = 1;
+  // the gun (only while a gun is picked)
+  if (pick && pick.startsWith('g_')){
+    if (!gun.y) placeGun();
+    const G = GUNS[pick];
+    g.save(); g.translate(gun.x, gun.y);
+    g.fillStyle = '#0006'; g.beginPath(); g.ellipse(0, 26, 26, 6, 0, 0, 7); g.fill();
+    g.fillStyle = '#4a5568'; g.fillRect(-8, 6, 16, 20);               // stand
+    g.rotate(gun.ang); const flip = Math.cos(gun.ang) < 0; if (flip) g.scale(1, -1);
+    if (G.cannon){ g.fillStyle = '#333'; g.beginPath(); g.arc(-6, 0, 16, 0, 7); g.fill(); g.fillRect(-6, -11, 44, 22); g.fillStyle = '#555'; g.fillRect(30, -13, 8, 26); }
+    else if (G.laser){ g.fillStyle = '#6a3fb8'; g.fillRect(-16, -8, 50, 16); g.fillStyle = '#ff3cac'; g.fillRect(28, -5, 10, 10); g.fillStyle = '#7cf3ff'; g.fillRect(-6, -4, 22, 3); g.fillStyle = '#3a2a6a'; g.fillRect(-12, 4, 10, 16); }
+    else if (pick === 'g_shotgun'){ g.fillStyle = '#7a4a2a'; g.fillRect(-26, -5, 20, 12); g.fillStyle = '#444'; g.fillRect(-8, -7, 46, 8); g.fillRect(-8, 1, 40, 6); g.fillStyle = '#7a4a2a'; g.fillRect(4, 6, 12, 5); }
+    else { g.fillStyle = '#3d6bff'; g.fillRect(-10, -7, 40, 13); g.fillStyle = '#ffd23f'; g.fillRect(26, -5, 8, 9); g.fillStyle = '#2a4ab8'; g.fillRect(-8, 4, 11, 18); }
+    if (gun.flash > 0){ g.fillStyle = `rgba(255,220,80,${gun.flash})`; g.beginPath(); g.arc(42, 0, 10 * gun.flash + 4, 0, 7); g.fill(); gun.flash -= .15; }
+    g.restore();
+  }
   // particles + boom words
-  for (let i = parts.length - 1; i >= 0; i--){ const p = parts[i]; p.x += p.vx; p.y += p.vy; p.vy += .25; p.life -= .025; if (p.life <= 0){ parts.splice(i, 1); continue; } g.globalAlpha = p.life; g.fillStyle = p.c; g.beginPath(); g.arc(p.x, p.y, p.r, 0, 7); g.fill(); }
+  for (let i = parts.length - 1; i >= 0; i--){ const p = parts[i]; p.x += p.vx; p.y += p.vy; p.vy += .25; p.life -= .025;
+    if (p.juice && p.y >= fy - 2){ if (Math.random() < .5){ splats.push({ x: p.x, y: fy - 1, r: 3 + Math.random() * 6, c: p.c, a: .9 }); if (splats.length > 220) splats.shift(); } parts.splice(i, 1); continue; }
+    if (p.life <= 0){ parts.splice(i, 1); continue; } g.globalAlpha = p.life; g.fillStyle = p.c; g.beginPath(); g.arc(p.x, p.y, p.r, 0, 7); g.fill(); }
   g.globalAlpha = 1;
   for (let i = words.length - 1; i >= 0; i--){ const w = words[i]; w.t -= .02; if (w.t <= 0){ words.splice(i, 1); continue; }
     g.save(); g.translate(w.x, w.y - (1 - w.t) * 60); g.rotate(-.1); g.scale(w.s * (1.4 - w.t * .4), w.s * (1.4 - w.t * .4)); g.globalAlpha = Math.min(1, w.t * 2);

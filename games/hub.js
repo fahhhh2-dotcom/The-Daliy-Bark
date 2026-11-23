@@ -19,7 +19,7 @@
     nebula: { name: "Nebula Blaster", key: "nebulaBest", genre: "Space Shooter", desc: "Blast asteroids, zigzag saucers and dive-bombing alien ships in a glowing neon nebula. Grab triple shot, shields, extra lives and bombs, build up combos, and survive a giant boss every 5 waves.", how: "<b>Arrow keys / WASD</b> to fly (it fires by itself). <b>Space</b> drops a bomb. On a phone, <b>drag your finger</b> to fly and <b>double-tap</b> for a bomb." },
     tycoon: { name: "Phone Factory Tycoon", key: "phoneTycoon", genre: "Tycoon", desc: "Start a phone company in a garage. Design phones, build them on the assembly line, set your prices, hire workers, research new tech like 5G and folding screens, and grow into a phone empire worth $1,000,000.", how: "<b>Design</b> a phone and save it, <b>click the parts in order</b> to build it, then set a fair price so shoppers buy it." },
     peaks: { name: "Peak Finder", key: "peakFinderBest", genre: "Geography", desc: "Find the biggest mountains and mountain ranges of North and South America on the map, from Denali to Aconcagua and the Andes. Study the map first, then go for 3 stars on every place.", how: "<b>Tap the dot</b> where the mountain is. Stuck? Use a <b>hint</b>, or try <b>Study the map</b> first." },
-    melon: { name: "Melon Lab Sandbox", key: "melonLabStats", genre: "Physics Sandbox", desc: "A physics playground like Melon Playground. Drop in floppy melon, pumpkin and lemon people (or yourself!), then throw them around, bounce them on spring pads, blow them across the lab with fans, float them away with balloons and set off chain reactions of TNT. Cartoon booms, dizzy stars, no blood.", how: "<b>Pick</b> something from the bottom bar and <b>tap</b> to drop it in. <b>Drag</b> things to throw them. Use 👉 Poke on TNT to blow it up." },
+    melon: { name: "Melon Lab Sandbox", key: "melonLabStats", genre: "Physics Sandbox", desc: "A physics playground like Melon Playground. Drop in floppy melon, pumpkin and lemon people (or yourself!), then throw them around, bounce them on spring pads, blow them across the lab with fans, float them away with balloons and set off chain reactions of TNT. Cartoon booms, health bars, fruit-juice splats and K.O.s, then heal them back up.", how: "<b>Pick</b> something from the bottom bar and <b>tap</b> to drop it in. <b>Drag</b> things to throw them. Use 👉 Poke on TNT to blow it up." },
     spelling: { name: "Spelling Quest", key: "sq9-best-mix", genre: "Spelling", desc: "Practice your spelling words with 9 different mini-games: hangman, word scramble, hear-and-spell, match, fill the gap, beat the clock and more. Try to set a best score in every mode.", how: "<b>Pick a game mode</b>, listen to the word and spell it. Every mode keeps your best score." }
   };
   const ORDER = ["melon", "fishing", "graveyard", "runner", "bugs", "last-ember", "nebula", "tycoon", "peaks", "spelling"];
@@ -43,7 +43,7 @@
       nebula: ls.get("nebulaBest") !== null ? { best: +ls.get("nebulaBest") || 0 } : null,
       tycoon: (() => { const t = ls.json("phoneTycoon"); return t && t.company ? { money: t.money || 0, sold: t.sold || 0, day: t.day || 1, models: (t.models || []).length, research: count(t.unlocked) } : null; })(),
       peaks: ls.get("peakFinderBest") !== null ? { stars: +ls.get("peakFinderBest") || 0 } : null,
-      melon: (() => { const m = ls.json("melonLabStats"); return m && { spawned: m.spawned || 0, booms: m.booms || 0 }; })(),
+      melon: (() => { const m = ls.json("melonLabStats"); return m && { spawned: m.spawned || 0, booms: m.booms || 0, kos: m.kos || 0 }; })(),
       spelling: (() => { const modes = ["abc","clock","gap","hangman","hear","match","mix","scramble","spot"]; let played = 0, best = 0; modes.forEach(m => { const v = parseFloat(ls.get("sq9-best-" + m)); if (!isNaN(v)) { played++; best = Math.max(best, v); } }); return played ? { modes: played, best } : null; })()
     };
   }
@@ -58,7 +58,7 @@
       nebula: [["High score", fmt(s.best)]],
       tycoon: [["Money", "$" + fmt(s.money)], ["Phones sold", fmt(s.sold)], ["Day", s.day], ["Research", s.research + " / 6"]],
       peaks: [["Best stars", s.stars + " / 24"]],
-      melon: [["Things made", fmt(s.spawned)], ["Explosions", fmt(s.booms)]],
+      melon: [["Things made", fmt(s.spawned)], ["Explosions", fmt(s.booms)], ["Knock-outs", fmt(s.kos)]],
       spelling: [["Modes played", s.modes + " / 9"], ["Top score", fmt(s.best)]]
     }[g];
   };
@@ -93,6 +93,7 @@
     { id: "p1", g: "peaks", ic: "🏔️", name: "Mountain Master", how: "Get 20+ stars in Peak Finder", ok: S => S.peaks && S.peaks.stars >= 20 },
     { id: "m1", g: "melon", ic: "🍉", name: "Mad Scientist", how: "Make 50 things in Melon Lab", ok: S => S.melon && S.melon.spawned >= 50 },
     { id: "m2", g: "melon", ic: "💥", name: "Demolition Crew", how: "Set off 25 explosions in Melon Lab", ok: S => S.melon && S.melon.booms >= 25 },
+    { id: "m3", g: "melon", ic: "🥊", name: "Fruit Fighter", how: "Knock out 10 fruit people in Melon Lab", ok: S => S.melon && S.melon.kos >= 10 },
     { id: "w1", g: "spelling", ic: "✏️", name: "Word Wizard", how: "Play 5 Spelling Quest modes", ok: S => S.spelling && S.spelling.modes >= 5 },
     { id: "all", g: null, ic: "🕹️", name: "Arcade Explorer", how: "Play all 10 games", ok: S => ORDER.every(g => S[g]) },
     { id: "day", g: null, ic: "⭐", name: "Daily Player", how: "Play the Game of the Day", ok: () => ls.get("arcade_gotd_played") === today() },
