@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <script src="../account.js"></script>
+<script src="../avatar.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Last Ember — Survive 99 Nights</title>
@@ -437,6 +438,11 @@ const SKINS = [
   { name:'Camo',        shirt:0x55613a, pants:0x4a4a32, shoes:0x2a2a1a, hat:'cap', hatC:0x3a4226, hair:0x3a2a1a },
   { name:'Pumpkin',     shirt:0xff7a1a, pants:0x2a2a2a, shoes:0x111111, hat:'pumpkin', hatC:0xff7a1a, hair:0x111111 },
 ];
+// your arcade avatar as a Last Ember skin
+try { if (window.ArcadeAvatar){ const c=ArcadeAvatar.colors(), h=x=>parseInt(x.slice(1),16);
+  SKINS.push({ name:'My Avatar', shirt:h(c.shirt), pants:h(c.pants), shoes:0x222222, hat:({cap:'cap',beanie:'beanie',helmet:'helmet',cowboy:'ranger'})[c.hat]||'none',
+    hatC:h(c.hatC), hair:h(c.hair), scarf:c.extra==='scarf'?h(c.hatC):undefined });
+  window.__AV_SKIN = SKINS.length-1; } } catch(e){}
 const TONES = [0xf2c9a0, 0xd9a274, 0xa86e43, 0x6b4428];
 const matCache = new Map();
 const lam = (c, extra) => { const k=c+(extra?'p':''); if (!matCache.has(k)) matCache.set(k, new THREE.MeshLambertMaterial(extra ? { color:c, map:plaidTex } : { color:c })); return matCache.get(k); };
@@ -678,7 +684,7 @@ function delPickup(id){ const p=pickups.get(id); if(!p) return; worldGroup.remov
 const me = { id:'me', name:'Survivor', x:0, z:6, yaw:Math.PI, pitch:0, hp:100, food:100, stam:100, batt:100, warm:100,
   wood:0, stone:0, fiber:0, meat:0, pelt:0, band:1, light:false, down:false, dead:false, downT:BLEED,
   axe:false, bag:false, lantern:false, spear:false, armor:false, coat:false, map:false, camY:1.7,
-  skin: +LS.get('lastEmberSkin') || 0, tone: +LS.get('lastEmberTone') || 0 };
+  skin: LS.get('lastEmberSkin')!==null ? (+LS.get('lastEmberSkin') || 0) : (window.__AV_SKIN ?? 0), tone: +LS.get('lastEmberTone') || 0 };
 const woodMax = () => me.bag ? 20 : 10;
 const lookCode = () => me.skin*10 + me.tone;
 

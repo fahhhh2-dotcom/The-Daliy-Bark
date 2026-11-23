@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <script src="../account.js"></script>
+<script src="../avatar.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Sandwich Sprint 3D</title>
@@ -106,7 +107,7 @@ try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) save = Object
 function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
 
 const SKINS = [
-  { id: 'classic', name: 'Classic Crew', price: 0, shirt: 0xffffff, apron: GREEN, cap: GREEN },
+  { id: 'classic', name: 'My Arcade Avatar', price: 0, shirt: 0xffffff, apron: GREEN, cap: GREEN },
   { id: 'sunny', name: 'Sunny Shift', price: 40, shirt: YELLOW, apron: GREEN, cap: YELLOW },
   { id: 'chef', name: 'Head Chef', price: 80, shirt: 0xffffff, apron: 0xffffff, cap: 0xffffff },
   { id: 'night', name: 'Night Shift', price: 120, shirt: 0x333a44, apron: 0x111111, cap: 0x111111 },
@@ -290,6 +291,12 @@ scene.add(player, shadow);
 
 function applySkin(id) {
   const s = SKINS.find(k => k.id === id) || SKINS[0];
+  if (s.id === 'classic' && window.ArcadeAvatar) {   // wear your arcade avatar
+    const c = ArcadeAvatar.colors();
+    shirtMat.color.set(c.shirt); apronMat.color.set(ArcadeAvatar.shade(c.shirt, -45)); pantsMat.color.set(c.pants); skinMat.color.set(c.skin);
+    capMat.color.set(c.hat === 'none' ? c.hair : (c.hat === 'crown' ? '#ffd700' : c.hatC));
+    [shirtMat, apronMat, capMat].forEach(m => m.emissive.setHex(0)); return;
+  }
   shirtMat.color.setHex(s.shirt); apronMat.color.setHex(s.apron); capMat.color.setHex(s.cap);
   [shirtMat, apronMat, capMat].forEach(m => m.emissive.setHex(s.glow || 0));
 }

@@ -182,12 +182,13 @@
     $("lvName").textContent = LEVELS[lv]; $("lvNum").textContent = "Level " + (lv + 1);
     $("xpFill").style.width = (max ? 100 : (into / 3) * 100) + "%";
     $("lvNext").textContent = max ? "You maxed out the arcade! 🏆" : `${3 - into} more badge${3 - into === 1 ? "" : "s"} to reach ${LEVELS[lv + 1]}`;
-    const totalPlays = Object.values(plays()).reduce((a, b) => a + b, 0), pts = n * 100 + totalPlays * 5;
+    const totalPlays = Object.values(plays()).reduce((a, b) => a + b, 0), pts = coins();
     $("ptsN").textContent = fmt(pts);
     const u = window.Arcade && Arcade.user;
     const name = u ? (u.displayName || (u.email || "Player").split("@")[0]) : "Guest";
     const init = name[0].toUpperCase();
-    ["acct", "sideAv", "helloAv", "profAv"].forEach(id => $(id).textContent = u ? init : "?");
+    const AV = window.ArcadeAvatar, head = AV ? AV.svg(AV.get(), { head: true }) : null;
+    ["acct", "sideAv", "helloAv", "profAv"].forEach(id => { if (head) $(id).innerHTML = head; else $(id).textContent = u ? init : "?"; });
     $("sideName").textContent = name; $("sideLv").textContent = `Level ${lv + 1} · ${LEVELS[lv]}`;
     const h = new Date().getHours();
     $("helloTxt").textContent = (h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening") + (u ? ", " + name + "!" : "!");
@@ -195,7 +196,7 @@
     $("profName").textContent = name; $("profSub").textContent = u ? "Signed in as " + (u.email || name) : "Not signed in. Your progress only saves on this device.";
     $("pLv").textContent = lv + 1; $("pBadges").textContent = n; $("pPlays").textContent = totalPlays; $("pPts").textContent = fmt(pts);
     $("profSign").textContent = u ? "Sign out" : "Sign in";
-    $("signTxt").textContent = u ? "Signed in ✓" : "Sign in to save";
+    $("signTxt").textContent = u ? ({ saved: "Saved ✓", saving: "Saving…", error: "⚠️ Not saving" }[(window.Arcade && Arcade.status.state) || "saved"] || "Signed in ✓") : "Sign in to save";
   }
 
   // ---------- router ----------
@@ -205,13 +206,13 @@
     const h = location.hash.slice(1) || "home";
     let v = h, g = null;
     if (h.startsWith("game-") && GAMES[h.slice(5)]) { v = "game"; g = h.slice(5); }
-    if (!["home", "games", "game", "badges", "profile"].includes(v)) v = "home";
-    const key = h + "|" + JSON.stringify(S) + "|" + (window.Arcade && Arcade.user ? Arcade.user.uid : "");
+    if (!["home", "games", "game", "badges", "profile", "avatar"].includes(v)) v = "home";
+    const key = h + "|" + JSON.stringify(S) + "|" + (window.Arcade && Arcade.user ? Arcade.user.uid : "") + "|" + ls.get("arcade_avatar") + ls.get("arcade_wallet");
     if (!fromNav && key === lastKey) return;   // nothing changed: don't redraw (stops flicker)
     lastKey = key; const changedPage = lastView !== h; lastView = h;
     document.querySelectorAll(".view").forEach(s => s.hidden = s.id !== "v-" + v);
     document.querySelectorAll("[data-nav]").forEach(a => a.classList.toggle("on", a.dataset.nav === navOf(v)));
-    if (v === "home") paintHome(); else if (v === "games") paintGames($("q").value.trim()); else if (v === "game") paintGame(g); else if (v === "badges") paintBadges(); else paintProfile();
+    if (v === "home") paintHome(); else if (v === "games") paintGames($("q").value.trim()); else if (v === "game") paintGame(g); else if (v === "badges") paintBadges(); else if (v === "avatar") paintAvatar(); else paintProfile();
     document.body.classList.remove("menu");
     if (fromNav && changedPage) scrollTo(0, 0);
   }
@@ -222,7 +223,7 @@
   $("burger").onclick = () => document.body.classList.toggle("menu");
   $("scrim").onclick = () => document.body.classList.remove("menu");
   $("meBox").onclick = () => location.hash = "profile";
-  $("pts").onclick = () => popup("🪙 Arcade points: 100 for every badge, 5 for every game you play.");
+  $("pts").onclick = () => { location.hash = "avatar"; };
 
   // launching a game
   document.addEventListener("click", e => { const a = e.target.closest("a[data-go]"); if (a) launch(a.dataset.go); });
@@ -322,6 +323,61 @@
     if (u) { $("mWho").textContent = "Signed in as " + (u.email || u.displayName); msg(""); }
     if (booted) refresh();
   });
+  // ---------- coins + avatar shop ----------
+  const wallet = () => Object.assign({ spent: 0, owned: [] }, ls.json("arcade_wallet") || {});
+  function coins() {
+    const n = gotBadges(S).length, p = Object.values(plays()).reduce((a, b) => a + b, 0);
+    return Math.max(0, 100 + n * 100 + p * 10 - wallet().spent);
+  }
+  let avCat = "skin";
+  function avOptions() {
+    const AV = window.ArcadeAvatar;
+    if (avCat === "skin") return AV.TONES.map((c, i) => ({ key: "tone", val: i, n: "Tone " + (i + 1), p: 0, sw: c }));
+    if (avCat === "hair") return [...AV.HAIR.map(h => ({ key: "hair", val: h.id, n: h.n, p: 0, prev: true })), ...AV.HAIRC.map((c, i) => ({ key: "hairC", val: i, n: "Color " + (i + 1), p: 0, sw: c }))];
+    if (avCat === "shirt") return AV.COLORS.map((c, i) => ({ key: "shirt", val: i, n: c.n, p: c.p, sw: c.c }));
+    if (avCat === "pants") return AV.PANTS.map((c, i) => ({ key: "pants", val: i, n: c.n, p: c.p, sw: c.c }));
+    if (avCat === "hat") return [...AV.HATS.map(x => ({ key: "hat", val: x.id, n: x.n, p: x.p, prev: true })), ...AV.COLORS.map((c, i) => ({ key: "hatC", val: i, n: c.n + " hat", p: 0, sw: c.c, needHat: true }))];
+    return [...AV.EXTRAS.map(x => ({ key: "extra", val: x.id, n: x.n, p: x.p, prev: true })), ...AV.COLORS.map((c, i) => ({ key: "hatC", val: i, n: c.n + " cape/scarf", p: 0, sw: c.c, needExtra: true }))];
+  }
+  function paintAvatar() {
+    const AV = window.ArcadeAvatar, a = AV.get(), w = wallet();
+    $("avBig").innerHTML = AV.svg(a); $("avCoins").textContent = fmt(coins());
+    document.querySelectorAll("#avTabs button").forEach(b => b.classList.toggle("on", b.dataset.c === avCat));
+    const opts = avOptions().filter(o => !(o.needHat && a.hat === "none") && !(o.needExtra && !["scarf", "cape"].includes(a.extra)));
+    $("avGrid").innerHTML = opts.map((o, i) => {
+      const id = o.key + ":" + o.val, owned = !o.p || w.owned.includes(id), on = String(a[o.key]) === String(o.val);
+      const pic = o.prev ? `<div class="pv">${AV.svg(Object.assign({}, a, { [o.key]: o.val }), { head: o.key !== "extra" })}</div>` : `<div class="sw" style="background:${o.sw}"></div>`;
+      return `<div class="avItem ${on ? "on" : ""} ${owned ? "" : "locked"}" data-i="${i}">${pic}<b>${o.n}</b>${on ? '<small class="eq">✓ Wearing</small>' : owned ? "<small>Wear</small>" : `<small class="cost">🪙 ${o.p}</small>`}</div>`;
+    }).join("");
+    $("avGrid").onclick = e => {
+      const el = e.target.closest(".avItem"); if (!el) return;
+      const o = opts[+el.dataset.i], id = o.key + ":" + o.val, w2 = wallet();
+      if (o.p && !w2.owned.includes(id)) {
+        if (coins() < o.p) { sfx("tick", 160); popup(`🪙 You need ${o.p - coins()} more coins. Earn badges and play games!`); return; }
+        w2.spent += o.p; w2.owned.push(id); ls.set("arcade_wallet", JSON.stringify(w2)); sfx("win"); confetti(); popup(`🎉 You got ${o.n}!`);
+      } else sfx("tap");
+      const a2 = AV.get(); a2[o.key] = o.val; a2.made = true; AV.set(a2);
+      paintAvatar(); paintMe();
+    };
+  }
+  document.querySelectorAll("#avTabs button").forEach(b => b.onclick = () => { avCat = b.dataset.c; sfx("tap"); paintAvatar(); });
+
+  // ---------- cloud save status ----------
+  function paintSave(st) {
+    const u = window.Arcade && Arcade.user, box = $("saveBox");
+    box.classList.toggle("ok", !!u && st.state === "saved"); box.classList.toggle("bad", !!u && st.state === "error");
+    $("sbNow").hidden = !u;
+    $("sbHelp").hidden = !(u && st.state === "error" && /rules/.test(st.msg));
+    if (!u) { $("sbTitle").textContent = "☁️ Cloud saves are off"; $("sbText").textContent = "Sign in to save your games to your account, so you can keep playing on any phone or computer."; }
+    else if (st.state === "saved") { $("sbTitle").textContent = "✅ Your games are saving"; $("sbText").textContent = "Everything you play saves to " + (u.email || "your account") + " automatically."; }
+    else if (st.state === "saving") { $("sbTitle").textContent = "⏳ Saving…"; $("sbText").textContent = "Sending your progress to your account."; }
+    else { $("sbTitle").textContent = "⚠️ Not saving to your account"; $("sbText").textContent = st.msg || "Something went wrong."; }
+    if (u) $("signTxt").textContent = st.state === "error" ? "⚠️ Not saving" : st.state === "saving" ? "Saving…" : "Saved ✓";
+  }
+  if (window.Arcade && Arcade.onStatus) Arcade.onStatus(paintSave);
+  $("sbNow").onclick = async () => { sfx("tap"); try { await Arcade.saveNow(); } catch (e) {} popup(Arcade.status.state === "saved" ? "✅ Saved to your account" : "⚠️ " + (Arcade.status.msg || "Couldn't save")); };
+  $("sbCopy").onclick = async () => { try { await navigator.clipboard.writeText($("sbRule").textContent); popup("📋 Copied"); } catch (e) { popup("Select the rule and copy it"); } };
+
   addEventListener("pageshow", e => { if (e.persisted) refresh(); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { S = readStats(); paintMe(); celebrate(); } });
   paintMode(); refresh(); booted = true;
