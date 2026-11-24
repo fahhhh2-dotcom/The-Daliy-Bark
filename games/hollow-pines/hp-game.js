@@ -10,8 +10,8 @@ const FW = new THREE.Vector3(), TV = new THREE.Vector3();
 const fmtT = s => { s = Math.floor(s); const m = Math.floor(s / 60); return m + ':' + String(s % 60).padStart(2, '0'); };
 
 // ================= STATE =================
-const PKEYS = ['sgas', 'ch1done', 'ch2done', 'med', 'obj', 'poured', 'picked', 'carry', 'key', 'fuse', 'fuseIn', 'power', 'guns', 'am', 'wep', 'ammo', 'notes', 'time', 'hasLight', 'deaths', 'done', 'h1', 'valves', 'acid'];
-const fresh = () => ({ sgas: [], ch1done: false, ch2done: false, med: [], obj: 0, poured: 0, picked: [0, 0, 0, 0], carry: -1, key: false, fuse: false, fuseIn: false, power: false, guns: { pistol: false, shotgun: false, flare: false }, am: { p: 0, pr: 0, s: 0, sr: 0 }, wep: 'none', ammo: [], notes: [], time: 0, hasLight: false, deaths: 0, done: false, h1: false, valves: [], acid: false });
+const PKEYS = ['sgas', 'ch1done', 'ch2done', 'med', 'obj', 'poured', 'picked', 'carry', 'key', 'fuse', 'fuseIn', 'power', 'guns', 'am', 'wep', 'ammo', 'notes', 'time', 'hasLight', 'deaths', 'done', 'h1', 'valves', 'acid', 'grates'];
+const fresh = () => ({ sgas: [], ch1done: false, ch2done: false, med: [], obj: 0, poured: 0, picked: [0, 0, 0, 0], carry: -1, key: false, fuse: false, fuseIn: false, power: false, guns: { pistol: false, shotgun: false, flare: false }, am: { p: 0, pr: 0, s: 0, sr: 0 }, wep: 'none', ammo: [], notes: [], time: 0, hasLight: false, deaths: 0, done: false, h1: false, valves: [], acid: false, grates: [] });
 const G = Object.assign({ mode: 'boot', slot: 0, surviveT: 0, glimpseAt: 0, tips: {}, gateOpen: false, wolfT: 60, ambT: 8, cricketT: 1 }, fresh());
 const P = { inHeli: false, x: 0, z: 5, y: 0, yaw: 0, pitch: 0, stam: 100, tired: false, hp: 100, hurtT: 9, onTower: false, inTunnel: false, light: false, overheat: 0, ohMax: 6, bob: 0, stepAcc: 0, look: null, cy: 0, cv: 0, shake: 0 };
 const C = { state: 'off', x: 0, z: 0, timer: 0, seen: 0, burn: 0, pain: 0, stag: 0, aggr: 0, final: false, scripted: false, rush: false, ph: 0, stepT: 0, stung: false, s: 0, cy: 0, chaseT: 0, mode: 'idle', tw: { z: 0, y: 0, tz: 0, ty: 0, t: 0 }, speed: 0 };
@@ -21,8 +21,10 @@ let CP = null;
 // ================= SAVES (3 slots) =================
 const SK = i => 'hollowPinesSlot' + i;
 const readSlot = i => { try { return JSON.parse(localStorage.getItem(SK(i)) || 'null'); } catch (e) { return null; } };
-const writeSlot = (i, d) => { try { localStorage.setItem(SK(i), JSON.stringify(d)); } catch (e) {} };
-const delSlot = i => { try { localStorage.removeItem(SK(i)); } catch (e) {} };
+const writeSlot = (i, d) => { try { localStorage.setItem(SK(i), JSON.stringify(d)); if (d && d.obj >= 16 && !d.ch2done) localStorage.setItem('hollowPinesCh2_' + i, JSON.stringify(d)); } catch (e) {} };
+const readCh2 = i => { try { const d = JSON.parse(localStorage.getItem('hollowPinesCh2_' + i) || 'null'); return d && d.obj >= 16 && !d.ch2done ? d : null; } catch (e) { return null; } };
+const clearCh2 = i => { try { localStorage.removeItem('hollowPinesCh2_' + i); } catch (e) {} };
+const delSlot = i => { try { localStorage.removeItem(SK(i)); localStorage.removeItem('hollowPinesCh2_' + i); } catch (e) {} };
 function snapshot() { const o = {}; PKEYS.forEach(k => o[k] = JSON.parse(JSON.stringify(G[k]))); o.x = P.x; o.z = P.z; o.yaw = P.yaw; o.tower = P.onTower; o.updated = Date.now(); return o; }
 function checkpoint() { CP = snapshot(); writeSlot(G.slot, CP); try { const st = JSON.parse(localStorage.getItem('hollowPinesStats') || '{}'); st.best = Math.max(st.best || 0, G.obj); if (G.done) st.escaped = (st.escaped || 0); localStorage.setItem('hollowPinesStats', JSON.stringify(st)); } catch (e) {} }
 
@@ -60,11 +62,12 @@ const OBJ = [
   [5, 'Fuel and start the pump station generator', () => W.pumpGen],
   [5, 'Survive until the ranger sees the floodlights', () => W.pump],
   [5, 'RUN to the fishing shack dock!', () => ({ x: W.shack.x, z: W.shack.z + 2.2 })],
-  [5, () => `Open the intake valves out in the deep water (${(G.valves || []).length}/3)`, () => nearestValve()],
+  [5, () => `Open the flood valves out in the deep water (${(G.valves || []).length}/5)`, () => nearestValve()],
   [5, 'Grab a jug of acid from the pump house', () => ACIDJ],
   [5, 'Pour the acid into the water by the intake', () => POURP],
   [5, 'SHOOT IT IN THE HEAD!', () => null],
-  [5, 'Get to the fishing shack dock — west, past the old water tower', () => ({ x: W.shack.x, z: W.shack.z + 2.2 })]
+  [5, 'Get to the fishing shack dock — west, past the old water tower', () => ({ x: W.shack.x, z: W.shack.z + 2.2 })],
+  [5, () => `Pull the rotten gunk out of the clogged grates (${(G.grates || []).length}/3)`, () => nearestGrate()]
 ];
 const LETTER = `Kid —
 
@@ -852,14 +855,14 @@ async function startPump() {
   if (G.sgas.length < 2) { say('The tank is bone dry. I need both gas cans first.', 3, 'You'); return; }
   G.mode = 'cut'; SND.pour(); await wait(1500); SND.sputter(); await wait(1700); SND.sputter(); await wait(900);
   C.state = 'off'; showC(false); pumpOn(true); SND.boom(); await wait(1300); pumpOn(false); SND.sputter(); await wait(250); pumpOn(true); await wait(350); pumpOn(false); SND.sputter();
-  G.mode = 'play'; say('No, no, no… the lights died again.', 2.8, 'You'); say('The pump is choking on something. The intake valves are out there — in the deep water.', 4, 'You'); setObj(28); hint(`Wade out and hold ${KEYN} to turn the valves`, 4);
+  G.mode = 'play'; say('No, no, no… the lights died again.', 2.8, 'You'); say('The pump is choking on something. The flood valves are out in the old basin, north of here — in the deep water.', 4.2, 'You'); setObj(28); hint(`Wade out and hold ${KEYN} to turn the valves`, 4);
 }
 function pumpOn(on) { W.pumpL.intensity = on ? 3 : 0; W.pumpLampM.emissive.setHex(on ? 0xe8f0ff : 0); W.pumpLampM.emissiveIntensity = 2; SND.set('siren', on ? 0.08 : 0, 0.5); G.pumpOn = on; }
 function swampChase() { hollowChaseStart(true); }
 async function ch2End() {
   G.mode = 'cut'; showC(false); C.state = 'off'; if (typeof hShow === 'function') hShow(false); SND.set('drone', 0, 0.3); SND.door(); fade(1); await wait(800); SND.thud(); await wait(1600);
   for (let i = 0; i < 3; i++) { SND.thud(); P.shake = 0.5; await wait(700); } SND.whisper(0); await wait(1500);
-  G.ch2done = true; checkpoint(); G.mode = 'win'; $('hud').style.display = 'none'; $('touch').style.display = 'none';
+  G.ch2done = true; checkpoint(); clearCh2(G.slot); G.mode = 'win'; $('hud').style.display = 'none'; $('touch').style.display = 'none';
   $('winH').textContent = 'Chapter 2 Complete';
   $('winT').innerHTML = 'You slam the shack door and drop the bar across it.<br>Long fingers scrape slowly down the wall outside. The Hollow One is still out there… then the swamp goes quiet.<br><br>Time: ' + fmtT(G.time) + ' · Deaths: ' + G.deaths + '<br><br><b>Chapter 3 is coming soon.</b>';
   $('win').style.display = 'grid'; fade(0); try { document.exitPointerLock(); } catch (e) {}
@@ -1007,7 +1010,7 @@ function begin() {
   if (G.obj === 15) say('Grab the ladder! GO!', 2.6, 'Pilot');
 }
 async function newGame(slot) {
-  G.slot = slot; Object.assign(G, fresh(), { tips: {} }); restore(null); checkpoint(); hideMenu();
+  G.slot = slot; clearCh2(slot); Object.assign(G, fresh(), { tips: {} }); restore(null); checkpoint(); hideMenu();
   G.mode = 'intro'; lock(true);
   const lines = ['Mr. Harlan owns every tree in Hollow Pines.', 'He’s gone away on vacation for a week.', 'He asked you to look after his forest while he’s gone.', 'It’s your first night alone out here.', 'Something in the trees already knows your name.'];
   const el = $('intro'); el.style.display = 'grid'; G.skipIntro = false;
@@ -1067,7 +1070,9 @@ $('sVoiceTest').onclick = () => { VOICE.unlocked = false; voiceUnlock(); setting
 $('sHQ').onchange = e => { settings.quality = e.target.checked ? 'high' : 'low'; FX.setQuality(); saveSettings(); };
 $('sShadow').onchange = e => { settings.shadows = e.target.checked; flash.castShadow = settings.shadows; saveSettings(); };
 let delArm = -1;
-function playChapter(i, ch) {
+function playChapter(i, ch, fresh2) {
+  if (ch === 2 && !fresh2) { const c2 = readCh2(i), m = readSlot(i); const best = m && m.obj >= 16 && !m.ch2done ? m : c2; if (best) { G.slot = i; G.tips = { light: 1, gun: 1 }; restore(best); checkpoint(); hideMenu(); lock(true); begin(); return; } }
+  if (ch === 2) clearCh2(i);
   const d = readSlot(i) || {}; G.slot = i; Object.assign(G, fresh(), { tips: { light: 1, gun: 1 } });
   const base = Object.assign(fresh(), { x: 0, z: 5, yaw: 0, tower: false, ch1done: true, ch2done: !!d.ch2done, time: d.time || 0, deaths: d.deaths || 0 });
   if (ch === 2) Object.assign(base, { obj: 16, hasLight: true, guns: d.guns || { pistol: true, shotgun: false, flare: false }, am: d.am || { p: 12, pr: 12, s: 0, sr: 0 }, wep: 'none', med: [] });
@@ -1079,11 +1084,12 @@ function renderSlots() {
     const d = readSlot(i), div = document.createElement('div'); div.className = 'slot'; const ch = d ? (d.obj >= 16 ? 2 : 1) : 0;
     const title = !d ? `Save ${i + 1} — Empty` : d.ch2done ? `Save ${i + 1} — Chapters 1 & 2 beaten!` : `Save ${i + 1} — Chapter ${ch}${ch === 1 ? ': Hollow Pines' : ': The Swamp'}`;
     const ot = d && OBJ[d.obj] ? (typeof OBJ[d.obj][1] === 'function' ? 'Find fuel cans for the generator' : OBJ[d.obj][1]) : '';
-    const info = !d ? 'Start a new story here' : (d.ch2done ? 'Chapter 3 coming soon · ' : '') + (d.ch1done && !d.ch2done && ch === 2 ? 'Chapter 2 unlocked! · ' : '') + (d.ch2done ? '' : (d.obj === 23 ? 'Find gas for the pump station' : d.obj === 28 ? 'Open the intake valves' : ot) + ' · ') + 'played ' + fmtT(d.time || 0);
+    const info = !d ? 'Start a new story here' : (d.ch2done ? 'Chapter 3 coming soon · ' : '') + (d.ch1done && !d.ch2done && ch === 2 ? 'Chapter 2 unlocked! · ' : '') + (d.ch2done ? '' : (d.obj === 23 ? 'Find gas for the pump station' : d.obj === 28 ? 'Open the flood valves' : d.obj === 33 ? 'Clear the clogged grates' : ot) + ' · ') + 'played ' + fmtT(d.time || 0);
     div.innerHTML = `<div><h3></h3><p></p></div><div class="acts"></div>`; div.querySelector('h3').textContent = title; div.querySelector('p').textContent = info;
     const acts = div.querySelector('.acts'); const mkb = (t, fn) => { const b = document.createElement('button'); b.className = 'btn'; b.textContent = t; b.onclick = fn; acts.appendChild(b); return b; };
     if (d && !d.ch2done) mkb(ch === 2 ? 'Continue Chapter 2' : 'Continue', () => { SND.init(); continueSlot(i); });
-    if (d && d.ch1done) { mkb('Chapter 1', () => { SND.init(); playChapter(i, 1); }); mkb('Chapter 2', () => { SND.init(); playChapter(i, 2); }); }
+    const c2 = d && (readCh2(i) || (d.obj >= 16 && !d.ch2done ? d : null));
+    if (d && d.ch1done) { mkb(ch === 2 ? 'Replay Chapter 1' : 'Chapter 1', () => { SND.init(); playChapter(i, 1); }); if (c2 && ch !== 2) mkb('Continue Chapter 2', () => { SND.init(); playChapter(i, 2); }); else if (!c2) mkb('Chapter 2', () => { SND.init(); playChapter(i, 2); }); if (c2) mkb('Restart Chapter 2', () => { SND.init(); playChapter(i, 2, true); }); }
     else if (d) { const lb = mkb('Chapter 2 🔒', () => {}); lb.disabled = true; lb.title = 'Beat Chapter 1 to unlock'; }
     mkb(d ? 'New Game' : 'Start', () => { SND.init(); newGame(i); });
     if (d) mkb(delArm === i ? 'Tap again to delete' : 'Delete', () => { if (delArm === i) { delSlot(i); delArm = -1; } else delArm = i; renderSlots(); });
@@ -1121,7 +1127,7 @@ function update(dt) {
   if (run) { P.stam -= (adren ? 4.5 : 15) * dt; if (P.stam <= 0) { P.stam = 0; P.tired = true; if (touchRun) { touchRun = false; $('bRun').classList.remove('on'); } } } else P.stam = Math.min(100, P.stam + (moving ? 9 : 16) * dt);
   SND.set('breath', P.tired || P.stam < 25 ? 0.08 : 0, 0.4);
   const wade = P.x > 1000 && !P.inHeli ? clamp(1 + H(P.x, P.z) * 0.55, 0.5, 1) : 1;
-  const sp = (run ? 6.4 : 3.4) * (G.carry >= 0 ? 0.92 : 1) * (P.tired ? 0.88 : 1) * wade;
+  const sp = (run ? 5.7 : 3.0) * (G.carry >= 0 ? 0.92 : 1) * (P.tired ? 0.88 : 1) * wade;
   if (P.inHeli) heliMove(dt, mx, mz, moving);
   else if (!climbing) {
     const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);

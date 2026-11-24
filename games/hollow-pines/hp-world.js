@@ -451,7 +451,7 @@ function addInst(kind, x, z, m, col) { const c = chunkOf(x, z); (c.lists[kind] |
   const clearOK = (x, z, m) => { for (const f of FLAT) if (Math.hypot(x - f.x, z - f.z) < f.r + m) return false; return pathDist(x, z) > m + 1.5; };
   const white = () => new THREE.Color(1, 1, 1);
   let placed = 0;
-  for (let i = 0; i < 26000 && placed < 5200; i++) {
+  for (let i = 0; i < 26000 && placed < 4300; i++) {
     const x = (rng() - 0.5) * 710, z = (rng() - 0.5) * 710; if (!clearOK(x, z, 3)) continue;
     const s = 0.75 + rng() * 0.8, sy = s * (0.9 + rng() * 0.35), ry = rng() * 6.28, y = H(x, z) - 0.2;
     if (rng() < 0.08) addInst('dead', x, z, mat4(x, y, z, s, sy, s, ry), white());
@@ -722,7 +722,7 @@ W.swamp = new THREE.Group(); W.swamp.visible = false; scene.add(W.swamp);
     for (let k = 0; k < 9; k++) { const ml = 1.3 + ((i * 7 + k * 3) % 5) * 0.55, m = new THREE.CylinderGeometry(0.035, 0.004, ml, 3); const d = 0.35 + k * 0.26; m.translate(d, y - ml / 2 + d * 0.1, ((k % 3) - 1) * 0.08); m.rotateY(an); mossParts.push(m); }
     for (const roll of [0, Math.PI / 2]) { const p = new THREE.PlaneGeometry(L2 * 0.9, 1.0); p.translate(L2 * 0.5, 0, 0); p.rotateX(-Math.PI / 2 + roll); p.rotateZ(-0.15); p.rotateY(an); p.translate(0, y + 0.2, 0); leafParts.push(p); } }
   const mossGeo = merge(mossParts), leafGeo = merge(leafParts);
-  const pos = []; for (let i = 0; i < 14000 && pos.length < 600; i++) { const lx = (rand() - 0.5) * 300, lz = -60 + (rand() - 0.5) * 320; if (Math.hypot(lx - 110, lz + 192) < 17 || Math.hypot(lx - 110, lz + 223) < 9 || Math.hypot(lx - 80, lz + 166) < 8 || Math.hypot(lx, lz) < 9 || Math.hypot(lx + 28, lz + 62) < 9 || Math.hypot(lx - 34, lz + 152) < 9) continue; if (lz < -55 && lz > -160 && walkInfo(lx, lz).d < 3) continue; pos.push([lx, lz, 0.7 + rand() * 0.7, rand() * 6]); }
+  const pos = []; for (let i = 0; i < 14000 && pos.length < 470; i++) { const lx = (rand() - 0.5) * 300, lz = -60 + (rand() - 0.5) * 320; if (Math.hypot(lx - 120, lz + 133) < 19 || Math.hypot(lx - 110, lz + 192) < 17 || Math.hypot(lx - 110, lz + 223) < 9 || Math.hypot(lx - 80, lz + 166) < 8 || Math.hypot(lx, lz) < 9 || Math.hypot(lx + 28, lz + 62) < 9 || Math.hypot(lx - 34, lz + 152) < 9) continue; if (lz < -55 && lz > -160 && walkInfo(lx, lz).d < 3) continue; pos.push([lx, lz, 0.7 + rand() * 0.7, rand() * 6]); }
   const mats = [MSM({ map: BARK.map, normalMap: BARK.nrm, color: 0x7a7266, roughness: 0.9 }), MSM({ color: 0x6a7258, roughness: 1 }), windify(MSM({ map: TX.branch, alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.85, color: 0x9a8a5a }), 0.01, 4, 'cyp')];
   [trunk, mossGeo, leafGeo].forEach((geo, gi) => { const im = new THREE.InstancedMesh(geo, mats[gi], pos.length); const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(); pos.forEach(([lx, lz, sc, ry], i) => { e.set(0, ry, 0); q.setFromEuler(e); m4.compose(V3(SW.x + lx, swampGround(lx, lz) - 0.3, SW.z + lz), q, V3(sc, sc, sc)); im.setMatrixAt(i, m4); }); im.frustumCulled = false; im.castShadow = gi !== 1; im.receiveShadow = true; SWG.add(im); });
   pos.forEach(([lx, lz, sc]) => addCol(SW.x + lx, SW.z + lz, 0.55 * sc));

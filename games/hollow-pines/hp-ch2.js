@@ -4,7 +4,8 @@
    The Mire Walker: grabs your legs in the deep water, gets burned by acid, and dies with a shot to the head. */
 const HOL = MON.makeHollow(); HOL.g.scale.setScalar(0.85);
 const MIRE = MON.makeMire(); MIRE.g.scale.setScalar(0.9);
-[HOL.g, MIRE.g].forEach(g => g.traverse(o => { if (o.isMesh) o.castShadow = false; }));
+// only the big body parts cast shadows (so the flashlight throws a real shadow of them) — the small bits would just cost speed
+[HOL.g, MIRE.g].forEach(g => g.traverse(o => { if (o.isMesh) o.castShadow = !!(o.geometry.attributes.position && o.geometry.attributes.position.count > 1500); }));
 cr.g.rotation.order = 'YXZ';
 const HOLL = new THREE.PointLight(0xc8d4ff, 0, 14, 1.6); scene.add(HOLL);
 const HS = { state: 'off', x: 0, z: 0, yaw: 0, t: 0, stag: 0, scrT: 6, tx: 0, tz: 0 };
@@ -22,8 +23,9 @@ function lookAtPt(x, y, z) { const dx = x - P.x, dz = z - P.z; return { yaw: Mat
 const wadeAt = (x, z) => clamp(1 + Math.min(0, H(x, z)) * 0.55, 0.5, 1);
 
 // ---------- props: intake valves, acid jugs, pour point ----------
-const VALVES = [SWL(105, -221), SWL(110.5, -227.5), SWL(115.5, -222)];
-const ACIDJ = SWL(113.4, -186.4), POURP = SWL(110, -213.5), ACIDC = SWL(110, -223);
+const VALVES = [SWL(107, -123), SWL(121, -121.5), SWL(134, -127), SWL(113, -138), SWL(129, -139)];
+const GRATES = [SWL(104, -145.5), SWL(117, -147.5), SWL(129, -146)];
+const ACIDJ = SWL(113.4, -186.4), POURP = SWL(106.5, -146.5), ACIDC = SWL(114, -134);
 const valveM = VALVES.map(v => {
   const g = new THREE.Group(); g.position.set(v.x, 0, v.z); W.swamp.add(g);
   cyl(0.12, 0.14, 2.2, 8, MAT.rust, 0, -0.5, 0, g); cyl(0.2, 0.2, 0.12, 10, MAT.rust, 0, 0.55, 0, g);
@@ -32,6 +34,27 @@ const valveM = VALVES.map(v => {
   for (let k = 0; k < 3; k++) { const sp = cyl(0.02, 0.02, 0.64, 5, wm, 0, 0, 0, wheel); sp.rotation.set(Math.PI / 2, 0, k * Math.PI / 3); }
   g.userData.gl = glint(v.x, 1.4, v.z); g.userData.gl.visible = false; g.userData.wheel = wheel; return g;
 });
+const gunkM = MSM({ color: 0x2a1c12, roughness: 0.35 }), gunkB = MSM({ color: 0x4a0808, roughness: 0.25, emissive: 0x0a0000 });
+const grateM = GRATES.map(v => {
+  const g = new THREE.Group(); g.position.set(v.x, 0, v.z); g.rotation.y = rand() * 0.6 - 0.3; W.swamp.add(g);
+  bx(2.2, 0.16, 0.3, MAT.rust, 0, 0.75, 0, g); bx(2.2, 0.16, 0.3, MAT.rust, 0, -0.4, 0, g); bx(0.16, 1.4, 0.3, MAT.rust, -1.05, 0.15, 0, g); bx(0.16, 1.4, 0.3, MAT.rust, 1.05, 0.15, 0, g);
+  for (let k = -3; k <= 3; k++) cyl(0.03, 0.03, 1.2, 5, MAT.rust, k * 0.28, 0.15, 0, g).castShadow = false;
+  const gunk = new THREE.Group(); g.add(gunk); for (let k = 0; k < 7; k++) sph(0.22 + rand() * 0.18, k % 3 ? gunkM : gunkB, (rand() - 0.5) * 1.5, 0.05 + rand() * 0.45, 0.25, gunk, 1, 0.7, 0.6);
+  for (let k = 0; k < 3; k++) { const b = cyl(0.025, 0.03, 0.5, 5, BONEM, (rand() - 0.5) * 1.2, 0.4 + rand() * 0.3, 0.32, gunk); b.rotation.z = rand() * 3; }
+  g.userData.gunk = gunk; g.userData.gl = glint(v.x, 1.6, v.z); g.userData.gl.visible = false; return g;
+});
+function nearestGrate() { let b = null, bd = 1e9; GRATES.forEach((v, i) => { if ((G.grates || []).includes(i)) return; const d = Math.hypot(v.x - P.x, v.z - P.z); if (d < bd) { bd = d; b = v; } }); return b || GRATES[0]; }
+function clearGrate(i) {
+  G.grates = G.grates || []; G.grates.push(i); const g = grateM[i]; g.userData.gunk.visible = false; g.userData.gl.visible = false; refreshObj();
+  SND.splat(0); SND.crunch(0); spray(BLOOD, GRATES[i].x, 0.5, GRATES[i].z, 30, 2.5); chunk(GRATES[i].x, 0.5, GRATES[i].z, 3, FLESH, 0.1); chunk(GRATES[i].x, 0.5, GRATES[i].z, 3, BONEM, 0.07); bloodPool(GRATES[i].x, GRATES[i].z, 1.4, 2, 0.02);
+  const n = G.grates.length;
+  const lines = ['Ugh — bones. Deer bones… I think.', 'That’s a HAND. A human hand… with a wedding ring on it.', 'That’s the last one. Something’s been dragging bodies down here and stuffing them in the pipes.'];
+  say(lines[n - 1], 3.6, 'You'); MS.tugT = Math.min(MS.tugT, 2);
+  if (n < 3) { checkpoint(); return; }
+  G.mode = 'cut'; SND.thud(); setTimeout(() => SND.sputter(), 700);
+  setTimeout(() => { SND.radioBlip(); say('Kid, you still there? If that pump’s still choking, something is NESTING in that basin.', 4.4, 'Radio'); say('There’s acid in the pump house — the stuff we used to clear the pipes. Grab a jug and dump it in the basin.', 4.6, 'Radio'); say('It’ll burn out anything living in there.', 2.8, 'Radio'); G.mode = 'play'; setObj(29); }, 1600);
+}
+GRATES.forEach((v, i) => addIt({ x: v.x, z: v.z, r: 2.4, hold: 3.4, label: 'Pull the rotten gunk out of the grate', cond: () => G.obj === 33 && !(G.grates || []).includes(i) && !MS.tug, act: () => clearGrate(i) }));
 function makeJug() { const g = new THREE.Group(); const jm = MSM({ color: 0x4a9a32, roughness: 0.35 }); bx(0.26, 0.36, 0.18, jm, 0, 0.18, 0, g); cyl(0.04, 0.05, 0.08, 8, MSM({ color: 0x111111 }), 0.06, 0.4, 0, g); bx(0.04, 0.12, 0.12, jm, -0.08, 0.38, 0, g); const lab = bx(0.18, 0.14, 0.005, MSM({ color: 0xf0d020, roughness: 0.6 }), 0, 0.2, 0.093, g); bx(0.06, 0.06, 0.004, MSM({ color: 0x111111 }), 0, 0.2, 0.097, g); return g; }
 const acidPick = makeJug(); acidPick.position.set(ACIDJ.x, H(ACIDJ.x, ACIDJ.z) + 0.72, ACIDJ.z); W.swamp.add(acidPick); acidPick.userData.gl = glint(ACIDJ.x, H(ACIDJ.x, ACIDJ.z) + 1.4, ACIDJ.z); acidPick.userData.gl.visible = false;
 { [[0, 0], [0.75, 0.3], [-0.7, 0.2]].forEach(([a, b], i) => { const d = cyl(0.3, 0.3, 0.9, 14, MSM({ color: i ? 0x2f6a24 : 0x3a7a2a, roughness: 0.55, metalness: 0.3 }), ACIDJ.x + a, H(ACIDJ.x, ACIDJ.z) + 0.25, ACIDJ.z + b - 0.15, W.swamp); d.position.y = H(ACIDJ.x + a, ACIDJ.z + b) + 0.25 - 0.05 + 0.2; }); }
@@ -43,9 +66,10 @@ function ch2Hint() {
   if (G.obj === 28) { const v = nearestValve(); return { k: 'valve' + (G.valves || []).length, p: { x: v.x, y: 0.9, z: v.z } }; }
   if (G.obj === 29) return { k: 'acid', p: { x: ACIDJ.x, y: H(ACIDJ.x, ACIDJ.z) + 0.7, z: ACIDJ.z } };
   if (G.obj === 30) return { k: 'pour', p: { x: POURP.x, y: 0.4, z: POURP.z } };
+  if (G.obj === 33) { const v = nearestGrate(); return { k: 'grate' + (G.grates || []).length, p: { x: v.x, y: 1.1, z: v.z } }; }
   return null;
 }
-VALVES.forEach((v, i) => addIt({ x: v.x, z: v.z, r: 2.3, hold: 3.2, label: 'Turn the intake valve', cond: () => G.obj === 28 && !(G.valves || []).includes(i) && !MS.tug, act: () => turnValve(i) }));
+VALVES.forEach((v, i) => addIt({ x: v.x, z: v.z, r: 2.4, hold: 4.2, label: 'Turn the flood valve', cond: () => G.obj === 28 && !(G.valves || []).includes(i) && !MS.tug, act: () => turnValve(i) }));
 addIt({ x: ACIDJ.x, z: ACIDJ.z, r: 2.4, label: 'Take the jug of acid', cond: () => G.obj === 29, act: () => { G.acid = true; hideItem(acidPick); W.fpAcid.visible = true; SND.clink(); say('“DANGER — CORROSIVE.” Perfect.', 3, 'You'); setObj(30); } });
 addIt({ x: POURP.x, z: POURP.z, r: 3, hold: 2, label: 'Pour the acid into the water', cond: () => G.obj === 30 && G.acid, act: acidScene });
 
@@ -80,15 +104,16 @@ function resetTallMan() { if (cr.head.parent !== cr.neck) { cr.neck.add(cr.head)
 
 // ---------- chapter reset / restore ----------
 function ch2Reset() {
-  SCN = null; hShow(false); HS.state = 'off'; MS.state = 'off'; MS.tug = null; MIRE.g.visible = false; MIRE.head.visible = true; MIRE.burn = 0; MIRE.reach = 0; MIRE.roar = 0; MIRE.rise.rotation.set(0, 0, 0); MIRE.burnMats.forEach(m => { m.color.setHex(0xd0d6c4); m.emissive.setHex(0); m.roughness = 0.42; m.bumpScale = 0.022; }); MIRE.mossMat.color.setHex(0x3e5c22);
+  SCN = null; hShow(false); HS.state = 'off'; MS.state = 'off'; MS.tug = null; MIRE.g.visible = false; MIRE.head.visible = true; MIRE.burn = 0; MIRE.reach = 0; MIRE.roar = 0; MIRE.rise.rotation.set(0, 0, 0); MIRE.burnMats.forEach(m => { m.color.setHex(0xa4aa96); m.emissive.setHex(0); m.roughness = 0.42; m.bumpScale = 0.022; }); MIRE.mossMat.color.setHex(0x3e5c22);
   resetTallMan(); GOREOBJ.forEach(o => scene.remove(o)); GOREOBJ.length = 0; CHUNKS.forEach(c => scene.remove(c.m)); CHUNKS.length = 0;
   P.held = false; P.sinkY = 0; tugEl.style.display = 'none'; acidPool.material.opacity = 0; shock.material.opacity = 0; SND.set('sizzle', 0, 0.2); W.fpAcid.visible = false;
 }
 function ch2Restore() {
   ch2Reset(); G.valves = G.valves || [];
   valveM.forEach((g, i) => { const done = G.valves.includes(i); g.userData.wheel.rotation.y = done ? 4 : 0; g.userData.gl.visible = !done && G.obj === 28; });
+  G.grates = G.grates || []; grateM.forEach((g, i) => { const done = G.grates.includes(i) || [29, 30, 31, 26, 32, 27].includes(G.obj); g.userData.gunk.visible = !done; g.userData.gl.visible = !done && G.obj === 33; });
   showItem(acidPick, G.obj <= 29); acidPick.userData.gl.visible = G.obj === 29; W.fpAcid.visible = G.obj === 30;
-  if (G.obj >= 28 && G.obj <= 31) { C.state = 'off'; showC(false); }
+  if ((G.obj >= 28 && G.obj <= 31) || G.obj === 33) { C.state = 'off'; showC(false); }
   pumpOn([26, 27, 32].includes(G.obj));
   if (G.obj === 32) towerPerch();
 }
@@ -96,7 +121,7 @@ function ch2Restore() {
 // ---------- the Hollow One: first sighting, the deer ----------
 function hollowDeer() {
   G.h1 = true; G.mode = 'cut'; clearSubs(); C.state = 'off'; showC(false);
-  const a = Math.atan2(W.nest.x - P.x, W.nest.z - P.z), ux = Math.sin(a), uz = Math.cos(a);
+  const a = Math.atan2(W.pump.x - P.x, W.pump.z - P.z), ux = Math.sin(a), uz = Math.cos(a);
   const D = { x: P.x + ux * 7.5, z: P.z + uz * 7.5 }; const dy = Math.max(H(D.x, D.z), -0.6);
   const deer = makeRipDeer(); const dyaw = a + Math.PI / 2; [deer.front, deer.back].forEach(h => { h.position.set(D.x, dy + deer.bh, D.z); h.rotation.set(0, dyaw, 0); }); deer.neck.rotation.x = 0.9;
   hShow(true); HS.state = 'scene'; hPlace(D.x + ux * 7, D.z + uz * 7, a + Math.PI); HOL.crouch = 0.9;
@@ -104,6 +129,8 @@ function hollowDeer() {
   runScene((S, dt) => {
     const t = S.t, hold = S.hold;
     if (at(S, 1.0, 'alert')) { deer.neck.rotation.x = 0.1; SND.snap(panOf(D.x, D.z)); }
+    if (at(S, 0.2, 'bolt0')) { FX.strike && FX.strike(); }
+    if (at(S, 4.5, 'bolt1')) { FX.strike && FX.strike(); }
     if (at(S, 2.0, 'charge')) { HOL.crouch = 0.1; HOL.scream = 0.7; SND.hollowScream(0.8); SND.bleat(panOf(D.x, D.z)); P.shake = 0.3; }
     if (t > 2.0 && t < 2.8) { hMove(D.x + ux * 1.5, D.z + uz * 1.5, 11, dt); HOL.scream = Math.max(0, HOL.scream - dt); [deer.front, deer.back].forEach(h => { h.position.x += Math.cos(a) * dt * 1.5; h.position.z -= Math.sin(a) * dt * 1.5; }); }
     if (at(S, 2.8, 'grab')) { HOL.walk = 0; HOL.scream = 0; HOL.grip = true; HOL.armPose = { L: [-1.3, -0.14], R: [-1.3, -0.14] }; HOL.crouch = 0.15; SND.crunch(0); SND.bleat(0); spray(BLOOD, D.x, dy + 1.2, D.z, 25, 2.5); S.hold = true; S.sep0 = -1; }
@@ -121,18 +148,25 @@ function hollowDeer() {
       S.chT = (S.chT || 0) - dt; if (S.chT <= 0 && t > 6) { S.chT = 0.42; SND.chomp(0); SND.crunch(0); const mp = deer.front.localToWorld(V3(0, 0, -0.1)); spray(BLOOD, mp.x, mp.y, mp.z, 16, 3, 0, -0.2, 0); P.shake = Math.max(P.shake, 0.08); } }
     if (at(S, 8.6, 'notice')) { S.dropF = true; dropHalf(deer.front, V3(0, 0.5, 0)); HOL.armPose = null; HOL.grip = false; HOL.jawT = null; HOL.look = camera.position; HOL.twitchT = 0.9; SND.stinger(); P.shake = 0.2; P.look = lookAtPt(HS.x, HOL.headPos(V2).y, HS.z); }
     if (at(S, 9.4, 'scream')) { HOL.scream = 1; SND.hollowScream(1.1); P.shake = 0.5; rumble(0.8, 1, 900); }
-    if (at(S, 11.2, 'leave')) { HOL.scream = 0; HOL.look = null; HS.state = 'leave'; HS.tx = HS.x + ux * 45; HS.tz = HS.z + uz * 45; HS.t = 0; G.mode = 'play'; P.look = null; SCN = null;
+    if (at(S, 11.2, 'leave')) { HOL.scream = 0; HOL.look = null; HS.state = 'leave'; HS.tx = HS.x + uz * 45; HS.tz = HS.z - ux * 45; HS.t = 0; G.mode = 'play'; P.look = null; SCN = null;
       say('What… what WAS that?!', 2.6, 'You'); say('That wasn’t the Tall Man. That was something else. Something worse.', 4, 'You'); say('It tore that deer apart like paper…', 3, 'You'); checkpoint(); }
     stepHalf(deer.front, dt); stepHalf(deer.back, dt); deer.guts.forEach(gu => { gu.pv.rotation.x = Math.sin(G.time * 2 + gu.ph) * 0.3; gu.pv.rotation.z = Math.sin(G.time * 1.6 + gu.ph) * 0.25; });
   });
   S_DEER = deer;
 }
-let S_DEER = null;
+let S_DEER = null, DARK = 0;
+// keep the game smooth: if the frame rate stays low, step the graphics down by itself
+const PERF = { acc: 0, n: 0, t: 0, step: 0 };
+(function perfWatch(now) { requestAnimationFrame(perfWatch); const dt = (now - (PERF.last || now)) / 1000; PERF.last = now; if (!(G.mode === 'play' || G.mode === 'cut') || dt <= 0 || dt > 0.5) return; PERF.acc += dt; PERF.n++;
+  if (PERF.acc > 3) { const fps = PERF.n / PERF.acc; PERF.acc = 0; PERF.n = 0; if (fps < 32 && PERF.step < 3) { PERF.step++;
+    if (PERF.step === 1) { renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1)); FX.resize && FX.resize(); }
+    else if (PERF.step === 2 && HQ()) { settings.quality = 'low'; FX.setQuality(); saveSettings(); hint('Switched to faster graphics for smoother play', 3); }
+    else if (PERF.step === 3) { settings.shadows = false; flash.castShadow = false; saveSettings(); } } } })(performance.now());
 
 // ---------- the Mire Walker: tugging in the deep water ----------
 const tugEl = document.createElement('div'); tugEl.id = 'tug'; tugEl.innerHTML = '<b>SOMETHING HAS YOUR LEG!</b><span id="tugK"></span><div class="bar"><i id="tugBar"></i></div><div class="bar drag"><i id="tugDrag"></i></div>'; document.body.appendChild(tugEl);
 function startTug() {
-  MS.tug = { t: 0, prog: 0, drag: 0, sp: 0 }; P.held = true; SND.splash(true); SND.bigSplash(); SND.hurt(); rumble(1, 0.8, 600); P.shake = 0.7; hurt(7, 'mire');
+  MS.tug = { t: 0, prog: 0, drag: 0, sp: 0 }; P.held = true; SND.splash(true); SND.bigSplash(); SND.hurt(); rumble(1, 0.8, 600); P.shake = 0.7; hurt(9, 'mire');
   if (G.mode !== 'play') return; P.pitch = Math.max(-1.2, P.pitch - 0.5);
   say(pick(['AAH! Something grabbed my leg!', 'It’s pulling me under!', 'NO — let GO of me!', 'It’s got me! IT’S GOT ME!']), 2.4, 'You');
   $('tugK').textContent = touch ? 'HOLD the USE button to break free!' : padOn ? 'HOLD ✕ to break free!' : 'HOLD E or SPACE to break free!'; tugEl.style.display = 'block';
@@ -140,21 +174,22 @@ function startTug() {
 }
 function updateTug(dt) {
   const T = MS.tug; T.t += dt; const held = useHeld();
-  if (held) T.prog += dt * 0.62; T.drag += dt * (held ? 0.06 : 0.3);
+  if (held) T.prog += dt * 0.42; T.drag += dt * (held ? 0.085 : 0.34);
   P.sinkY = T.drag * 1.25; P.shake = Math.max(P.shake, 0.12 + T.drag * 0.2); P.pitch += (-0.75 - P.pitch) * Math.min(1, dt * 1.5); P.yaw += Math.sin(T.t * 9) * dt * 0.4;
   T.sp -= dt; if (T.sp <= 0) { T.sp = 0.35 + rand() * 0.25; SND.splash(true); rumble(0.6, 0.4, 150); spray(MUDP, P.x + (rand() - 0.5), 0.05, P.z + (rand() - 0.5), 8, 2.5); }
   const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw); MIRE.g.position.set(P.x + fx * 1.7, 0, P.z + fz * 1.7); MIRE.g.rotation.y = Math.atan2(P.x - MIRE.g.position.x, P.z - MIRE.g.position.z); MIRE.emerge = 0; MIRE.look = camera.position;
   $('tugBar').style.width = Math.min(100, T.prog * 100) + '%'; $('tugDrag').style.width = Math.min(100, T.drag * 100) + '%';
   if (T.prog >= 1) breakFree(); else if (T.drag >= 1) dragUnder();
 }
-function breakFree() { MS.tug = null; P.held = false; tugEl.style.display = 'none'; SND.splash(true); SND.mireRoar(0.35); MS.state = 'sink'; MS.t = 0; MS.tugT = 4.5 + rand() * 4; say(pick(['Get OFF me!', 'I’m loose — move, MOVE!', 'Let go… LET GO! …Okay. Okay. Keep going.', 'Its hand… it had WEBBED fingers.']), 2.6, 'You'); }
-function dragUnder() { MS.tug = null; tugEl.style.display = 'none'; G.mode = 'cut'; SND.bigSplash(); SND.mireRoar(0.7); fade(1, 'water'); setTimeout(() => { fade(0); P.held = false; P.sinkY = 0; G.mode = 'play'; die('mire'); }, 1200); }
+function mireWatch() { if (MS.tug || MS.state !== 'off') return; const a = P.yaw + (rand() - 0.5) * 1.2, d = 7 + rand() * 3; const x = P.x - Math.sin(a) * d, z = P.z - Math.cos(a) * d; if (H(x, z) > -0.3) return; MIRE.g.visible = true; MIRE.head.visible = true; MIRE.burn = 0; MIRE.reach = 0; MIRE.roar = 0; MIRE.emerge = 0; MIRE.g.position.set(x, 0, z); MIRE.g.rotation.y = Math.atan2(P.x - x, P.z - z); MS.state = 'watch'; MS.t = 0; SND.bubble(panOf(x, z)); SND.plop(panOf(x, z)); setTimeout(() => { if (MS.state === 'watch') { SND.stinger(); remark(['There — in the water. Its EYES.', 'It’s watching me…', 'Don’t move. Don’t… move.'], 1); } }, 900); }
+function breakFree() { MS.tug = null; P.held = false; tugEl.style.display = 'none'; SND.splash(true); SND.mireRoar(0.35); MS.state = 'sink'; MS.t = 0; MS.tugT = 3.5 + rand() * 3.5; say(pick(['Get OFF me!', 'I’m loose — move, MOVE!', 'Let go… LET GO! …Okay. Okay. Keep going.', 'Its hand… it had WEBBED fingers.']), 2.6, 'You'); }
+function dragUnder() { MS.tug = null; MS.state = 'off'; MIRE.g.visible = false; tugEl.style.display = 'none'; G.mode = 'cut'; SND.bigSplash(); SND.mireRoar(0.7); fade(1, 'water'); setTimeout(() => { fade(0); P.held = false; P.sinkY = 0; G.mode = 'play'; die('mire'); }, 1200); }
 function turnValve(i) {
   G.valves = G.valves || []; G.valves.push(i); valveM[i].userData.gl.visible = false; SND.creak(0); SND.clang(); refreshObj();
   const n = G.valves.length;
-  if (n < 3) { say(n === 1 ? 'One open. Water’s moving. Two more.' : 'Two down… one more. Please let that be the last time it grabs me.', 3.2, 'You'); checkpoint(); MS.tugT = Math.min(MS.tugT, 2.5); return; }
+  if (n < 5) { say(['One open. Water’s moving. Four more.', 'Two down. It knows where I am now…', 'Three. I can feel it circling me.', 'Four… one more. Please let that be the last time it grabs me.'][n - 1], 3.2, 'You'); checkpoint(); MS.tugT = Math.min(MS.tugT, 2.5); if (n === 3) mireWatch(); return; }
   G.mode = 'cut'; SND.thud(); setTimeout(() => { SND.sputter(); }, 700);
-  setTimeout(() => { SND.radioBlip(); say('That’s all three… but the pump’s still choking. Something is jammed IN the intake.', 4, 'You'); say('Kid, you still there? That intake’s been clogged for years. Folks say something nests in it.', 4.4, 'Radio'); say('There’s acid in the pump house — the stuff we used to clear the pipes. Dump a jug in the water by the intake.', 4.6, 'Radio'); say('It’ll burn out anything living in there.', 2.8, 'Radio'); G.mode = 'play'; setObj(29); }, 1400);
+  setTimeout(() => { say('That’s all five… but nothing’s flowing. The grates on the south side must be clogged.', 4.2, 'You'); G.mode = 'play'; setObj(33); MS.tugT = 2.5; }, 1400);
 }
 
 // ---------- the acid ----------
@@ -176,7 +211,7 @@ function acidScene() {
   });
 }
 function mireFightStart(fromSave) {
-  MS.state = 'fight'; MS.hp = 3; MS.stag = 0; MS.t = 0; G.mode = 'play'; P.look = null; MIRE.g.visible = true; MIRE.head.visible = true; MIRE.reach = 1; MIRE.burn = 1; MIRE.emerge = 1; MIRE.look = camera.position;
+  MS.state = 'fight'; MS.hp = 4; MS.stag = 0; MS.t = 0; G.mode = 'play'; P.look = null; MIRE.g.visible = true; MIRE.head.visible = true; MIRE.reach = 1; MIRE.burn = 1; MIRE.emerge = 1; MIRE.look = camera.position;
   if (fromSave) { const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw); MIRE.g.position.set(P.x + fx * 11, 0, P.z + fz * 11); SND.mireRoar(1); SND.set('sizzle', 0.3, 0.3); }
   MS.x = MIRE.g.position.x; MS.z = MIRE.g.position.z;
   if (!G.guns.pistol && !G.guns.shotgun) G.guns.pistol = true;
@@ -218,8 +253,10 @@ function mireExplode() {
 }
 function updateMire(dt) {
   if (MS.tug) { if (G.mode === 'play') updateTug(dt); }
-  else if ([28, 29, 30].includes(G.obj) && G.mode === 'play' && P.x > 1000 && H(P.x, P.z) < -0.35 && MS.state !== 'acid') { MS.tugT -= dt; if (MS.tugT <= 0) startTug(); }
+  else if ([28, 33, 29, 30].includes(G.obj) && G.mode === 'play' && P.x > 1000 && H(P.x, P.z) < -0.35 && MS.state !== 'acid') { MS.tugT -= dt; if (MS.tugT <= 0) startTug(); }
   else if (G.mode === 'play' && MS.tugT < 2.5) MS.tugT = 2.5;
+  if (MS.state === 'watch') { MS.t += dt; MIRE.look = camera.position; MIRE.emerge = MS.t < 2.5 ? Math.min(0.3, MS.t * 0.3) : Math.max(0, 0.3 - (MS.t - 2.5) * 0.3); if (MS.t > 3.6) { MIRE.g.visible = false; MS.state = 'off'; } }
+  if (MS.state === 'off' && [28, 33].includes(G.obj) && G.mode === 'play' && !MS.tug && P.x > 1000 && Math.hypot(P.x - ACIDC.x, P.z - ACIDC.z) < 30) { MS.watchT = (MS.watchT == null ? 12 : MS.watchT) - dt; if (MS.watchT <= 0) { MS.watchT = 14 + rand() * 10; mireWatch(); } }
   if (MS.state === 'sink') { MS.t += dt; MIRE.g.position.y = -MS.t * 1.5; if (MS.t > 2) { MIRE.g.visible = false; MS.state = 'off'; MIRE.g.position.y = 0; } }
   if (MS.state === 'fight' && G.mode === 'play') {
     MS.stag = Math.max(0, MS.stag - dt); const dx = P.x - MS.x, dz = P.z - MS.z, d = Math.hypot(dx, dz);
@@ -308,7 +345,7 @@ function updateHollow(dt) {
   if (HS.state === 'leave') { HS.t += dt; hMove(HS.tx, HS.tz, 2.4, dt, false); if (HS.t > 9 || Math.hypot(HS.x - P.x, HS.z - P.z) > 38) { hShow(false); if (G.obj === 32) towerPerch(); } }
   if (HS.state === 'chase' && G.mode === 'play') {
     HS.stag = Math.max(0, HS.stag - dt); const d = Math.hypot(P.x - HS.x, P.z - HS.z);
-    const sp = (HS.stag > 0 ? 1.2 : d > 26 ? 7.5 : 5.3) * wadeAt(HS.x, HS.z); hMove(P.x, P.z, sp, dt, true); HOL.look = d < 14 ? camera.position : null;
+    const sp = (HS.stag > 0 ? 1.1 : d > 26 ? 6.6 : 4.7) * wadeAt(HS.x, HS.z); hMove(P.x, P.z, sp, dt, true); HOL.look = d < 14 ? camera.position : null;
     HS.scrT -= dt; if (HS.scrT <= 0) { HS.scrT = 5 + rand() * 4; HOL.scream = 1; SND.hollowScream(clamp(1 - d / 60, 0.3, 1)); } HOL.scream = Math.max(0, HOL.scream - dt * 0.7);
     if (d < 2.3) hollowCatch();
   }
@@ -318,10 +355,13 @@ function updateHollow(dt) {
 // ---------- main per-frame update (called from updateCh2) ----------
 function updateMonsters(dt) {
   if (SCN) { SCN.t += dt; SCN.f(SCN, dt); }
-  if (G.mode === 'play' && G.obj === 22 && !G.h1 && P.x > 1000 && Math.hypot(P.x - W.nest.x, P.z - W.nest.z) < 30) hollowDeer();
+  if (G.mode === 'play' && G.obj === 24 && !G.h1 && P.x > 1000) { const dp = Math.hypot(P.x - W.pump.x, P.z - W.pump.z); if (dp < 75 && dp > 28) hollowDeer(); }
   updateMire(dt); updateHollow(dt); stepChunks(dt); stepParticles(ACIDP, dt); stepParticles(MUDP, dt);
   if (S_DEER && !SCN) { stepHalf(S_DEER.front, dt); stepHalf(S_DEER.back, dt); }
   if (W.swamp.visible) { const on = Math.sin(G.time * 2.2) > 0.6; W.wtLampM.color.setHex(on ? 0xff2010 : 0x300000); W.wtLampL.intensity = on ? 2.2 : 0; }
   if (!P.held && P.sinkY > 0) P.sinkY = Math.max(0, P.sinkY - dt * 1.5);
+  // after the Hollow One shows up the swamp night turns pitch black (darkest during the deer scene itself)
+  if (W.swamp.visible && !P.inHeli) { const tgt = (SCN && HS.state === 'scene' && G.obj === 24) ? 1 : (G.h1 || G.obj >= 25) ? 0.75 : 0; DARK += (tgt - DARK) * Math.min(1, dt * 0.6);
+    if (DARK > 0.01) { hemi.intensity = lerp(0.46, 0.1, DARK); moon.intensity = lerp(0.34, 0.05, DARK); scene.fog.color.copy(FOG_SWAMP).multiplyScalar(1 - DARK * 0.75); } }
 }
 window.HP2 = { HOL, MIRE, HS, MS, hollowDeer, tallManDeath, towerJump, towerPerch, acidScene, mireFightStart, startTug, ch2Restore, VALVES, POURP, ACIDJ };

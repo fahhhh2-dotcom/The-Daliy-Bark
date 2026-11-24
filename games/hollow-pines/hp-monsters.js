@@ -57,12 +57,12 @@ const MON = (() => {
       for (let i = 0; i < 26; i++) { const px = Math.random() * s, py = Math.random() * s, r = 6 + Math.random() * 26, g = x.createRadialGradient(px, py, 0, px, py, r); g.addColorStop(0, 'rgba(70,6,4,.55)'); g.addColorStop(1, 'rgba(70,6,4,0)'); x.fillStyle = g; x.fillRect(px - r, py - r, r * 2, r * 2); }
     }, 3);
     const skinBump = canvasTex(256, (x, s) => { noiseFill(x, s, 7, n => { const v = 128 + n * 110 + (Math.random() < 0.04 ? -40 : 0); return [v, v, v]; }); }, 3, false);
-    const skin = new THREE.MeshPhysicalMaterial({ map: skinMap, bumpMap: skinBump, bumpScale: 0.012, roughness: 0.5, clearcoat: 0.35, clearcoatRoughness: 0.4, color: 0xd8d2c8 });
+    const skin = new THREE.MeshPhysicalMaterial({ map: skinMap, bumpMap: skinBump, bumpScale: 0.02, roughness: 0.58, clearcoat: 0.5, clearcoatRoughness: 0.32, sheen: 0.45, sheenRoughness: 0.5, sheenColor: new THREE.Color(0x5a2a26), color: 0x958a80 });
     const skullSkin = skin.clone(); skullSkin.vertexColors = true;
     const nail = new THREE.MeshPhysicalMaterial({ color: 0x1a120c, roughness: 0.3, clearcoat: 0.8 });
     const toothMats = [0xd8cba0, 0xc9b98a, 0xb8a578].map(c => new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.2 }));
     const gum = new THREE.MeshPhysicalMaterial({ color: 0x2a0b0e, roughness: 0.35, clearcoat: 1, clearcoatRoughness: 0.15, side: THREE.DoubleSide });
-    const eyeMat = new THREE.MeshPhysicalMaterial({ color: 0xcfc8a4, roughness: 0.08, clearcoat: 1, emissive: 0x5a3a08, emissiveIntensity: 0.6 });
+    const eyeMat = new THREE.MeshPhysicalMaterial({ color: 0xb8ae88, roughness: 0.05, clearcoat: 1, emissive: 0x6a2a06, emissiveIntensity: 0.6 });
     const pupilMat = new THREE.MeshPhysicalMaterial({ color: 0x050302, roughness: 0.05, clearcoat: 1 });
     SKIN = skin;
     const root = new THREE.Group(), monster = new THREE.Group(); root.add(monster);
@@ -188,7 +188,7 @@ const MON = (() => {
       for (let i = 0; i < 700; i++) { x.fillStyle = `rgba(${150 + Math.random() * 40},${160 + Math.random() * 30},110,${Math.random() * 0.25})`; x.beginPath(); x.arc(Math.random() * s, Math.random() * s, Math.random() * 2.2, 0, 7); x.fill(); }
     }, 3);
     const skinBump = canvasTex(256, (x, s) => { noiseFill(x, s, 6, n => { const v = 128 + n * 90; return [v, v, v]; }); for (let i = 0; i < 700; i++) { const r = 1 + Math.random() * 3, px = Math.random() * s, py = Math.random() * s, g = x.createRadialGradient(px, py, 0, px, py, r); g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(px - r, py - r, r * 2, r * 2); } }, 3, false);
-    const skin = new THREE.MeshPhysicalMaterial({ map: skinMap, bumpMap: skinBump, bumpScale: 0.022, roughness: 0.42, clearcoat: 0.8, clearcoatRoughness: 0.22, color: 0xd0d6c4, emissive: 0x000000 });
+    const skin = new THREE.MeshPhysicalMaterial({ map: skinMap, bumpMap: skinBump, bumpScale: 0.03, roughness: 0.4, clearcoat: 0.9, clearcoatRoughness: 0.15, sheen: 0.5, sheenRoughness: 0.4, sheenColor: new THREE.Color(0x3a4a20), color: 0xa4aa96, emissive: 0x000000 });
     const headSkin = skin.clone(); headSkin.vertexColors = true;
     const mossMat = new THREE.MeshStandardMaterial({ color: 0x3e5c22, roughness: 1, bumpMap: skinBump, bumpScale: 0.04 });
     const weedMat = new THREE.MeshPhysicalMaterial({ color: 0x2a3a16, roughness: 0.45, clearcoat: 0.6 });
@@ -246,7 +246,7 @@ const MON = (() => {
     for (const s of [-1, 1]) jaw.add(flesh([V(0.2 * s, -0.18, 0.5), V(0.24 * s, -0.36, 0.52), V(0.22 * s, -0.56, 0.48)], [0.025, 0.014, 0.003], { seg: 8, rad: 6, mat: weedMat, amp: 0.003 }));
     { const base = [], tips = []; for (let i = 0; i <= 12; i++) { const u = i / 12, z = 0.3 - u * 0.62, y = 0.36 * Math.sqrt(Math.max(0, 1 - (z / 0.56) ** 2)) - 0.03; base.push(V(0, y, z)); tips.push(V(0, y + 0.06 + Math.sin(Math.PI * (u * 0.9 + 0.1)) * 0.16 * (i % 2 ? 0.75 : 1), z - 0.07)); } head.add(fin(base, tips)); }
     const gills = []; for (const s of [-1, 1]) { const gf = fin([V(0.5 * s, 0.06, 0.02), V(0.5 * s, -0.02, -0.1), V(0.48 * s, -0.12, -0.2)], [V(0.64 * s, 0.08, -0.04), V(0.68 * s, -0.04, -0.16), V(0.6 * s, -0.16, -0.28)]); gf.children.slice(1).forEach(c => c.visible = false); head.add(gf); gills.push({ gf, s }); }
-    const eyeLight = new THREE.PointLight(0x7aff4a, 0.5, 3, 2); eyeLight.position.set(0, 0.2, 0.6); head.add(eyeLight);
+    const eyeLight = new THREE.PointLight(0xb0ff80, 0.2, 1.6, 2); eyeLight.position.set(0, 0.2, 0.6); head.add(eyeLight);
     // moss, fungus and dripping weeds (fewer than the showcase page so the game stays fast)
     const weeds = [], mossGeos = [0, 1, 2].map(() => blob(1, 1, 0.35, 1, { mat: mossMat, amp: 0.35, freq: 3, ws: 12, hs: 8 }).geometry);
     mossy.forEach(m => { const pa = m.geometry.attributes.position, na = m.geometry.attributes.normal, n = V(), p = V(), up = V(0, 1, 0); const count = m === body ? 55 : m === traps ? 20 : 10;
@@ -270,9 +270,9 @@ const MON = (() => {
       fingers.forEach(f => { f.fg.rotation.x = f.base + (Math.sin(t * 1.7 + f.seed) * 0.5 + 0.5) * 0.15 + rO * 0.4 + M.reach * 0.3; });
       gills.forEach(({ gf, s }) => { gf.rotation.y = s * (Math.sin(t * 3.2) * 0.12 + rO * 0.5 + M.burn * 0.4); });
       weeds.forEach(w => { w.g.rotation.x = Math.sin(t * 1.1 + w.seed) * 0.12 - torso.rotation.x; w.g.rotation.z = Math.sin(t * 0.9 + w.seed * 2) * 0.1; });
-      const glow = (1.1 + Math.sin(t * 2.2) * 0.2 + rO * 2) * (Math.random() < 0.008 ? 0.15 : 1); eyeMat.emissiveIntensity = glow; eyeLight.intensity = glow * 0.45 * (head.visible ? 1 : 0);
+      const glow = (1.1 + Math.sin(t * 2.2) * 0.2 + rO * 2) * (Math.random() < 0.008 ? 0.15 : 1); eyeMat.emissiveIntensity = glow; eyeLight.intensity = glow * 0.12 * (head.visible ? 1 : 0);
       // acid burn: skin blisters, darkens and smokes green
-      if (M.burn > 0) { const k2 = Math.min(1, M.burn); burnMats.forEach(m => { m.color.setRGB(0.82 - k2 * 0.32, 0.84 - k2 * 0.6, 0.77 - k2 * 0.6); m.emissive.setRGB(0.09 * k2 * (0.6 + Math.random() * 0.4), 0.05 * k2 * (0.6 + Math.random() * 0.4), 0.01 * k2); m.roughness = 0.42 + k2 * 0.4; m.bumpScale = 0.022 + k2 * 0.06; }); M.mossMat.color.setRGB(0.24 - k2 * 0.15, 0.36 - k2 * 0.25, 0.13 - k2 * 0.08); }
+      if (M.burn > 0) { const k2 = Math.min(1, M.burn); burnMats.forEach(m => { m.color.setRGB(0.64 - k2 * 0.2, 0.67 - k2 * 0.45, 0.59 - k2 * 0.45); m.emissive.setRGB(0.09 * k2 * (0.6 + Math.random() * 0.4), 0.05 * k2 * (0.6 + Math.random() * 0.4), 0.01 * k2); m.roughness = 0.42 + k2 * 0.4; m.bumpScale = 0.022 + k2 * 0.06; }); M.mossMat.color.setRGB(0.24 - k2 * 0.15, 0.36 - k2 * 0.25, 0.13 - k2 * 0.08); }
     };
     M.headPos = (out) => head.getWorldPosition(out);
     root.visible = false; scene.add(root); SKIN = null; return M;
