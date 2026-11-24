@@ -26,7 +26,23 @@ const SND = (() => {
       const o = AC.createOscillator(); o.type = 'square'; o.frequency.value = 12; const og = AC.createGain(); og.gain.value = 0.5; o.connect(og); og.connect(am.gain); o.start(); return n; })();
     L.tunnel = loopNoise('lowpass', 140, 1.5, 0);
     L.breath = loopNoise('bandpass', 900, 1.2, 0); lfo(L.breath.f.frequency, 0.9, 300);
-    L.rain = (() => { const a1 = loopNoise('highpass', 1600, 0.4, 0), a2 = loopNoise('lowpass', 700, 0.5, 0); const g = AC.createGain(); g.gain.value = 0; a1.g.disconnect(); a2.g.disconnect(); a1.g.gain.value = 0.6; a2.g.gain.value = 0.8; a1.g.connect(g); a2.g.connect(g); g.connect(MG); return { g }; })();
+    L.rain = (() => {
+      // real rain: a soft wash underneath + thousands of individual droplets (each a tiny ringing tick at its own pitch),
+      // heavier drips off branches and splats in puddles, spread left/right — pre-rendered once into a 6 s stereo loop
+      const sr = AC.sampleRate, len = Math.floor(sr * 6), buf = AC.createBuffer(2, len, sr);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = buf.getChannelData(ch); let lp = 0, lp2 = 0, hp = 0, prev = 0;
+        for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; lp += (w - lp) * 0.08; lp2 += (lp - lp2) * 0.08; hp = 0.97 * (hp + w - prev); prev = w; d[i] = lp2 * 0.55 + hp * 0.045; }
+        const drop = (t0, f, amp, decay) => { const n = Math.floor(sr * decay * 6); let ph = Math.random() * 6.28; for (let k = 0; k < n; k++) { const j = (t0 + k) % len, e = Math.exp(-k / (sr * decay)); ph += 6.2832 * f * (1 - k / n * 0.35) / sr; d[j] += Math.sin(ph) * e * amp; } };
+        for (let k = 0; k < 9000; k++) drop(Math.floor(Math.random() * len), 2200 + Math.random() * 6500, 0.012 + Math.random() * 0.03, 0.0012 + Math.random() * 0.002);
+        for (let k = 0; k < 420; k++) drop(Math.floor(Math.random() * len), 700 + Math.random() * 1600, 0.04 + Math.random() * 0.07, 0.004 + Math.random() * 0.006);
+        for (let k = 0; k < 60; k++) { const t0 = Math.floor(Math.random() * len); drop(t0, 350 + Math.random() * 400, 0.08 + Math.random() * 0.06, 0.012); drop(t0 + Math.floor(sr * 0.004), 1400 + Math.random() * 900, 0.05, 0.006); }
+        const fade = Math.floor(sr * 0.25); for (let i = 0; i < fade; i++) { const k = i / fade; d[i] = d[i] * k + d[len - fade + i] * (1 - k); } for (let i = 0; i < len; i++) d[i] *= 2.6;
+      }
+      const src = AC.createBufferSource(); src.buffer = buf; src.loop = true; src.loopEnd = 6 - 0.25;
+      const tone = AC.createBiquadFilter(); tone.type = 'highshelf'; tone.frequency.value = 3000; tone.gain.value = -3;
+      const g = AC.createGain(); g.gain.value = 0; src.connect(tone); tone.connect(g); g.connect(MG); src.start(); return { g, tone };
+    })();
     // night chorus: a field of crickets + katydids, each chirping in its own rhythm and place
     L.chorus = { g: AC.createGain() }; L.chorus.g.gain.value = 0; L.chorus.g.connect(MG);
     const pulse = (param, f, depth, type) => { const o = AC.createOscillator(); o.type = type || 'square'; o.frequency.value = f; const g = AC.createGain(); g.gain.value = depth; o.connect(g); g.connect(param); o.start(); };
