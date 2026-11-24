@@ -363,8 +363,15 @@ function updateCreature(dt) {
 }
 function glimpse() { placeC(36 + rand() * 6, (rand() - 0.5) * 0.9); C.state = 'glimpse'; C.timer = 3.5; C.seen = 0; C.stung = false; showC(true); C.mode = 'idle'; cr.g.position.set(C.x, H(C.x, C.z), C.z); cr.g.rotation.y = Math.atan2(P.x - C.x, P.z - C.z); }
 
+function lightningReveal() {
+  if (menuOn || G.mode !== 'play' || P.onTower || P.inTunnel) return;
+  if (C.state === 'hidden' && G.obj >= 8 && G.obj <= 14 && rand() < 0.45) {
+    placeC(28 + rand() * 10, (rand() - 0.5) * 0.8); cr.g.position.set(C.x, H(C.x, C.z), C.z); cr.g.rotation.y = Math.atan2(P.x - C.x, P.z - C.z); C.mode = 'idle'; poseCreature(cr, 'idle', 0, C.tw, 1); showC(true); G.revealT = 0.6;
+    setTimeout(() => { if (G.mode === 'play') SND.stinger(); }, 250);
+  }
+}
 // ================= TUNNEL =================
-function setEnv(tunnel) { const c = tunnel ? FOG_TUNNEL : FOG_FOREST; scene.fog.color.copy(c); scene.background.copy(c); scene.fog.density = tunnel ? 0.07 : 0.03; hemi.intensity = tunnel ? 0.05 : 0.55; moon.intensity = tunnel ? 0 : 0.25; W.tunnel.visible = tunnel; W.endLight.intensity = tunnel ? 1.4 : 0; if (!tunnel) W.tunL.forEach(l => l.intensity = 0); SND.set('tunnel', tunnel ? 0.16 : 0, 0.5); SND.set('wind', tunnel ? 0.02 : 0.13, 0.5); SND.set('leaves', tunnel ? 0 : 0.025, 0.5); }
+function setEnv(tunnel) { const c = tunnel ? FOG_TUNNEL : FOG_FOREST; scene.fog.color.copy(c); scene.fog.density = tunnel ? 0.07 : 0.03; hemi.intensity = tunnel ? 0.05 : 0.55; moon.intensity = tunnel ? 0 : 0.25; W.tunnel.visible = tunnel; W.endLight.intensity = tunnel ? 1.4 : 0; if (!tunnel) W.tunL.forEach(l => l.intensity = 0); SND.set('tunnel', tunnel ? 0.16 : 0, 0.5); SND.set('wind', tunnel ? 0.02 : 0.13, 0.5); SND.set('leaves', tunnel ? 0 : 0.025, 0.5); }
 async function enterTunnel(restoring) {
   G.mode = 'cut'; fade(1); await wait(650);
   P.inTunnel = true; P.onTower = false; G.gateOpen = false; W.gate.position.y = TB.y; setEnv(true); updateChunks(9999, 9999, 0);
@@ -645,12 +652,13 @@ function menuFrame(dt) {
   SND.ok && ambience(dt);
 }
 const panelFrom = {};
-function openPanel(id, from) { panelFrom[id] = from; $(id).style.display = 'grid'; if (id === 'slotP') renderSlots(); if (id === 'setP') { $('sSens').value = settings.sens; $('sVol').value = settings.vol; $('sShadow').checked = settings.shadows; } }
+function openPanel(id, from) { panelFrom[id] = from; $(id).style.display = 'grid'; if (id === 'slotP') renderSlots(); if (id === 'setP') { $('sHQ').checked = HQ(); $('sSens').value = settings.sens; $('sVol').value = settings.vol; $('sShadow').checked = settings.shadows; } }
 document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => { const p = b.closest('.panel'); p.style.display = 'none'; const f = panelFrom[p.id]; if (f) $(f).style.display = 'grid'; SND.ui(); }));
 $('playBtn').onclick = () => { SND.init(); SND.ui(); openPanel('slotP', null); };
 $('mHow').onclick = () => { SND.ui(); openPanel('howP', null); }; $('mSet').onclick = () => { SND.ui(); openPanel('setP', null); }; $('mCred').onclick = () => { SND.ui(); openPanel('credP', null); };
 $('sSens').oninput = e => { settings.sens = +e.target.value; saveSettings(); };
 $('sVol').oninput = e => { settings.vol = +e.target.value; SND.setVol(settings.vol); saveSettings(); };
+$('sHQ').onchange = e => { settings.quality = e.target.checked ? 'high' : 'low'; FX.setQuality(); saveSettings(); };
 $('sShadow').onchange = e => { settings.shadows = e.target.checked; flash.castShadow = settings.shadows; saveSettings(); };
 let delArm = -1;
 function renderSlots() {
@@ -706,7 +714,9 @@ function update(dt) {
   } else updateClimb(dt);
   P.shake = Math.max(0, P.shake - dt * 1.5); const sh = P.shake * 0.05 + (climbing ? 0.012 : 0);
   camera.position.set(P.x + (rand() - 0.5) * sh, P.y + (climbing ? 1.5 : 1.65) + Math.sin(P.bob) * 0.045 + (rand() - 0.5) * sh, P.z + (rand() - 0.5) * sh);
-  camera.rotation.set(P.pitch, P.yaw, Math.sin(P.bob * 0.5) * 0.006);
+  const breath = Math.sin(G.time * 1.7) * (moving ? 0.001 : 0.004);
+  camera.rotation.set(P.pitch + breath, P.yaw + Math.sin(G.time * 0.9) * 0.0015, Math.sin(P.bob * 0.5) * 0.006);
+  const tf = run ? 77 : 70; if (Math.abs(camera.fov - tf) > 0.05) { camera.fov += (tf - camera.fov) * Math.min(1, dt * 5); camera.updateProjectionMatrix(); }
   // flashlight
   let fi = P.light && G.hasLight ? 2.7 : 0;
   if (P.overheat > 0) { P.overheat -= dt; fi = P.overheat > P.ohMax - 0.5 ? (rand() < 0.5 ? 2.7 : 0) : 0; }
@@ -728,6 +738,7 @@ function update(dt) {
   if (playing && G.glimpseAt && G.time > G.glimpseAt && C.state === 'off' && G.obj < 8 && !P.onTower) { G.glimpseAt = 0; glimpse(); }
   if (playing && G.obj === 14) { G.surviveT -= dt; if (G.surviveT <= 0) heliArrive(); }
   if (P.hp < 100 && playing) { P.hurtT += dt; if (P.hurtT > 5) P.hp = Math.min(100, P.hp + 5 * dt); $('hurt').style.opacity = clamp((100 - P.hp) / 140, 0, 0.6); }
+  if (G.revealT > 0) { G.revealT -= dt; if (G.revealT <= 0 && C.state === 'hidden') showC(false); }
   updateCreature(dt); updateAnimals(dt);
   stepParticles(BLOOD, dt); stepParticles(BLACKB, dt); stepPools(dt);
   // world fx
@@ -737,7 +748,7 @@ function update(dt) {
   if (W.beacon.visible) W.beacon.material.opacity = Math.sin(G.time * 3) > 0 ? 1 : 0.1;
   glintMat.opacity = 0.35 + Math.sin(G.time * 3) * 0.25;
   if (P.inTunnel) { const near = TBULBS.map(b => [b, Math.hypot(b.x - P.x, b.z - P.z)]).sort((a, b) => a[1] - b[1]); W.tunL.forEach((l, i) => { const b = near[i][0]; l.position.set(b.x, TB.y + 2.2, b.z); l.intensity = 1.3 + (rand() < 0.04 ? -1 : 0); }); W.gate.position.y += ((G.gateOpen ? TB.y + 2.45 : TB.y) - W.gate.position.y) * Math.min(1, dt * 3); }
-  if (G.flareT >= 0 && W.flare.visible) { G.flareT += dt; const gy = H(Hp.x, Hp.z), h = G.flareT < 3 ? smooth(0, 3, G.flareT) * 60 : 60 - (G.flareT - 3) * 0.4; W.flare.position.set(Hp.x + Math.sin(G.flareT * 0.3) * 4, gy + Math.max(25, h), Hp.z + 6); W.flareL.position.copy(W.flare.position); W.flareL.intensity = 2.2 + rand() * 0.4; scene.fog.color.lerp(FOG_FLARE, Math.min(1, dt)); scene.background.copy(scene.fog.color); }
+  if (G.flareT >= 0 && W.flare.visible) { G.flareT += dt; const gy = H(Hp.x, Hp.z), h = G.flareT < 3 ? smooth(0, 3, G.flareT) * 60 : 60 - (G.flareT - 3) * 0.4; W.flare.position.set(Hp.x + Math.sin(G.flareT * 0.3) * 4, gy + Math.max(25, h), Hp.z + 6); W.flareL.position.copy(W.flare.position); W.flareL.intensity = 2.2 + rand() * 0.4; scene.fog.color.lerp(FOG_FLARE, Math.min(1, dt)); }
   if (heli.g.visible) { if (heli.t >= 0 && heli.t < 7.5) heli.t += dt; if (G.mode !== 'cut' || heli.t < 7.5) { const hp = heliPos(heli.t); if (G.obj !== 15 || !heli.ready || G.mode !== 'cut') heli.g.position.set(hp.x, hp.y, hp.z); } heli.rot.rotation.y += dt * 24; heli.trot.rotation.x += dt * 30; heli.g.rotation.z = Math.sin(G.time * 0.8) * 0.03; const hd = Math.hypot(heli.g.position.x - P.x, heli.g.position.z - P.z); SND.set('heli', clamp(1 - hd / 300, 0, 1) * 0.5, 0.3); }
   // fear + audio
   const cd = cr.g.visible ? Math.hypot(cr.g.position.x - P.x, cr.g.position.z - P.z) : 99, chasing = C.state === 'chase' || C.state === 'tunnel' || C.state === 'climb' || C.state === 'climbRun';
@@ -756,14 +767,18 @@ function grain() { if (++grainF % 2) return; const d = gImg.data; for (let i = 0
 let last = performance.now();
 function loop(now) {
   requestAnimationFrame(loop); const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
-  if (window.HP_FREEZE) { renderer.render(scene, camera); return; }
+  if (window.HP_FREEZE) { FX.render(); return; }
   if (menuOn) menuFrame(dt);
   else if (G.mode === 'play' || G.mode === 'cut' || G.mode === 'climb') update(dt);
   else if (G.mode === 'scare') updateScare(dt);
-  if (!(G.mode === 'scare' && scareT >= 0.32)) renderer.render(scene, camera);
-  grain();
+  if (!(G.mode === 'scare' && scareT >= 0.32)) {
+    const ox = menuOn ? camera.position.x : P.x, oz = menuOn ? camera.position.z : P.z;
+    FX.update(dt, { tunnel: !menuOn && P.inTunnel, storm: menuOn ? 1 : G.obj >= 8 ? 1 : G.obj >= 4 ? 0.6 : 0.35, rain: menuOn ? 0.55 : G.obj < 4 ? 0.35 : G.obj < 8 ? 0.6 : 0.9, x: ox, z: oz, red: W.flare.visible ? 0.18 : 0, onStrike: lightningReveal });
+    SND.set('rain', !menuOn && P.inTunnel ? 0.015 : (menuOn ? 0.55 : G.obj < 4 ? 0.35 : G.obj < 8 ? 0.6 : 0.9) * 0.22, 0.6);
+    FX.render();
+  }
 }
-addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); bloodResize(); });
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); FX.resize(); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); bloodResize(); });
 bloodResize(); showMenu(); $('loading').style.display = 'none';
 requestAnimationFrame(loop);
 setTimeout(() => { faceImg = renderFace(); }, 1500);

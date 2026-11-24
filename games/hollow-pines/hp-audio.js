@@ -26,6 +26,7 @@ const SND = (() => {
       const o = AC.createOscillator(); o.type = 'square'; o.frequency.value = 12; const og = AC.createGain(); og.gain.value = 0.5; o.connect(og); og.connect(am.gain); o.start(); return n; })();
     L.tunnel = loopNoise('lowpass', 140, 1.5, 0);
     L.breath = loopNoise('bandpass', 900, 1.2, 0); lfo(L.breath.f.frequency, 0.9, 300);
+    L.rain = (() => { const a1 = loopNoise('highpass', 1600, 0.4, 0), a2 = loopNoise('lowpass', 700, 0.5, 0); const g = AC.createGain(); g.gain.value = 0; a1.g.disconnect(); a2.g.disconnect(); a1.g.gain.value = 0.6; a2.g.gain.value = 0.8; a1.g.connect(g); a2.g.connect(g); g.connect(MG); return { g }; })();
     L.crickets = { g: AC.createGain() }; L.crickets.g.gain.value = 0.5; L.crickets.g.connect(MG);
   }
   function lfo(param, f, depth) { const o = AC.createOscillator(); o.frequency.value = f; const g = AC.createGain(); g.gain.value = depth; o.connect(g); g.connect(param); o.start(); }
