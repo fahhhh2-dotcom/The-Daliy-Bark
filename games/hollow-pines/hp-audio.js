@@ -27,6 +27,26 @@ const SND = (() => {
     L.tunnel = loopNoise('lowpass', 140, 1.5, 0);
     L.breath = loopNoise('bandpass', 900, 1.2, 0); lfo(L.breath.f.frequency, 0.9, 300);
     L.rain = (() => { const a1 = loopNoise('highpass', 1600, 0.4, 0), a2 = loopNoise('lowpass', 700, 0.5, 0); const g = AC.createGain(); g.gain.value = 0; a1.g.disconnect(); a2.g.disconnect(); a1.g.gain.value = 0.6; a2.g.gain.value = 0.8; a1.g.connect(g); a2.g.connect(g); g.connect(MG); return { g }; })();
+    // night chorus: a field of crickets + katydids, each chirping in its own rhythm and place
+    L.chorus = { g: AC.createGain() }; L.chorus.g.gain.value = 0; L.chorus.g.connect(MG);
+    const pulse = (param, f, depth, type) => { const o = AC.createOscillator(); o.type = type || 'square'; o.frequency.value = f; const g = AC.createGain(); g.gain.value = depth; o.connect(g); g.connect(param); o.start(); };
+    for (let i = 0; i < 9; i++) {
+      const o = AC.createOscillator(); o.type = 'sine'; o.frequency.value = 3900 + Math.random() * 1500;
+      const g1 = AC.createGain(); g1.gain.value = 0.5; pulse(g1.gain, 24 + Math.random() * 16, 0.5);
+      const g2 = AC.createGain(); g2.gain.value = 0.5; pulse(g2.gain, 0.6 + Math.random() * 1.6, 0.5);
+      const g3 = AC.createGain(); g3.gain.value = 0.012 + Math.random() * 0.018;
+      o.connect(g1); g1.connect(g2); g2.connect(g3);
+      let outN = g3; if (AC.createStereoPanner) { const pn = AC.createStereoPanner(); pn.pan.value = Math.random() * 2 - 1; g3.connect(pn); outN = pn; }
+      outN.connect(L.chorus.g); o.start();
+    }
+    for (let i = 0; i < 2; i++) {
+      const n = AC.createBufferSource(); n.buffer = NB; n.loop = true; const f = AC.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 6200 + i * 900; f.Q.value = 9;
+      const g1 = AC.createGain(); g1.gain.value = 0.5; pulse(g1.gain, 2.6 + i * 0.9, 0.5);
+      const g2 = AC.createGain(); g2.gain.value = 0.5; pulse(g2.gain, 0.25 + i * 0.1, 0.5);
+      const g3 = AC.createGain(); g3.gain.value = 0.05; n.connect(f); f.connect(g1); g1.connect(g2); g2.connect(g3);
+      let outN = g3; if (AC.createStereoPanner) { const pn = AC.createStereoPanner(); pn.pan.value = i ? 0.7 : -0.6; g3.connect(pn); outN = pn; }
+      outN.connect(L.chorus.g); n.start(0, Math.random());
+    }
     L.crickets = { g: AC.createGain() }; L.crickets.g.gain.value = 0.5; L.crickets.g.connect(MG);
   }
   function lfo(param, f, depth) { const o = AC.createOscillator(); o.frequency.value = f; const g = AC.createGain(); g.gain.value = depth; o.connect(g); g.connect(param); o.start(); }
@@ -67,6 +87,7 @@ const SND = (() => {
     cstep(pan, v) { osc({ f: 75, f2: 38, dur: 0.22, v: v * 0.55, pan }); burst({ dur: 0.14, freq: 420, v: v * 0.3, pan }); },
     crawl(pan, v) { burst({ dur: 0.18, type: 'bandpass', freq: 1200 + Math.random() * 600, q: 2, v: v * 0.25, pan }); osc({ f: 50, f2: 35, dur: 0.12, v: v * 0.4, pan, delay: 0.05 }); },
     snap(pan) { burst({ dur: 0.04, type: 'highpass', freq: 2600, v: 0.35, pan }); burst({ dur: 0.07, type: 'bandpass', freq: 1300, q: 3, v: 0.22, pan, delay: 0.05 }); },
+    frog(pan) { const n = 2 + Math.floor(Math.random() * 3), f0 = 95 + Math.random() * 40; for (let i = 0; i < n; i++) osc({ f: f0, f2: f0 * 0.8, type: 'sawtooth', dur: 0.22, v: 0.05, pan, delay: i * 0.32, att: 0.02, vib: 25, vibF: 32 }); },
     owl(pan) { [0, 0.45, 0.62].forEach((d, i) => osc({ f: 410 - i * 25, f2: 370 - i * 25, dur: i ? 0.22 : 0.38, v: 0.06, pan, delay: d, att: 0.04 })); },
     howl(pan) { osc({ f: 380, f2: 720, dur: 1.4, v: 0.06, pan, att: 0.3, vib: 8, vibF: 5 }); osc({ f: 720, f2: 480, dur: 1.6, v: 0.05, pan, delay: 1.3, att: 0.1, vib: 10, vibF: 5 }); },
     creak(pan) { if (!AC) return; const t = AC.currentTime; const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(70, t); o.frequency.linearRampToValueAtTime(95, t + 1.2); const f = AC.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 12; f.frequency.setValueAtTime(600, t); f.frequency.linearRampToValueAtTime(1100, t + 1.2); const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.05, t + 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3); o.connect(f); f.connect(g); g.connect(out(pan)); o.start(t); o.stop(t + 1.4); },

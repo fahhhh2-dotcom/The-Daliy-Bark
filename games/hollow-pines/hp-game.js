@@ -108,17 +108,68 @@ addIt({ x: R.x + 6.4, z: R.z, label: 'Open the door', cond: () => G.obj === 8, a
 addIt({ x: R.x + 6.4, z: R.z, label: 'Unlock the door', hold: 1.2, cond: () => G.obj === 10, act: bigChase });
 addIt({ x: Gv.x + 6, z: Gv.z + 5.4, r: 2.4, label: 'Take the key', cond: () => G.obj === 9, act: () => { G.key = true; W.key.visible = false; W.keyGl.visible = false; SND.pickup(); setObj(10); scriptedChase(); } });
 addIt({ x: L.tunnel.x, z: L.tunnel.z - 2.2, r: 2.8, label: 'Get into the tunnel', cond: () => G.obj === 11, act: () => enterTunnel(false) });
-{ const gp = tPoint(GATE_S - 0.8); addIt({ x: gp.x, z: gp.z, r: 1.8, tunnel: true, label: 'Force the gate open', hold: 1.4, cond: () => !G.gateOpen, act: () => { G.gateOpen = true; SND.gate(); } }); }
+{ const gp = tPoint(GATE_S - 0.8); addIt({ x: gp.x, z: gp.z, r: 1.8, tunnel: true, label: 'Force the gate open', hold: 1.4, cond: () => !G.gateOpen, act: () => { G.gateOpen = true; SND.gate(); remark('It’s open! GO!'); } }); }
 { const ep = tPoint(TLEN - 1); addIt({ x: ep.x, z: ep.z, r: 1.8, tunnel: true, label: 'Climb out', hold: 0.7, cond: () => G.obj === 12, act: exitTunnel }); }
 addIt({ x: Hp.x, z: Hp.z, r: 9, label: 'Fire the flare gun', cond: () => G.obj === 13, act: fireFlare });
 addIt({ x: Hp.x, z: Hp.z + 0.6, r: 2.6, label: 'Grab the rope ladder', cond: () => G.obj === 15 && heli.ready, act: startClimb });
-AMMO.forEach((a, i) => addIt({ x: a.x, z: a.z, r: 2, label: a.t === 'p' ? 'Take pistol ammo' : 'Take shotgun shells', cond: () => !G.ammo.includes(i), act: () => { G.ammo.push(i); hideItem(ammoM[i]); SND.pickup(); if (a.t === 'p') G.am.pr += a.n; else G.am.sr += a.n; hint(`+${a.n} ${a.t === 'p' ? 'pistol rounds' : 'shotgun shells'}`); } }));
-NOTES.forEach((n, i) => addIt({ x: n.x, z: n.z, r: 1.9, label: 'Read the note', cond: () => true, act: () => { if (!G.notes.includes(i)) G.notes.push(i); noteM[i].userData.gl.visible = false; SND.ui(); openNote(n.t); } }));
+AMMO.forEach((a, i) => addIt({ x: a.x, z: a.z, r: 2, label: a.t === 'p' ? 'Take pistol ammo' : 'Take shotgun shells', cond: () => !G.ammo.includes(i), act: () => { G.ammo.push(i); hideItem(ammoM[i]); SND.pickup(); if (a.t === 'p') G.am.pr += a.n; else G.am.sr += a.n; hint(`+${a.n} ${a.t === 'p' ? 'pistol rounds' : 'shotgun shells'}`); remark(['Ammo. Good.', 'I’ll take that.', 'More ammo.'], 0.6); } }));
+NOTES.forEach((n, i) => addIt({ x: n.x, z: n.z, r: 1.9, label: 'Read the note', cond: () => true, act: () => { if (!G.notes.includes(i)) G.notes.push(i); noteM[i].userData.gl.visible = false; SND.ui(); openNote(n.t, () => remark(['Creepy…', 'Okay. That’s not good.', 'I really wish I hadn’t read that.'], 0.7)); } }));
 
+// ================= VOICE (you can hear yourself talk) =================
+const VOICE = { ok: 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window };
+function loadVoices() { if (!VOICE.ok) return; const v = speechSynthesis.getVoices().filter(x => /^en/i.test(x.lang)); VOICE.you = v.find(x => /en-US/i.test(x.lang)) || v[0] || null; VOICE.radio = v.find(x => x !== VOICE.you && /en-(GB|AU|IE|US)/i.test(x.lang)) || VOICE.you; }
+if (VOICE.ok) { loadVoices(); try { speechSynthesis.onvoiceschanged = loadVoices; } catch (e) {} }
+function speak(text, who) {
+  if (!VOICE.ok || settings.voice === false || !['You', 'Radio', 'Pilot'].includes(who)) return;
+  try {
+    const u = new SpeechSynthesisUtterance(text.replace(/…/g, '... ').replace(/—/g, ', ').replace(/\bkk+h*…?/gi, '').replace(/[“”]/g, ''));
+    const radio = who !== 'You'; if (VOICE.you) u.voice = radio ? VOICE.radio : VOICE.you;
+    u.pitch = who === 'Pilot' ? 0.65 : radio ? 0.82 : 1.0; u.rate = who === 'You' ? 1.04 : 0.97; u.volume = Math.min(1, settings.vol * 1.1);
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+    if (radio) SND.radioBlip();
+  } catch (e) {}
+}
+function hush() { try { if (VOICE.ok) speechSynthesis.cancel(); } catch (e) {} }
+const pick = a => a[Math.floor(rand() * a.length)];
+function remark(lines, chance = 1) { if (G.mode !== 'play' || rand() > chance || G.time - (G.lastRemark || -99) < 9 || subQ.length > 1) return; G.lastRemark = G.time; say(Array.isArray(lines) ? pick(lines) : lines, 2.8, 'You'); }
+const CHATTER = [
+  ['It’s so quiet out here.', 'Harlan said this would be easy money.', 'Why would anyone live this far out?', 'Okay. Fuel first. Then I can relax.', 'Every tree looks the same in the dark.', 'I should have brought a bigger flashlight.', 'Is the rain getting heavier?'],
+  ['That tower looks a lot taller up close.', 'I keep hearing branches snap behind me.', 'Just a fuse. Just get the fuse.', 'Something smells like… wet dog. Or worse.', 'I don’t like how the wind sounds out here.'],
+  ['I feel like I’m being watched.', 'Don’t look at him… don’t look at him.', 'Harlan, what did you leave me with?', 'Keep the light on. Keep the light on.', 'He’s out there. I know he is.', 'I just want to go home.'],
+  ['Don’t stop. Don’t stop!', 'Where does this go?!'],
+  ['Come on, come on, where’s that chopper?', 'Almost out. Almost out of here.']
+];
+// ---- glowing hint when you can't find the next item for a minute ----
+const hintG = new THREE.Group(); hintG.visible = false; scene.add(hintG);
+const hintSpr = new THREE.Sprite(new THREE.SpriteMaterial({ map: TX.glint, color: 0xffb040, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); hintSpr.position.y = 0.45; hintG.add(hintSpr);
+const hintPillar = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 40, 18, 1, true).translate(0, 20, 0), new THREE.ShaderMaterial({ uniforms: { uT: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false,
+  vertexShader: 'varying float vY; varying vec3 vN; varying vec3 vV; void main(){ vY = position.y / 40.0; vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = -mv.xyz; vN = normalMatrix * normal; gl_Position = projectionMatrix * mv; }',
+  fragmentShader: 'uniform float uT; varying float vY; varying vec3 vN; varying vec3 vV; void main(){ vec3 n = vN / max(length(vN), 1e-4), v = vV / max(length(vV), 1e-4); float f = pow(clamp(abs(dot(n, v)), 0.0, 1.0), 1.5); float a = pow(max(1.0 - vY, 0.0), 2.0) * f * (0.6 + 0.3 * sin(uT * 3.0)); gl_FragColor = vec4(vec3(1.0, 0.72, 0.28) * a * 1.6, 1.0); }' }));
+hintPillar.frustumCulled = false; hintG.add(hintPillar);
+const keyWorld = W.key.getWorldPosition(new THREE.Vector3());
+function hintTarget() {
+  if (P.onTower || P.inTunnel) return null;
+  if (G.obj === 1 && !G.guns.pistol) return { k: 'pistol', p: pistolPick.position };
+  if (G.obj === 2 && G.carry < 0) { const c = nearestCan(); return c ? { k: 'can' + G.poured + G.picked.join(''), p: { x: c.x, y: H(c.x, c.z) + (Math.hypot(c.x - L.cabin.x, c.z - L.cabin.z) < 8 ? 0.2 : 0), z: c.z } } : null; }
+  if (G.obj === 5) return { k: 'fuse', p: fusePick.position };
+  if (G.obj === 9) return { k: 'key', p: keyWorld };
+  return null;
+}
+function updateHint(dt) {
+  const t = hintTarget();
+  if (!t) { hintG.visible = false; G.hintK = null; return; }
+  if (t.k !== G.hintK) { G.hintK = t.k; G.hintT = 0; G.hintShown = false; }
+  if (G.mode === 'play') G.hintT += dt;
+  if (G.hintT > 60) {
+    if (!G.hintShown) { G.hintShown = true; SND.obj(); say(pick(['Wait… what’s that glow over there?', 'Huh? Something’s glowing in the trees.', 'There! Something’s shining over there.']), 3.2, 'You'); }
+    hintG.visible = true; hintG.position.set(t.p.x, t.p.y, t.p.z); hintPillar.material.uniforms.uT.value = G.time;
+    const pul = 2.4 + Math.sin(G.time * 4) * 0.6; hintSpr.scale.set(pul, pul, pul);
+  } else hintG.visible = false;
+}
 // ================= HUD =================
 const subQ = []; let subT = 0, hintT = 0;
 function say(text, dur = 3.5, who = '') { subQ.push({ text, dur, who }); }
-function clearSubs() { subQ.length = 0; subT = 0; $('subs').innerHTML = ''; }
+function clearSubs() { subQ.length = 0; subT = 0; $('subs').innerHTML = ''; hush(); }
 function hint(t, d = 2.5) { $('hint').textContent = t; $('hint').style.display = 'block'; hintT = d; }
 function tip(id, t) { if (G.tips[id]) return; G.tips[id] = 1; say(t, 4.5, 'Tip'); }
 function refreshObj() { const o = OBJ[G.obj]; $('chap').textContent = CHAP[o[0]]; $('objT').textContent = typeof o[1] === 'function' ? o[1]() : o[1]; }
@@ -144,7 +195,7 @@ function updateHUD(dt) {
   $('lightIc').textContent = !G.hasLight ? '' : P.overheat > 0 ? `LIGHT OVERHEATED ${Math.ceil(P.overheat)}s` : P.light ? 'LIGHT ON' : 'LIGHT OFF';
   if (G.obj === 14 && G.surviveT > 0) { $('timer').style.display = 'block'; $('timer').textContent = Math.ceil(G.surviveT); } else $('timer').style.display = 'none';
   if (subT > 0) { subT -= dt; if (subT <= 0) $('subs').innerHTML = ''; }
-  if (subT <= 0 && subQ.length) { const s = subQ.shift(); $('subs').innerHTML = (s.who ? `<b>${s.who}:</b> ` : '') + s.text; subT = s.dur; }
+  if (subT <= 0 && subQ.length) { const s = subQ.shift(); $('subs').innerHTML = (s.who ? `<b>${s.who}:</b> ` : '') + s.text; subT = s.dur; speak(s.text, s.who); }
   if (hintT > 0) { hintT -= dt; if (hintT <= 0) $('hint').style.display = 'none'; }
 }
 
@@ -228,8 +279,8 @@ function fire() {
   const w = WS.cur, st = WSTAT[w];
   if (w === 'flare') { if (G.obj === 13 && Math.hypot(P.x - Hp.x, P.z - Hp.z) < 9) fireFlare(); else hint('Save the flare for the helipad!'); WS.fireT = 0.5; return; }
   const k = w === 'pistol' ? 'p' : 's';
-  if (G.am[k] <= 0) { SND.dry(); WS.fireT = 0.25; if (G.am[k + 'r'] > 0) reload(); else hint('Out of ammo!'); return; }
-  G.am[k]--; WS.fireT = st.rate; WS.recoil = 1; P.pitch = Math.min(1.4, P.pitch + (w === 'shotgun' ? 0.05 : 0.022)); P.shake = Math.max(P.shake, w === 'shotgun' ? 0.25 : 0.1);
+  if (G.am[k] <= 0) { SND.dry(); WS.fireT = 0.25; if (G.am[k + 'r'] > 0) reload(); else { hint('Out of ammo!'); remark('I’m out! I’m out of ammo!'); } return; }
+  G.am[k]--; if (G.am[k] + G.am[k + 'r'] === 3) remark('I’m almost out of ammo.'); WS.fireT = st.rate; WS.recoil = 1; P.pitch = Math.min(1.4, P.pitch + (w === 'shotgun' ? 0.05 : 0.022)); P.shake = Math.max(P.shake, w === 'shotgun' ? 0.25 : 0.1);
   W.muzzle.material.opacity = 1; W.muzzle.material.rotation = rand() * 6; W.muzzleL.intensity = w === 'shotgun' ? 4 : 2.6;
   w === 'pistol' ? SND.pistol() : SND.shotgun();
   scareDeer(P.x, P.z, 60);
@@ -268,7 +319,7 @@ function spawnAnimal(type, dist, ang) {
 }
 function removeAnimal(a) { scene.remove(a.m.g); ANIMALS.splice(ANIMALS.indexOf(a), 1); }
 function clearAnimals() { while (ANIMALS.length) removeAnimal(ANIMALS[0]); }
-function killAnimal(a) { a.dead = true; a.deadT = 0; bloodPool(a.x, a.z, a.deer ? 1.3 : 0.9, 3); spray(BLOOD, a.x, a.y + a.m.bh, a.z, 30, 3.5); a.deer ? SND.bleat(panOf(a.x, a.z)) : SND.yelp(panOf(a.x, a.z)); }
+function killAnimal(a) { remark(a.deer ? ['Poor thing.', 'Sorry, deer.'] : ['Got it.', 'Stay down!', 'One less wolf.'], 0.7); a.dead = true; a.deadT = 0; bloodPool(a.x, a.z, a.deer ? 1.3 : 0.9, 3); spray(BLOOD, a.x, a.y + a.m.bh, a.z, 30, 3.5); a.deer ? SND.bleat(panOf(a.x, a.z)) : SND.yelp(panOf(a.x, a.z)); }
 function scareDeer(x, z, r) { for (const a of ANIMALS) if (a.deer && !a.dead && Math.hypot(a.x - x, a.z - z) < r) a.flee = 7; }
 function panOf(x, z) { return -Math.sin(wrapA(Math.atan2(-(x - P.x), -(z - P.z)) - P.yaw)); }
 function updateAnimals(dt) {
@@ -281,7 +332,7 @@ function updateAnimals(dt) {
   }
   if (active && G.obj >= 2 && G.obj !== 11 && G.obj !== 12 && G.obj !== 15 && G.mode === 'play') {
     G.wolfT -= dt;
-    if (G.wolfT <= 0) { const n = ANIMALS.filter(a => !a.deer && !a.dead).length; G.wolfT = G.obj >= 13 ? 16 + rand() * 10 : 50 + rand() * 40; if (n < 3) { const k = G.obj >= 13 ? 2 : 1 + (rand() < 0.4 ? 1 : 0), ang = Math.PI * (0.7 + rand() * 0.6); for (let i = 0; i < k; i++) spawnAnimal('wolf', 42 + rand() * 10, ang + (rand() - 0.5) * 0.6); rand() < 0.5 ? SND.howl(panOf(P.x - Math.sin(P.yaw + ang) * 40, P.z - Math.cos(P.yaw + ang) * 40)) : SND.growl(0, 0.6); } }
+    if (G.wolfT <= 0) { const n = ANIMALS.filter(a => !a.deer && !a.dead).length; remark(['Wolves… Harlan wasn’t kidding.', 'Something’s growling out there.', 'I hear wolves. Close.'], 0.8); G.wolfT = G.obj >= 13 ? 16 + rand() * 10 : 50 + rand() * 40; if (n < 3) { const k = G.obj >= 13 ? 2 : 1 + (rand() < 0.4 ? 1 : 0), ang = Math.PI * (0.7 + rand() * 0.6); for (let i = 0; i < k; i++) spawnAnimal('wolf', 42 + rand() * 10, ang + (rand() - 0.5) * 0.6); rand() < 0.5 ? SND.howl(panOf(P.x - Math.sin(P.yaw + ang) * 40, P.z - Math.cos(P.yaw + ang) * 40)) : SND.growl(0, 0.6); } }
   }
   for (const a of ANIMALS) {
     const dx = P.x - a.x, dz = P.z - a.z, d = Math.hypot(dx, dz); let sp = 0, ty = a.yaw;
@@ -309,16 +360,16 @@ function updateAnimals(dt) {
 }
 
 // ================= PLAYER HEALTH =================
-function hurt(n, by) { if (G.mode !== 'play') return; P.hp -= n; P.hurtT = 0; P.shake = Math.max(P.shake, 0.4); SND.hurt(); $('hurt').style.opacity = 0.9; setTimeout(() => $('hurt').style.opacity = clamp((100 - P.hp) / 140, 0, 0.6), 220); if (P.hp <= 0) die(by); }
+function hurt(n, by) { if (G.mode !== 'play') return; P.hp -= n; if (P.hp < 40) remark(['I’m hurt bad…', 'I can’t take much more of this.']); else remark(['Agh! It bit me!', 'Get off me!'], 0.6); P.hurtT = 0; P.shake = Math.max(P.shake, 0.4); SND.hurt(); $('hurt').style.opacity = 0.9; setTimeout(() => $('hurt').style.opacity = clamp((100 - P.hp) / 140, 0, 0.6), 220); if (P.hp <= 0) die(by); }
 
 // ================= CREATURE =================
 function showC(v) { cr.g.visible = v; }
 function crHeadY() { return cr.g.position.y + (C.mode === 'crawl' ? 1.2 : 2.95); }
 function lookAng() { camera.getWorldDirection(FW); const p = cr.g.position, hx = p.x - camera.position.x, hy = crHeadY() - camera.position.y, hz = p.z - camera.position.z, l = Math.hypot(hx, hy, hz) || 1; return Math.acos(clamp((FW.x * hx + FW.y * hy + FW.z * hz) / l, -1, 1)); }
 function placeC(dist, angOff) { const a = P.yaw + angOff; let x = P.x - Math.sin(a) * dist, z = P.z - Math.cos(a) * dist; [x, z] = collide(x, z, 0.5); C.x = x; C.z = z; }
-function vanishC(next) { showC(false); C.state = 'hidden'; C.timer = next; C.seen = 0; C.burn = 0; C.stung = false; C.pain = 0; P.flick = 0.5; }
+function vanishC(next) { if (G.mode === 'play' && cr.g.visible) { if (C.state === 'chase') remark(['I think I lost him.', 'He’s gone… for now.', 'Keep moving. Don’t stop.']); else if (C.state === 'stalk') remark(['He was right there…', 'Where did he go?', 'I saw him. I KNOW I saw him.']); } showC(false); C.state = 'hidden'; C.timer = next; C.seen = 0; C.burn = 0; C.stung = false; C.pain = 0; P.flick = 0.5; }
 function startChase(dur, scripted) { C.state = 'chase'; C.chaseT = dur; C.scripted = !!scripted; showC(true); if (!C.stung) { SND.stinger(); C.stung = true; } tip('burn', 'Keep your flashlight right on him to drive him back — or shoot him to slow him down!'); }
-function stunC() { if (C.state === 'stun') return; SND.shriek(); C.state = 'stun'; C.timer = 0.7; C.pain = 0; C.burn = 0; if (P.burnUsed) { P.overheat = P.ohMax = C.final ? 4 : 6.5; P.burnUsed = false; if (!G.tips.oh) { G.tips.oh = 1; say('The flashlight overheated! Wait for it to cool down.', 3, ''); } } }
+function stunC() { if (C.state === 'stun') return; SND.shriek(); remark(['Get BACK!', 'Stay away from me!', 'He hates the light!']); C.state = 'stun'; C.timer = 0.7; C.pain = 0; C.burn = 0; if (P.burnUsed) { P.overheat = P.ohMax = C.final ? 4 : 6.5; P.burnUsed = false; if (!G.tips.oh) { G.tips.oh = 1; say('The flashlight overheated! Wait for it to cool down.', 3, ''); } } }
 function updateTwitch(dt) { const t = C.tw; t.t -= dt; if (t.t <= 0) { t.tz = (rand() - 0.5) * 1.2; t.ty = (rand() - 0.5) * 0.9; t.t = rand() < 0.35 ? 0.06 + rand() * 0.14 : 0.5 + rand() * 1.6; } t.z += (t.tz - t.z) * Math.min(1, dt * 22); t.y += (t.ty - t.y) * Math.min(1, dt * 22); }
 function moveC(speed, dt) {
   const dx = P.x - C.x, dz = P.z - C.z; C.detT = (C.detT || 0) - dt; if (C.detT <= 0) C.det = 0;
@@ -367,8 +418,8 @@ function lightningReveal() {
   if (menuOn || G.mode !== 'play' || P.onTower || P.inTunnel) return;
   if (C.state === 'hidden' && G.obj >= 8 && G.obj <= 14 && rand() < 0.45) {
     placeC(28 + rand() * 10, (rand() - 0.5) * 0.8); cr.g.position.set(C.x, H(C.x, C.z), C.z); cr.g.rotation.y = Math.atan2(P.x - C.x, P.z - C.z); C.mode = 'idle'; poseCreature(cr, 'idle', 0, C.tw, 1); showC(true); G.revealT = 0.6;
-    setTimeout(() => { if (G.mode === 'play') SND.stinger(); }, 250);
-  }
+    setTimeout(() => { if (G.mode === 'play') SND.stinger(); }, 250); setTimeout(() => remark(['Was that… him?', 'He’s watching me.', 'No no no no…']), 1200);
+  } else remark(['Whoa!', 'That was close.', 'This storm keeps getting worse.'], 0.3);
 }
 // ================= TUNNEL =================
 function setEnv(tunnel) { const c = tunnel ? FOG_TUNNEL : FOG_FOREST; scene.fog.color.copy(c); scene.fog.density = tunnel ? 0.07 : 0.03; hemi.intensity = tunnel ? 0.05 : 0.55; moon.intensity = tunnel ? 0 : 0.25; W.tunnel.visible = tunnel; W.endLight.intensity = tunnel ? 1.4 : 0; if (!tunnel) W.tunL.forEach(l => l.intensity = 0); SND.set('tunnel', tunnel ? 0.16 : 0, 0.5); SND.set('wind', tunnel ? 0.02 : 0.13, 0.5); SND.set('leaves', tunnel ? 0 : 0.025, 0.5); }
@@ -499,13 +550,13 @@ function openNote(t, cb) { G.prevMode = G.mode; G.mode = 'note'; noteCb = cb || 
 function closeNote() { if (G.mode !== 'note') return; $('note').style.display = 'none'; G.mode = 'play'; usePress = false; if (noteCb) { const c = noteCb; noteCb = null; c(); } }
 $('note').addEventListener('click', closeNote); $('note').addEventListener('touchend', e => { e.preventDefault(); closeNote(); });
 let pausedFrom = 'play';
-function pause() { if (G.mode !== 'play' && G.mode !== 'climb') return; pausedFrom = G.mode; G.mode = 'pause'; $('pauseP').style.display = 'grid'; try { document.exitPointerLock(); } catch (e) {} }
+function pause() { if (G.mode !== 'play' && G.mode !== 'climb') return; hush(); pausedFrom = G.mode; G.mode = 'pause'; $('pauseP').style.display = 'grid'; try { document.exitPointerLock(); } catch (e) {} }
 $('pResume').onclick = () => { $('pauseP').style.display = 'none'; G.mode = pausedFrom; lock(true); };
 $('pSet').onclick = () => { $('pauseP').style.display = 'none'; openPanel('setP', 'pauseP'); };
 $('pMenu').onclick = () => { $('pauseP').style.display = 'none'; const safe = G.mode === 'pause' && pausedFrom === 'play' && ![11, 12, 14, 15].includes(G.obj) && C.state !== 'chase' && !P.inTunnel; if (safe) checkpoint(); showMenu(); };
 const DEATH_TIPS = ['Keep your flashlight right on him to make him back off.', 'Shooting him slows him down for a moment.', 'Running drains stamina. Walk when he’s not chasing.', 'Wolves come in packs. The shotgun is in the lookout shed by the tower.', 'Ammo boxes are hidden in sheds and at every landmark.', 'Don’t stare at him when he’s just watching. He doesn’t like it.'];
 function die(by) { if (G.mode !== 'play' && G.mode !== 'scare') return; G.deaths++; G.mode = 'dead'; showDead(by === 'wolf' ? 'The wolves got you.' : ''); }
-function showDead(msg) {
+function showDead(msg) { hush();
   G.mode = 'dead'; $('hud').style.display = 'none'; $('touch').style.display = 'none'; SND.set('drone', 0, 0.5); SND.set('breath', 0, 0.3);
   $('deadTip').textContent = (msg ? msg + ' ' : '') + DEATH_TIPS[Math.floor(rand() * DEATH_TIPS.length)];
   $('dead').style.display = 'grid'; try { document.exitPointerLock(); } catch (e) {}
@@ -631,7 +682,7 @@ function drawBlood(dt) {
     bg.fillStyle = 'rgba(255,90,90,.22)'; bg.fillRect(dr.x - dr.w * 0.25, y0, Math.max(1, dr.w * 0.12), dr.len * 0.8);
   }
 }
-function showMenu() {
+function showMenu() { hush();
   menuOn = true; G.mode = 'menu'; $('menu').style.display = 'flex'; bl.style.display = 'block'; $('hud').style.display = 'none'; $('touch').style.display = 'none';
   ['slotP', 'howP', 'setP', 'credP', 'pauseP', 'dead', 'win', 'note', 'intro'].forEach(id => $(id).style.display = 'none'); $('scare').style.display = 'none'; fade(0);
   P.inTunnel = false; P.onTower = false; setEnv(false); clearAnimals(); heli.g.visible = false; W.flare.visible = false; W.flareL.intensity = 0;
@@ -652,12 +703,13 @@ function menuFrame(dt) {
   SND.ok && ambience(dt);
 }
 const panelFrom = {};
-function openPanel(id, from) { panelFrom[id] = from; $(id).style.display = 'grid'; if (id === 'slotP') renderSlots(); if (id === 'setP') { $('sHQ').checked = HQ(); $('sSens').value = settings.sens; $('sVol').value = settings.vol; $('sShadow').checked = settings.shadows; } }
+function openPanel(id, from) { panelFrom[id] = from; $(id).style.display = 'grid'; if (id === 'slotP') renderSlots(); if (id === 'setP') { $('sVoice').checked = settings.voice !== false; $('sHQ').checked = HQ(); $('sSens').value = settings.sens; $('sVol').value = settings.vol; $('sShadow').checked = settings.shadows; } }
 document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => { const p = b.closest('.panel'); p.style.display = 'none'; const f = panelFrom[p.id]; if (f) $(f).style.display = 'grid'; SND.ui(); }));
 $('playBtn').onclick = () => { SND.init(); SND.ui(); openPanel('slotP', null); };
 $('mHow').onclick = () => { SND.ui(); openPanel('howP', null); }; $('mSet').onclick = () => { SND.ui(); openPanel('setP', null); }; $('mCred').onclick = () => { SND.ui(); openPanel('credP', null); };
 $('sSens').oninput = e => { settings.sens = +e.target.value; saveSettings(); };
 $('sVol').oninput = e => { settings.vol = +e.target.value; SND.setVol(settings.vol); saveSettings(); };
+$('sVoice').onchange = e => { settings.voice = e.target.checked; if (!settings.voice) hush(); saveSettings(); };
 $('sHQ').onchange = e => { settings.quality = e.target.checked ? 'high' : 'low'; FX.setQuality(); saveSettings(); };
 $('sShadow').onchange = e => { settings.shadows = e.target.checked; flash.castShadow = settings.shadows; saveSettings(); };
 let delArm = -1;
@@ -676,13 +728,17 @@ function renderSlots() {
   }
 }
 addEventListener('keydown', () => { if (G.mode === 'intro') G.skipIntro = true; });
-document.addEventListener('pointerdown', () => { if (G.mode === 'intro') G.skipIntro = true; if (!SND.ok) { SND.init(); SND.setVol(settings.vol); $('tapSound').style.display = 'none'; if (menuOn) SND.set('menu', 0.12, 1); } }, { capture: true });
+document.addEventListener('pointerdown', () => { if (G.mode === 'intro') G.skipIntro = true; if (VOICE.ok && !VOICE.unlocked) { VOICE.unlocked = true; try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) {} } if (!SND.ok) { SND.init(); SND.setVol(settings.vol); $('tapSound').style.display = 'none'; if (menuOn) SND.set('menu', 0.12, 1); } }, { capture: true });
 
 // ================= AMBIENCE =================
 function ambience(dt) {
   const near = cr.g.visible && C.state !== 'menu' ? Math.hypot(cr.g.position.x - P.x, cr.g.position.z - P.z) : 99;
   const calm = (C.state === 'off' || C.state === 'hidden' || C.state === 'menu') && !P.inTunnel;
-  G.cricketT -= dt; if (G.cricketT <= 0) { G.cricketT = 0.25 + rand() * 0.6; if (calm && near > 30) SND.cricket(); }
+  const quiet = !calm || near < 35 || (C.state === 'chase');
+  SND.set('chorus', quiet ? 0 : (menuOn ? 0.55 : G.obj >= 8 ? 0.35 : 0.5), quiet ? 0.4 : 2.5);
+  G.cricketT -= dt; if (G.cricketT <= 0) { G.cricketT = 0.25 + rand() * 0.6; if (!quiet) SND.cricket(); }
+  const lakeD = Math.hypot(camera.position.x - LK.x, camera.position.z - LK.z);
+  G.frogT = (G.frogT || 2) - dt; if (G.frogT <= 0) { G.frogT = 1.2 + rand() * 3; if (!quiet && lakeD < 110) SND.frog(clamp((LK.x - camera.position.x) / 60, -1, 1) * 0.8); }
   G.ambT -= dt; if (G.ambT <= 0 && !P.inTunnel) { G.ambT = 9 + rand() * 18; const r = rand(), pan = rand() * 2 - 1; if (r < 0.25) SND.owl(pan); else if (r < 0.45) SND.creak(pan); else if (r < 0.65) SND.snap(pan); else if (r < 0.8) SND.howl(pan); else if (G.obj >= 8 || menuOn) SND.whisper(pan); else SND.owl(pan); }
 }
 
@@ -739,6 +795,8 @@ function update(dt) {
   if (playing && G.obj === 14) { G.surviveT -= dt; if (G.surviveT <= 0) heliArrive(); }
   if (P.hp < 100 && playing) { P.hurtT += dt; if (P.hurtT > 5) P.hp = Math.min(100, P.hp + 5 * dt); $('hurt').style.opacity = clamp((100 - P.hp) / 140, 0, 0.6); }
   if (G.revealT > 0) { G.revealT -= dt; if (G.revealT <= 0 && C.state === 'hidden') showC(false); }
+  updateHint(dt);
+  if (playing && !P.inTunnel && C.state !== 'chase' && subT <= 0 && !subQ.length) { G.chatT = (G.chatT == null ? 40 : G.chatT) - dt; if (G.chatT <= 0) { G.chatT = 50 + rand() * 50; const pool = CHATTER[OBJ[G.obj][0]]; say(pick(pool), 3.2, 'You'); } }
   updateCreature(dt); updateAnimals(dt);
   stepParticles(BLOOD, dt); stepParticles(BLACKB, dt); stepPools(dt);
   // world fx
