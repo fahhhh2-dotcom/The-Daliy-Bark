@@ -3,7 +3,7 @@
 const $ = id => document.getElementById(id);
 const cv = $('game');
 if (touch) document.body.classList.add('touch');
-const KEYN = touch ? 'USE' : 'E';
+let KEYN = touch ? 'USE' : 'E';
 const saveSettings = () => { try { localStorage.setItem('hollowPinesSettings', JSON.stringify(settings)); } catch (e) {} };
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const FW = new THREE.Vector3(), TV = new THREE.Vector3();
@@ -271,7 +271,7 @@ function updateHUD(dt) {
 
 // ================= INPUT =================
 const K = {}; let usePress = false, firePress = false, fireHeld = false, touchUse = false, touchRun = false, jx = 0, jy = 0, locked = false, lockFail = false;
-const useHeld = () => K.KeyE || K.Space || touchUse;
+const useHeld = () => K.KeyE || K.Space || touchUse || padUse;
 addEventListener('keydown', e => {
   if (e.repeat && (e.code === 'KeyE' || e.code === 'Space')) { K[e.code] = true; return; }
   K[e.code] = true;
@@ -286,7 +286,7 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => { K[e.code] = false; });
 addEventListener('blur', () => { for (const k in K) K[k] = false; });
 let lockGesture = false;
-function lock(gesture) { if (touch || lockFail || locked) return; lockGesture = !!gesture; try { const r = cv.requestPointerLock(); if (r && r.catch) r.catch(() => { if (lockGesture) lockFail = true; }); } catch (e) { if (lockGesture) lockFail = true; } }
+function lock(gesture) { if (touch || lockFail || locked || padOn) return; lockGesture = !!gesture; try { const r = cv.requestPointerLock(); if (r && r.catch) r.catch(() => { if (lockGesture) lockFail = true; }); } catch (e) { if (lockGesture) lockFail = true; } }
 document.addEventListener('pointerlockchange', () => { const was = locked; locked = document.pointerLockElement === cv; if (was && !locked && G.mode === 'play') pause(); });
 document.addEventListener('pointerlockerror', () => { if (lockGesture) lockFail = true; });
 document.addEventListener('mousemove', e => {
@@ -317,6 +317,85 @@ tbtn('bFire', () => { firePress = true; fireHeld = true; }, () => { fireHeld = f
 tbtn('bReload', () => reload());
 tbtn('bSwap', () => cycleWep());
 $('pauseBtn').addEventListener('click', () => { if (G.mode === 'play' || G.mode === 'climb') pause(); });
+// ================= GAMEPAD (PS5 / Xbox / any standard controller) =================
+let padL2 = false, padOn = false, padX = 0, padY = 0, padRun = false, padUse = false, padPrev = [], padNavT = 0, padFocus = null, padIdx = -1;
+const padDZ = v => Math.abs(v) < 0.16 ? 0 : (v - Math.sign(v) * 0.16) / 0.84;
+function rumble(strong, weak, ms) { if (!padOn || padIdx < 0) return; try { const gp = navigator.getGamepads()[padIdx], a = gp && gp.vibrationActuator; if (a && a.playEffect) a.playEffect('dual-rumble', { duration: ms, strongMagnitude: strong, weakMagnitude: weak }); } catch (e) {} }
+function setPadMode(on) {
+  if (padOn === on) return; padOn = on; KEYN = on ? '✕' : (touch ? 'USE' : 'E');
+  document.body.classList.toggle('pad', on); if (!on && padFocus) { padFocus.classList.remove('pf'); padFocus = null; }
+}
+addEventListener('keydown', () => setPadMode(false), true);
+addEventListener('mousedown', () => setPadMode(false), true);
+addEventListener('gamepadconnected', e => { padIdx = e.gamepad.index; toast('🎮 Controller connected'); });
+addEventListener('gamepaddisconnected', e => { if (e.gamepad.index === padIdx) { padIdx = -1; padX = padY = 0; padUse = padRun = false; fireHeld = false; setPadMode(false); toast('Controller disconnected'); } });
+function toast(t) { let el = $('padToast'); if (!el) { el = document.createElement('div'); el.id = 'padToast'; document.body.appendChild(el); } el.textContent = t; el.style.opacity = 1; clearTimeout(el._t); el._t = setTimeout(() => el.style.opacity = 0, 2600); }
+function padLayer() {
+  for (const id of ['note', 'setP', 'howP', 'credP', 'slotP', 'pauseP', 'dead', 'win']) { const e = $(id); if (e && getComputedStyle(e).display !== 'none') return e; }
+  return menuOn ? $('menu') : null;
+}
+function padItems(root) { return [...root.querySelectorAll('button,input,a[href]')].filter(e => e.offsetParent !== null && !e.disabled && e.id !== 'pauseBtn' && !e.classList.contains('tb')); }
+function padSetFocus(e) { if (padFocus) padFocus.classList.remove('pf'); padFocus = e; if (e) { e.classList.add('pf'); try { e.focus({ preventScroll: false }); } catch (x) {} e.scrollIntoView && e.scrollIntoView({ block: 'nearest' }); } }
+function padMove(root, dx, dy) {
+  const items = padItems(root); if (!items.length) return;
+  if (!padFocus || !items.includes(padFocus)) { padSetFocus(items[0]); return; }
+  if (padFocus.type === 'range' && dx) { const s = +padFocus.step || 0.05; padFocus.value = clamp(+padFocus.value + dx * s * 2, +padFocus.min, +padFocus.max); padFocus.dispatchEvent(new Event('input', { bubbles: true })); padFocus.dispatchEvent(new Event('change', { bubbles: true })); return; }
+  const r0 = padFocus.getBoundingClientRect(), cx = r0.left + r0.width / 2, cy = r0.top + r0.height / 2;
+  let best = null, bs = 1e9;
+  for (const e of items) { if (e === padFocus) continue; const r = e.getBoundingClientRect(), ex = r.left + r.width / 2 - cx, ey = r.top + r.height / 2 - cy, along = ex * dx + ey * dy; if (along <= 2) continue; const perp = Math.abs(ex * dy - ey * dx), s = along + perp * 2.5; if (s < bs) { bs = s; best = e; } }
+  if (!best) { const i = items.indexOf(padFocus), n = items.length; best = items[(i + (dx + dy > 0 ? 1 : -1) + n) % n]; }
+  padSetFocus(best); SND.ok && SND.ui();
+}
+function padBack(root) {
+  if (root.id === 'note') { closeNote(); return; }
+  if (root.id === 'pauseP') { $('pResume').click(); return; }
+  const b = root.querySelector('[data-back]'); if (b && b.offsetParent !== null) b.click();
+}
+function padPoll(dt) {
+  const pads = navigator.getGamepads ? navigator.getGamepads() : []; let gp = pads[padIdx];
+  if (!gp) { gp = null; for (const p of pads) if (p && p.connected) { gp = p; padIdx = p.index; break; } }
+  if (!gp) return;
+  const b = i => !!(gp.buttons[i] && (gp.buttons[i].pressed || gp.buttons[i].value > 0.5));
+  const now = gp.buttons.map((x, i) => b(i)), hit = i => now[i] && !padPrev[i];
+  const ax = padDZ(gp.axes[0] || 0), ay = padDZ(gp.axes[1] || 0), rx = padDZ(gp.axes[2] || 0), ry = padDZ(gp.axes[3] || 0);
+  const any = now.some(Boolean) || ax || ay || rx || ry;
+  if (any && !padOn) setPadMode(true);
+  if (!padOn) { padPrev = now; return; }
+  if (now.some((v, i) => v && !padPrev[i])) {
+    if (!SND.ok) { try { SND.init(); SND.setVol(settings.vol); $('tapSound').style.display = 'none'; if (menuOn) { SND.set('menu', 0.06, 1); SND.music(true); } } catch (e) {} }
+    if (VOICE.ok && !VOICE.unlocked) { VOICE.unlocked = true; try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) {} }
+    if (G.mode === 'intro') G.skipIntro = true;
+  }
+  const playing = G.mode === 'play' || G.mode === 'climb' || G.mode === 'cut';
+  const root = (G.mode === 'play' || G.mode === 'climb' || G.mode === 'cut' || G.mode === 'scare' || G.mode === 'intro') ? null : padLayer();
+  if (root) {
+    // menus: d-pad / left stick to move, ✕ to pick, ○ to go back
+    padX = padY = 0; padUse = false; padL2 = false; fireHeld = false;
+    let dx = (now[15] ? 1 : 0) - (now[14] ? 1 : 0), dy = (now[13] ? 1 : 0) - (now[12] ? 1 : 0);
+    if (!dx && !dy) { dx = Math.abs(ax) > 0.55 ? Math.sign(ax) : 0; dy = Math.abs(ay) > 0.55 ? Math.sign(ay) : 0; if (dx && dy) { if (Math.abs(ax) > Math.abs(ay)) dy = 0; else dx = 0; } }
+    padNavT -= dt;
+    if (dx || dy) { if (padNavT <= 0) { padMove(root, dx, dy); padNavT = padNavT < -1 ? 0.32 : 0.16; } } else padNavT = -2;
+    const items = padItems(root);
+    if (!padFocus || !items.includes(padFocus)) padSetFocus(items[0] || null);
+    if (hit(0)) { if (root.id === 'note') closeNote(); else if (padFocus) padFocus.click(); }
+    if (hit(1)) padBack(root);
+    if (hit(9) && root.id === 'pauseP') $('pResume').click();
+  } else {
+    if (padFocus) padSetFocus(null);
+    padX = ax; padY = ay;
+    if (playing && !P.look) { const s = 2.7 * settings.sens * dt; P.yaw -= rx * Math.abs(rx) * s; P.pitch = clamp(P.pitch - ry * Math.abs(ry) * s * 0.75, -1.4, 1.4); }
+    padUse = now[0]; padL2 = now[6];
+    if (hit(0)) usePress = true;
+    if (hit(7)) { firePress = true; fireHeld = true; } if (!now[7] && padPrev[7]) fireHeld = false;
+    if (hit(2)) reload();
+    if (hit(3) || hit(5)) cycleWep();
+    if (hit(4) || hit(12)) toggleLight();
+    if (hit(10)) padRun = !padRun;
+    if (!ax && !ay) padRun = false;
+    if (hit(9) && G.mode === 'play') pause();
+  }
+  padPrev = now;
+}
 function toggleLight() { if (!G.hasLight || !(G.mode === 'play' || G.mode === 'climb')) return; P.light = !P.light; SND.dry(); }
 
 // ================= WEAPONS =================
@@ -352,7 +431,7 @@ function fire() {
   if (G.am[k] <= 0) { SND.dry(); WS.fireT = 0.25; if (G.am[k + 'r'] > 0) reload(); else { hint('Out of ammo!'); remark('I’m out! I’m out of ammo!'); } return; }
   G.am[k]--; if (G.am[k] + G.am[k + 'r'] === 3) remark('I’m almost out of ammo.'); WS.fireT = st.rate; WS.recoil = 1; P.pitch = Math.min(1.4, P.pitch + (w === 'shotgun' ? 0.05 : 0.022)); P.shake = Math.max(P.shake, w === 'shotgun' ? 0.25 : 0.1);
   W.muzzle.material.opacity = 1; W.muzzle.material.rotation = rand() * 6; W.muzzleL.intensity = w === 'shotgun' ? 4 : 2.6;
-  w === 'pistol' ? SND.pistol() : SND.shotgun();
+  w === 'pistol' ? (SND.pistol(), rumble(0.5, 0.8, 110)) : (SND.shotgun(), rumble(1, 0.9, 220));
   scareDeer(P.x, P.z, 60);
   camera.getWorldDirection(FW); const o = camera.getWorldPosition(TV).clone();
   let hitAny = false;
@@ -453,7 +532,7 @@ function updateAnimals(dt) {
 }
 
 // ================= PLAYER HEALTH =================
-function hurt(n, by) { if (G.mode !== 'play') return; P.hp -= n; if (P.hp < 40) remark(['I’m hurt bad…', 'I can’t take much more of this.']); else remark(['Agh! It bit me!', 'Get off me!'], 0.6); P.hurtT = 0; P.shake = Math.max(P.shake, 0.4); SND.hurt(); $('hurt').style.opacity = 0.9; setTimeout(() => $('hurt').style.opacity = clamp((100 - P.hp) / 140, 0, 0.6), 220); if (P.hp <= 0) die(by); }
+function hurt(n, by) { if (G.mode !== 'play') return; P.hp -= n; if (P.hp < 40) remark(['I’m hurt bad…', 'I can’t take much more of this.']); else remark(['Agh! It bit me!', 'Get off me!'], 0.6); P.hurtT = 0; P.shake = Math.max(P.shake, 0.4); SND.hurt(); rumble(0.9, 0.6, 260); $('hurt').style.opacity = 0.9; setTimeout(() => $('hurt').style.opacity = clamp((100 - P.hp) / 140, 0, 0.6), 220); if (P.hp <= 0) die(by); }
 
 // ================= CREATURE =================
 function showC(v) { cr.g.visible = v; }
@@ -659,7 +738,7 @@ function startClimb() {
   say('He’s right behind you — CLIMB!', 2.6, ''); tip('climb', touch ? 'Hold USE (or push the stick up) to climb!' : 'Hold W (or E) to climb!');
 }
 function updateClimb(dt) {
-  const gy = H(Hp.x, Hp.z), held = K.KeyW || K.ArrowUp || K.KeyE || K.Space || touchUse || jy < -0.4;
+  const gy = H(Hp.x, Hp.z), held = K.KeyW || K.ArrowUp || K.KeyE || K.Space || touchUse || padUse || jy < -0.4 || padY < -0.4;
   P.cv += ((held ? 2.35 : 0) - P.cv) * Math.min(1, dt * 8); const old = P.cy; P.cy = Math.min(12.6, P.cy + P.cv * dt);
   if (Math.floor(P.cy / 0.4) !== Math.floor(old / 0.4)) SND.rung();
   P.bob += P.cv * dt * 4;
@@ -828,7 +907,7 @@ function renderFace() {
   gr = g.createRadialGradient(cx, cy, 200, cx, cy, 520); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, '#000'); g.fillStyle = gr; g.fillRect(0, 0, Wf, Hf);
   return c;
 }
-function startScare() {
+function startScare() { rumble(1, 1, 900);
   if (G.mode === 'scare' || G.mode === 'dead') return;
   if (!faceImg) faceImg = renderFace();
   G.mode = 'scare'; scareT = 0; G.deaths++; SND.scream(); P.look = null; C.state = 'off'; SND.set('drone', 0, 0.1);
@@ -897,7 +976,7 @@ async function newGame(slot) {
   G.mode = 'intro'; lock(true);
   const lines = ['Mr. Harlan owns every tree in Hollow Pines.', 'He’s gone away on vacation for a week.', 'He asked you to look after his forest while he’s gone.', 'It’s your first night alone out here.', 'Something in the trees already knows your name.'];
   const el = $('intro'); el.style.display = 'grid'; G.skipIntro = false;
-  for (const l of lines) { if (G.skipIntro) break; el.innerHTML = `<p>${l}</p><small>${touch ? 'Tap' : 'Click'} to skip</small>`; for (let i = 0; i < 30 && !G.skipIntro; i++) await wait(100); }
+  for (const l of lines) { if (G.skipIntro) break; el.innerHTML = `<p>${l}</p><small>${touch ? 'Tap' : padOn ? 'Press ✕' : 'Click'} to skip</small>`; for (let i = 0; i < 30 && !G.skipIntro; i++) await wait(100); }
   el.style.display = 'none';
   begin(); say('Harlan left a letter on the log by the fire.', 3.5, 'You');
 }
@@ -997,11 +1076,11 @@ function update(dt) {
   if (P.look) { P.yaw += wrapA(P.look.yaw - P.yaw) * Math.min(1, dt * 4); P.pitch += (P.look.pitch - P.pitch) * Math.min(1, dt * 4); }
   // movement
   let mx = 0, mz = 0;
-  if (playing) { if (K.KeyW || K.ArrowUp) mz += 1; if (K.KeyS || K.ArrowDown) mz -= 1; if (K.KeyD || K.ArrowRight) mx += 1; if (K.KeyA || K.ArrowLeft) mx -= 1; mx += jx; mz -= jy; }
+  if (playing) { if (K.KeyW || K.ArrowUp) mz += 1; if (K.KeyS || K.ArrowDown) mz -= 1; if (K.KeyD || K.ArrowRight) mx += 1; if (K.KeyA || K.ArrowLeft) mx -= 1; mx += jx + padX; mz -= jy + padY; }
   const ml = Math.hypot(mx, mz); if (ml > 1) { mx /= ml; mz /= ml; }
   const moving = ml > 0.1, adren = G.obj === 11 || G.obj === 12 || C.state === 'chase';
   if (P.tired && P.stam > 35) P.tired = false;
-  const run = (K.ShiftLeft || K.ShiftRight || touchRun) && moving && mz > -0.2 && !P.tired && !P.onTower;
+  const run = (K.ShiftLeft || K.ShiftRight || touchRun || padRun || padL2) && moving && mz > -0.2 && !P.tired && !P.onTower;
   if (run) { P.stam -= (adren ? 4.5 : 15) * dt; if (P.stam <= 0) { P.stam = 0; P.tired = true; if (touchRun) { touchRun = false; $('bRun').classList.remove('on'); } } } else P.stam = Math.min(100, P.stam + (moving ? 9 : 16) * dt);
   SND.set('breath', P.tired || P.stam < 25 ? 0.08 : 0, 0.4);
   const wade = P.x > 1000 && !P.inHeli ? clamp(1 + H(P.x, P.z) * 0.55, 0.5, 1) : 1;
@@ -1075,6 +1154,7 @@ function grain() { if (++grainF % 2) return; const d = gImg.data; for (let i = 0
 let last = performance.now();
 function loop(now) {
   requestAnimationFrame(loop); const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
+  padPoll(dt);
   if (window.HP_FREEZE) { FX.render(); return; }
   if (menuOn) menuFrame(dt);
   else if (G.mode === 'play' || G.mode === 'cut' || G.mode === 'climb') update(dt);
