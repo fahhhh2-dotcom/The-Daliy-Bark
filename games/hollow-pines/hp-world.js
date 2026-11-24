@@ -693,7 +693,7 @@ W.makeMedkit = makeMedkit;
 
 // ================= CHAPTER 2: THE HELICOPTER + THE SWAMP =================
 const SW = { x: 2000, z: 0 };
-const SW_ISL = [{ x: 16, z: -8, r: 10, h: 0.45 }, { x: -28, z: -62, r: 15, h: 0.6 }, { x: 34, z: -152, r: 13, h: 0.75 }, { x: -52, z: 12, r: 8, h: 0.4 }, { x: 62, z: -58, r: 9, h: 0.4 }, { x: -72, z: -112, r: 10, h: 0.5 }, { x: 90, z: -120, r: 8, h: 0.35 }];
+const SW_ISL = [{ x: 95, z: -10, r: 9, h: 0.4 }, { x: 110, z: -190, r: 15, h: 0.7 }, { x: -90, z: -20, r: 10, h: 0.45 }, { x: 16, z: -8, r: 10, h: 0.45 }, { x: -28, z: -62, r: 15, h: 0.6 }, { x: 34, z: -152, r: 13, h: 0.75 }, { x: -52, z: 12, r: 8, h: 0.4 }, { x: 62, z: -58, r: 9, h: 0.4 }, { x: -72, z: -112, r: 10, h: 0.5 }, { x: 90, z: -120, r: 8, h: 0.35 }];
 const SW_WALK = (() => { const a = { x: -16, z: -72 }, b = { x: 27, z: -143 }, pts = []; const n = 28; for (let i = 0; i <= n; i++) { const t = i / n; pts.push({ x: a.x + (b.x - a.x) * t + Math.sin(t * 9) * 4 * Math.sin(t * Math.PI), z: a.z + (b.z - a.z) * t + Math.cos(t * 7) * 3 * Math.sin(t * Math.PI) }); } return pts; })();
 function walkInfo(lx, lz) { let best = 99, bs = 0, acc = 0; for (let i = 1; i < SW_WALK.length; i++) { const a = SW_WALK[i - 1], b = SW_WALK[i], dx = b.x - a.x, dz = b.z - a.z, l2 = dx * dx + dz * dz, l = Math.sqrt(l2), t = clamp(((lx - a.x) * dx + (lz - a.z) * dz) / l2, 0, 1), d = Math.hypot(lx - a.x - dx * t, lz - a.z - dz * t); if (d < best) { best = d; bs = acc + t * l; } acc += l; } return { d: best, s: bs, len: acc }; }
 function swampGround(lx, lz) {
@@ -701,7 +701,8 @@ function swampGround(lx, lz) {
   for (const i of SW_ISL) { const d = Math.hypot(lx - i.x, lz - i.z); if (d < i.r * 1.4) h = Math.max(h, i.h - smooth(i.r * 0.55, i.r * 1.4, d) * (i.h + 1.6) + (vnoise(lx * 0.3, lz * 0.3) - 0.5) * 0.15); }
   return Math.max(h, -0.95);
 }
-function swampH(x, z) { const lx = x - SW.x, lz = z - SW.z, h = swampGround(lx, lz); if (lz < -60 && lz > -155 && walkInfo(lx, lz).d < 0.95) return Math.max(h, 0.52); return h; }
+const SW_PLAT = []; // walkable decks and floors (local rects)
+function swampH(x, z) { const lx = x - SW.x, lz = z - SW.z; let h = swampGround(lx, lz); for (const p of SW_PLAT) if (lx > p.x0 && lx < p.x1 && lz > p.z0 && lz < p.z1) h = Math.max(h, p.h); if (lz < -60 && lz > -155 && walkInfo(lx, lz).d < 0.95) return Math.max(h, 0.52); return h; }
 W.swamp = new THREE.Group(); W.swamp.visible = false; scene.add(W.swamp);
 {
   const SWG = W.swamp;
@@ -785,4 +786,66 @@ W.cabin = new THREE.Group(); W.cabin.position.set(1600, 150, -600); W.cabin.visi
   W.cabinL = new THREE.PointLight(0x9ab4ff, 0, 7, 1.5); W.cabinL.position.set(0, 1.9, 0); c.add(W.cabinL);
   W.alarmL = new THREE.PointLight(0xff1a10, 0, 8, 1.5); W.alarmL.position.set(0, 1.9, -1); c.add(W.alarmL);
   c.traverse(o => { if (o.isMesh) o.castShadow = false; });
+}
+
+// ---------- Chapter 2 expansion: nest, blood trail, houseboat, stilt village, sunken church, pump station ----------
+{
+  const SWG = W.swamp, L2 = (x, z) => ({ x: SW.x + x, z: SW.z + z }), gy = (x, z) => swampGround(x, z);
+  const plat = (x0, x1, z0, z1, h) => SW_PLAT.push({ x0, x1, z0, z1, h });
+  const boxW = (x, z, hw, hd) => BOX.push([SW.x + x, SW.z + z, hw, hd]);
+  const bone = MSM({ color: 0xd8d0bc, roughness: 0.6 }), bloodM = MAT.blood;
+  // the nest where the pilot was dragged
+  W.nest = L2(-90, -20);
+  { const g = new THREE.Group(); g.position.set(W.nest.x, gy(-90, -20), W.nest.z); SWG.add(g);
+    for (let i = 0; i < 26; i++) { const a = i / 26 * 6.28 + rand() * 0.2, r = 2.6 + rand() * 0.8, b = cyl(0.06 + rand() * 0.06, 0.08, 2.5 + rand() * 1.5, 5, MAT.dead, Math.cos(a) * r, 0.25 + rand() * 0.4, Math.sin(a) * r, g); b.rotation.set(Math.PI / 2 + (rand() - 0.5) * 0.6, a + Math.PI / 2 + (rand() - 0.5) * 0.4, (rand() - 0.5) * 0.4); }
+    for (let i = 0; i < 18; i++) { const b = cyl(0.025, 0.03, 0.25 + rand() * 0.35, 5, bone, (rand() - 0.5) * 3.6, 0.06, (rand() - 0.5) * 3.6, g); b.rotation.set(Math.PI / 2, rand() * 6, 0); }
+    for (let i = 0; i < 6; i++) sph(0.06, bone, (rand() - 0.5) * 3, 0.05, (rand() - 0.5) * 3, g, 1.3, 0.8, 1);
+    sph(0.14, bone, 1.2, 0.12, -0.8, g, 0.8, 0.7, 1.5); [-1, 1].forEach(sd => { const an = cyl(0.015, 0.02, 0.5, 4, MAT.antler, 1.2 + sd * 0.12, 0.35, -1.0, g); an.rotation.z = sd * 0.5; });
+    bx(0.6, 0.06, 0.45, MSM({ color: 0x4a5a3a, roughness: 1 }), -0.8, 0.05, 0.6, g).rotation.y = 0.7;
+    sph(0.15, MSM({ color: 0xd8d8d0, roughness: 0.3 }), 0.4, 0.13, 1.3, g, 1, 0.9, 1.1);
+    [[0, 0, 1.2], [1.6, 0.8, 0.6], [-1.2, -1.1, 0.7]].forEach(([x, z, r]) => { mk(new THREE.CircleGeometry(r, 14).rotateX(-Math.PI / 2), bloodM, x, 0.03, z, g, false); });
+    W.radioItem = new THREE.Group(); W.radioItem.position.set(-0.4, 0.12, -0.2); g.add(W.radioItem); bx(0.12, 0.22, 0.06, MSM({ color: 0x2a2a28, roughness: 0.5 }), 0, 0, 0, W.radioItem); cyl(0.008, 0.008, 0.18, 4, MAT.black, 0.04, 0.2, 0, W.radioItem); mk(new THREE.SphereGeometry(0.012, 6, 4), MSM({ color: 0x220000, emissive: 0xff2010, emissiveIntensity: 2 }), -0.03, 0.08, 0.032, W.radioItem, false);
+    W.radioItem.userData.gl = glint(W.nest.x - 0.4, g.position.y + 0.6, W.nest.z - 0.2);
+  }
+  // blood trail from the wreck to the nest
+  { const a = { x: -24, z: -58 }, b = { x: -88, z: -21 }, n = 30; for (let i = 0; i <= n; i++) { const t = i / n, x = lerp(a.x, b.x, t) + Math.sin(t * 11) * 2.5, z = lerp(a.z, b.z, t) + Math.cos(t * 7) * 2; for (let k = 0; k < 2; k++) { const px = x + (rand() - 0.5) * 0.8, pz = z + (rand() - 0.5) * 0.8, m = new THREE.Mesh(new THREE.CircleGeometry(0.18 + rand() * 0.28, 10).rotateX(-Math.PI / 2), bloodM); m.scale.z = 0.5 + rand(); m.rotation.y = rand() * 6; m.position.set(SW.x + px, Math.max(gy(px, pz), 0) + 0.025, SW.z + pz); SWG.add(m); } } }
+  // abandoned houseboat beached on an island to the east
+  W.houseboat = L2(95, -10);
+  { const g = new THREE.Group(); g.position.set(W.houseboat.x, 0, W.houseboat.z); SWG.add(g); const paint = MSM({ map: TX.wood, normalMap: NRM.wood, color: 0x6a8a8a, roughness: 0.85 });
+    bx(9, 1.0, 3.8, MAT.rust, 0, 0.45, 0, g); bx(9.2, 0.08, 4, MAT.wood, 0, 0.98, 0, g);
+    bx(5, 2.2, 0.1, paint, -0.5, 2.1, -1.45, g); bx(5, 2.2, 0.1, paint, -0.5, 2.1, 1.45, g); bx(0.1, 2.2, 3, paint, -3, 2.1, 0, g); bx(0.1, 2.2, 0.95, paint, 2, 2.1, -1.0, g); bx(0.1, 2.2, 0.95, paint, 2, 2.1, 1.0, g); bx(0.1, 0.5, 1.1, paint, 2, 2.95, 0, g);
+    const rf = bx(5.6, 0.1, 3.6, MAT.rust, -0.5, 3.25, 0, g); rf.rotation.z = 0.04; bx(0.9, 0.6, 0.05, MAT.glass, -0.5, 2.3, 1.48, g); bx(0.9, 0.6, 0.05, MAT.glass, -0.5, 2.3, -1.48, g);
+    bx(1.2, 0.08, 2.4, MAT.wood, 5.1, 0.55, 0, g).rotation.z = -0.45; bx(1.4, 0.7, 0.8, MSM({ color: 0x5a4a3a }), -2.2, 1.35, -0.9, g);
+    plat(95 - 4.5, 95 + 4.5, -10 - 1.9, -10 + 1.9, 1.0); plat(95 + 4.5, 95 + 5.8, -11, -9, 0.6);
+    boxW(94.5, -11.45, 2.5, 0.08); boxW(94.5, -8.55, 2.5, 0.08); boxW(92, -10, 0.08, 1.5); boxW(97, -11.0, 0.08, 0.48); boxW(97, -9.0, 0.08, 0.48);
+  }
+  // flooded stilt village to the south-west
+  W.village = L2(-95, -165);
+  { const V = [[0, 0, 0], [12, -6, 0.4], [4, 11, -0.3]], fl = 1.5;
+    V.forEach(([ox, oz, ry], i) => { const g = new THREE.Group(); g.position.set(W.village.x + ox, 0, W.village.z + oz); SWG.add(g);
+      [[-2, -2], [2, -2], [-2, 2], [2, 2]].forEach(([a, b]) => cyl(0.1, 0.12, 3, 6, MAT.dwood, a, 0, b, g));
+      bx(4.4, 0.12, 4.4, MAT.wood, 0, fl, 0, g); bx(4.2, 2.2, 0.1, MAT.dwood, 0, fl + 1.1, -2.1, g); bx(0.1, 2.2, 4.2, MAT.dwood, -2.1, fl + 1.1, 0, g); bx(0.1, 2.2, 4.2, MAT.dwood, 2.1, fl + 1.1, 0, g); bx(1.4, 2.2, 0.1, MAT.dwood, -1.4, fl + 1.1, 2.1, g); bx(1.4, 2.2, 0.1, MAT.dwood, 1.4, fl + 1.1, 2.1, g);
+      const r1 = bx(4.8, 0.1, 2.6, MAT.rust, 0, fl + 2.55, -1.1, g); r1.rotation.x = 0.35; const r2 = bx(4.8, 0.1, 2.6, MAT.rust, 0, fl + 2.55, 1.1, g); r2.rotation.x = -0.35;
+      const cx = 0 - 95 + ox, cz = -165 + oz; plat(cx - 2.2, cx + 2.2, cz - 2.2, cz + 2.2, fl);
+      boxW(cx, cz - 2.1, 2.1, 0.08); boxW(cx - 2.1, cz, 0.08, 2.1); boxW(cx + 2.1, cz, 0.08, 2.1); boxW(cx - 1.4, cz + 2.1, 0.7, 0.08); boxW(cx + 1.4, cz + 2.1, 0.7, 0.08);
+      for (let k = 0; k < 4; k++) { const sx = cx, sz = cz + 2.6 + k * 0.9, h = fl - 0.38 * (k + 1); plat(sx - 0.7, sx + 0.7, sz - 0.45, sz + 0.45, h); bx(1.4, 0.08, 0.85, MAT.wood, ox, h, oz + 2.6 + k * 0.9, g.parent === SWG ? new THREE.Group() : g); const st = bx(1.4, 0.08, 0.85, MAT.wood, W.village.x + sx + 95, h, W.village.z + sz + 165, SWG); }
+    });
+    const walk = (x0, z0, x1, z1) => { const dx = x1 - x0, dz = z1 - z0, l = Math.hypot(dx, dz); for (let t = 0; t < l; t += 0.5) { const x = x0 + dx * t / l, z = z0 + dz * t / l; const p = bx(1.3, 0.06, 0.4, MAT.dwood, SW.x + x, fl - 0.04, SW.z + z, SWG); p.rotation.y = Math.atan2(dx, dz); plat(x - 0.65, x + 0.65, z - 0.65, z + 0.65, fl); } };
+    walk(-95 + 2.2, -165, -95 + 12 - 2.2, -165 - 6); walk(-95, -165 + 2.2, -95 + 4, -165 + 11 - 2.2);
+  }
+  // sunken church steeple
+  W.church = L2(70, -95);
+  { const g = new THREE.Group(); g.position.set(W.church.x, -2.5, W.church.z); g.rotation.set(0.12, 0.6, 0.2); SWG.add(g); bx(3.2, 9, 3.2, MAT.stone, 0, 4.5, 0, g); const sp = mk(new THREE.ConeGeometry(2.4, 5, 4), MAT.rust, 0, 11.5, 0, g); sp.rotation.y = Math.PI / 4; bx(0.15, 1.6, 0.15, MAT.dwood, 0, 14.8, 0, g); bx(0.9, 0.15, 0.15, MAT.dwood, 0, 15.1, 0, g); [0, Math.PI / 2, Math.PI, -Math.PI / 2].forEach(a => { const w = bx(0.9, 1.8, 0.05, MAT.black, Math.sin(a) * 1.62, 7, Math.cos(a) * 1.62, g); w.rotation.y = a; }); sph(0.45, MSM({ color: 0x6a5a30, metalness: 0.8, roughness: 0.35 }), 0, 6.6, 0, g, 1, 1.1, 1); addCol(W.church.x, W.church.z, 2.4); }
+  // the old pump station
+  W.pump = L2(110, -190);
+  { const g = new THREE.Group(); g.position.set(W.pump.x, gy(110, -190), W.pump.z); SWG.add(g);
+    bx(6, 4.5, 5, MAT.conc, 0, 2.25, 0, g); bx(6.4, 0.3, 5.4, MAT.conc, 0, 4.6, 0, g); bx(1.3, 2.3, 0.08, MAT.rust, 0, 1.15, 2.52, g); bx(1.6, 0.9, 0.05, MAT.warn, 0, 3.4, 2.53, g);
+    for (let i = 0; i < 3; i++) { const pp = cyl(0.45, 0.45, 9, 12, MAT.rust, -2 + i * 2, 0.6, -6.5, g); pp.rotation.x = Math.PI / 2; }
+    W.pumpGen = { x: W.pump.x - 4.5, z: W.pump.z + 3.5 }; bx(1.4, 0.9, 0.9, MAT.yellow, -4.5, 0.45, 3.5, g); const tk = cyl(0.3, 0.3, 1.2, 10, MAT.yellow, -4.5, 1.1, 3.5, g); tk.rotation.z = Math.PI / 2;
+    beam(V3(4.5, 0, 4.5), V3(4.5, 7.5, 4.5), 0.09, MAT.metal, g); bx(1.6, 0.4, 0.4, MAT.metal, 4.5, 7.5, 4.5, g); W.pumpLampM = MSM({ color: 0x222222, emissive: 0x000000 }); bx(1.4, 0.3, 0.05, W.pumpLampM, 4.5, 7.5, 4.72, g);
+    W.pumpL = new THREE.SpotLight(0xe8f0ff, 0, 80, 0.8, 0.5, 1); W.pumpL.position.set(4.5, 7.4, 4.8); g.add(W.pumpL); const tg = new THREE.Object3D(); tg.position.set(-2, 0, 18); g.add(tg); W.pumpL.target = tg;
+    const horn = mk(new THREE.ConeGeometry(0.3, 0.6, 10, 1, true), MAT.metal, 4.5, 6.6, 4.4, g); horn.rotation.x = -Math.PI / 2;
+    boxW(110, -190, 3.1, 2.6); boxW(110 - 4.5, -190 + 3.5, 0.7, 0.45);
+    for (let a = 0; a < 6.28; a += 0.28) { if (Math.abs(wrapA(a - 1.6)) < 0.35) continue; cyl(0.03, 0.03, 1.4, 4, MAT.metal, Math.cos(a) * 11, 0.7, Math.sin(a) * 11, g).castShadow = false; }
+  }
 }

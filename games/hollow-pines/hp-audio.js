@@ -47,6 +47,7 @@ const SND = (() => {
       let outN = g3; if (AC.createStereoPanner) { const pn = AC.createStereoPanner(); pn.pan.value = i ? 0.7 : -0.6; g3.connect(pn); outN = pn; }
       outN.connect(L.chorus.g); n.start(0, Math.random());
     }
+    L.siren = (() => { const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 620; const l = AC.createOscillator(); l.frequency.value = 0.35; const lg = AC.createGain(); lg.gain.value = 260; l.connect(lg); lg.connect(o.frequency); l.start(); const f = AC.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 1.2; const g = AC.createGain(); g.gain.value = 0; o.connect(f); f.connect(g); g.connect(MG); o.start(); return { g }; })();
     L.crickets = { g: AC.createGain() }; L.crickets.g.gain.value = 0.5; L.crickets.g.connect(MG);
   }
   function lfo(param, f, depth) { const o = AC.createOscillator(); o.frequency.value = f; const g = AC.createGain(); g.gain.value = depth; o.connect(g); g.connect(param); o.start(); }
@@ -134,6 +135,9 @@ const SND = (() => {
     whoosh() { burst({ dur: 1.6, type: 'bandpass', freq: 500, f2: 2500, q: 0.7, v: 0.5, att: 0.3 }); },
     alarm() { osc({ f: 880, dur: 0.18, v: 0.09, type: 'square' }); osc({ f: 660, dur: 0.18, v: 0.09, type: 'square', delay: 0.22 }); },
     boom() { burst({ dur: 3, type: 'lowpass', freq: 600, f2: 60, v: 1, att: 0.005 }); osc({ f: 60, f2: 22, dur: 2, v: 1 }); burst({ dur: 1.5, type: 'highpass', freq: 1500, v: 0.2, delay: 0.05 }); },
+    hiss(pan) { burst({ dur: 0.9, type: 'highpass', freq: 3000, v: 0.12, pan, att: 0.15 }); burst({ dur: 0.7, type: 'bandpass', freq: 220, q: 2, v: 0.12, pan, delay: 0.1 }); },
+    chomp(pan) { osc({ f: 140, f2: 60, dur: 0.18, v: 0.6, pan }); burst({ dur: 0.08, type: 'highpass', freq: 1800, v: 0.4, pan }); burst({ dur: 0.5, type: 'bandpass', freq: 700, q: 0.8, v: 0.35, pan, delay: 0.05 }); },
+    bell(pan) { [220, 330, 523].forEach((f, i) => osc({ f, dur: 4, v: 0.05 / (i + 1), pan, type: 'sine' })); osc({ f: 233, dur: 3.5, v: 0.02, pan }); },
     frog(pan) { const n = 2 + Math.floor(Math.random() * 3), f0 = 95 + Math.random() * 40; for (let i = 0; i < n; i++) osc({ f: f0, f2: f0 * 0.8, type: 'sawtooth', dur: 0.22, v: 0.05, pan, delay: i * 0.32, att: 0.02, vib: 25, vibF: 32 }); },
     owl(pan) { [0, 0.45, 0.62].forEach((d, i) => osc({ f: 410 - i * 25, f2: 370 - i * 25, dur: i ? 0.22 : 0.38, v: 0.06, pan, delay: d, att: 0.04 })); },
     howl(pan) { osc({ f: 380, f2: 720, dur: 1.4, v: 0.06, pan, att: 0.3, vib: 8, vibF: 5 }); osc({ f: 720, f2: 480, dur: 1.6, v: 0.05, pan, delay: 1.3, att: 0.1, vib: 10, vibF: 5 }); },

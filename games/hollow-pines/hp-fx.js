@@ -43,9 +43,9 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(120, 32, 16), new THREE.Shad
       col += vec3(0.18, 0.21, 0.28) * pow(md, 260.0) + vec3(0.04, 0.05, 0.075) * pow(md, 14.0);
       vec2 uv = d.xz / (max(h, 0.0) + 0.22);
       float c = fbm(vec3(uv * 1.4 + vec2(uTime * 0.012, uTime * 0.004), uTime * 0.01));
-      c = smoothstep(0.42, 0.78, c) * smoothstep(0.0, 0.2, h);
-      vec3 cc = mix(vec3(0.016, 0.02, 0.03), vec3(0.13, 0.14, 0.17), pow(md, 6.0));
-      col = mix(col, cc, c * 0.9);
+      c = smoothstep(0.38, 0.92, c) * smoothstep(0.0, 0.25, h);
+      vec3 cc = mix(max(col * 0.75, vec3(0.03, 0.036, 0.048)), vec3(0.13, 0.14, 0.17), pow(md, 6.0));
+      col = mix(col, cc, c * 0.6);
       col = col * uTint + uFlash * vec3(0.55, 0.6, 0.8) * (0.25 + c * 1.2);
       gl_FragColor = vec4(col, 1.0);
     }`

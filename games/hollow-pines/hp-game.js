@@ -10,8 +10,8 @@ const FW = new THREE.Vector3(), TV = new THREE.Vector3();
 const fmtT = s => { s = Math.floor(s); const m = Math.floor(s / 60); return m + ':' + String(s % 60).padStart(2, '0'); };
 
 // ================= STATE =================
-const PKEYS = ['ch1done', 'ch2done', 'med', 'obj', 'poured', 'picked', 'carry', 'key', 'fuse', 'fuseIn', 'power', 'guns', 'am', 'wep', 'ammo', 'notes', 'time', 'hasLight', 'deaths', 'done'];
-const fresh = () => ({ ch1done: false, ch2done: false, med: [], obj: 0, poured: 0, picked: [0, 0, 0, 0], carry: -1, key: false, fuse: false, fuseIn: false, power: false, guns: { pistol: false, shotgun: false, flare: false }, am: { p: 0, pr: 0, s: 0, sr: 0 }, wep: 'none', ammo: [], notes: [], time: 0, hasLight: false, deaths: 0, done: false });
+const PKEYS = ['sgas', 'ch1done', 'ch2done', 'med', 'obj', 'poured', 'picked', 'carry', 'key', 'fuse', 'fuseIn', 'power', 'guns', 'am', 'wep', 'ammo', 'notes', 'time', 'hasLight', 'deaths', 'done'];
+const fresh = () => ({ sgas: [], ch1done: false, ch2done: false, med: [], obj: 0, poured: 0, picked: [0, 0, 0, 0], carry: -1, key: false, fuse: false, fuseIn: false, power: false, guns: { pistol: false, shotgun: false, flare: false }, am: { p: 0, pr: 0, s: 0, sr: 0 }, wep: 'none', ammo: [], notes: [], time: 0, hasLight: false, deaths: 0, done: false });
 const G = Object.assign({ mode: 'boot', slot: 0, surviveT: 0, glimpseAt: 0, tips: {}, gateOpen: false, wolfT: 60, ambT: 8, cricketT: 1 }, fresh());
 const P = { inHeli: false, x: 0, z: 5, y: 0, yaw: 0, pitch: 0, stam: 100, tired: false, hp: 100, hurtT: 9, onTower: false, inTunnel: false, light: false, overheat: 0, ohMax: 6, bob: 0, stepAcc: 0, look: null, cy: 0, cv: 0, shake: 0 };
 const C = { state: 'off', x: 0, z: 0, timer: 0, seen: 0, burn: 0, pain: 0, stag: 0, aggr: 0, final: false, scripted: false, rush: false, ph: 0, stepT: 0, stung: false, s: 0, cy: 0, chaseT: 0, mode: 'idle', tw: { z: 0, y: 0, tz: 0, ty: 0, t: 0 }, speed: 0 };
@@ -53,8 +53,13 @@ const OBJ = [
   [5, 'JUMP out the door!', () => null],
   [5, 'Get out of the water — reach dry land', () => ({ x: SW.x + 16, z: SW.z - 8 })],
   [5, 'Find the helicopter crash site', () => W.crash],
-  [5, 'Follow the old boardwalk out of the swamp', () => { const e = SW_WALK[SW_WALK.length - 1]; return { x: SW.x + e.x, z: SW.z + e.z }; }],
-  [5, 'Get inside the fishing shack!', () => ({ x: W.shack.x, z: W.shack.z + 2.2 })]
+  [5, 'Search the helicopter wreck', () => W.crash],
+  [5, 'Follow the blood trail', () => W.nest],
+  [5, () => `Find gas for the pump station (${G.sgas.length}/2) — houseboat & stilt village`, () => nearestGas()],
+  [5, 'Get to the old pump station (south-east)', () => W.pump],
+  [5, 'Fuel and start the pump station generator', () => W.pumpGen],
+  [5, 'Survive until the ranger sees the floodlights', () => W.pump],
+  [5, 'RUN to the fishing shack dock!', () => ({ x: W.shack.x, z: W.shack.z + 2.2 })]
 ];
 const LETTER = `Kid —
 
@@ -77,12 +82,19 @@ const NOTES = [
   { x: Gv.x + 2.5, z: Gv.z + 9, t: 'The chapel rang its bell every night so the town knew to stay inside.\nThen the bell ringer went missing.\n\nThey found his lantern by the well. Just the lantern.' },
   { x: W.shed3.x, z: W.shed3.z + 1.9, t: 'If he chases you, go underground.\nThe old mine tunnel by the ranger station runs all the way to the helipad.\n\nHe’s too tall for the tunnel.\nI hope.' }
 ];
+const SGAS = [{ x: W.houseboat.x - 1.5, z: W.houseboat.z - 0.4, y: 1.0 }, { x: W.village.x + 12, z: W.village.z - 6.5, y: 1.56 }];
+function nearestGas() { let b = null, bd = 1e9; SGAS.forEach((g, i) => { if (G.sgas.includes(i)) return; const d = Math.hypot(g.x - P.x, g.z - P.z); if (d < bd) { bd = d; b = g; } }); return b; }
 NOTES.push(
+  { x: W.houseboat.x + 0.5, z: W.houseboat.z + 0.6, y: 1.0, t: 'Fisherman’s diary.\n\nThe tall one came down from the pines last fall. Walked right across the water like it was a road.\n\nIt doesn’t eat the gators. The gators get out of its way.\n\nI’m taking the skiff to Millbrook in the morning. If I can find the paddle.' },
+  { x: W.village.x + 0.5, z: W.village.z - 0.6, y: 1.56, t: 'EVACUATION NOTICE\nBayou Hollow Village\n\nAll residents must leave by order of the county.\n\nPeople keep reporting a tall figure standing in the water at night, smiling up at their windows.\n\nDO NOT open your doors after dark.' },
+  { x: W.pump.x + 2.4, z: W.pump.z + 3.4, t: 'Pump Station 4 — maintenance\n\nGenerator runs the floodlights and the siren. Tank holds two cans.\n\nIf the siren ever sounds and you didn’t start it… get inside and lock the door.' },
+
   { x: L.oldcamp.x + 1.2, z: L.oldcamp.z - 1.6, t: 'Jess’s journal.\n\nDay 2. Marco went to Harlan’s barn by the old truck to look for gas. That was an hour ago.\n\nSomething keeps circling the tent. It’s so tall it has to duck under the branches.\n\nIf anyone finds this: the light keeps it away. Don’t let your flashlight die.' },
   { x: L.barn.x - 1, z: L.barn.z + 2.6, t: 'Jess —\n\nThe barn is empty except for Harlan’s suitcases. ALL of them. Packed.\n\nHe never left on any vacation.\n\nI left his first aid kit here for you. I’m heading back to the tent. If I’m not there, run.\n— Marco' },
   { x: L.stand.x + 1.5, z: L.stand.z + 2.6, t: 'Stand log — H.\n\nSaw it again tonight from up here. It doesn’t walk like a man.\nIt walks like something pretending to be one.\n\nThere’s another one too. Smaller. It just stands and stares. It never comes closer. I don’t know which one scares me more.' }
 );
 const MEDS = [
+  { x: W.houseboat.x - 2.2, z: W.houseboat.z + 0.8, yo: 0.6 }, { x: W.village.x + 4, z: W.village.z + 11, yo: 1.56 }, { x: W.pump.x + 3.5, z: W.pump.z + 3.2 }, { x: W.nest.x + 1.8, z: W.nest.z + 1.2 },
   { x: L.oldcamp.x - 1.2, z: L.oldcamp.z + 2 }, { x: L.barn.x + 1.2, z: L.barn.z + 2.4 }, { x: L.cabin.x + 2.8, z: L.cabin.z + 3.9, yo: 0.2 }, { x: R.x + 6.6, z: R.z - 1.5, yo: 0.25 },
   { x: T.x + 3.2, z: T.z + 4 }, { x: W.shed3.x, z: W.shed3.z + 0.9 }, { x: W.crash.x + 4.5, z: W.crash.z - 2 }, { x: L.hatch.x - 2, z: L.hatch.z + 1.5 }, { x: L.stand.x - 1.8, z: L.stand.z + 1.6 }
 ];
@@ -92,7 +104,7 @@ const AMMO = [
   { x: T.x - 2.6, z: T.z + 3.6, t: 'p', n: 12 }, { x: R.x + 6.4, z: R.z + 2.6, t: 'p', n: 12, yo: 0.25 }, { x: R.x + 6.4, z: R.z - 2.6, t: 's', n: 6, yo: 0.25 },
   { x: W.shed3.x - 0.5, z: W.shed3.z, y: W.shed3.y, t: 'p', n: 12 }, { x: W.shed3.x + 0.5, z: W.shed3.z, y: W.shed3.y, t: 's', n: 6 }, { x: L.tunnel.x + 2.8, z: L.tunnel.z - 4.5, t: 'p', n: 12 },
   { x: L.hatch.x + 2.2, z: L.hatch.z + 2, t: 's', n: 6 }, { x: Gv.x + 1, z: Gv.z - 2, t: 'p', n: 12 },
-  { x: L.oldcamp.x + 2.4, z: L.oldcamp.z + 0.5, t: 'p', n: 12 }, { x: L.barn.x + 3.4, z: L.barn.z - 2.6, t: 's', n: 6, yo: 0.95 }, { x: L.stand.x + 1.6, z: L.stand.z - 1.6, t: 'p', n: 12 }
+  { x: L.oldcamp.x + 2.4, z: L.oldcamp.z + 0.5, t: 'p', n: 12 }, { x: W.houseboat.x - 2.8, z: W.houseboat.z - 0.8, y: 1.0, t: 'p', n: 12 }, { x: W.village.x + 4.5, z: W.village.z + 10.4, y: 1.56, t: 's', n: 6 }, { x: W.pump.x - 3, z: W.pump.z + 3.2, t: 'p', n: 12 }, { x: W.nest.x - 1.5, z: W.nest.z + 1.6, t: 'p', n: 12 }, { x: W.crash.x + 5, z: W.crash.z + 1, t: 's', n: 6 }, { x: L.barn.x + 3.4, z: L.barn.z - 2.6, t: 's', n: 6, yo: 0.95 }, { x: L.stand.x + 1.6, z: L.stand.z - 1.6, t: 'p', n: 12 }
 ];
 
 // ================= WORLD ITEMS =================
@@ -100,7 +112,7 @@ const IT = [];
 const addIt = o => { IT.push(Object.assign({ r: 2.2, hold: 0, tower: false, tunnel: false, heli: false }, o)); return o; };
 const cans = CANP.map(([x, z], i) => { const c = makeCan(); c.position.set(x, H(x, z) + (i === 1 ? 0.2 : 0), z); c.rotation.y = i * 1.7; scene.add(c); c.userData.gl = glint(x, c.position.y + 0.7, z); return c; });
 const ammoM = AMMO.map(a => { const m = makeAmmo(); const y = a.y != null ? a.y : H(a.x, a.z) + (a.yo || 0); m.position.set(a.x, y, a.z); m.rotation.y = rand() * 6; scene.add(m); m.userData.gl = glint(a.x, y + 0.45, a.z); return m; });
-const noteM = NOTES.map(n => { const m = bx(0.22, 0.012, 0.3, MAT.paper, n.x, H(n.x, n.z) + 0.03, n.z); m.rotation.y = rand() * 6; m.userData.gl = glint(n.x, m.position.y + 0.4, n.z); return m; });
+const noteM = NOTES.map(n => { const m = bx(0.22, 0.012, 0.3, MAT.paper, n.x, (n.y != null ? n.y : H(n.x, n.z)) + 0.03, n.z); m.rotation.y = rand() * 6; m.userData.gl = glint(n.x, m.position.y + 0.4, n.z); return m; });
 const pistolPick = makePistol(); pistolPick.position.set(W.shed1.x - 0.3, W.shed1.y + 0.02, W.shed1.z); pistolPick.rotation.set(0, 1.3, Math.PI / 2); scene.add(pistolPick); pistolPick.userData.gl = glint(W.shed1.x - 0.3, W.shed1.y + 0.4, W.shed1.z);
 const shotPick = makeShotgun(); shotPick.position.set(W.shed2.x - 0.4, W.shed2.y + 0.03, W.shed2.z); shotPick.rotation.set(0, 1.5, Math.PI / 2); scene.add(shotPick); shotPick.userData.gl = glint(W.shed2.x - 0.4, W.shed2.y + 0.4, W.shed2.z);
 const fusePick = bx(0.08, 0.04, 0.04, MAT.red, W.shed2.x + 0.1, W.shed2.y + 0.02, W.shed2.z + 0.15); fusePick.userData.gl = glint(W.shed2.x + 0.1, W.shed2.y + 0.35, W.shed2.z + 0.15);
@@ -129,13 +141,17 @@ addIt({ x: L.tunnel.x, z: L.tunnel.z - 2.2, r: 2.8, label: 'Get into the tunnel'
 { const ep = tPoint(TLEN - 1); addIt({ x: ep.x, z: ep.z, r: 1.8, tunnel: true, label: 'Climb out', hold: 0.7, cond: () => G.obj === 12, act: exitTunnel }); }
 addIt({ x: Hp.x, z: Hp.z, r: 9, label: 'Fire the flare gun', cond: () => G.obj === 13, act: fireFlare });
 addIt({ x: Hp.x, z: Hp.z + 0.6, r: 2.6, label: 'Grab the rope ladder', cond: () => G.obj === 15 && heli.ready, act: startClimb });
-const medM = MEDS.map(a => { const m = W.makeMedkit(); const y = H(a.x, a.z) + (a.yo || 0); m.position.set(a.x, y, a.z); m.rotation.y = rand() * 6; scene.add(m); m.userData.gl = glint(a.x, y + 0.5, a.z); return m; });
+const medM = MEDS.map(a => { const m = W.makeMedkit(); const y = a.yo > 1 ? a.yo : H(a.x, a.z) + (a.yo || 0); m.position.set(a.x, y, a.z); m.rotation.y = rand() * 6; scene.add(m); m.userData.gl = glint(a.x, y + 0.5, a.z); return m; });
 MEDS.forEach((a, i) => addIt({ x: a.x, z: a.z, r: 2, label: () => P.hp >= 100 ? 'First aid kit (you’re not hurt)' : 'Use the first aid kit', cond: () => !G.med.includes(i), act: () => { if (P.hp >= 100) { hint('You’re not hurt. Save it for later.'); return; } G.med.push(i); hideItem(medM[i]); SND.pickup(); P.hp = Math.min(100, P.hp + 60); $('hurt').style.opacity = clamp((100 - P.hp) / 140, 0, 0.6); remark(['That’s better.', 'Okay… okay. I can keep going.', 'Patched up.']); } }));
 AMMO.forEach((a, i) => addIt({ x: a.x, z: a.z, r: 2, label: a.t === 'p' ? 'Take pistol ammo' : 'Take shotgun shells', cond: () => !G.ammo.includes(i), act: () => { G.ammo.push(i); hideItem(ammoM[i]); SND.pickup(); if (a.t === 'p') G.am.pr += a.n; else G.am.sr += a.n; hint(`+${a.n} ${a.t === 'p' ? 'pistol rounds' : 'shotgun shells'}`); remark(['Ammo. Good.', 'I’ll take that.', 'More ammo.'], 0.6); } }));
 addIt({ x: -0.6, z: -1.9, r: 1.3, heli: true, label: 'Talk to the pilot', cond: () => G.obj === 16 && !CH2.talked, act: () => { CH2.talked = true; pilotTalk(); } });
 addIt({ x: 0, z: 2.2, r: 1.2, heli: true, label: 'Look out the back window', cond: () => G.obj === 17, act: backWindowScene });
 addIt({ x: 1.15, z: 0.1, r: 1.2, heli: true, label: 'JUMP!', cond: () => G.obj === 18, act: jumpOut });
-addIt({ x: W.shack.x, z: W.shack.z + 2.2, r: 2.6, label: 'Get inside!', hold: 0.5, cond: () => G.obj === 22 || G.obj === 21, act: ch2End });
+addIt({ x: W.shack.x, z: W.shack.z + 2.2, r: 2.6, label: 'Get inside!', hold: 0.5, cond: () => G.obj === 27, act: ch2End });
+addIt({ x: W.crash.x + 2, z: W.crash.z + 2, r: 5, label: 'Search the wreck', hold: 1.2, cond: () => G.obj === 21, act: () => { SND.clink(); openNote('Pilot’s logbook — R. Dale, Millbrook Medevac\n\nLast entry: “Pickup at Hollow Pines. Caller says something has been following him for a week.”\n\nScribbled underneath, shaky:\n“Bayou Ranger Post 9 — channel 4. If you ever go down over the swamp, call them.”', () => { say('His radio’s not here. And that blood…', 3, 'You'); say('Something dragged him off. I have to follow the trail.', 3.4, 'You'); }); setObj(22); } });
+addIt({ x: W.nest.x - 0.4, z: W.nest.z - 0.2, r: 2.4, label: 'Take the pilot’s radio', cond: () => G.obj === 22, act: () => { W.radioItem.visible = false; W.radioItem.userData.gl.visible = false; SND.pickup(); radioScene2(); } });
+SGAS.forEach((gp, i) => { const c = makeCan(); c.position.set(gp.x, gp.y, gp.z); scene.add(c); W.swamp.attach(c); c.userData.gl = glint(gp.x, gp.y + 0.7, gp.z); gp.m = c; addIt({ x: gp.x, z: gp.z, r: 2.2, label: 'Take the gas can', cond: () => G.obj === 23 && !G.sgas.includes(i), act: () => { G.sgas.push(i); hideItem(c); SND.clink(); if (G.sgas.length >= 2) { say('That’s both cans. Now the pump station — south-east.', 3.4, 'You'); setObj(24); } else { say('One can. The other one should be in the ' + (i === 0 ? 'stilt village.' : 'houseboat.'), 3.4, 'You'); checkpoint(); refreshObj(); } } }); });
+addIt({ x: W.pumpGen.x, z: W.pumpGen.z, r: 2.6, label: 'Pour the gas and start the generator', hold: 2, cond: () => G.obj === 25 || (G.obj === 24 && Math.hypot(P.x - W.pump.x, P.z - W.pump.z) < 16), act: startPump });
 NOTES.forEach((n, i) => addIt({ x: n.x, z: n.z, r: 1.9, label: 'Read the note', cond: () => true, act: () => { if (!G.notes.includes(i)) G.notes.push(i); noteM[i].userData.gl.visible = false; SND.ui(); openNote(n.t, () => remark(['Creepy…', 'Okay. That’s not good.', 'I really wish I hadn’t read that.'], 0.7)); } }));
 
 // ================= VOICE (you can hear yourself talk) =================
@@ -201,6 +217,10 @@ function hintTarget() {
   if (G.obj === 2 && G.carry < 0) { const c = nearestCan(); return c ? { k: 'can' + G.poured + G.picked.join(''), p: { x: c.x, y: H(c.x, c.z) + (Math.hypot(c.x - L.cabin.x, c.z - L.cabin.z) < 8 ? 0.2 : 0), z: c.z } } : null; }
   if (G.obj === 5) return { k: 'fuse', p: fusePick.position };
   if (G.obj === 9) return { k: 'key', p: keyWorld };
+  if (G.obj === 21) return { k: 'wreck', p: { x: W.crash.x + 2, y: H(W.crash.x, W.crash.z), z: W.crash.z + 2 } };
+  if (G.obj === 22) return { k: 'radio', p: { x: W.nest.x - 0.4, y: H(W.nest.x, W.nest.z), z: W.nest.z - 0.2 } };
+  if (G.obj === 23) { const g = nearestGas(); return g ? { k: 'sgas' + G.sgas.length, p: g } : null; }
+  if (G.obj === 25) return { k: 'pump', p: { x: W.pumpGen.x, y: H(W.pumpGen.x, W.pumpGen.z), z: W.pumpGen.z } };
   return null;
 }
 function updateHint(dt) {
@@ -243,7 +263,7 @@ function updateHUD(dt) {
   const w = G.wep; $('wep').innerHTML = w === 'pistol' ? `Pistol<b>${G.am.p} / ${G.am.pr}</b>` : w === 'shotgun' ? `Shotgun<b>${G.am.s} / ${G.am.sr}</b>` : w === 'flare' ? `Flare gun<b>1</b>` : '';
   $('cross').style.display = w !== 'none' ? 'block' : 'none'; $('dot').style.display = w !== 'none' ? 'none' : 'block';
   $('lightIc').textContent = !G.hasLight ? '' : P.overheat > 0 ? `LIGHT OVERHEATED ${Math.ceil(P.overheat)}s` : P.light ? 'LIGHT ON' : 'LIGHT OFF';
-  if (G.obj === 14 && G.surviveT > 0) { $('timer').style.display = 'block'; $('timer').textContent = Math.ceil(G.surviveT); } else $('timer').style.display = 'none';
+  if ((G.obj === 14 || G.obj === 26) && G.surviveT > 0) { $('timer').style.display = 'block'; $('timer').textContent = Math.ceil(G.surviveT); } else $('timer').style.display = 'none';
   if (subT > 0) { subT -= dt; if (subT <= 0) $('subs').innerHTML = ''; }
   if (subT <= 0 && subQ.length) { const s = subQ.shift(); $('subs').innerHTML = (s.who ? `<b>${s.who}:</b> ` : '') + s.text; subT = s.dur; speak(s.text, s.who); }
   if (hintT > 0) { hintT -= dt; if (hintT <= 0) $('hint').style.display = 'none'; }
@@ -360,11 +380,24 @@ function shootRay(o, d, dmg) {
 
 // ================= ANIMALS =================
 const ANIMALS = []; let animT = 0;
+function makeGator() {
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body); const sk = MSM({ map: TX.stone, normalMap: NRM.stone, normalScale: new THREE.Vector2(2, 2), color: 0x4a5636, roughness: 0.55 });
+  sph(1, sk, 0, 0.12, 0, body, 0.42, 0.2, 1.25); const head = new THREE.Group(); head.position.set(0, 0.12, 1.15); body.add(head);
+  sph(1, sk, 0, 0, 0.25, head, 0.22, 0.12, 0.42); sph(1, sk, 0, -0.02, 0.62, head, 0.13, 0.07, 0.3);
+  [-1, 1].forEach(sd => { sph(0.045, sk, sd * 0.1, 0.09, 0.15, head); sph(0.022, new THREE.MeshBasicMaterial({ color: 0xc8b040 }), sd * 0.1, 0.12, 0.18, head); });
+  for (let i = 0; i < 7; i++) { const t = mk(new THREE.ConeGeometry(0.012, 0.04, 4), MAT.teeth, (i % 2 ? 1 : -1) * 0.11, -0.05, 0.3 + i * 0.06, head); t.rotation.x = Math.PI; }
+  const tail = new THREE.Group(); tail.position.set(0, 0.1, -1.1); body.add(tail); const tl = mk(new THREE.ConeGeometry(0.22, 1.6, 8), sk, 0, 0, -0.8, tail); tl.rotation.x = -Math.PI / 2; tl.scale.set(1, 1, 0.5);
+  for (let i = 0; i < 10; i++) sph(0.03, sk, 0, 0.22, 0.9 - i * 0.22, body);
+  [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([sx, sz]) => { const l = cap(0.05, 0.25, sk, sx * 0.38, 0.0, sz * 0.6, body); l.rotation.z = sx * 1.2; });
+  g.traverse(o => { if (o.isMesh) o.castShadow = settings.shadows; }); scene.add(g);
+  return { g, body, neck: new THREE.Group(), head, legs: [], tail, bh: 0.15 };
+}
 function spawnAnimal(type, dist, ang) {
   const a = P.yaw + ang; let x = P.x - Math.sin(a) * dist, z = P.z - Math.cos(a) * dist; [x, z] = collide(x, z, 0.5);
   if (Math.hypot(x - LK.x, z - LK.z) < LK.c + 2) return null;
-  const m = makeAnimal(type); m.g.traverse(o => { if (o.isMesh) o.castShadow = settings.shadows; });
-  const an = { type, deer: type === 'deer', m, x, z, y: H(x, z), yaw: rand() * 6, hp: type === 'deer' ? 1.5 : 2, dead: false, deadT: 0, flee: 0, wand: rand() * 4, ph: 0, atk: 0, stag: 0, side: rand() < 0.5 ? -1 : 1, fall: 0 };
+  if (type === 'gator' && H(x, z) > -0.45) return null;
+  const m = type === 'gator' ? makeGator() : makeAnimal(type); m.g.traverse(o => { if (o.isMesh) o.castShadow = settings.shadows; });
+  const an = { type, gator: type === 'gator', deer: type === 'deer', m, x, z, y: H(x, z), yaw: rand() * 6, hp: type === 'deer' ? 1.5 : type === 'gator' ? 3 : 2, dead: false, deadT: 0, flee: 0, wand: rand() * 4, ph: 0, atk: 0, stag: 0, side: rand() < 0.5 ? -1 : 1, fall: 0 };
   ANIMALS.push(an); return an;
 }
 function removeAnimal(a) { scene.remove(a.m.g); ANIMALS.splice(ANIMALS.indexOf(a), 1); }
@@ -380,6 +413,7 @@ function updateAnimals(dt) {
     const deer = ANIMALS.filter(a => a.deer).length; if (deer < 5 && P.x < 1000) spawnAnimal('deer', 45 + rand() * 40, Math.PI * (0.6 + rand() * 0.8) * (rand() < 0.5 ? 1 : -1));
     for (const a of ANIMALS.slice()) if (Math.hypot(a.x - P.x, a.z - P.z) > 130 || (a.dead && a.deadT > 80)) removeAnimal(a);
   }
+  if (active && P.x > 1000 && G.obj >= 19 && G.obj <= 26 && G.mode === 'play' && H(P.x, P.z) < 0.35) { G.gatorT = (G.gatorT == null ? 25 : G.gatorT) - dt; if (G.gatorT <= 0) { G.gatorT = G.obj === 26 ? 14 : 30 + rand() * 30; if (ANIMALS.filter(a => a.gator && !a.dead).length < 2) { for (let k = 0; k < 12; k++) { if (spawnAnimal('gator', 18 + rand() * 14, (rand() - 0.5) * 3.2 + Math.PI)) { remark(['Something’s moving in the water…', 'Was that a log? Logs don’t move.', 'Gator! GATOR!']); break; } } } } }
   if (active && G.obj >= 2 && G.obj <= 14 && G.obj !== 11 && G.obj !== 12 && P.x < 1000 && G.mode === 'play') {
     G.wolfT -= dt;
     if (G.wolfT <= 0) { const n = ANIMALS.filter(a => !a.deer && !a.dead).length; remark(['Wolves… Harlan wasn’t kidding.', 'Something’s growling out there.', 'I hear wolves. Close.'], 0.8); G.wolfT = G.obj >= 13 ? 16 + rand() * 10 : 50 + rand() * 40; if (n < 3) { const k = G.obj >= 13 ? 2 : 1 + (rand() < 0.4 ? 1 : 0), ang = Math.PI * (0.7 + rand() * 0.6); for (let i = 0; i < k; i++) spawnAnimal('wolf', 42 + rand() * 10, ang + (rand() - 0.5) * 0.6); rand() < 0.5 ? SND.howl(panOf(P.x - Math.sin(P.yaw + ang) * 40, P.z - Math.cos(P.yaw + ang) * 40)) : SND.growl(0, 0.6); } }
@@ -388,6 +422,15 @@ function updateAnimals(dt) {
     const dx = P.x - a.x, dz = P.z - a.z, d = Math.hypot(dx, dz); let sp = 0, ty = a.yaw;
     if (a.dead) { a.deadT += dt; a.fall = Math.min(1, a.fall + dt * 2.2); const e = 1 - Math.pow(1 - a.fall, 3); a.m.body.rotation.z = a.side * e * Math.PI / 2; a.m.body.position.y = -e * a.m.bh * 0.55; a.m.legs.forEach(l => { l.hp.rotation.x *= 0.9; }); a.m.g.position.set(a.x, a.y, a.z); continue; }
     a.stag = Math.max(0, a.stag - dt);
+    if (a.gator) {
+      const wet = H(a.x, a.z) < -0.15, pWet = H(P.x, P.z) < 0.35; a.atk -= dt;
+      let gsp = 0; if (d < 45 && pWet && G.mode === 'play') { a.yaw += wrapA(Math.atan2(dx, dz) - a.yaw) * Math.min(1, dt * 2.5); gsp = a.stag > 0 ? 0.4 : wet ? (d < 8 ? 5.2 : 3.6) : 2.0; } else { a.wand -= dt; if (a.wand <= 0) { a.wand = 3 + rand() * 4; a.tyw = a.yaw + (rand() - 0.5) * 2; } a.yaw += wrapA((a.tyw || a.yaw) - a.yaw) * dt; gsp = 0.6; }
+      if (gsp > 0) { let nx = a.x + Math.sin(a.yaw) * gsp * dt, nz = a.z + Math.cos(a.yaw) * gsp * dt; [nx, nz] = collide(nx, nz, 0.6); a.ph += gsp * dt * 3; a.x = nx; a.z = nz; }
+      if (d < 2.1 && a.atk <= 0 && G.mode === 'play') { a.atk = 1.4; SND.chomp(panOf(a.x, a.z)); hurt(20 + rand() * 6, 'gator'); spray(BLOOD, P.x, P.y + 0.6, P.z, 12, 2); }
+      if (rand() < dt * 0.15 && d < 30) SND.hiss(panOf(a.x, a.z));
+      const gyy = H(a.x, a.z); a.y = wet ? Math.max(gyy, -0.3) : gyy; a.m.tail.rotation.y = Math.sin(a.ph) * 0.5; a.m.head.rotation.x = d < 4 ? -0.35 : 0;
+      a.m.g.position.set(a.x, a.y, a.z); a.m.g.rotation.y = a.yaw; continue;
+    }
     if (a.deer) {
       if (d < 14 && G.mode === 'play') a.flee = Math.max(a.flee, 4);
       if (a.flee > 0) { a.flee -= dt; ty = Math.atan2(-dx, -dz); sp = 7; }
@@ -683,10 +726,24 @@ async function jumpOut() {
   say('*gasp* I’m… I’m alive.', 2.6, 'You'); say('The helicopter… it went down over there. I can see the fire.', 3.6, 'You');
   G.mode = 'play'; setObj(19);
 }
+async function radioScene2() {
+  G.mode = 'cut'; SND.radioBlip(); SND.set('stat', 0.12, 0.05);
+  const lines = [['You', 'Hello? Anyone? The helicopter crashed in the swamp!', 3.2], ['Radio', '…kkh… This is Bayou Ranger Post Nine. Say again — crashed where?', 3.8], ['You', 'There’s a wreck burning on an island. The pilot’s gone. Something took him.', 4], ['Radio', 'I can see the smoke, but I’ll never find you in this fog.', 3.4], ['Radio', 'There’s an old pump station south-east of you. Get its generator running and the floodlights will bring me in.', 5], ['Radio', 'The tank’s dry. Try the old houseboat to the east, and the stilt village down south.', 4.4], ['Radio', 'And stay out of the deep water. Gators are bad this year.', 3.4], ['You', 'Gators are the least of my problems.', 2.6]];
+  let tot = 0; for (const [w, t, d] of lines) { say(t, d, w); tot += d; }
+  G.mode = 'play'; setObj(23); C.aggr = 2; if (C.state === 'off') { C.state = 'hidden'; C.timer = 45; }
+  await wait(tot * 1000); SND.set('stat', 0, 0.1);
+}
+async function startPump() {
+  if (G.sgas.length < 2) { say('The tank is bone dry. I need both gas cans first.', 3, 'You'); return; }
+  G.mode = 'cut'; SND.pour(); await wait(1500); SND.sputter(); await wait(1700); SND.sputter(); await wait(900);
+  pumpOn(true); SND.boom(); G.mode = 'play'; setObj(26); G.surviveT = 45; C.final = true; C.rush = false; C.scripted = false; C.state = 'hidden'; C.timer = 5; G.gatorT = 4;
+  say('The lights are on! Now hold out until the ranger gets here!', 3.4, 'You'); say('I see a light! Hang on, I’m coming!', 3, 'Radio');
+}
+function pumpOn(on) { W.pumpL.intensity = on ? 3 : 0; W.pumpLampM.emissive.setHex(on ? 0xe8f0ff : 0); W.pumpLampM.emissiveIntensity = 2; SND.set('siren', on ? 0.08 : 0, 0.5); G.pumpOn = on; }
 function swampChase() {
   placeC(24, Math.PI); C.state = 'rise'; C.timer = 1.6; C.stung = true; showC(true); SND.bigSplash(); SND.stinger();
   say('Something’s coming out of the water — RUN!', 3, 'You');
-  setObj(22);
+  setObj(27);
 }
 async function ch2End() {
   G.mode = 'cut'; showC(false); C.state = 'off'; SND.set('drone', 0, 0.3); SND.door(); fade(1); await wait(800); SND.thud(); await wait(1600);
@@ -710,8 +767,10 @@ function updateCh2(dt) {
     W.crashFire.intensity = 2.2 + Math.sin(G.time * 11) * 0.3 + rand() * 0.3; W.shackWin.emissiveIntensity = 0.8 + Math.sin(G.time * 5) * 0.1;
     if (G.mode === 'play') {
       if (G.obj === 19 && H(P.x, P.z) > 0.25) { say('Solid ground. Finally.', 2.6, 'You'); setObj(20); }
-      if (G.obj === 20 && Math.hypot(P.x - W.crash.x, P.z - W.crash.z) < 15) { say('The pilot… he’s gone.', 2.8, 'You'); say('There are drag marks… going into the water.', 3.2, 'You'); say('That boardwalk has to lead somewhere. Go!', 3, 'You'); setObj(21); }
-      if (G.obj === 21 && C.state === 'off') { const wi = walkInfo(P.x - SW.x, P.z - SW.z); if (wi.d < 1.5 && wi.s > wi.len * 0.4) swampChase(); }
+      if (G.obj === 20 && Math.hypot(P.x - W.crash.x, P.z - W.crash.z) < 15) { say('The pilot… he’s gone.', 2.8, 'You'); say('Maybe there’s something useful in the wreck.', 3, 'You'); setObj(21); }
+      if (G.obj === 24 && Math.hypot(P.x - W.pump.x, P.z - W.pump.z) < 14) { say('The pump station. Generator’s around the side.', 3, 'You'); setObj(25); }
+      if (G.obj === 26) { G.surviveT -= dt; if (G.surviveT <= 0) { C.final = false; C.state = 'off'; showC(false); say('I SEE YOUR LIGHTS! I can’t get the boat through the reeds there!', 3.6, 'Radio'); say('Meet me at the fishing shack dock — west of you, at the end of the old boardwalk!', 4, 'Radio'); swampChase(); } }
+      if (G.church && Math.hypot(P.x - W.church.x, P.z - W.church.z) < 40 && rand() < dt * 0.08) SND.bell(panOf(W.church.x, W.church.z));
     }
   }
 }
@@ -726,8 +785,8 @@ $('pResume').onclick = () => { $('pauseP').style.display = 'none'; G.mode = paus
 $('pSet').onclick = () => { $('pauseP').style.display = 'none'; openPanel('setP', 'pauseP'); };
 $('pMenu').onclick = () => { $('pauseP').style.display = 'none'; const safe = G.mode === 'pause' && pausedFrom === 'play' && ![11, 12, 14, 15].includes(G.obj) && C.state !== 'chase' && !P.inTunnel; if (safe) checkpoint(); showMenu(); };
 const DEATH_TIPS = ['Keep your flashlight right on him to make him back off.', 'Shooting him slows him down for a moment.', 'Running drains stamina. Walk when he’s not chasing.', 'Wolves come in packs. The shotgun is in the lookout shed by the tower.', 'Ammo boxes are hidden in sheds and at every landmark.', 'Don’t stare at him when he’s just watching. He doesn’t like it.'];
-function die(by) { if (G.mode !== 'play' && G.mode !== 'scare') return; G.deaths++; G.mode = 'dead'; showDead(by === 'wolf' ? 'The wolves got you.' : ''); }
-function showDead(msg) { hush();
+function die(by) { if (G.mode !== 'play' && G.mode !== 'scare') return; G.deaths++; G.mode = 'dead'; showDead(by === 'wolf' ? 'The wolves got you.' : by === 'gator' ? 'The alligator dragged you under.' : ''); }
+function showDead(msg) { hush(); SND.set('siren', 0, 0.3);
   G.mode = 'dead'; $('hud').style.display = 'none'; $('touch').style.display = 'none'; SND.set('drone', 0, 0.5); SND.set('breath', 0, 0.3);
   $('deadTip').textContent = (msg ? msg + ' ' : '') + DEATH_TIPS[Math.floor(rand() * DEATH_TIPS.length)];
   $('dead').style.display = 'grid'; try { document.exitPointerLock(); } catch (e) {}
@@ -812,12 +871,15 @@ function restore(s) {
   G.wolfT = 40; G.glimpseAt = 0; G.gateOpen = false; W.gate.position.y = TB.y;
   if (G.obj >= 8 && G.obj <= 10) { C.state = 'hidden'; C.timer = 25; }
   if (G.obj === 13) { C.state = 'hidden'; C.timer = 30; }
-  P.inHeli = false; P.falling = false; W.cabin.rotation.set(0, 0, 0); CH2.crashT = -1; CH2.talked = false; if (G.obj >= 16) G.ch1done = true; if (G.obj === 22) G.obj = 21; if (G.obj === 17 || G.obj === 18) G.obj = 16;
+  P.inHeli = false; P.falling = false; W.cabin.rotation.set(0, 0, 0); CH2.crashT = -1; CH2.talked = false; if (G.obj >= 16) G.ch1done = true; if (G.obj === 17 || G.obj === 18) G.obj = 16; G.sgas = G.sgas || []; G.church = true;
+  pumpOn(G.obj >= 26 && G.obj <= 27); W.radioItem.visible = G.obj <= 22; W.radioItem.userData.gl.visible = G.obj <= 22; SGAS.forEach((gp, i) => showItem(gp.m, !G.sgas.includes(i)));
+  if (G.obj >= 22 && G.obj <= 25) { C.aggr = 2; C.state = 'hidden'; C.timer = 30; }
+  if (G.obj === 26) { G.surviveT = 45; C.final = true; C.state = 'hidden'; C.timer = 5; }
   if (G.obj >= 14 && G.obj <= 15) { G.flareT = 6; W.flare.visible = true; W.flareL.intensity = 2.4; W.padLightMat.opacity = 0.9; }
   if (G.obj === 14) { G.surviveT = 30; C.final = true; C.state = 'hidden'; C.timer = 5; G.wolfT = 3; }
   if (G.obj === 15) { heli.g.visible = true; heli.t = 7.5; heli.ready = true; heli.spot.intensity = 3.2; heli.ladder.scale.y = 1; C.final = true; C.rush = true; C.state = 'hidden'; C.timer = 3; }
   updateChunks(P.x, P.z, 125); refreshObj(); CP = snapshot(); CP.x = s.x; CP.z = s.z;
-  G.pendingStart = G.obj === 11 ? 'chase' : G.obj === 12 ? 'tunnel' : G.obj === 16 ? 'heli' : null;
+  G.pendingStart = G.obj === 11 ? 'chase' : G.obj === 12 ? 'tunnel' : G.obj === 16 ? 'heli' : G.obj === 27 ? 'swampChase' : null;
 }
 function begin() {
   G.mode = 'play'; $('hud').style.display = 'block'; if (touch) $('touch').style.display = 'block'; $('scare').style.display = 'none';
@@ -825,6 +887,7 @@ function begin() {
   if (G.pendingStart === 'chase') { G.pendingStart = null; P.x = R.x + 7.5; P.z = R.z; P.yaw = Math.atan2(-(L.tunnel.x - P.x), -(L.tunnel.z - P.z)); W.arrows.visible = true; const away = P.yaw + Math.PI; C.x = P.x - Math.sin(away) * 26; C.z = P.z - Math.cos(away) * 26; [C.x, C.z] = collide(C.x, C.z, 0.5); C.stung = false; startChase(999, true); say('RUN! Follow the red arrows!', 3, ''); }
   else if (G.pendingStart === 'tunnel') { G.pendingStart = null; enterTunnel(true); }
   else if (G.pendingStart === 'heli') { G.pendingStart = null; startChapter2(); }
+  else if (G.pendingStart === 'swampChase') { G.pendingStart = null; G.obj = 26; swampChase(); }
   if (G.obj === 15) say('Grab the ladder! GO!', 2.6, 'Pilot');
 }
 async function newGame(slot) {
@@ -861,7 +924,7 @@ function showMenu() { hush();
   P.inTunnel = false; P.onTower = false; setEnv(false); clearAnimals(); heli.g.visible = false; W.flare.visible = false; W.flareL.intensity = 0;
   C.state = 'menu'; showC(true); cr.g.scale.set(1, 1, 1); cr.g.rotation.x = 0; cr.g.position.set(MENU_CR.x, H(MENU_CR.x, MENU_CR.z), MENU_CR.z); cr.g.rotation.y = Math.atan2(MENU_CAM.x - MENU_CR.x, MENU_CAM.z - MENU_CR.z);
   flash.intensity = 0; W.rig.visible = false; P.inHeli = false; P.x = 0; P.z = 5; setEnv(false); updateChunks(0, 0, 125); clearSubs(); let un = false; for (let i = 0; i < 3; i++) { const d = readSlot(i); if (d && d.ch1done) un = true; } $('unlockTag').style.display = un ? 'block' : 'none';
-  ['drone', 'hum', 'stat', 'heli', 'breath', 'tunnel'].forEach(n => SND.set(n, 0, 0.3)); SND.set('menu', 0.06, 1); SND.music(true);
+  ['drone', 'hum', 'stat', 'heli', 'breath', 'tunnel', 'siren'].forEach(n => SND.set(n, 0, 0.3)); SND.set('menu', 0.06, 1); SND.music(true);
   try { document.exitPointerLock(); } catch (e) {}
 }
 function hideMenu() { SND.music(false); menuOn = false; $('menu').style.display = 'none'; bl.style.display = 'none'; ['slotP', 'howP', 'setP', 'credP'].forEach(id => $(id).style.display = 'none'); W.rig.visible = true; showC(false); C.state = 'off'; }
@@ -898,7 +961,7 @@ function renderSlots() {
     const d = readSlot(i), div = document.createElement('div'); div.className = 'slot'; const ch = d ? (d.obj >= 16 ? 2 : 1) : 0;
     const title = !d ? `Save ${i + 1} — Empty` : d.ch2done ? `Save ${i + 1} — Chapters 1 & 2 beaten!` : `Save ${i + 1} — Chapter ${ch}${ch === 1 ? ': Hollow Pines' : ': The Swamp'}`;
     const ot = d && OBJ[d.obj] ? (typeof OBJ[d.obj][1] === 'function' ? 'Find fuel cans for the generator' : OBJ[d.obj][1]) : '';
-    const info = !d ? 'Start a new story here' : (d.ch2done ? 'Chapter 3 coming soon · ' : '') + (d.ch1done && !d.ch2done && ch === 2 ? 'Chapter 2 unlocked! · ' : '') + (d.ch2done ? '' : ot + ' · ') + 'played ' + fmtT(d.time || 0);
+    const info = !d ? 'Start a new story here' : (d.ch2done ? 'Chapter 3 coming soon · ' : '') + (d.ch1done && !d.ch2done && ch === 2 ? 'Chapter 2 unlocked! · ' : '') + (d.ch2done ? '' : (d.obj === 23 ? 'Find gas for the pump station' : ot) + ' · ') + 'played ' + fmtT(d.time || 0);
     div.innerHTML = `<div><h3></h3><p></p></div><div class="acts"></div>`; div.querySelector('h3').textContent = title; div.querySelector('p').textContent = info;
     const acts = div.querySelector('.acts'); const mkb = (t, fn) => { const b = document.createElement('button'); b.className = 'btn'; b.textContent = t; b.onclick = fn; acts.appendChild(b); return b; };
     if (d && !d.ch2done) mkb(ch === 2 ? 'Continue Chapter 2' : 'Continue', () => { SND.init(); continueSlot(i); });
