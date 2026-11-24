@@ -248,6 +248,7 @@
     <span><kbd>Enter</kbd> / <kbd>T</kbd></span><span>Chat with friends</span>
   </div>
   <a class="btn ghost" href="../" style="font-size:14px;padding:9px 24px">← Back to Arcade</a>
+  <p style="font-size:11px;opacity:.5;max-width:620px">3D characters &amp; animations: Mixamo (Adobe). Wolf model based on “Fox”: model by PixelMannen (CC0), rigging &amp; animation by tomkranis (CC BY 4.0), glTF by AsoboStudio &amp; scurest (CC BY 4.0), via the Khronos glTF Sample Assets.</p>
 </div>
 
 <div id="lobby">
@@ -284,6 +285,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { Water } from 'three/addons/objects/Water.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const $ = id => document.getElementById(id);
 const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
@@ -763,16 +766,16 @@ const castAll = (o) => { if (!SHADOWS) return o; o.traverse(m => { if (m.isMesh)
 
 // =============== characters & skins ===============
 const SKINS = [
-  { name:'Ranger',      shirt:0x3f5f3a, pants:0x5a4632, shoes:0x3a2a1a, hat:'ranger', hatC:0x8a6a3a, hair:0x3b2a1a },
-  { name:'Lumberjack',  shirt:0xb22a2a, plaid:true, pants:0x2f4a6b, shoes:0x3a2a1a, hat:'beanie', hatC:0x333333, hair:0x6b3a1a, beard:true },
-  { name:'Scout',       shirt:0xc9a86a, pants:0x5e6b3a, shoes:0x5a3a1a, hat:'cap', hatC:0x2a5a2a, hair:0x2a1a10, scarf:0xd02a2a },
-  { name:'Hoodie',      shirt:0x6a3fb8, pants:0x222222, shoes:0xf0f0f0, hat:'hood', hatC:0x6a3fb8, hair:0x111111 },
-  { name:'Firefighter', shirt:0xe0b020, pants:0x333333, shoes:0x111111, hat:'helmet', hatC:0xd02020, hair:0x2a1a10, stripe:0xd8d8d8 },
-  { name:'Ninja',       shirt:0x161616, pants:0x161616, shoes:0x111111, hat:'mask', hatC:0x161616, hair:0x111111, scarf:0xb01818 },
-  { name:'Explorer',    shirt:0xd8c8a0, pants:0x8a7a5a, shoes:0x5a3a1a, hat:'safari', hatC:0xe8dcc0, hair:0xc89a5a },
-  { name:'Winter',      shirt:0x3a7ad0, pants:0x2a2a3a, shoes:0x222222, hat:'beanie', hatC:0xf0f0f0, hair:0xe0c080, scarf:0xf0f0f0 },
-  { name:'Camo',        shirt:0x55613a, pants:0x4a4a32, shoes:0x2a2a1a, hat:'cap', hatC:0x3a4226, hair:0x3a2a1a },
-  { name:'Pumpkin',     shirt:0xff7a1a, pants:0x2a2a2a, shoes:0x111111, hat:'pumpkin', hatC:0xff7a1a, hair:0x111111 },
+  { name:'Ranger', model:'soldier', tint:0x9fd08a,      shirt:0x3f5f3a, pants:0x5a4632, shoes:0x3a2a1a, hat:'ranger', hatC:0x8a6a3a, hair:0x3b2a1a },
+  { name:'Lumberjack', model:'soldier', tint:0xff8a7a,  shirt:0xb22a2a, plaid:true, pants:0x2f4a6b, shoes:0x3a2a1a, hat:'beanie', hatC:0x333333, hair:0x6b3a1a, beard:true },
+  { name:'Scout', model:'soldier', tint:0xf0d8a0,       shirt:0xc9a86a, pants:0x5e6b3a, shoes:0x5a3a1a, hat:'cap', hatC:0x2a5a2a, hair:0x2a1a10, scarf:0xd02a2a },
+  { name:'Hoodie', model:'xbot',      shirt:0x6a3fb8, pants:0x222222, shoes:0xf0f0f0, hat:'hood', hatC:0x6a3fb8, hair:0x111111 },
+  { name:'Firefighter', model:'xbot', shirt:0xe0b020, pants:0x333333, shoes:0x111111, hat:'helmet', hatC:0xd02020, hair:0x2a1a10, stripe:0xd8d8d8 },
+  { name:'Ninja', model:'xbot',       shirt:0x161616, pants:0x161616, shoes:0x111111, hat:'mask', hatC:0x161616, hair:0x111111, scarf:0xb01818 },
+  { name:'Explorer', model:'soldier', tint:0xe8e0c8,    shirt:0xd8c8a0, pants:0x8a7a5a, shoes:0x5a3a1a, hat:'safari', hatC:0xe8dcc0, hair:0xc89a5a },
+  { name:'Winter', model:'xbot',      shirt:0x3a7ad0, pants:0x2a2a3a, shoes:0x222222, hat:'beanie', hatC:0xf0f0f0, hair:0xe0c080, scarf:0xf0f0f0 },
+  { name:'Camo', model:'soldier',        shirt:0x55613a, pants:0x4a4a32, shoes:0x2a2a1a, hat:'cap', hatC:0x3a4226, hair:0x3a2a1a },
+  { name:'Pumpkin', model:'xbot',     shirt:0xff7a1a, pants:0x2a2a2a, shoes:0x111111, hat:'pumpkin', hatC:0xff7a1a, hair:0x111111 },
 ];
 // your arcade avatar as a Last Ember skin
 try { if (window.ArcadeAvatar){ const c=ArcadeAvatar.colors(), h=x=>parseInt(x.slice(1),16);
@@ -794,7 +797,53 @@ function boxGeo(w,h,d){
 }
 const box = (w,h,d,m,x=0,y=0,z=0,parent) => { const o=new THREE.Mesh(boxGeo(w,h,d),m); o.position.set(x,y,z); if (parent) parent.add(o); return o; };
 
+// =============== realistic animated characters (High/Ultra) ===============
+// Soldier & X Bot: Mixamo (Adobe). Fox (used for wolves): PixelMannen (CC0), rigging & animation by tomkranis (CC BY 4.0), glTF by AsoboStudio & scurest (CC BY 4.0).
+const MODELS = { ready:false };
+if (HIGH){
+  const L = new GLTFLoader(), load = u => new Promise((res,rej) => L.load(u, res, undefined, rej));
+  Promise.all(['models/Soldier.glb','models/Xbot.glb','models/Fox.glb'].map(load)).then(([so,xb,fx]) => {
+    const clip = (g,n) => g.animations.find(a => a.name.toLowerCase()===n);
+    // the fox file has no surface normals; lighting needs them (without them the screen turns black)
+    fx.scene.traverse(o => { if (o.isMesh && !o.geometry.attributes.normal) o.geometry.computeVertexNormals(); });
+    Object.assign(MODELS, { soldier:so, xbot:xb, fox:fx,
+      clips:{ soldier:{ idle:clip(so,'idle'), walk:clip(so,'walk'), run:clip(so,'run') },
+              xbot:{ idle:clip(xb,'idle'), walk:clip(xb,'walk'), run:clip(xb,'run') },
+              fox:{ idle:clip(fx,'survey'), walk:clip(fx,'walk'), run:clip(fx,'run') } } });
+    MODELS.ready = true; upgradeModels();
+  }).catch(e => console.warn('Could not load the 3D characters — using simple ones', e));
+}
+function setupMixer(root, clips){
+  const mixer = new THREE.AnimationMixer(root), actions = {}, w = {};
+  for (const k of ['idle','walk','run']){ actions[k] = mixer.clipAction(clips[k]); actions[k].play(); w[k] = k==='idle'?1:0; actions[k].setEffectiveWeight(w[k]); actions[k].time = Math.random()*clips[k].duration; }
+  return { mixer, actions, w };
+}
+function realPerson(look, scale){
+  const S = SKINS[look.skin] || SKINS[0], kind = S.model || 'xbot', model = SkeletonUtils.clone(MODELS[kind].scene);
+  model.traverse(o => { if (o.isMesh){ o.castShadow = SHADOWS; o.receiveShadow = SHADOWS; o.frustumCulled = false; o.material = o.material.clone();
+    if (kind==='xbot') o.material.color.setHex(/Joints/i.test(o.material.name) ? (S.hatC===S.shirt ? 0x202020 : (S.hatC||0x202020)) : S.shirt);
+    else if (S.tint) o.material.color.multiply(new THREE.Color(S.tint));
+    if (o.material.metalness !== undefined){ o.material.metalness = Math.min(o.material.metalness, 0.1); o.material.roughness = Math.max(o.material.roughness ?? 0.8, 0.65); } } });
+  const g = new THREE.Group(), wrap = new THREE.Group(); wrap.add(model); g.add(wrap);
+  g.scale.setScalar(scale * (kind==='xbot' ? 1.0 : 0.97));
+  g.userData = Object.assign({ real:true, wrap, phase:0 }, setupMixer(model, MODELS.clips[kind]));
+  return g;
+}
+function animateReal(u, dt, speed, walkRef, runRef){
+  const target = speed < 0.3 ? 'idle' : speed < runRef*0.75 ? 'walk' : 'run', k = Math.min(1, dt*7);
+  for (const a of ['idle','walk','run']){ u.w[a] += ((a===target?1:0) - u.w[a]) * k; u.actions[a].setEffectiveWeight(u.w[a]); }
+  u.actions.walk.timeScale = clamp(speed/walkRef, 0.6, 2.4); u.actions.run.timeScale = clamp(speed/runRef, 0.7, 1.6);
+  u.mixer.update(dt);
+}
+// swap the simple bodies for the real ones as soon as the models finish loading
+function upgradeModels(){
+  for (const c of campers){ if (!c.look) continue; const np = makePerson(c.look, 0.68), old = c.person, par = old.parent;
+    np.position.copy(old.position); np.rotation.copy(old.rotation); np.visible = old.visible; if (par){ par.remove(old); par.add(np); } c.person = np; }
+  for (const o of others.values()){ const l = o.look; o.look = -1; getOther(o.id, undefined, l); }
+  if (typeof preview !== 'undefined') preview.code = -1;
+}
 function makePerson(look, scale=1){
+  if (HIGH && MODELS.ready) return realPerson(look, scale);
   const S = SKINS[look.skin] || SKINS[0], skinM = lam(TONES[look.tone] ?? TONES[0]);
   const shirtM = lam(S.shirt, S.plaid), pantsM = lam(S.pants), shoeM = lam(S.shoes), hairM = lam(S.hair), hatM = lam(S.hatC);
   const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
@@ -849,7 +898,12 @@ function makePerson(look, scale=1){
 const ghostMat = new THREE.MeshBasicMaterial({ color:0xdfeaff, transparent:true, opacity:0.38, depthWrite:false, fog:false });
 function makeGhost(g){ g.traverse(o => { if (o.isMesh){ o.material = ghostMat; o.castShadow=false; } }); }
 function animatePerson(g, dt, speed, down){
-  const u=g.userData; if (!u.legs) return;
+  const u=g.userData;
+  if (u.real){
+    u.wrap.rotation.x = down ? -Math.PI/2 : 0; u.wrap.position.set(0, down ? 0.15 : 0, down ? 0.85 : 0);
+    animateReal(u, dt, down ? 0 : speed, 1.7, 5.2); return;
+  }
+  if (!u.legs) return;
   if (down){ u.body.rotation.x=-Math.PI/2; u.body.position.set(0,0.18,0.9); u.legs.forEach(l=>l.rotation.x=0); u.arms.forEach((a,i)=>a.rotation.set(0,0,i?-0.3:0.3)); return; }
   u.body.rotation.x=0; u.body.position.set(0,0,0);
   if (speed>0.05){ u.phase += dt*speed*1.9; } else u.phase += dt*1.2;
@@ -950,11 +1004,11 @@ function genWorld(sd){
     const x = Math.cos(a)*d, z = Math.sin(a)*d;
     const g = new THREE.Group();
     const tent = makeTent(kidColors[i]); tent.position.set(2.2,0,0); g.add(tent);
-    const p = makePerson({ skin:[2,3,7,0,6][i], tone:i%4 }, 0.68); g.add(p);
+    const look = { skin:[2,3,7,0,6][i], tone:i%4 }, p = makePerson(look, 0.68); g.add(p);
     const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.15,8,6), new THREE.MeshBasicMaterial({ color:0xfff0a0 })); lantern.position.set(-0.7,0.18,0.5); g.add(lantern);
     const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,40,4), new THREE.MeshBasicMaterial({ color:kidColors[i], transparent:true, opacity:0.3, fog:false, depthWrite:false })); beacon.position.y=20; g.add(beacon);
     g.position.set(x,heightAt(x,z),z); worldGroup.add(g);
-    campers.push({ i, x, z, g, person:p, beacon, saved:false });
+    campers.push({ i, x, z, g, person:p, look, beacon, saved:false });
   }
   // trees
   const geo = (G,t) => { G.translate(...t); return G; };
@@ -1148,7 +1202,22 @@ const MOB = {
 };
 const mobMats = { wolf:new THREE.MeshLambertMaterial({ color:0x45454c }), bear:new THREE.MeshLambertMaterial({ color:0x4a3122 }), deer:new THREE.MeshLambertMaterial({ color:0x9a6a3e }), rabbit:new THREE.MeshLambertMaterial({ color:0x9d9488 }) };
 const mobs = new Map(); let nextMob = 1;
+function realWolf(){
+  const model = SkeletonUtils.clone(MODELS.fox.scene), parts = [];
+  let mat = null;
+  model.traverse(o => { if (o.isMesh){ o.castShadow = SHADOWS; o.frustumCulled = false;
+    if (!mat){ mat = new THREE.MeshLambertMaterial({ map:o.material.map });
+      mat.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n float lum = dot(diffuseColor.rgb, vec3(0.3,0.59,0.11)); diffuseColor.rgb = mix(vec3(lum)*vec3(0.78,0.8,0.86)*1.15, diffuseColor.rgb, 0.12);'); }; }
+    o.material = mat; parts.push(o); } });
+  model.scale.setScalar(0.0115);
+  const g = new THREE.Group(); g.add(model);
+  // glowing eyes so they still look scary at night
+  for (const sx of [-0.07,0.07]){ const e=new THREE.Mesh(new THREE.SphereGeometry(0.028,6,4), M.eye); e.position.set(sx,0.62,0.66); g.add(e); }
+  g.userData = Object.assign({ real:true, legs:[], parts, mat }, setupMixer(model, MODELS.clips.fox));
+  return g;
+}
 function makeMob(type){
+  if (HIGH && MODELS.ready && type==='wolf') return realWolf();
   const g=new THREE.Group(), parts=[], legs=[], mat=mobMats[type];
   const add=(geo,x,y,z,m=mat)=>{ const o=new THREE.Mesh(geo,m); o.position.set(x,y,z); g.add(o); if (m===mat) parts.push(o); return o; };
   if (type==='wolf'){
@@ -2171,6 +2240,7 @@ function localSim(dt, now){
     m.g.position.set(m.x,heightAt(m.x,m.z),m.z);
     let dr = m.try_ - m.ry; dr = Math.atan2(Math.sin(dr),Math.cos(dr)); m.ry += dr*Math.min(1,dt*8); m.g.rotation.y=m.ry;
     if (m.moving!==false){ m.phase+=dt*(m.type==='bear'?7:12); m.g.userData.legs.forEach((l,i)=>l.rotation.x=Math.sin(m.phase+(i%2?Math.PI:0))*0.6); }
+    if (m.g.userData.real){ const px=m.lx??m.x, pz=m.lz??m.z; m.spd = (m.spd||0)*0.85 + (Math.hypot(m.x-px,m.z-pz)/Math.max(dt,1e-3))*0.15; m.lx=m.x; m.lz=m.z; animateReal(m.g.userData, dt, m.spd, 1.6, 5.5); }
     if (m.type==='rabbit' && m.moving) m.g.position.y += Math.abs(Math.sin(m.phase*0.8))*0.25;
     if (m.flash>0){ m.flash-=dt; if (m.flash<=0) m.g.userData.parts.forEach(p=>p.material=m.g.userData.mat); }
   }
