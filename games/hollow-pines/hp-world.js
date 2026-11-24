@@ -451,7 +451,7 @@ function addInst(kind, x, z, m, col) { const c = chunkOf(x, z); (c.lists[kind] |
   const clearOK = (x, z, m) => { for (const f of FLAT) if (Math.hypot(x - f.x, z - f.z) < f.r + m) return false; return pathDist(x, z) > m + 1.5; };
   const white = () => new THREE.Color(1, 1, 1);
   let placed = 0;
-  for (let i = 0; i < 12000 && placed < 2800; i++) {
+  for (let i = 0; i < 26000 && placed < 5200; i++) {
     const x = (rng() - 0.5) * 710, z = (rng() - 0.5) * 710; if (!clearOK(x, z, 3)) continue;
     const s = 0.75 + rng() * 0.8, sy = s * (0.9 + rng() * 0.35), ry = rng() * 6.28, y = H(x, z) - 0.2;
     if (rng() < 0.08) addInst('dead', x, z, mat4(x, y, z, s, sy, s, ry), white());
@@ -693,7 +693,7 @@ W.makeMedkit = makeMedkit;
 
 // ================= CHAPTER 2: THE HELICOPTER + THE SWAMP =================
 const SW = { x: 2000, z: 0 };
-const SW_ISL = [{ x: 95, z: -10, r: 9, h: 0.4 }, { x: 110, z: -190, r: 15, h: 0.7 }, { x: -90, z: -20, r: 10, h: 0.45 }, { x: 16, z: -8, r: 10, h: 0.45 }, { x: -28, z: -62, r: 15, h: 0.6 }, { x: 34, z: -152, r: 13, h: 0.75 }, { x: -52, z: 12, r: 8, h: 0.4 }, { x: 62, z: -58, r: 9, h: 0.4 }, { x: -72, z: -112, r: 10, h: 0.5 }, { x: 90, z: -120, r: 8, h: 0.35 }];
+const SW_ISL = [{ x: 95, z: -10, r: 9, h: 0.4 }, { x: 110, z: -190, r: 15, h: 0.7 }, { x: -90, z: -20, r: 10, h: 0.45 }, { x: 16, z: -8, r: 10, h: 0.45 }, { x: -28, z: -62, r: 15, h: 0.6 }, { x: 34, z: -152, r: 13, h: 0.75 }, { x: -52, z: 12, r: 8, h: 0.4 }, { x: 62, z: -58, r: 9, h: 0.4 }, { x: -72, z: -112, r: 10, h: 0.5 }, { x: 90, z: -120, r: 8, h: 0.35 }, { x: 80, z: -166, r: 8, h: 0.4 }];
 const SW_WALK = (() => { const a = { x: -16, z: -72 }, b = { x: 27, z: -143 }, pts = []; const n = 28; for (let i = 0; i <= n; i++) { const t = i / n; pts.push({ x: a.x + (b.x - a.x) * t + Math.sin(t * 9) * 4 * Math.sin(t * Math.PI), z: a.z + (b.z - a.z) * t + Math.cos(t * 7) * 3 * Math.sin(t * Math.PI) }); } return pts; })();
 function walkInfo(lx, lz) { let best = 99, bs = 0, acc = 0; for (let i = 1; i < SW_WALK.length; i++) { const a = SW_WALK[i - 1], b = SW_WALK[i], dx = b.x - a.x, dz = b.z - a.z, l2 = dx * dx + dz * dz, l = Math.sqrt(l2), t = clamp(((lx - a.x) * dx + (lz - a.z) * dz) / l2, 0, 1), d = Math.hypot(lx - a.x - dx * t, lz - a.z - dz * t); if (d < best) { best = d; bs = acc + t * l; } acc += l; } return { d: best, s: bs, len: acc }; }
 function swampGround(lx, lz) {
@@ -722,7 +722,7 @@ W.swamp = new THREE.Group(); W.swamp.visible = false; scene.add(W.swamp);
     for (let k = 0; k < 9; k++) { const ml = 1.3 + ((i * 7 + k * 3) % 5) * 0.55, m = new THREE.CylinderGeometry(0.035, 0.004, ml, 3); const d = 0.35 + k * 0.26; m.translate(d, y - ml / 2 + d * 0.1, ((k % 3) - 1) * 0.08); m.rotateY(an); mossParts.push(m); }
     for (const roll of [0, Math.PI / 2]) { const p = new THREE.PlaneGeometry(L2 * 0.9, 1.0); p.translate(L2 * 0.5, 0, 0); p.rotateX(-Math.PI / 2 + roll); p.rotateZ(-0.15); p.rotateY(an); p.translate(0, y + 0.2, 0); leafParts.push(p); } }
   const mossGeo = merge(mossParts), leafGeo = merge(leafParts);
-  const pos = []; for (let i = 0; i < 6000 && pos.length < 330; i++) { const lx = (rand() - 0.5) * 300, lz = -60 + (rand() - 0.5) * 320; if (Math.hypot(lx, lz) < 9 || Math.hypot(lx + 28, lz + 62) < 9 || Math.hypot(lx - 34, lz + 152) < 9) continue; if (lz < -55 && lz > -160 && walkInfo(lx, lz).d < 3) continue; pos.push([lx, lz, 0.7 + rand() * 0.7, rand() * 6]); }
+  const pos = []; for (let i = 0; i < 14000 && pos.length < 600; i++) { const lx = (rand() - 0.5) * 300, lz = -60 + (rand() - 0.5) * 320; if (Math.hypot(lx - 110, lz + 192) < 17 || Math.hypot(lx - 110, lz + 223) < 9 || Math.hypot(lx - 80, lz + 166) < 8 || Math.hypot(lx, lz) < 9 || Math.hypot(lx + 28, lz + 62) < 9 || Math.hypot(lx - 34, lz + 152) < 9) continue; if (lz < -55 && lz > -160 && walkInfo(lx, lz).d < 3) continue; pos.push([lx, lz, 0.7 + rand() * 0.7, rand() * 6]); }
   const mats = [MSM({ map: BARK.map, normalMap: BARK.nrm, color: 0x7a7266, roughness: 0.9 }), MSM({ color: 0x6a7258, roughness: 1 }), windify(MSM({ map: TX.branch, alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.85, color: 0x9a8a5a }), 0.01, 4, 'cyp')];
   [trunk, mossGeo, leafGeo].forEach((geo, gi) => { const im = new THREE.InstancedMesh(geo, mats[gi], pos.length); const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(); pos.forEach(([lx, lz, sc, ry], i) => { e.set(0, ry, 0); q.setFromEuler(e); m4.compose(V3(SW.x + lx, swampGround(lx, lz) - 0.3, SW.z + lz), q, V3(sc, sc, sc)); im.setMatrixAt(i, m4); }); im.frustumCulled = false; im.castShadow = gi !== 1; im.receiveShadow = true; SWG.add(im); });
   pos.forEach(([lx, lz, sc]) => addCol(SW.x + lx, SW.z + lz, 0.55 * sc));
@@ -869,4 +869,21 @@ W.cabin = new THREE.Group(); W.cabin.position.set(1600, 150, -600); W.cabin.visi
     boxW(110, -190, 3.1, 2.6); boxW(110 - 4.5, -190 + 3.5, 0.7, 0.45);
     for (let a = 0; a < 6.28; a += 0.28) { if (Math.abs(wrapA(a - 1.6)) < 0.35) continue; cyl(0.03, 0.03, 1.4, 4, MAT.metal, Math.cos(a) * 11, 0.7, Math.sin(a) * 11, g).castShadow = false; }
   }
+}
+
+// the old water tower over the swamp — the Hollow One waits on top of it
+{
+  const tw = { x: SW.x + 80, z: SW.z - 166 }; W.wtower = tw; const g = new THREE.Group(); g.position.set(tw.x, swampGround(80, -166), tw.z); W.swamp.add(g);
+  const LEGH = 26, sp = 3.2;
+  [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([a, b]) => { beam(new THREE.Vector3(a * sp, -1, b * sp), new THREE.Vector3(a * 1.9, LEGH, b * 1.9), 0.16, MAT.rust, g); addCol(tw.x + a * sp, tw.z + b * sp, 0.4); });
+  for (let y = 3; y < LEGH; y += 5.5) { const k = 1 - y / LEGH * 0.41, r = sp * k; [[-1, -1, 1, -1], [1, -1, 1, 1], [1, 1, -1, 1], [-1, 1, -1, -1]].forEach(([a, b, c, d]) => { beam(new THREE.Vector3(a * r, y, b * r), new THREE.Vector3(c * r, y, d * r), 0.06, MAT.rust, g); beam(new THREE.Vector3(a * r, y, b * r), new THREE.Vector3(c * (sp * (1 - (y + 5.5) / LEGH * 0.41)), Math.min(LEGH, y + 5.5), d * (sp * (1 - (y + 5.5) / LEGH * 0.41))), 0.04, MAT.rust, g); }); }
+  const tank = cyl(3.6, 3.6, 7, 20, MAT.rust, 0, LEGH + 4.6, 0, g); const roof = mk(new THREE.ConeGeometry(3.8, 2.4, 20), MAT.rust, 0, LEGH + 9.3, 0, g);
+  const deck = cyl(4.6, 4.6, 0.15, 24, MAT.metal, 0, LEGH + 1.0, 0, g); cyl(2.2, 2.2, 1.2, 12, MAT.rust, 0, LEGH + 0.4, 0, g);
+  for (let a = 0; a < 6.28; a += 0.26) cyl(0.03, 0.03, 1.1, 4, MAT.metal, Math.cos(a) * 4.5, LEGH + 1.6, Math.sin(a) * 4.5, g).castShadow = false;
+  const rail = mk(new THREE.TorusGeometry(4.5, 0.04, 4, 40), MAT.metal, 0, LEGH + 2.1, 0, g); rail.rotation.x = Math.PI / 2;
+  for (let y = 0; y < LEGH + 1; y += 0.45) bx(0.6, 0.04, 0.04, MAT.metal, 0, y, 2.2 + (1 - y / LEGH) * 1.2 - 0.1, g).castShadow = false;
+  const words = ctex(512, 128, (c, w, h) => { c.fillStyle = 'rgba(0,0,0,0)'; c.clearRect(0, 0, w, h); c.font = 'bold 74px Oswald, sans-serif'; c.textAlign = 'center'; c.fillStyle = 'rgba(210,200,180,.55)'; c.fillText('BAYOU NOIR', w / 2, 92); });
+  const wm = new THREE.Mesh(new THREE.CylinderGeometry(3.62, 3.62, 1.6, 24, 1, true, -0.9, 1.8), new THREE.MeshStandardMaterial({ map: words, transparent: true, roughness: 0.9 })); wm.position.set(0, LEGH + 5, 0); g.add(wm);
+  W.wtLampM = new THREE.MeshBasicMaterial({ color: 0x400000 }); W.wtLamp = mk(new THREE.SphereGeometry(0.25, 8, 6), W.wtLampM, 0, LEGH + 10.6, 0, g); W.wtLampL = new THREE.PointLight(0xff2010, 0, 30, 2); W.wtLampL.position.set(0, LEGH + 10.8, 0); g.add(W.wtLampL);
+  W.wtTop = LEGH + 1.08; W.wtG = g;
 }
