@@ -20,7 +20,7 @@ let SCN = null;
 function runScene(f, data) { SCN = Object.assign({ f, t: 0, ev: {} }, data || {}); }
 const at = (S, t, key) => S.t >= t && !S.ev[key] && (S.ev[key] = true);
 function lookAtPt(x, y, z) { const dx = x - P.x, dz = z - P.z; return { yaw: Math.atan2(-dx, -dz), pitch: clamp(Math.atan2(y - (P.y + 1.65), Math.hypot(dx, dz)), -1.2, 1.3) }; }
-const wadeAt = (x, z) => clamp(1 + Math.min(0, H(x, z)) * 0.55, 0.5, 1);
+const wadeAt = (x, z) => P.inCave ? 1 : clamp(1 + Math.min(0, H(x, z)) * 0.55, 0.5, 1);
 
 // ---------- props: intake valves, acid jugs, pour point ----------
 const VALVES = [SWL(107, -123), SWL(121, -121.5), SWL(134, -127), SWL(113, -138), SWL(129, -139)];
@@ -49,7 +49,7 @@ function clearGrate(i) {
   SND.splat(0); SND.crunch(0); spray(BLOOD, GRATES[i].x, 0.5, GRATES[i].z, 30, 2.5); chunk(GRATES[i].x, 0.5, GRATES[i].z, 3, FLESH, 0.1); chunk(GRATES[i].x, 0.5, GRATES[i].z, 3, BONEM, 0.07); bloodPool(GRATES[i].x, GRATES[i].z, 1.4, 2, 0.02);
   const n = G.grates.length;
   const lines = ['Ugh — bones. Deer bones… I think.', 'That’s a HAND. A human hand… with a wedding ring on it.', 'That’s the last one. Something’s been dragging bodies down here and stuffing them in the pipes.'];
-  say(lines[n - 1], 3.6, 'You'); MS.tugT = Math.min(MS.tugT, 2);
+  say(lines[n - 1], 3.6, 'You');
   if (n < 3) { checkpoint(); return; }
   G.mode = 'cut'; SND.thud(); setTimeout(() => SND.sputter(), 700);
   setTimeout(() => { SND.radioBlip(); say('Kid, you still there? If that pump’s still choking, something is NESTING in that basin.', 4.4, 'Radio'); say('There’s acid in the pump house — the stuff we used to clear the pipes. Grab a jug and dump it in the basin.', 4.6, 'Radio'); say('It’ll burn out anything living in there.', 2.8, 'Radio'); G.mode = 'play'; setObj(29); }, 1600);
@@ -67,6 +67,7 @@ function ch2Hint() {
   if (G.obj === 29) return { k: 'acid', p: { x: ACIDJ.x, y: H(ACIDJ.x, ACIDJ.z) + 0.7, z: ACIDJ.z } };
   if (G.obj === 30) return { k: 'pour', p: { x: POURP.x, y: 0.4, z: POURP.z } };
   if (G.obj === 33) { const v = nearestGrate(); return { k: 'grate' + (G.grates || []).length, p: { x: v.x, y: 1.1, z: v.z } }; }
+  if (typeof caveHint === 'function') return caveHint();
   return null;
 }
 VALVES.forEach((v, i) => addIt({ x: v.x, z: v.z, r: 2.4, hold: 4.2, label: 'Turn the flood valve', cond: () => G.obj === 28 && !(G.valves || []).includes(i) && !MS.tug, act: () => turnValve(i) }));
@@ -97,16 +98,16 @@ function hShow(v) { HOL.g.visible = v; if (!v) { HS.state = 'off'; } HOL.walk = 
 function hPlace(x, z, yaw, y) { HS.x = x; HS.z = z; if (yaw != null) HS.yaw = yaw; HOL.g.position.set(x, y != null ? y : H(x, z), z); HOL.g.rotation.y = HS.yaw; }
 function hFace(x, z, dt) { const t = Math.atan2(x - HS.x, z - HS.z); HS.yaw += wrapA(t - HS.yaw) * (dt ? Math.min(1, dt * 6) : 1); HOL.g.rotation.y = HS.yaw; }
 function hMove(x, z, sp, dt, col) { const dx = x - HS.x, dz = z - HS.z, d = Math.hypot(dx, dz); if (d < 0.08) { HOL.walk += (0 - HOL.walk) * Math.min(1, dt * 5); return d; }
-  const st = Math.min(d, sp * dt); let nx = HS.x + dx / d * st, nz = HS.z + dz / d * st; if (col) [nx, nz] = collide(nx, nz, 0.6); HS.x = nx; HS.z = nz; hFace(x, z, dt); HOL.walk += (1 - HOL.walk) * Math.min(1, dt * 4); HOL.speed = sp; HOL.g.position.set(HS.x, Math.max(H(HS.x, HS.z), -0.95), HS.z); return d; }
+  const st = Math.min(d, sp * dt); let nx = HS.x + dx / d * st, nz = HS.z + dz / d * st; if (col) [nx, nz] = P.inCave ? caveMove(HS.x, HS.z, nx, nz, true) : collide(nx, nz, 0.6); HS.x = nx; HS.z = nz; hFace(x, z, dt); HOL.walk += (1 - HOL.walk) * Math.min(1, dt * 4); HOL.speed = sp; HOL.g.position.set(HS.x, P.inCave ? CV.y : Math.max(H(HS.x, HS.z), -0.95), HS.z); return d; }
 HOL.stepCb = () => { if (!HOL.g.visible) return; const d = Math.hypot(HS.x - P.x, HS.z - P.z), v = clamp(1 - d / 50, 0, 1); if (v <= 0) return; SND.stomp(v * (HOL.speed > 3 ? 1 : 0.55), panOf(HS.x, HS.z)); if (H(HS.x, HS.z) < -0.2) SND.splash(HOL.speed > 3); if (HOL.speed > 3) P.shake = Math.max(P.shake, v * 0.22); };
 function gripPos(i, out) { return HOL.arms[i].grip.getWorldPosition(out); }
 function resetTallMan() { if (cr.head.parent !== cr.neck) { cr.neck.add(cr.head); cr.head.position.set(0, 0.3, 0); cr.head.rotation.set(0, 0, 0); cr.head.scale.set(1, 1, 1); } cr.g.rotation.set(0, 0, 0); }
 
 // ---------- chapter reset / restore ----------
 function ch2Reset() {
-  SCN = null; hShow(false); HS.state = 'off'; MS.state = 'off'; MS.tug = null; MIRE.g.visible = false; MIRE.head.visible = true; MIRE.burn = 0; MIRE.reach = 0; MIRE.roar = 0; MIRE.rise.rotation.set(0, 0, 0); MIRE.burnMats.forEach(m => { m.color.setHex(0xa4aa96); m.emissive.setHex(0); m.roughness = 0.42; m.bumpScale = 0.022; }); MIRE.mossMat.color.setHex(0x3e5c22);
+  SCN = null; hShow(false); HS.state = 'off'; MS.state = 'off'; MS.tug = null; MS.land = false; MIRE.rise.rotation.z = 0; MIRE.g.visible = false; MIRE.head.visible = true; MIRE.burn = 0; MIRE.reach = 0; MIRE.roar = 0; MIRE.rise.rotation.set(0, 0, 0); MIRE.burnMats.forEach(m => { m.color.setHex(0xa4aa96); m.emissive.setHex(0); m.roughness = 0.42; m.bumpScale = 0.022; }); MIRE.mossMat.color.setHex(0x3e5c22);
   resetTallMan(); GOREOBJ.forEach(o => scene.remove(o)); GOREOBJ.length = 0; CHUNKS.forEach(c => scene.remove(c.m)); CHUNKS.length = 0;
-  P.held = false; P.sinkY = 0; tugEl.style.display = 'none'; acidPool.material.opacity = 0; shock.material.opacity = 0; SND.set('sizzle', 0, 0.2); W.fpAcid.visible = false;
+  if (typeof caveReset === 'function') caveReset(); P.held = false; P.sinkY = 0; tugEl.style.display = 'none'; acidPool.material.opacity = 0; shock.material.opacity = 0; SND.set('sizzle', 0, 0.2); W.fpAcid.visible = false;
 }
 function ch2Restore() {
   ch2Reset(); G.valves = G.valves || [];
@@ -116,6 +117,7 @@ function ch2Restore() {
   if ((G.obj >= 28 && G.obj <= 31) || G.obj === 33) { C.state = 'off'; showC(false); }
   pumpOn([26, 27, 32].includes(G.obj));
   if (G.obj === 32) towerPerch();
+  if (typeof caveRestore === 'function') caveRestore();
 }
 
 // ---------- the Hollow One: first sighting, the deer ----------
@@ -182,14 +184,14 @@ function updateTug(dt) {
   if (T.prog >= 1) breakFree(); else if (T.drag >= 1) dragUnder();
 }
 function mireWatch() { if (MS.tug || MS.state !== 'off') return; const a = P.yaw + (rand() - 0.5) * 1.2, d = 7 + rand() * 3; const x = P.x - Math.sin(a) * d, z = P.z - Math.cos(a) * d; if (H(x, z) > -0.3) return; MIRE.g.visible = true; MIRE.head.visible = true; MIRE.burn = 0; MIRE.reach = 0; MIRE.roar = 0; MIRE.emerge = 0; MIRE.g.position.set(x, 0, z); MIRE.g.rotation.y = Math.atan2(P.x - x, P.z - z); MS.state = 'watch'; MS.t = 0; SND.bubble(panOf(x, z)); SND.plop(panOf(x, z)); setTimeout(() => { if (MS.state === 'watch') { SND.stinger(); remark(['There — in the water. Its EYES.', 'It’s watching me…', 'Don’t move. Don’t… move.'], 1); } }, 900); }
-function breakFree() { MS.tug = null; P.held = false; tugEl.style.display = 'none'; SND.splash(true); SND.mireRoar(0.35); MS.state = 'sink'; MS.t = 0; MS.tugT = 3.5 + rand() * 3.5; say(pick(['Get OFF me!', 'I’m loose — move, MOVE!', 'Let go… LET GO! …Okay. Okay. Keep going.', 'Its hand… it had WEBBED fingers.']), 2.6, 'You'); }
+function breakFree() { MS.tug = null; P.held = false; tugEl.style.display = 'none'; SND.splash(true); SND.mireRoar(0.35); MS.state = 'sink'; MS.t = 0; MS.tugT = 8 + rand() * 5; say(pick(['Get OFF me!', 'I’m loose — move, MOVE!', 'Let go… LET GO! …Okay. Okay. Keep going.', 'Its hand… it had WEBBED fingers.']), 2.6, 'You'); }
 function dragUnder() { MS.tug = null; MS.state = 'off'; MIRE.g.visible = false; tugEl.style.display = 'none'; G.mode = 'cut'; SND.bigSplash(); SND.mireRoar(0.7); fade(1, 'water'); setTimeout(() => { fade(0); P.held = false; P.sinkY = 0; G.mode = 'play'; die('mire'); }, 1200); }
 function turnValve(i) {
   G.valves = G.valves || []; G.valves.push(i); valveM[i].userData.gl.visible = false; SND.creak(0); SND.clang(); refreshObj();
   const n = G.valves.length;
-  if (n < 5) { say(['One open. Water’s moving. Four more.', 'Two down. It knows where I am now…', 'Three. I can feel it circling me.', 'Four… one more. Please let that be the last time it grabs me.'][n - 1], 3.2, 'You'); checkpoint(); MS.tugT = Math.min(MS.tugT, 2.5); if (n === 3) mireWatch(); return; }
+  if (n < 5) { say(['One open. Water’s moving. Four more.', 'Two down. It knows where I am now…', 'Three. I can feel it circling me.', 'Four… one more. Please let that be the last time it grabs me.'][n - 1], 3.2, 'You'); checkpoint(); if (n === 3) mireWatch(); return; }
   G.mode = 'cut'; SND.thud(); setTimeout(() => { SND.sputter(); }, 700);
-  setTimeout(() => { say('That’s all five… but nothing’s flowing. The grates on the south side must be clogged.', 4.2, 'You'); G.mode = 'play'; setObj(33); MS.tugT = 2.5; }, 1400);
+  setTimeout(() => { say('That’s all five… but nothing’s flowing. The grates on the south side must be clogged.', 4.2, 'You'); G.mode = 'play'; setObj(33); MS.tugT = 6; }, 1400);
 }
 
 // ---------- the acid ----------
@@ -254,9 +256,9 @@ function mireExplode() {
 function updateMire(dt) {
   if (MS.tug) { if (G.mode === 'play') updateTug(dt); }
   else if ([28, 33, 29, 30].includes(G.obj) && G.mode === 'play' && P.x > 1000 && H(P.x, P.z) < -0.35 && MS.state !== 'acid') { MS.tugT -= dt; if (MS.tugT <= 0) startTug(); }
-  else if (G.mode === 'play' && MS.tugT < 2.5) MS.tugT = 2.5;
+  else if (G.mode === 'play' && MS.tugT < 5) MS.tugT = 5;
   if (MS.state === 'watch') { MS.t += dt; MIRE.look = camera.position; MIRE.emerge = MS.t < 2.5 ? Math.min(0.3, MS.t * 0.3) : Math.max(0, 0.3 - (MS.t - 2.5) * 0.3); if (MS.t > 3.6) { MIRE.g.visible = false; MS.state = 'off'; } }
-  if (MS.state === 'off' && [28, 33].includes(G.obj) && G.mode === 'play' && !MS.tug && P.x > 1000 && Math.hypot(P.x - ACIDC.x, P.z - ACIDC.z) < 30) { MS.watchT = (MS.watchT == null ? 12 : MS.watchT) - dt; if (MS.watchT <= 0) { MS.watchT = 14 + rand() * 10; mireWatch(); } }
+  if (MS.state === 'off' && [28, 33].includes(G.obj) && G.mode === 'play' && !MS.tug && P.x > 1000 && Math.hypot(P.x - ACIDC.x, P.z - ACIDC.z) < 30) { MS.watchT = (MS.watchT == null ? 12 : MS.watchT) - dt; if (MS.watchT <= 0) { MS.watchT = 26 + rand() * 14; mireWatch(); } }
   if (MS.state === 'sink') { MS.t += dt; MIRE.g.position.y = -MS.t * 1.5; if (MS.t > 2) { MIRE.g.visible = false; MS.state = 'off'; MIRE.g.position.y = 0; } }
   if (MS.state === 'fight' && G.mode === 'play') {
     MS.stag = Math.max(0, MS.stag - dt); const dx = P.x - MS.x, dz = P.z - MS.z, d = Math.hypot(dx, dz);
@@ -264,7 +266,24 @@ function updateMire(dt) {
     MIRE.burn = 0.85 + Math.sin(G.time * 7) * 0.15; mireGore(dt, 0.45); MIRE.roar = Math.max(0, MIRE.roar - dt * 0.8); MS.t += dt; if (MS.t > 3.5) { MS.t = 0; MIRE.roar = 0.9; SND.mireRoar(0.8); }
     if (d < 2.8) mireCatch();
   }
+  // on land: it crawls out of the basin and comes after you on foot
+  if (G.obj === 29 && !MS.land && !G.mland && G.mode === 'play' && P.x > 1000 && H(P.x, P.z) > 0.1 && Math.hypot(P.x - ACIDC.x, P.z - ACIDC.z) > 20 && Math.hypot(P.x - W.pump.x, P.z - W.pump.z) > 24) startLandChase();
+  if (MS.state === 'land' && G.mode === 'play') {
+    MS.t += dt; const dx = P.x - MS.x, dz = P.z - MS.z, d = Math.hypot(dx, dz), sp = MS.t < 1.4 ? 0 : 3.9;
+    if (sp) { let nx = MS.x + dx / d * sp * dt, nz = MS.z + dz / d * sp * dt; [nx, nz] = collide(nx, nz, 0.7); MS.x = nx; MS.z = nz; }
+    MIRE.emerge = Math.min(1, MS.t / 1.2); MIRE.reach = 0.7 + Math.sin(MS.t * 3) * 0.3; MIRE.g.position.set(MS.x, Math.max(H(MS.x, MS.z), 0) + Math.abs(Math.sin(MS.t * 5)) * 0.12, MS.z); MIRE.g.rotation.y += wrapA(Math.atan2(dx, dz) - MIRE.g.rotation.y) * Math.min(1, dt * 4); MIRE.rise.rotation.z = Math.sin(MS.t * 5) * 0.08; MIRE.look = camera.position;
+    MS.st = (MS.st || 0) - dt; if (MS.st <= 0 && sp) { MS.st = 0.42; SND.stomp(clamp(1 - d / 40, 0.2, 1), panOf(MS.x, MS.z)); SND.splash(false); spray(MUDP, MS.x, MIRE.g.position.y + 0.1, MS.z, 6, 1.5); }
+    MS.rt = (MS.rt || 3) - dt; if (MS.rt <= 0) { MS.rt = 4 + rand() * 3; MIRE.roar = 1; SND.mireRoar(0.9); } MIRE.roar = Math.max(0, MIRE.roar - dt * 0.7);
+    if (d < 2.6) mireCatch();
+    else if (Math.hypot(P.x - W.pump.x, P.z - W.pump.z) < 13 || MS.t > 40) { MS.state = 'retreat'; MS.t = 0; SND.mireRoar(1); say('It stopped… it won’t come near the pump house. It’s going back to the water.', 3.4, 'You'); G.mland = true; checkpoint(); }
+  }
+  if (MS.state === 'retreat') { MS.t += dt; MS.x += (ACIDC.x - MS.x) * dt * 0.3; MS.z += (ACIDC.z - MS.z) * dt * 0.3; MIRE.g.position.set(MS.x, Math.max(H(MS.x, MS.z), 0) - MS.t * 0.8, MS.z); if (MS.t > 3.5) { MIRE.g.visible = false; MS.state = 'off'; MIRE.rise.rotation.z = 0; } }
   if (MIRE.g.visible) MIRE.update(dt);
+}
+function startLandChase() {
+  MS.land = true; const a = Math.atan2(P.x - ACIDC.x, P.z - ACIDC.z); let x = P.x - Math.sin(a) * 15, z = P.z - Math.cos(a) * 15; MS.x = x; MS.z = z; MS.t = 0; MS.state = 'land';
+  MIRE.g.visible = true; MIRE.head.visible = true; MIRE.burn = 0; MIRE.roar = 1; MIRE.emerge = 0; MIRE.g.position.set(x, Math.max(H(x, z), 0), z); MIRE.g.rotation.y = Math.atan2(P.x - x, P.z - z);
+  SND.bigSplash(); SND.mireRoar(1.2); SND.stinger(); P.shake = 0.5; spray(MUDP, x, 0.2, z, 80, 5); say('It’s coming OUT of the water — it can walk on land?!', 2.6, 'You'); say('The pump house — RUN!', 2, 'You');
 }
 function mireCatch() { MS.state = 'off'; G.mode = 'cut'; SND.mireRoar(1.2); P.shake = 1; rumble(1, 1, 900); P.look = lookAtPt(MS.x, 2.6, MS.z); setTimeout(() => { SND.bigSplash(); fade(1, 'water'); }, 600); setTimeout(() => { fade(0); MIRE.g.visible = false; G.deaths++; showDead('The Mire Walker dragged you under. Shoot its HEAD — body shots only slow it down.'); }, 1700); }
 
@@ -389,7 +408,7 @@ function frogSpot(fr, near) { for (let k = 0; k < 14; k++) { const a = P.yaw + M
     else { const ld = Math.hypot(x - LK.x, z - LK.z); ok = ld > LK.c - 1 && ld < LK.c + 9 || pathDist(x, z) < 1.6 || rand() < 0.15; y = ld < LK.c ? Math.max(H(x, z), LK.w) : H(x, z); }
     if (ok) { fr.x = x; fr.z = z; fr.y = y; fr.on = true; fr.hop = null; fr.g.position.set(x, y, z); fr.g.rotation.y = rand() * 6.28; fr.g.visible = true; return; } } fr.on = false; fr.g.visible = false; }
 function updateFrogs(dt) {
-  const play = G.mode === 'play' || G.mode === 'cut', want = P.inHeli || P.inTunnel || P.onTower || !play ? 0 : P.x > 1000 ? 22 : (Math.hypot(P.x - LK.x, P.z - LK.z) < LK.c + 60 ? 14 : 8);
+  const play = G.mode === 'play' || G.mode === 'cut', want = P.inHeli || P.inTunnel || P.inCave || P.onTower || !play ? 0 : P.x > 1000 ? 22 : (Math.hypot(P.x - LK.x, P.z - LK.z) < LK.c + 60 ? 14 : 8);
   FROGS.forEach((fr, i) => {
     if (i >= want) { fr.g.visible = false; fr.on = false; return; }
     if (!fr.on || Math.hypot(fr.x - P.x, fr.z - P.z) > 40) { if (rand() < dt * 2) frogSpot(fr, false); return; }
@@ -465,19 +484,20 @@ function addCarcass(type, x, z, water) {
 }
 let carcT = 0;
 window.CARC_CELLS = new Set(); CARC.forEach(c => { for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) CARC_CELLS.add((Math.floor(c.x / 2) + i) + ',' + (Math.floor(c.z / 2) + j)); }); placeCover(P.x, P.z, true);
-function updateCarcasses(dt) { carcT -= dt; const near = []; if (carcT <= 0) { carcT = 0.5; for (const c of CARC) { const d = Math.hypot(c.x - P.x, c.z - P.z); c.g.visible = !P.inHeli && !P.inTunnel && d < 75 && (c.x > 1000) === (P.x > 1000); } }
+function updateCarcasses(dt) { carcT -= dt; const near = []; if (carcT <= 0) { carcT = 0.5; for (const c of CARC) { const d = Math.hypot(c.x - P.x, c.z - P.z); c.g.visible = !P.inHeli && !P.inTunnel && !P.inCave && d < 75 && (c.x > 1000) === (P.x > 1000); } }
   if (G.mode !== 'play') return; for (const c of CARC) { if (!c.flies || !c.g.visible) continue; const d = Math.hypot(c.x - P.x, c.z - P.z); if (d < 9) { c.buzz -= dt; if (c.buzz <= 0) { c.buzz = 1.2 + rand() * 1.8; SND.buzz(panOf(c.x, c.z)); if (!c.seen && d < 5) { c.seen = true; remark(['Ugh, the smell… something’s been eating it.', 'Another dead one. Torn wide open.', 'Flies everywhere. It’s been here a while.', 'What keeps killing all these animals?'], 0.6); } } } } }
 
 // ---------- main per-frame update (called from updateCh2) ----------
 function updateMonsters(dt) {
   if (SCN) { SCN.t += dt; SCN.f(SCN, dt); }
   if (G.mode === 'play' && G.obj === 24 && !G.h1 && P.x > 1000) { const dp = Math.hypot(P.x - W.pump.x, P.z - W.pump.z); if (dp < 75 && dp > 28) hollowDeer(); }
-  updateMire(dt); updateHollow(dt); updateFrogs(dt); updateCarcasses(dt); stepChunks(dt); stepParticles(ACIDP, dt); stepParticles(MUDP, dt);
+  updateMire(dt); updateHollow(dt); updateFrogs(dt); updateCarcasses(dt); if (typeof updateCave === 'function') updateCave(dt); stepChunks(dt); stepParticles(ACIDP, dt); stepParticles(MUDP, dt);
   if (S_DEER && !SCN) { stepHalf(S_DEER.front, dt); stepHalf(S_DEER.back, dt); }
   if (W.swamp.visible) { const on = Math.sin(G.time * 2.2) > 0.6; W.wtLampM.color.setHex(on ? 0xff2010 : 0x300000); W.wtLampL.intensity = on ? 2.2 : 0; }
   if (!P.held && P.sinkY > 0) P.sinkY = Math.max(0, P.sinkY - dt * 1.5);
   // after the Hollow One shows up the swamp night turns pitch black (darkest during the deer scene itself)
-  if (W.swamp.visible && !P.inHeli) { const tgt = (SCN && HS.state === 'scene' && G.obj === 24) ? 1 : (G.h1 || G.obj >= 25) ? 0.75 : 0; DARK += (tgt - DARK) * Math.min(1, dt * 0.6);
+  if (W.swamp.visible && !P.inHeli && G.dawn) { DARK = 0; hemi.intensity = 0.62; moon.intensity = 0.45; scene.fog.color.setHex(0x2c3338); }
+  else if (W.swamp.visible && !P.inHeli) { const tgt = (SCN && HS.state === 'scene' && G.obj === 24) ? 1 : (G.h1 || G.obj >= 25) ? 0.75 : 0; DARK += (tgt - DARK) * Math.min(1, dt * 0.6);
     if (DARK > 0.01) { hemi.intensity = lerp(0.46, 0.1, DARK); moon.intensity = lerp(0.34, 0.05, DARK); scene.fog.color.copy(FOG_SWAMP).multiplyScalar(1 - DARK * 0.75); } }
 }
 window.HP2 = { HOL, MIRE, HS, MS, hollowDeer, tallManDeath, towerJump, towerPerch, acidScene, mireFightStart, startTug, ch2Restore, VALVES, POURP, ACIDJ };

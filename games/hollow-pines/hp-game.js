@@ -10,8 +10,8 @@ const FW = new THREE.Vector3(), TV = new THREE.Vector3();
 const fmtT = s => { s = Math.floor(s); const m = Math.floor(s / 60); return m + ':' + String(s % 60).padStart(2, '0'); };
 
 // ================= STATE =================
-const PKEYS = ['sgas', 'ch1done', 'ch2done', 'med', 'obj', 'poured', 'picked', 'carry', 'key', 'fuse', 'fuseIn', 'power', 'guns', 'am', 'wep', 'ammo', 'notes', 'time', 'hasLight', 'deaths', 'done', 'h1', 'valves', 'acid', 'grates'];
-const fresh = () => ({ sgas: [], ch1done: false, ch2done: false, med: [], obj: 0, poured: 0, picked: [0, 0, 0, 0], carry: -1, key: false, fuse: false, fuseIn: false, power: false, guns: { pistol: false, shotgun: false, flare: false }, am: { p: 0, pr: 0, s: 0, sr: 0 }, wep: 'none', ammo: [], notes: [], time: 0, hasLight: false, deaths: 0, done: false, h1: false, valves: [], acid: false, grates: [] });
+const PKEYS = ['sgas', 'ch1done', 'ch2done', 'med', 'obj', 'poured', 'picked', 'carry', 'key', 'fuse', 'fuseIn', 'power', 'guns', 'am', 'wep', 'ammo', 'notes', 'time', 'hasLight', 'deaths', 'done', 'h1', 'valves', 'acid', 'grates', 'kicks', 'powder', 'paper', 'charge', 'ate', 'mland'];
+const fresh = () => ({ sgas: [], ch1done: false, ch2done: false, med: [], obj: 0, poured: 0, picked: [0, 0, 0, 0], carry: -1, key: false, fuse: false, fuseIn: false, power: false, guns: { pistol: false, shotgun: false, flare: false }, am: { p: 0, pr: 0, s: 0, sr: 0 }, wep: 'none', ammo: [], notes: [], time: 0, hasLight: false, deaths: 0, done: false, h1: false, valves: [], acid: false, grates: [], kicks: 0, powder: false, paper: false, charge: false, ate: false, mland: false });
 const G = Object.assign({ mode: 'boot', slot: 0, surviveT: 0, glimpseAt: 0, tips: {}, gateOpen: false, wolfT: 60, ambT: 8, cricketT: 1 }, fresh());
 const P = { inHeli: false, x: 0, z: 5, y: 0, yaw: 0, pitch: 0, stam: 100, tired: false, hp: 100, hurtT: 9, onTower: false, inTunnel: false, light: false, overheat: 0, ohMax: 6, bob: 0, stepAcc: 0, look: null, cy: 0, cv: 0, shake: 0 };
 const C = { state: 'off', x: 0, z: 0, timer: 0, seen: 0, burn: 0, pain: 0, stag: 0, aggr: 0, final: false, scripted: false, rush: false, ph: 0, stepT: 0, stung: false, s: 0, cy: 0, chaseT: 0, mode: 'idle', tw: { z: 0, y: 0, tz: 0, ty: 0, t: 0 }, speed: 0 };
@@ -29,7 +29,7 @@ function applyGear(i) { const g = readGear(i); if (!g) return; G.guns.pistol = G
 const readCh2 = i => { try { const d = JSON.parse(localStorage.getItem('hollowPinesCh2_' + i) || 'null'); return d && d.obj >= 16 && !d.ch2done ? d : null; } catch (e) { return null; } };
 const clearCh2 = i => { try { localStorage.removeItem('hollowPinesCh2_' + i); } catch (e) {} };
 const delSlot = i => { try { localStorage.removeItem(SK(i)); localStorage.removeItem('hollowPinesCh2_' + i); localStorage.removeItem('hollowPinesGear_' + i); } catch (e) {} };
-function snapshot() { const o = {}; PKEYS.forEach(k => o[k] = JSON.parse(JSON.stringify(G[k]))); o.x = P.x; o.z = P.z; o.yaw = P.yaw; o.tower = P.onTower; o.updated = Date.now(); return o; }
+function snapshot() { const o = {}; PKEYS.forEach(k => { if (G[k] !== undefined) o[k] = JSON.parse(JSON.stringify(G[k])); }); o.x = P.x; o.z = P.z; o.yaw = P.yaw; o.tower = P.onTower; o.updated = Date.now(); return o; }
 function checkpoint() { CP = snapshot(); writeSlot(G.slot, CP); try { const st = JSON.parse(localStorage.getItem('hollowPinesStats') || '{}'); st.best = Math.max(st.best || 0, G.obj); if (G.done) st.escaped = (st.escaped || 0); localStorage.setItem('hollowPinesStats', JSON.stringify(st)); } catch (e) {} }
 
 // ================= STORY =================
@@ -71,7 +71,16 @@ const OBJ = [
   [5, 'Pour the acid into the water by the intake', () => POURP],
   [5, 'SHOOT IT IN THE HEAD!', () => null],
   [5, 'Get to the fishing shack dock — west, past the old water tower', () => ({ x: W.shack.x, z: W.shack.z + 2.2 })],
-  [5, () => `Pull the rotten gunk out of the clogged grates (${(G.grates || []).length}/3)`, () => nearestGrate()]
+  [5, () => `Pull the rotten gunk out of the clogged grates (${(G.grates || []).length}/3)`, () => nearestGrate()],
+  [5, 'Call for help on the porch radio', () => RADIO_P],
+  [5, 'Wait on the dock for the rescue helicopter', () => ({ x: W.shack.x, z: W.shack.z + 4 })],
+  [5, 'CLIMB THE LADDER!', () => null],
+  [5, () => `Break out of the cage (${G.kicks || 0}/4)`, () => null],
+  [5, 'Find black powder in the old mine tunnel (north)', () => ({ x: CV.x + KEGS.x, z: CV.z + KEGS.z })],
+  [5, 'Find paper for a fuse — by the dead miner (south wall)', () => ({ x: CV.x + PAPER.x, z: CV.z + PAPER.z })],
+  [5, 'Pack the powder under the Hollow One’s nest', () => ({ x: CV.x + NEST.x, z: CV.z + NEST.z })],
+  [5, 'Light the fuse', () => ({ x: CV.x + NEST.x, z: CV.z + NEST.z })],
+  [5, 'RUN! Out through the east tunnel — toward the daylight!', () => ({ x: CV.x + EXIT_X + 4, z: CV.z + 2 })]
 ];
 const LETTER = `Kid —
 
@@ -304,7 +313,7 @@ function updateHUD(dt) {
   const w = G.wep; $('wep').innerHTML = w === 'pistol' ? `Pistol<b>${G.am.p} / ${G.am.pr}</b>` : w === 'shotgun' ? `Shotgun<b>${G.am.s} / ${G.am.sr}</b>` : w === 'flare' ? `Flare gun<b>1</b>` : '';
   $('cross').style.display = w !== 'none' ? 'block' : 'none'; $('dot').style.display = w !== 'none' ? 'none' : 'block';
   $('lightIc').textContent = !G.hasLight ? '' : P.overheat > 0 ? `LIGHT OVERHEATED ${Math.ceil(P.overheat)}s` : P.light ? 'LIGHT ON' : 'LIGHT OFF';
-  if ((G.obj === 14 || G.obj === 26) && G.surviveT > 0) { $('timer').style.display = 'block'; $('timer').textContent = Math.ceil(G.surviveT); } else $('timer').style.display = 'none';
+  if ((G.obj === 14 || G.obj === 26 || G.obj === 35 || G.obj === 42) && G.surviveT > 0) { $('timer').style.display = 'block'; $('timer').textContent = Math.ceil(G.surviveT); } else $('timer').style.display = 'none';
   if (subT > 0) { subT -= dt; if (subT <= 0) { const el = performance.now() - (VOICE.lineStart || 0); if (VOICE.lineOn && (VOICE.lineStarted ? el < 14000 : el < 2800)) subT = 0.05; else $('subs').innerHTML = ''; } }
   if (subT <= 0 && subQ.length) { const s = subQ.shift(); $('subs').innerHTML = (s.who ? `<b>${s.who}:</b> ` : '') + s.text; subT = s.dur; speak(s.text, s.who); }
   if (hintT > 0) { hintT -= dt; if (hintT <= 0) $('hint').style.display = 'none'; }
@@ -682,7 +691,7 @@ function updateBats(dt) {
 }
 // ================= TUNNEL =================
 const FOG_SWAMP = new THREE.Color(0x1e2818);
-function setEnv(tunnel) { const swamp = !tunnel && !P.inHeli && P.x > 1000; W.swamp.visible = swamp; W.cabin.visible = P.inHeli; W.cabinL.intensity = P.inHeli ? 0.45 : 0; if (!P.inHeli) W.alarmL.intensity = 0; W.crashFire.intensity = swamp ? 2.4 : 0; W.shackL.intensity = swamp ? 1.3 : 0; const c = tunnel ? FOG_TUNNEL : swamp ? FOG_SWAMP : FOG_FOREST; scene.fog.color.copy(c); scene.fog.density = tunnel ? 0.07 : swamp ? 0.047 : 0.032; scene.environment = tunnel ? null : (FX.env || null); hemi.intensity = tunnel ? 0.05 : 0.46; moon.intensity = tunnel ? 0 : 0.34; W.tunnel.visible = tunnel; W.endLight.intensity = tunnel ? 1.4 : 0; if (!tunnel) W.tunL.forEach(l => l.intensity = 0); SND.set('tunnel', tunnel ? 0.16 : 0, 0.5); SND.set('wind', tunnel ? 0.02 : 0.13, 0.5); SND.set('leaves', tunnel ? 0 : 0.025, 0.5); }
+function setEnv(tunnel) { if (P.inCave && typeof caveEnv === 'function') return caveEnv(true); const swamp = !tunnel && !P.inHeli && P.x > 1000; W.swamp.visible = swamp; W.cabin.visible = P.inHeli; W.cabinL.intensity = P.inHeli ? 0.45 : 0; if (!P.inHeli) W.alarmL.intensity = 0; W.crashFire.intensity = swamp ? 2.4 : 0; W.shackL.intensity = swamp ? 1.3 : 0; const c = tunnel ? FOG_TUNNEL : swamp ? FOG_SWAMP : FOG_FOREST; scene.fog.color.copy(c); scene.fog.density = tunnel ? 0.07 : swamp ? 0.047 : 0.032; scene.environment = tunnel ? null : (FX.env || null); hemi.intensity = tunnel ? 0.05 : 0.46; moon.intensity = tunnel ? 0 : 0.34; W.tunnel.visible = tunnel; W.endLight.intensity = tunnel ? 1.4 : 0; if (!tunnel) W.tunL.forEach(l => l.intensity = 0); SND.set('tunnel', tunnel ? 0.16 : 0, 0.5); SND.set('wind', tunnel ? 0.02 : 0.13, 0.5); SND.set('leaves', tunnel ? 0 : 0.025, 0.5); }
 async function enterTunnel(restoring) {
   G.mode = 'cut'; fade(1); await wait(650);
   P.inTunnel = true; P.onTower = false; G.gateOpen = false; W.gate.position.y = TB.y; setEnv(true); updateChunks(9999, 9999, 0);
@@ -863,7 +872,7 @@ async function startPump() {
 }
 function pumpOn(on) { W.pumpL.intensity = on ? 3 : 0; W.pumpLampM.emissive.setHex(on ? 0xe8f0ff : 0); W.pumpLampM.emissiveIntensity = 2; SND.set('siren', on ? 0.08 : 0, 0.5); G.pumpOn = on; }
 function swampChase() { hollowChaseStart(true); }
-async function ch2End() {
+async function ch2End() { if (typeof shackSleep === 'function') return shackSleep();
   G.mode = 'cut'; showC(false); C.state = 'off'; if (typeof hShow === 'function') hShow(false); SND.set('drone', 0, 0.3); SND.door(); fade(1); await wait(800); SND.thud(); await wait(1600);
   for (let i = 0; i < 3; i++) { SND.thud(); P.shake = 0.5; await wait(700); } SND.whisper(0); await wait(1500);
   G.ch2done = true; checkpoint(); clearCh2(G.slot); G.mode = 'win'; $('hud').style.display = 'none'; $('touch').style.display = 'none';
@@ -904,7 +913,7 @@ let pausedFrom = 'play';
 function pause() { if (G.mode !== 'play' && G.mode !== 'climb') return; hush(); pausedFrom = G.mode; G.mode = 'pause'; $('pauseP').style.display = 'grid'; try { document.exitPointerLock(); } catch (e) {} }
 $('pResume').onclick = () => { $('pauseP').style.display = 'none'; G.mode = pausedFrom; lock(true); };
 $('pSet').onclick = () => { $('pauseP').style.display = 'none'; openPanel('setP', 'pauseP'); };
-$('pMenu').onclick = () => { $('pauseP').style.display = 'none'; const safe = G.mode === 'pause' && pausedFrom === 'play' && ![11, 12, 14, 15, 27, 31].includes(G.obj) && C.state !== 'chase' && !P.inTunnel; if (safe) checkpoint(); showMenu(); };
+$('pMenu').onclick = () => { $('pauseP').style.display = 'none'; const safe = G.mode === 'pause' && pausedFrom === 'play' && ![11, 12, 14, 15, 27, 31, 35, 36, 42].includes(G.obj) && C.state !== 'chase' && !P.inTunnel; if (safe) checkpoint(); showMenu(); };
 const DEATH_TIPS = ['Keep your flashlight right on him to make him back off.', 'Shooting him slows him down for a moment.', 'Running drains stamina. Walk when he’s not chasing.', 'Wolves come in packs. The shotgun is in the lookout shed by the tower.', 'Ammo boxes are hidden in sheds and at every landmark.', 'Don’t stare at him when he’s just watching. He doesn’t like it.'];
 function die(by) { if (G.mode !== 'play' && G.mode !== 'scare') return; G.deaths++; G.mode = 'dead'; showDead(by === 'wolf' ? 'The wolves got you.' : by === 'gator' ? 'The alligator dragged you under.' : by === 'mire' ? 'Something in the water dragged you under. When it grabs you, HOLD the use button to break free!' : ''); }
 function showDead(msg) { hush(); SND.set('siren', 0, 0.3);
@@ -1130,18 +1139,19 @@ function update(dt) {
   const run = (K.ShiftLeft || K.ShiftRight || touchRun || padRun || padL2) && moving && mz > -0.2 && !P.tired && !P.onTower;
   if (run) { P.stam -= (adren ? 4.5 : 15) * dt; if (P.stam <= 0) { P.stam = 0; P.tired = true; if (touchRun) { touchRun = false; $('bRun').classList.remove('on'); } } } else P.stam = Math.min(100, P.stam + (moving ? 9 : 16) * dt);
   SND.set('breath', P.tired || P.stam < 25 ? 0.08 : 0, 0.4);
-  const wade = P.x > 1000 && !P.inHeli ? clamp(1 + H(P.x, P.z) * 0.55, 0.5, 1) : 1;
+  const wade = P.x > 1000 && !P.inHeli && !P.inCave ? clamp(1 + H(P.x, P.z) * 0.55, 0.5, 1) : 1;
   const sp = (run ? 5.7 : 3.0) * (G.carry >= 0 ? 0.92 : 1) * (P.tired ? 0.88 : 1) * wade;
   if (P.inHeli) heliMove(dt, mx, mz, moving);
   else if (!climbing) {
     const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
     let nx = P.x + (fx * mz + rx * mx) * sp * dt, nz = P.z + (fz * mz + rz * mx) * sp * dt;
     if (P.onTower) { nx = clamp(nx, T.x - 1.4, T.x + 1.4); nz = clamp(nz, T.z - 1.4, T.z + 1.4); }
+    else if (P.inCave) [nx, nz] = caveMove(P.x, P.z, nx, nz);
     else if (P.inTunnel) { let pr = tProject(nx, nz); if (pr.d > 0.95) { const k = 0.95 / pr.d; nx = pr.px + (nx - pr.px) * k; nz = pr.pz + (nz - pr.pz) * k; pr = tProject(nx, nz); } if (pr.s < 1.0 || (!G.gateOpen && pr.s > GATE_S - 0.6)) { const lim = pr.s < 1.0 ? 1.0 : GATE_S - 0.6, q = tPoint(lim); nx = q.x; nz = q.z; } }
     else[nx, nz] = collide(nx, nz, 0.4);
     const moved = Math.hypot(nx - P.x, nz - P.z); P.x = nx; P.z = nz;
-    if (moving && playing) { P.bob += moved * (run ? 1.9 : 2.3); P.stepAcc += moved; if (P.stepAcc > (run ? 1.15 : 0.85)) { P.stepAcc = 0; if (wade < 0.98) SND.splash(run); else SND.step(run, P.onTower || P.inTunnel || (P.x > 1000 && H(P.x, P.z) > 0.5)); } }
-    const gy = P.onTower ? TG0 + TY + 0.08 : P.inTunnel ? TB.y : H(P.x, P.z); if (!P.falling) P.y += (gy - P.y) * Math.min(1, dt * 12);
+    if (moving && playing) { P.bob += moved * (run ? 1.9 : 2.3); P.stepAcc += moved; if (P.stepAcc > (run ? 1.15 : 0.85)) { P.stepAcc = 0; if (wade < 0.98) SND.splash(run); else SND.step(run, P.onTower || P.inTunnel || P.inCave || (P.x > 1000 && H(P.x, P.z) > 0.5)); } }
+    const gy = P.onTower ? TG0 + TY + 0.08 : P.inTunnel ? TB.y : P.inCave ? CV.y : H(P.x, P.z); if (!P.falling) P.y += (gy - P.y) * Math.min(1, dt * 12);
   } else updateClimb(dt);
   P.shake = Math.max(0, P.shake - dt * 1.5); const sh = P.shake * 0.05 + (climbing ? 0.012 : 0);
   const breath = Math.sin(G.time * 1.7) * (moving ? 0.001 : 0.004);
@@ -1208,8 +1218,8 @@ function loop(now) {
   else if (G.mode === 'scare') updateScare(dt);
   if (!(G.mode === 'scare' && scareT >= 0.32)) {
     const ox = (menuOn || P.inHeli) ? camera.position.x : P.x, oz = (menuOn || P.inHeli) ? camera.position.z : P.z;
-    FX.update(dt, { noCover: !menuOn && P.inHeli, tunnel: !menuOn && P.inTunnel, storm: menuOn ? 1 : G.obj >= 8 ? 1 : G.obj >= 4 ? 0.6 : 0.35, rain: menuOn ? 0.55 : G.obj < 4 ? 0.35 : G.obj < 8 ? 0.6 : 0.9, x: ox, z: oz, red: W.flare.visible ? 0.18 : 0, onStrike: lightningReveal });
-    SND.set('rain', !menuOn && P.inTunnel ? 0.015 : (menuOn ? 0.55 : G.obj < 4 ? 0.35 : G.obj < 8 ? 0.6 : 0.9) * 0.22, 0.6);
+    FX.update(dt, { noCover: !menuOn && P.inHeli, tunnel: !menuOn && (P.inTunnel || P.inCave), storm: menuOn ? 1 : G.obj >= 34 ? 0.15 : G.obj >= 8 ? 1 : G.obj >= 4 ? 0.6 : 0.35, rain: menuOn ? 0.55 : G.obj >= 34 ? 0.08 : G.obj < 4 ? 0.35 : G.obj < 8 ? 0.6 : 0.9, x: ox, z: oz, red: W.flare.visible ? 0.18 : 0, onStrike: lightningReveal });
+    SND.set('rain', !menuOn && (P.inTunnel || P.inCave) ? 0.015 : (menuOn ? 0.55 : G.obj >= 34 ? 0.12 : G.obj < 4 ? 0.35 : G.obj < 8 ? 0.6 : 0.9) * 0.22, 0.6);
     FX.render();
   }
 }
