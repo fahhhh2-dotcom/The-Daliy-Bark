@@ -176,12 +176,18 @@ function voiceScore(v) {
 function loadVoices() {
   if (!VOICE.ok) return; VOICE.bad = VOICE.bad || new Set();
   const all = speechSynthesis.getVoices(); const v = all.filter(x => /^en/i.test(x.lang) && !ROBOT.test(x.name) && !VOICE.bad.has(x.name)).sort((a, b) => voiceScore(b) - voiceScore(a));
-  VOICE.you = v[0] || null; VOICE.radio = v.find(x => x !== VOICE.you && voiceScore(x) > 20) || v[1] || VOICE.you; VOICE.pilot = v.find(x => x !== VOICE.you && x !== VOICE.radio && voiceScore(x) > 20) || VOICE.radio;
+  const picked = settings.voiceName && v.find(x => x.name === settings.voiceName);
+  VOICE.you = picked || v[0] || null; VOICE.list = v; VOICE.radio = v.find(x => x !== VOICE.you && isMale(x) && voiceScore(x) > 20) || v.find(x => x !== VOICE.you && voiceScore(x) > 20) || v[1] || VOICE.you; VOICE.pilot = v.find(x => x !== VOICE.you && x !== VOICE.radio && voiceScore(x) > 20) || VOICE.radio;
+  fillVoicePick();
   VOICE.local = v.find(x => x.localService && isMale(x)) || v.find(x => x.localService) || null; VOICE.count = all.length;
 }
 if (VOICE.ok) { loadVoices(); try { speechSynthesis.onvoiceschanged = loadVoices; if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', loadVoices); } catch (e) {} setTimeout(loadVoices, 600); setTimeout(loadVoices, 2500); }
 // Chrome/Edge/Safari speech is fragile: a line spoken right after cancel() can be dropped, some online voices never start,
 // and synthesis can get stuck "paused". So: wait a beat after cancelling, resume, and if a voice doesn't start, mark it bad and retry with another.
+function fillVoicePick() { const sel = document.getElementById('sVoicePick'); if (!sel || !VOICE.list) return; sel.innerHTML = '';
+  if (!VOICE.list.length) { const o = document.createElement('option'); o.textContent = 'No voices found on this device'; sel.appendChild(o); return; }
+  VOICE.list.forEach((x, i) => { const o = document.createElement('option'); o.value = x.name; o.textContent = (i === 0 ? '★ ' : '') + x.name.replace(/ - English.*$/, '').replace(/^Microsoft /, '') + (isMale(x) ? ' (man)' : FEMALE.test(x.name) ? ' (woman)' : '') + (/natural|neural|premium|enhanced/i.test(x.name) ? ' · best quality' : ''); sel.appendChild(o); });
+  sel.value = VOICE.you ? VOICE.you.name : ''; }
 function speakLine(clean, who, opts, tries) {
   const radio = who !== 'You'; let v = who === 'Pilot' ? VOICE.pilot : radio ? VOICE.radio : VOICE.you;
   if (tries > 0) v = tries === 1 ? VOICE.local : null;
@@ -362,11 +368,12 @@ function padLayer() {
   for (const id of ['note', 'setP', 'howP', 'credP', 'slotP', 'pauseP', 'dead', 'win']) { const e = $(id); if (e && getComputedStyle(e).display !== 'none') return e; }
   return menuOn ? $('menu') : null;
 }
-function padItems(root) { return [...root.querySelectorAll('button,input,a[href]')].filter(e => e.offsetParent !== null && !e.disabled && e.id !== 'pauseBtn' && !e.classList.contains('tb')); }
+function padItems(root) { return [...root.querySelectorAll('button,input,select,a[href]')].filter(e => e.offsetParent !== null && !e.disabled && e.id !== 'pauseBtn' && !e.classList.contains('tb')); }
 function padSetFocus(e) { if (padFocus) padFocus.classList.remove('pf'); padFocus = e; if (e) { e.classList.add('pf'); try { e.focus({ preventScroll: false }); } catch (x) {} e.scrollIntoView && e.scrollIntoView({ block: 'nearest' }); } }
 function padMove(root, dx, dy) {
   const items = padItems(root); if (!items.length) return;
   if (!padFocus || !items.includes(padFocus)) { padSetFocus(items[0]); return; }
+  if (padFocus.tagName === 'SELECT' && dx) { const n = padFocus.options.length; padFocus.selectedIndex = (padFocus.selectedIndex + dx + n) % n; padFocus.dispatchEvent(new Event('change', { bubbles: true })); return; }
   if (padFocus.type === 'range' && dx) { const s = +padFocus.step || 0.05; padFocus.value = clamp(+padFocus.value + dx * s * 2, +padFocus.min, +padFocus.max); padFocus.dispatchEvent(new Event('input', { bubbles: true })); padFocus.dispatchEvent(new Event('change', { bubbles: true })); return; }
   const r0 = padFocus.getBoundingClientRect(), cx = r0.left + r0.width / 2, cy = r0.top + r0.height / 2;
   let best = null, bs = 1e9;
@@ -1048,13 +1055,14 @@ function menuFrame(dt) {
   SND.ok && ambience(dt);
 }
 const panelFrom = {};
-function openPanel(id, from) { panelFrom[id] = from; $(id).style.display = 'grid'; if (id === 'slotP') renderSlots(); if (id === 'setP') { $('sVoice').checked = settings.voice !== false; $('sHQ').checked = HQ(); $('sSens').value = settings.sens; $('sVol').value = settings.vol; $('sShadow').checked = settings.shadows; } }
+function openPanel(id, from) { panelFrom[id] = from; $(id).style.display = 'grid'; if (id === 'slotP') renderSlots(); if (id === 'setP') { loadVoices(); $('sVoice').checked = settings.voice !== false; $('sHQ').checked = HQ(); $('sSens').value = settings.sens; $('sVol').value = settings.vol; $('sShadow').checked = settings.shadows; } }
 document.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', () => { const p = b.closest('.panel'); p.style.display = 'none'; const f = panelFrom[p.id]; if (f) $(f).style.display = 'grid'; SND.ui(); }));
 $('playBtn').onclick = () => { SND.init(); SND.ui(); openPanel('slotP', null); };
 $('mHow').onclick = () => { SND.ui(); openPanel('howP', null); }; $('mSet').onclick = () => { SND.ui(); openPanel('setP', null); }; $('mCred').onclick = () => { SND.ui(); openPanel('credP', null); };
 $('sSens').oninput = e => { settings.sens = +e.target.value; saveSettings(); };
 $('sVol').oninput = e => { settings.vol = +e.target.value; SND.setVol(settings.vol); saveSettings(); };
 $('sVoice').onchange = e => { settings.voice = e.target.checked; if (!settings.voice) hush(); saveSettings(); };
+$('sVoicePick').onchange = e => { settings.voiceName = e.target.value; saveSettings(); VOICE.bad && VOICE.bad.delete(e.target.value); loadVoices(); hush(); setTimeout(() => speak('This is how I sound now. Can you hear me?', 'You'), 120); };
 $('sVoiceTest').onclick = () => { VOICE.unlocked = false; voiceUnlock(); settings.voice = true; $('sVoice').checked = true; saveSettings(); setTimeout(() => { speak('Can you hear me? This is my voice.', 'You'); setTimeout(() => { $('sVoiceMsg').textContent = !VOICE.ok ? 'This browser has no speech voices. Try Chrome, Edge or Safari.' : VOICE.works ? 'Voice is working.' : 'No sound? Turn your device volume up, check it isn’t on silent, and try Chrome, Edge or Safari.'; }, 2600); }, 150); };
 $('sHQ').onchange = e => { settings.quality = e.target.checked ? 'high' : 'low'; FX.setQuality(); saveSettings(); };
 $('sShadow').onchange = e => { settings.shadows = e.target.checked; flash.castShadow = settings.shadows; saveSettings(); };
