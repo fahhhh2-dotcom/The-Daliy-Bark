@@ -231,6 +231,7 @@ function mireGore(dt, rate) {
 function chunk(x, y, z, sp, mat, s) { const m = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 0), mat); m.position.set(x, y, z); m.scale.set(1, 0.6 + rand() * 0.8, 1 + rand()); scene.add(m); GOREOBJ.push(m); const an = rand() * 6.28; CHUNKS.push({ m, v: V3(Math.cos(an) * sp * (0.4 + rand()), sp * (0.6 + rand() * 0.8), Math.sin(an) * sp * (0.4 + rand())), w: V3(rand() * 9, rand() * 9, rand() * 9), rest: false }); }
 function stepChunks(dt) { for (const c of CHUNKS) { if (c.rest) continue; c.v.y -= 9.8 * dt; c.m.position.addScaledVector(c.v, dt); c.m.rotation.x += c.w.x * dt; c.m.rotation.y += c.w.y * dt; const gy = Math.max(H(c.m.position.x, c.m.position.z), 0) + 0.02; if (c.m.position.y < gy) { if (H(c.m.position.x, c.m.position.z) < 0) { if (rand() < 0.4) SND.plop(panOf(c.m.position.x, c.m.position.z)); c.m.position.y = -0.3; } else { c.m.position.y = gy; spray(BLOOD, c.m.position.x, gy, c.m.position.z, 4, 1); } c.rest = true; } } }
 function mireShot(o, d, dmg) {
+  if (MS.state === 'land') return mireLandShot(o, d, dmg);
   if (MS.state !== 'fight') return false; const hp = MIRE.headPos(V2), g = MIRE.g.position;
   const th = raySphere(o, d, hp.x, hp.y, hp.z, 0.5); const tb = raySphere(o, d, g.x, g.y + 1.9, g.z, 1.0);
   if (th > 0 && (tb < 0 || th <= tb + 0.6)) { const hx = o.x + d.x * th, hy = o.y + d.y * th, hz = o.z + d.z * th; spray(BLOOD, hx, hy, hz, 26, 3.5, d.x, 0.4, d.z); spray(BLACKB, hx, hy, hz, 10, 2.5); SND.splat(0); SND.crunch(0); MS.hp -= dmg; MS.stag = 0.45; MIRE.roar = 0.8; SND.mireRoar(0.6); if (MS.hp <= 0) mireExplode(); else remark(['Again! Hit it again!', 'Its head — keep shooting its head!'], 1); return true; }
@@ -269,7 +270,7 @@ function updateMire(dt) {
   // on land: it crawls out of the basin and comes after you on foot
   if (G.obj === 29 && !MS.land && !G.mland && G.mode === 'play' && P.x > 1000 && H(P.x, P.z) > 0.1 && Math.hypot(P.x - ACIDC.x, P.z - ACIDC.z) > 20 && Math.hypot(P.x - W.pump.x, P.z - W.pump.z) > 24) startLandChase();
   if (MS.state === 'land' && G.mode === 'play') {
-    MS.t += dt; const dx = P.x - MS.x, dz = P.z - MS.z, d = Math.hypot(dx, dz), sp = MS.t < 1.4 ? 0 : 3.9;
+    MS.t += dt; MS.stag = Math.max(0, (MS.stag || 0) - dt); const dx = P.x - MS.x, dz = P.z - MS.z, d = Math.hypot(dx, dz), sp = MS.t < 1.4 ? 0 : MS.stag > 0 ? -1.2 : 3.9;
     if (sp) { let nx = MS.x + dx / d * sp * dt, nz = MS.z + dz / d * sp * dt; [nx, nz] = collide(nx, nz, 0.7); MS.x = nx; MS.z = nz; }
     MIRE.emerge = Math.min(1, MS.t / 1.2); MIRE.reach = 0.7 + Math.sin(MS.t * 3) * 0.3; MIRE.g.position.set(MS.x, Math.max(H(MS.x, MS.z), 0) + Math.abs(Math.sin(MS.t * 5)) * 0.12, MS.z); MIRE.g.rotation.y += wrapA(Math.atan2(dx, dz) - MIRE.g.rotation.y) * Math.min(1, dt * 4); MIRE.rise.rotation.z = Math.sin(MS.t * 5) * 0.08; MIRE.look = camera.position;
     MS.st = (MS.st || 0) - dt; if (MS.st <= 0 && sp) { MS.st = 0.42; SND.stomp(clamp(1 - d / 40, 0.2, 1), panOf(MS.x, MS.z)); SND.splash(false); spray(MUDP, MS.x, MIRE.g.position.y + 0.1, MS.z, 6, 1.5); }
@@ -280,10 +281,17 @@ function updateMire(dt) {
   if (MS.state === 'retreat') { MS.t += dt; MS.x += (ACIDC.x - MS.x) * dt * 0.3; MS.z += (ACIDC.z - MS.z) * dt * 0.3; MIRE.g.position.set(MS.x, Math.max(H(MS.x, MS.z), 0) - MS.t * 0.8, MS.z); if (MS.t > 3.5) { MIRE.g.visible = false; MS.state = 'off'; MIRE.rise.rotation.z = 0; } }
   if (MIRE.g.visible) MIRE.update(dt);
 }
-function startLandChase() {
+function mireLandShot(o, d, dmg) {
+  const hp = MIRE.headPos(V2), g = MIRE.g.position; const th = raySphere(o, d, hp.x, hp.y, hp.z, 0.5), tb = raySphere(o, d, g.x, g.y + 1.9, g.z, 1.0);
+  if (th > 0 && (tb < 0 || th <= tb + 0.6)) { const hx = o.x + d.x * th, hy = o.y + d.y * th, hz = o.z + d.z * th; spray(BLOOD, hx, hy, hz, 26, 3.5, d.x, 0.4, d.z); spray(BLACKB, hx, hy, hz, 10, 2.5); SND.splat(0); SND.crunch(0); MIRE.roar = 1; SND.mireRoar(0.8); MS.lhp = (MS.lhp == null ? 3 : MS.lhp) - dmg; MS.stag = 0.9;
+    if (MS.lhp <= 0) { MS.state = 'retreat'; MS.t = 0; G.mland = true; SND.mireRoar(1.2); say('It’s running! Back into the water — it’s bleeding everywhere!', 3, 'You'); say('That won’t kill it, though. Not out here.', 2.6, 'You'); checkpoint(); } else remark(['Right in the head! Again!', 'It’s slowing down — keep shooting its head!'], 1); return true; }
+  if (tb > 0) { const hx = o.x + d.x * tb, hy = o.y + d.y * tb, hz = o.z + d.z * tb; spray(BLOOD, hx, hy, hz, 12, 2.6, d.x, 0.3, d.z); SND.splat(0); MS.stag = Math.max(MS.stag, 0.25); hint('Aim for the HEAD!', 1.6); return true; }
+  return false;
+}
+function startLandChase() { MS.lhp = 3; MS.stag = 0;
   MS.land = true; const a = Math.atan2(P.x - ACIDC.x, P.z - ACIDC.z); let x = P.x - Math.sin(a) * 15, z = P.z - Math.cos(a) * 15; MS.x = x; MS.z = z; MS.t = 0; MS.state = 'land';
   MIRE.g.visible = true; MIRE.head.visible = true; MIRE.burn = 0; MIRE.roar = 1; MIRE.emerge = 0; MIRE.g.position.set(x, Math.max(H(x, z), 0), z); MIRE.g.rotation.y = Math.atan2(P.x - x, P.z - z);
-  SND.bigSplash(); SND.mireRoar(1.2); SND.stinger(); P.shake = 0.5; spray(MUDP, x, 0.2, z, 80, 5); say('It’s coming OUT of the water — it can walk on land?!', 2.6, 'You'); say('The pump house — RUN!', 2, 'You');
+  SND.bigSplash(); SND.mireRoar(1.2); SND.stinger(); P.shake = 0.5; spray(MUDP, x, 0.2, z, 80, 5); say('It’s coming OUT of the water — it can walk on land?!', 2.6, 'You'); say('The pump house — RUN! Or shoot it in the head!', 2.4, 'You');
 }
 function mireCatch() { MS.state = 'off'; G.mode = 'cut'; SND.mireRoar(1.2); P.shake = 1; rumble(1, 1, 900); P.look = lookAtPt(MS.x, 2.6, MS.z); setTimeout(() => { SND.bigSplash(); fade(1, 'water'); }, 600); setTimeout(() => { fade(0); MIRE.g.visible = false; G.deaths++; showDead('The Mire Walker dragged you under. Shoot its HEAD — body shots only slow it down.'); }, 1700); }
 
