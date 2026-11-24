@@ -22,8 +22,8 @@ if ('useLegacyLights' in renderer) renderer.useLegacyLights = true;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.25;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
-const FOG_FOREST = new THREE.Color(0x090d12), FOG_TUNNEL = new THREE.Color(0x020202), FOG_FLARE = new THREE.Color(0x1c0606);
-scene.background = FOG_FOREST.clone(); scene.fog = new THREE.FogExp2(FOG_FOREST.clone(), 0.026);
+const FOG_FOREST = new THREE.Color(0x151b22), FOG_TUNNEL = new THREE.Color(0x020202), FOG_FLARE = new THREE.Color(0x1c0606);
+scene.background = FOG_FOREST.clone(); scene.fog = new THREE.FogExp2(FOG_FOREST.clone(), 0.032);
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.04, 150); camera.rotation.order = 'YXZ'; scene.add(camera);
 const hemi = new THREE.HemisphereLight(0x4a5878, 0x15110c, 0.55); scene.add(hemi);
 const moon = new THREE.DirectionalLight(0x8494c4, 0.25); moon.position.set(-60, 100, 40); scene.add(moon);
@@ -179,14 +179,15 @@ GROUND.map.repeat.set(250, 250); GROUND.nrm.repeat.set(250, 250);
 const L = {
   camp: { x: 0, z: 0 }, shed1: { x: -20, z: 24 }, gen: { x: 16, z: -12 }, truck: { x: -150, z: 90 }, cabin: { x: 140, z: 150 },
   log: { x: -110, z: -170 }, tower: { x: 20, z: 280 }, shed2: { x: -62, z: 258 }, ranger: { x: -260, z: 160 }, grave: { x: -200, z: -260 },
-  tunnel: { x: -190, z: 232 }, hatch: { x: 236, z: 198 }, heli: { x: 270, z: 225 }
+  tunnel: { x: -190, z: 232 }, hatch: { x: 236, z: 198 }, heli: { x: 270, z: 225 },
+  oldcamp: { x: -48, z: -92 }, barn: { x: -174, z: 64 }, stand: { x: 121, z: 170 }
 };
 const LK = { x: 235, z: -120, r: 45, c: 46.5 };
 const LD = (() => { const dx = -LK.x, dz = -LK.z, l = Math.hypot(dx, dz); return { x: dx / l, z: dz / l }; })();
 L.lake = { x: LK.x + LD.x * 53, z: LK.z + LD.z * 53 };
 const FLAT = [];
 function baseH(x, z) { return Math.sin(x * 0.012) * Math.cos(z * 0.010) * 7 + Math.sin(x * 0.029 + 1.3) * Math.sin(z * 0.025 + 0.7) * 3 + (vnoise(x * 0.05, z * 0.05) - 0.5) * 2.2; }
-[['camp', 16], ['shed1', 6], ['gen', 7], ['truck', 10], ['cabin', 13], ['log', 16], ['tower', 12], ['shed2', 6], ['ranger', 16], ['grave', 24], ['tunnel', 8], ['hatch', 6], ['heli', 18]]
+[['camp', 16], ['shed1', 6], ['gen', 7], ['truck', 10], ['cabin', 13], ['log', 16], ['tower', 12], ['shed2', 6], ['ranger', 16], ['grave', 24], ['tunnel', 8], ['hatch', 6], ['heli', 18], ['oldcamp', 9], ['barn', 12], ['stand', 5]]
   .forEach(([k, r]) => FLAT.push({ x: L[k].x, z: L[k].z, r, h: baseH(L[k].x, L[k].z) }));
 FLAT.push({ x: LK.x, z: LK.z, r: LK.r + 14, h: baseH(LK.x, LK.z) }); LK.h = FLAT[FLAT.length - 1].h; LK.w = LK.h - 0.9;
 function H(x, z) {
@@ -196,14 +197,14 @@ function H(x, z) {
   return h;
 }
 // paths
-const SEG = [], PG = new Map();
+const SEG = [], PG = new Map(); let POWER_PTS = [], PRINT_PTS = [];
 function addPath(a, b, amp0) {
   const dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz), n = Math.max(2, Math.ceil(len / 8)), nx = -dz / len, nz = dx / len;
   const k = 1 + Math.floor(rng() * 2), ph = rng() * 6, amp = amp0 != null ? amp0 : Math.min(14, len * 0.06); let px = a.x, pz = a.z; const pts = [{ x: px, z: pz }];
   for (let i = 1; i <= n; i++) { const t = i / n, o = Math.sin(t * Math.PI * k * 2 + ph) * amp * Math.sin(t * Math.PI); const x = a.x + dx * t + nx * o, z = a.z + dz * t + nz * o; SEG.push([px, pz, x, z]); pts.push({ x, z }); px = x; pz = z; }
   return pts;
 }
-[['camp', 'gen'], ['camp', 'shed1'], ['camp', 'truck'], ['camp', 'cabin'], ['camp', 'log'], ['camp', 'lake'], ['camp', 'tower'], ['tower', 'shed2'], ['tower', 'ranger'], ['ranger', 'grave'], ['log', 'grave'], ['tower', 'heli'], ['cabin', 'heli'], ['hatch', 'heli']].forEach(([a, b]) => addPath(L[a], L[b]));
+[['camp', 'gen'], ['camp', 'shed1'], ['camp', 'truck'], ['camp', 'cabin'], ['camp', 'log'], ['camp', 'lake'], ['camp', 'tower'], ['tower', 'shed2'], ['tower', 'ranger'], ['ranger', 'grave'], ['log', 'grave'], ['tower', 'heli'], ['cabin', 'heli'], ['hatch', 'heli'], ['truck', 'barn']].forEach(([a, b]) => { const pts = addPath(L[a], L[b]); if (a === 'camp' && b === 'tower') POWER_PTS = pts; if (a === 'tower' && b === 'ranger') PRINT_PTS = pts; });
 const ARROW_PTS = addPath({ x: L.ranger.x + 7, z: L.ranger.z }, { x: L.tunnel.x, z: L.tunnel.z - 5 }, 10);
 SEG.forEach((s, i) => { const x0 = Math.floor((Math.min(s[0], s[2]) - 6) / 20), x1 = Math.floor((Math.max(s[0], s[2]) + 6) / 20), z0 = Math.floor((Math.min(s[1], s[3]) - 6) / 20), z1 = Math.floor((Math.max(s[1], s[3]) + 6) / 20); for (let x = x0; x <= x1; x++)for (let z = z0; z <= z1; z++) { const k = x + ',' + z; if (!PG.has(k)) PG.set(k, []); PG.get(k).push(i); } });
 function pathDist(x, z) { const L2 = PG.get(Math.floor(x / 20) + ',' + Math.floor(z / 20)); if (!L2) return 99; let best = 99; for (const i of L2) { const s = SEG[i], dx = s[2] - s[0], dz = s[3] - s[1], l2 = dx * dx + dz * dz; let t = ((x - s[0]) * dx + (z - s[1]) * dz) / l2; t = clamp(t, 0, 1); const d = Math.hypot(x - s[0] - dx * t, z - s[1] - dz * t); if (d < best) best = d; } return best; }
@@ -230,8 +231,9 @@ function beam(a, b, r, mat, p) { const v = new THREE.Vector3().subVectors(b, a),
 function merge(gs) { const ng = gs.map(g => g.index ? g.toNonIndexed() : g); let n = 0; ng.forEach(g => n += g.attributes.position.count); const P = new Float32Array(n * 3), N = new Float32Array(n * 3), U = new Float32Array(n * 2); let o = 0; ng.forEach(g => { P.set(g.attributes.position.array, o * 3); N.set(g.attributes.normal.array, o * 3); if (g.attributes.uv) U.set(g.attributes.uv.array, o * 2); o += g.attributes.position.count; }); const m = new THREE.BufferGeometry(); m.setAttribute('position', new THREE.BufferAttribute(P, 3)); m.setAttribute('normal', new THREE.BufferAttribute(N, 3)); m.setAttribute('uv', new THREE.BufferAttribute(U, 2)); return m; }
 function jag(geo, amt, sd) { const p = geo.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i); p.setXYZ(i, x + (hash3(x * 7.1, y * 3.3 + sd, z * 5.7) - 0.5) * amt, y + (hash3(z * 4.3, x * 2.1, y * 6.9 + sd) - 0.5) * amt * 0.6, z + (hash3(y * 5.1, z * 3.7, x * 1.3 + sd) - 0.5) * amt); } geo.computeVertexNormals(); return geo; }
 const GL = [];
-const glintMat = new THREE.SpriteMaterial({ map: TX.glint, color: 0xfff0d0, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
-function glint(x, y, z) { const s = new THREE.Sprite(glintMat); s.position.set(x, y, z); s.scale.set(0.55, 0.55, 0.55); scene.add(s); GL.push(s); return s; }
+const glintMat = new THREE.MeshBasicMaterial({ color: 0xffc24a, transparent: true, opacity: 0.9, depthWrite: false });
+const MARK_GEO = (() => { const c = new THREE.ConeGeometry(0.075, 0.16, 4); c.rotateX(Math.PI); const st = new THREE.CylinderGeometry(0.022, 0.022, 0.14, 4); st.translate(0, 0.15, 0); return merge([c, st]); })();
+function glint(x, y, z) { const s = new THREE.Mesh(MARK_GEO, glintMat); s.position.set(x, y - 0.12, z); s.userData.by = y - 0.12; s.renderOrder = 3; scene.add(s); GL.push(s); return s; }
 const noCast = o => o.traverse(c => { if (c.isMesh) { c.castShadow = false; } });
 
 // ---------- ground & water ----------
@@ -550,6 +552,53 @@ function makeFlareGun() { const g = new THREE.Group(); bx(0.045, 0.06, 0.16, MAT
 function makeCan() { const g = new THREE.Group(); bx(0.34, 0.42, 0.17, MAT.red, 0, 0.21, 0, g); bx(0.06, 0.05, 0.14, MAT.red, 0.1, 0.45, 0, g); const sp = cyl(0.025, 0.03, 0.16, 6, MAT.metal, -0.12, 0.47, 0, g); sp.rotation.z = 0.6; bx(0.2, 0.03, 0.04, MAT.black, 0, 0.44, 0, g); return g; }
 function makeAmmo() { const g = new THREE.Group(); bx(0.3, 0.16, 0.18, MAT.ammo, 0, 0.08, 0, g); return g; }
 
+
+// ---------- more places & details ----------
+// first-aid kit model
+function makeMedkit() { const g = new THREE.Group(); bx(0.34, 0.2, 0.22, MSM({ color: 0xd8d4cc, roughness: 0.5 }), 0, 0.1, 0, g); const rm = MSM({ color: 0xb01010, roughness: 0.5 }); bx(0.16, 0.012, 0.05, rm, 0, 0.206, 0, g); bx(0.05, 0.012, 0.16, rm, 0, 0.206, 0, g); bx(0.12, 0.04, 0.005, rm, 0, 0.12, 0.112, g); bx(0.04, 0.12, 0.005, rm, 0, 0.12, 0.112, g); bx(0.12, 0.03, 0.02, MAT.black, 0, 0.22, 0, g); return g; }
+// outhouse at the camp
+{ const g = grp(9, -8, -0.4); bx(1.3, 2.3, 1.3, MAT.dwood, 0, 1.15, 0, g); const rf = bx(1.6, 0.08, 1.7, MAT.rust, 0, 2.4, 0, g); rf.rotation.x = 0.15; bx(0.7, 1.9, 0.05, MAT.wood, 0, 0.97, 0.67, g); bx(0.12, 0.12, 0.06, MAT.black, 0, 1.75, 0.7, g); BOX.push([9, -8, 0.75, 0.75]); }
+// power poles with sagging wires from the generator up the trail to the tower
+{
+  const poles = []; for (let i = 2; i < POWER_PTS.length - 1; i += 4) { const a = POWER_PTS[i - 1], b = POWER_PTS[i], dx = b.x - a.x, dz = b.z - a.z, l = Math.hypot(dx, dz) || 1, x = b.x - dz / l * 3.3, z = b.z + dx / l * 3.3; poles.push({ x, z, y: H(x, z), a: Math.atan2(dx, dz) }); }
+  poles.unshift({ x: L.gen.x + 2.6, z: L.gen.z + 2.5, y: H(L.gen.x, L.gen.z), a: 0 }); poles.push({ x: T.x + 2.6, z: T.z + 6, y: H(T.x, T.z), a: 0 });
+  const wm = new THREE.LineBasicMaterial({ color: 0x0c0c0c });
+  poles.forEach((p, i) => { const g = new THREE.Group(); g.position.set(p.x, p.y, p.z); g.rotation.y = p.a; scene.add(g); const t = cyl(0.11, 0.15, 7.5, 7, MAT.dwood, 0, 3.75, 0, g); t.rotation.z = (hash(i, 9) - 0.5) * 0.06; bx(1.6, 0.12, 0.12, MAT.dwood, 0, 7.0, 0, g); [-0.65, 0.65].forEach(x => cyl(0.04, 0.05, 0.14, 6, MSM({ color: 0x3a5a6a, roughness: 0.2 }), x, 7.12, 0, g)); addCol(p.x, p.z, 0.25); p.g = g; });
+  for (let i = 1; i < poles.length; i++) for (const off of [-0.65, 0.65]) { const a = poles[i - 1], b = poles[i], pa = new THREE.Vector3(off, 7.18, 0).applyAxisAngle(V3(0, 1, 0), a.a).add(V3(a.x, a.y, a.z)), pb = new THREE.Vector3(off, 7.18, 0).applyAxisAngle(V3(0, 1, 0), b.a).add(V3(b.x, b.y, b.z)); const pts = []; for (let k = 0; k <= 14; k++) { const t = k / 14; pts.push(new THREE.Vector3().lerpVectors(pa, pb, t).add(V3(0, -Math.sin(t * Math.PI) * 0.9, 0))); } scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), wm)); }
+}
+// Jess & Marco's wrecked campsite
+W.oldcamp = (() => {
+  const c = L.oldcamp, g = grp(c.x, c.z, 0.6);
+  const tent = mk(new THREE.ConeGeometry(1.7, 1.2, 4, 1, true), MSM({ color: 0x2e5a7a, roughness: 0.9, side: THREE.DoubleSide }), 0, 0.5, 0, g); tent.rotation.set(0.5, Math.PI / 4, 0.35);
+  const flap = mk(new THREE.PlaneGeometry(1.4, 1.1), MSM({ color: 0x2e5a7a, roughness: 0.9, side: THREE.DoubleSide }), 1.4, 0.06, 0.8, g); flap.rotation.set(-Math.PI / 2, 0, 0.8);
+  bx(0.8, 0.12, 1.9, MSM({ color: 0x8a2a1a, roughness: 1 }), -1.8, 0.06, 1.2, g); bx(0.45, 0.55, 0.3, MAT.cloth2, 1.6, 0.27, -1.5, g);
+  for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28; const st = mk(new THREE.DodecahedronGeometry(0.16, 0), MAT.rock, 3 + Math.cos(a) * 0.6, 0.08, 1.6 + Math.sin(a) * 0.6, g); }
+  const lan = cyl(0.08, 0.1, 0.25, 8, MAT.rust, 2.4, 0.12, -0.4, g); lan.rotation.z = Math.PI / 2;
+  [[0.5, 1.4, 0.7], [-0.6, -0.9, 0.5], [2.1, 0.4, 0.35]].forEach(([x, z, r]) => { const b = mk(new THREE.CircleGeometry(r, 16), MAT.blood, x, 0.03, z, g, false); b.rotation.x = -Math.PI / 2; b.material = MAT.blood.clone(); b.material.opacity = 0.9; });
+  BOX.push([c.x, c.z, 1.1, 1.1]); return g;
+})();
+// Harlan's barn (doors hanging open)
+W.barn = (() => {
+  const b = L.barn, g = grp(b.x, b.z); const wm = MSM({ map: TX.wood, normalMap: NRM.wood, color: 0x7a3a2a, roughness: 0.9 });
+  bx(10, 4.6, 0.25, wm, 0, 2.3, -4, g); bx(0.25, 4.6, 8, wm, -5, 2.3, 0, g); bx(0.25, 4.6, 8, wm, 5, 2.3, 0, g); bx(3.5, 4.6, 0.25, wm, -3.25, 2.3, 4, g); bx(3.5, 4.6, 0.25, wm, 3.25, 2.3, 4, g); bx(3, 1.3, 0.25, wm, 0, 3.95, 4, g);
+  const r1 = bx(10.8, 0.15, 5.0, MAT.rust, 0, 5.6, -2.1, g); r1.rotation.x = 0.55; const r2 = bx(10.8, 0.15, 5.0, MAT.rust, 0, 5.6, 2.1, g); r2.rotation.x = -0.55;
+  bx(9.8, 1.9, 0.2, wm, 0, 5.5, 3.9, g); bx(9.8, 1.9, 0.2, wm, 0, 5.5, -3.9, g);
+  const d1 = bx(1.5, 3.2, 0.1, wm, -2.1, 1.6, 4.8, g); d1.rotation.y = 1.3; const d2 = bx(1.5, 3.2, 0.1, wm, 2.4, 1.6, 4.6, g); d2.rotation.y = -0.6;
+  for (let i = 0; i < 6; i++) bx(1.1, 0.5, 0.6, MSM({ color: 0x9a8040, roughness: 1 }), -3.8 + (i % 2) * 1.2, 0.25 + Math.floor(i / 2) * 0.5, -3.2, g);
+  bx(0.8, 0.5, 0.5, MSM({ color: 0x3a2e24, roughness: 0.8 }), 3.5, 0.25, -3, g); bx(0.7, 0.45, 0.45, MSM({ color: 0x2a3a4a, roughness: 0.8 }), 3.6, 0.72, -3, g);
+  BOX.push([b.x, b.z - 4, 5, 0.15], [b.x - 5, b.z, 0.15, 4], [b.x + 5, b.z, 0.15, 4], [b.x - 3.25, b.z + 4, 1.75, 0.15], [b.x + 3.25, b.z + 4, 1.75, 0.15], [b.x - 3.2, b.z - 3.2, 1.3, 0.5]);
+  return g;
+})();
+// hunting stand near the cabin
+{ const s = L.stand, g = grp(s.x, s.z, 0.3); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => { const p = beam(V3(a * 1.1, 0, b * 1.1), V3(a * 0.9, 4.2, b * 0.9), 0.08, MAT.dwood, g); addCol(s.x + a * 1.1, s.z + b * 1.1, 0.2); }); bx(2.2, 0.12, 2.2, MAT.wood, 0, 4.2, 0, g); [[0, -1.05, 2.2, 0.08], [-1.05, 0, 0.08, 2.2], [1.05, 0, 0.08, 2.2]].forEach(([x, z, w, d]) => bx(w, 0.9, d, MAT.dwood, x, 4.7, z, g)); const rf = bx(2.5, 0.08, 2.5, MAT.rust, 0, 5.9, 0, g); rf.rotation.x = 0.12; [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => cyl(0.04, 0.04, 1.7, 5, MAT.dwood, a * 1.0, 5.05, b * 1.0, g)); beam(V3(-0.3, 0, 1.9), V3(-0.3, 4.2, 1.1), 0.03, MAT.dwood, g); beam(V3(0.3, 0, 1.9), V3(0.3, 4.2, 1.1), 0.03, MAT.dwood, g); for (let y = 0.4; y < 4.2; y += 0.45) { const zz = lerp(1.9, 1.1, y / 4.2); const r = cyl(0.02, 0.02, 0.62, 4, MAT.dwood, 0, y, zz, g); r.rotation.z = Math.PI / 2; } }
+// the Tall Man's footprints in the mud along the trail to the ranger station
+{
+  const pg = (() => { const parts = [new THREE.CircleGeometry(0.11, 12).scale(1, 1.9, 1)]; [-1, 0, 1].forEach(k => { const c = new THREE.CircleGeometry(0.025, 6).scale(1, 3.2, 1); c.rotateZ(-k * 0.35); c.translate(k * 0.06, 0.29, 0); parts.push(c); }); const m = merge(parts); m.rotateX(-Math.PI / 2); return m; })();
+  const fm = MSM({ color: 0x140e08, roughness: 0.15, metalness: 0.05, polygonOffset: true, polygonOffsetFactor: -2 });
+  const pts = PRINT_PTS; let side = 1;
+  for (let i = Math.floor(pts.length * 0.25); i < Math.floor(pts.length * 0.75); i++) { const a = pts[i], b = pts[i + 1]; if (!b) break; const dx = b.x - a.x, dz = b.z - a.z, l = Math.hypot(dx, dz); for (let t = 0; t < l; t += 1.9) { side = -side; const x = a.x + dx * t / l - dz / l * 0.28 * side, z = a.z + dz * t / l + dx / l * 0.28 * side; const m = new THREE.Mesh(pg, fm); m.position.set(x, H(x, z) + 0.025, z); m.rotation.y = Math.atan2(-dx, -dz) + Math.PI; m.receiveShadow = true; scene.add(m); } }
+}
+
 // first person rig
 W.rig = new THREE.Group(); camera.add(W.rig);
 W.hand = new THREE.Group(); W.hand.position.set(-0.27, -0.27, -0.5); W.rig.add(W.hand);
@@ -594,3 +643,13 @@ const POOLS = []; { const pg = new THREE.CircleGeometry(1, 18); pg.rotateX(-Math
 let poolI = 0;
 function bloodPool(x, z, size, grow, y) { const p = POOLS[poolI = (poolI + 1) % POOLS.length]; p.m.position.set(x + (rand() - 0.5) * 0.2, (y != null ? y : H(x, z)) + 0.03, z + (rand() - 0.5) * 0.2); p.m.rotation.y = rand() * 6; p.max = size; p.grow = grow; p.t = 0; p.m.scale.setScalar(grow ? 0.05 : size); p.m.visible = true; }
 function stepPools(dt) { for (const p of POOLS) { if (!p.m.visible || !p.grow) continue; p.t += dt; const s = p.max * smooth(0, p.grow, p.t); p.m.scale.set(s, 1, s * 0.8); } }
+
+// deer hung high in the branches (Harlan's hunting log warned about this)
+W.hung = [[L.cabin.x + 15, L.cabin.z - 7, 0.4], [Gv.x - 22, Gv.z + 15, 2.2], [L.oldcamp.x - 9, L.oldcamp.z + 5, 1.2]].map(([x, z, ry], i) => {
+  const g = grp(x, z, ry); cyl(0.22, 0.34, 9, 8, MAT.bark, 0, 4.5, 0, g); const br = cyl(0.07, 0.12, 3.2, 6, MAT.bark, 1.5, 5.6, 0, g); br.rotation.z = Math.PI / 2 - 0.1; addCol(x, z, 0.4);
+  cyl(0.012, 0.012, 1.4, 4, MAT.rope, 2.4, 4.85, 0, g);
+  const d = makeAnimal('deer'); scene.remove(d.g); g.add(d.g); d.g.position.set(2.4, 4.25, 0); d.g.rotation.set(Math.PI, 0, 0.15); d.legs.forEach((l, k) => { l.hp.rotation.x = (k < 2 ? 0.4 : -0.4); }); d.neck.rotation.x = 1.0;
+  const p = mk(new THREE.CircleGeometry(0.9, 16), MAT.blood.clone(), 2.4, 0.03, 0.1, g, false); p.rotation.x = -Math.PI / 2; p.material.opacity = 0.85;
+  return { g, x, z };
+});
+W.makeMedkit = makeMedkit;

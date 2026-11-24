@@ -3,6 +3,23 @@
 if (!settings.quality) settings.quality = touch ? 'low' : 'high';
 const HQ = () => settings.quality === 'high';
 renderer.toneMapping = THREE.NoToneMapping;
+// realistic layered fog: distance haze + low ground fog that pools near the ground and in hollows
+THREE.ShaderChunk.fog_pars_vertex = '#ifdef USE_FOG\n varying float vFogDepth;\n varying vec3 vFogWorld;\n#endif';
+THREE.ShaderChunk.fog_vertex = '#ifdef USE_FOG\n vFogDepth = - mvPosition.z;\n vFogWorld = (inverse(viewMatrix) * mvPosition).xyz;\n#endif';
+THREE.ShaderChunk.fog_pars_fragment = '#ifdef USE_FOG\n uniform vec3 fogColor;\n varying float vFogDepth;\n varying vec3 vFogWorld;\n #ifdef FOG_EXP2\n  uniform float fogDensity;\n #else\n  uniform float fogNear;\n  uniform float fogFar;\n #endif\n#endif';
+THREE.ShaderChunk.fog_fragment = `#ifdef USE_FOG
+  #ifdef FOG_EXP2
+    float fogFactor = 1.0 - exp( - fogDensity * fogDensity * vFogDepth * vFogDepth );
+  #else
+    float fogFactor = smoothstep( fogNear, fogFar, vFogDepth );
+  #endif
+  if ( cameraPosition.y > -40.0 ) {
+    float hrel = vFogWorld.y - ( cameraPosition.y - 1.7 );
+    float gf = ( 1.0 - exp( - vFogDepth * 0.055 ) ) * exp( - max( hrel + 0.2, 0.0 ) * 0.42 ) * 0.7;
+    fogFactor = 1.0 - ( 1.0 - fogFactor ) * ( 1.0 - gf );
+  }
+  gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor );
+#endif`;
 scene.background = null;
 
 // ---------- night sky ----------
@@ -21,7 +38,7 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(120, 32, 16), new THREE.Shad
       vec3 top = vec3(0.004, 0.007, 0.016);
       vec3 col = mix(uFog, top, smoothstep(-0.02, 0.55, h));
       vec3 sp = floor(d * 380.0); float s = h3(sp);
-      col += vec3(0.85, 0.9, 1.0) * step(0.9982, s) * smoothstep(0.05, 0.4, h) * (0.55 + 0.45 * sin(uTime * 2.0 + s * 90.0));
+      col += vec3(0.85, 0.9, 1.0) * step(0.9991, s) * smoothstep(0.05, 0.4, h) * (0.55 + 0.45 * sin(uTime * 2.0 + s * 90.0));
       float md = max(dot(d, uMoon), 0.0);
       col += vec3(1.0, 0.96, 0.88) * smoothstep(0.99955, 0.99975, md) * 2.2;
       col += vec3(0.18, 0.21, 0.28) * pow(md, 260.0) + vec3(0.04, 0.05, 0.075) * pow(md, 14.0);
@@ -54,7 +71,7 @@ const FX = { t: 0, flash: 0, rainAmt: 0.4, hemiBase: hemi.intensity, moonBase: m
       c += (texture2D(tDiffuse, vUv + uDir * 1.3846).rgb + texture2D(tDiffuse, vUv - uDir * 1.3846).rgb) * 0.3162;
       c += (texture2D(tDiffuse, vUv + uDir * 3.2308).rgb + texture2D(tDiffuse, vUv - uDir * 3.2308).rgb) * 0.0703;
       gl_FragColor = vec4(c, 1.0); }`);
-  FX.final = SM({ tDiffuse: { value: null }, tBloom: { value: null }, uTime: { value: 0 }, uRes: { value: new THREE.Vector2() }, uExposure: { value: 1.35 }, uBloom: { value: 0.65 }, uGrain: { value: 0.028 }, uCA: { value: 0.007 }, uVig: { value: 0.62 }, uRed: { value: 0 }, uFlash: { value: 0 } },
+  FX.final = SM({ tDiffuse: { value: null }, tBloom: { value: null }, uTime: { value: 0 }, uRes: { value: new THREE.Vector2() }, uExposure: { value: 1.35 }, uBloom: { value: 0.65 }, uGrain: { value: 0.0 }, uCA: { value: 0.007 }, uVig: { value: 0.62 }, uRed: { value: 0 }, uFlash: { value: 0 } },
     `uniform sampler2D tDiffuse, tBloom; uniform float uTime, uExposure, uBloom, uGrain, uCA, uVig, uRed, uFlash; uniform vec2 uRes; varying vec2 vUv;
     vec3 aces(vec3 x){ return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
     vec3 srgb(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
@@ -162,7 +179,7 @@ const dust = (() => {
   for (let i = 0; i < n; i++) { p[i * 3] = (rand() - 0.5) * 5; p[i * 3 + 1] = (rand() - 0.5) * 3; p[i * 3 + 2] = -0.6 - rand() * 8; }
   geo.setAttribute('position', new THREE.BufferAttribute(p, 3));
   const m = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffeedd, size: 0.018, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
-  m.frustumCulled = false; camera.add(m); return { m, p, n };
+  m.frustumCulled = false; m.visible = false; return { m, p, n };
 })();
 function updateDust(dt, on) { dust.m.material.opacity += ((on ? 0.55 : 0) - dust.m.material.opacity) * Math.min(1, dt * 4); const p = dust.p; for (let i = 0; i < dust.n; i++) { p[i * 3] += Math.sin(FX.t * 0.3 + i) * 0.03 * dt; p[i * 3 + 1] += (Math.cos(FX.t * 0.25 + i * 1.7) * 0.04 - 0.02) * dt; if (p[i * 3 + 1] < -1.5) p[i * 3 + 1] = 1.5; } dust.m.geometry.attributes.position.needsUpdate = true; }
 

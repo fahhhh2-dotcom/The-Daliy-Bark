@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#050203">
 <link rel="icon" href="../icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nosifer&family=Special+Elite&family=Oswald:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nosifer&family=Special+Elite&family=Patrick+Hand&family=Oswald:wght@400;600&display=swap" rel="stylesheet">
 <script src="../account.js"></script>
 <style>
 :root{--red:#a30d0d;--blood:#5e0000;--ink:#e8dfd3;--bone:#cfc4b5}
@@ -75,8 +75,8 @@ body.touch #bars{bottom:max(10px,env(safe-area-inset-bottom));left:38%}
 #intro small{position:absolute;bottom:30px;left:0;right:0;opacity:.4;font-size:13px}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 #note{z-index:17;display:none;place-items:center;background:rgba(0,0,0,.6)}
-.paper{width:min(520px,90vw);max-height:80vh;overflow:auto;padding:30px 30px 22px;background:#d8ccb0 radial-gradient(circle at 80% 15%,rgba(110,60,20,.28),transparent 35%),radial-gradient(circle at 12% 85%,rgba(90,0,0,.25),transparent 25%);color:#2a1c10;transform:rotate(-1.2deg);box-shadow:0 18px 60px #000;font-size:17px;line-height:1.55;white-space:pre-line;animation:fadeIn .4s}
-.paper small{display:block;margin-top:16px;font:13px Oswald,sans-serif;color:#6a4a30;text-align:right}
+.paper{width:min(640px,94vw);max-height:86vh;overflow:auto;padding:34px 36px 24px 56px;background:#f3ead4;background-image:linear-gradient(90deg,transparent 40px,rgba(200,60,60,.35) 40px,rgba(200,60,60,.35) 42px,transparent 42px),repeating-linear-gradient(180deg,transparent 0 33px,rgba(70,110,170,.22) 33px 34px);color:#14182e;box-shadow:0 18px 60px #000,inset 0 0 60px rgba(120,90,40,.25);font:400 clamp(19px,2.6vw,23px)/34px 'Patrick Hand','Comic Sans MS',cursive;white-space:pre-line;animation:fadeIn .35s;border-radius:3px;-webkit-user-select:text;user-select:text}
+.paper small{display:block;margin:18px auto 0;font:600 16px Oswald,sans-serif;color:#fff;background:#7a1010;padding:12px 26px;border-radius:6px;text-align:center;width:max-content;cursor:pointer}
 #scare{z-index:18;display:none}
 /* menu */
 #blood{z-index:19;pointer-events:none;display:none}
@@ -114,6 +114,7 @@ input[type=range]{width:100%;accent-color:#b30c0c;height:28px}
 #dead h2,#win h2{font:400 clamp(40px,10vw,92px)/1.05 Nosifer,serif;color:#b80d0d;text-shadow:0 0 30px #f00,0 6px 0 #300;text-align:center}
 #dead p,#win p{text-align:center;color:var(--bone);margin:14px auto 22px;max-width:520px}
 #win{background:radial-gradient(ellipse at center,rgba(30,10,10,.9),#000)}
+@media (max-width:600px){.paper{padding:24px 18px 20px 34px;background-image:linear-gradient(90deg,transparent 24px,rgba(200,60,60,.35) 24px,rgba(200,60,60,.35) 26px,transparent 26px),repeating-linear-gradient(180deg,transparent 0 33px,rgba(70,110,170,.22) 33px 34px)}}
 @media (max-height:520px){#menu{justify-content:flex-end;padding-bottom:14px}#menu .tag{margin:4px auto 10px;font-size:13px;max-width:78vw}#playBtn{padding:8px 26px}.row{margin-top:6px}#tapSound{display:none}.card{padding:16px}}
 @media (prefers-reduced-motion:reduce){#playBtn{animation:none}}
 </style>

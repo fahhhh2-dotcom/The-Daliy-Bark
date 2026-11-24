@@ -10,8 +10,8 @@ const FW = new THREE.Vector3(), TV = new THREE.Vector3();
 const fmtT = s => { s = Math.floor(s); const m = Math.floor(s / 60); return m + ':' + String(s % 60).padStart(2, '0'); };
 
 // ================= STATE =================
-const PKEYS = ['obj', 'poured', 'picked', 'carry', 'key', 'fuse', 'fuseIn', 'power', 'guns', 'am', 'wep', 'ammo', 'notes', 'time', 'hasLight', 'deaths', 'done'];
-const fresh = () => ({ obj: 0, poured: 0, picked: [0, 0, 0, 0], carry: -1, key: false, fuse: false, fuseIn: false, power: false, guns: { pistol: false, shotgun: false, flare: false }, am: { p: 0, pr: 0, s: 0, sr: 0 }, wep: 'none', ammo: [], notes: [], time: 0, hasLight: false, deaths: 0, done: false });
+const PKEYS = ['med', 'obj', 'poured', 'picked', 'carry', 'key', 'fuse', 'fuseIn', 'power', 'guns', 'am', 'wep', 'ammo', 'notes', 'time', 'hasLight', 'deaths', 'done'];
+const fresh = () => ({ med: [], obj: 0, poured: 0, picked: [0, 0, 0, 0], carry: -1, key: false, fuse: false, fuseIn: false, power: false, guns: { pistol: false, shotgun: false, flare: false }, am: { p: 0, pr: 0, s: 0, sr: 0 }, wep: 'none', ammo: [], notes: [], time: 0, hasLight: false, deaths: 0, done: false });
 const G = Object.assign({ mode: 'boot', slot: 0, surviveT: 0, glimpseAt: 0, tips: {}, gateOpen: false, wolfT: 60, ambT: 8, cricketT: 1 }, fresh());
 const P = { x: 0, z: 5, y: 0, yaw: 0, pitch: 0, stam: 100, tired: false, hp: 100, hurtT: 9, onTower: false, inTunnel: false, light: false, overheat: 0, ohMax: 6, bob: 0, stepAcc: 0, look: null, cy: 0, cv: 0, shake: 0 };
 const C = { state: 'off', x: 0, z: 0, timer: 0, seen: 0, burn: 0, pain: 0, stag: 0, aggr: 0, final: false, scripted: false, rush: false, ph: 0, stepT: 0, stung: false, s: 0, cy: 0, chaseT: 0, mode: 'idle', tw: { z: 0, y: 0, tz: 0, ty: 0, t: 0 }, speed: 0 };
@@ -70,12 +70,22 @@ const NOTES = [
   { x: Gv.x + 2.5, z: Gv.z + 9, t: 'The chapel rang its bell every night so the town knew to stay inside.\nThen the bell ringer went missing.\n\nThey found his lantern by the well. Just the lantern.' },
   { x: W.shed3.x, z: W.shed3.z + 1.9, t: 'If he chases you, go underground.\nThe old mine tunnel by the ranger station runs all the way to the helipad.\n\nHe’s too tall for the tunnel.\nI hope.' }
 ];
+NOTES.push(
+  { x: L.oldcamp.x + 1.2, z: L.oldcamp.z - 1.6, t: 'Jess’s journal.\n\nDay 2. Marco went to Harlan’s barn by the old truck to look for gas. That was an hour ago.\n\nSomething keeps circling the tent. It’s so tall it has to duck under the branches.\n\nIf anyone finds this: the light keeps it away. Don’t let your flashlight die.' },
+  { x: L.barn.x - 1, z: L.barn.z + 2.6, t: 'Jess —\n\nThe barn is empty except for Harlan’s suitcases. ALL of them. Packed.\n\nHe never left on any vacation.\n\nI left his first aid kit here for you. I’m heading back to the tent. If I’m not there, run.\n— Marco' },
+  { x: L.stand.x + 1.5, z: L.stand.z + 2.6, t: 'Stand log — H.\n\nSaw it again tonight from up here. It doesn’t walk like a man.\nIt walks like something pretending to be one.\n\nThere’s another one too. Smaller. It just stands and stares. It never comes closer. I don’t know which one scares me more.' }
+);
+const MEDS = [
+  { x: L.oldcamp.x - 1.2, z: L.oldcamp.z + 2 }, { x: L.barn.x + 1.2, z: L.barn.z + 2.4 }, { x: L.cabin.x + 2.8, z: L.cabin.z + 3.9, yo: 0.2 }, { x: R.x + 6.6, z: R.z - 1.5, yo: 0.25 },
+  { x: T.x + 3.2, z: T.z + 4 }, { x: W.shed3.x, z: W.shed3.z + 0.9 }, { x: L.hatch.x - 2, z: L.hatch.z + 1.5 }, { x: L.stand.x - 1.8, z: L.stand.z + 1.6 }
+];
 const AMMO = [
   { x: W.shed1.x + 0.6, z: W.shed1.z, y: W.shed1.y, t: 'p', n: 12 }, { x: L.truck.x + 2.6, z: L.truck.z + 1.2, t: 'p', n: 12 }, { x: L.cabin.x - 1.8, z: L.cabin.z + 3.9, t: 'p', n: 12, yo: 0.2 },
   { x: L.log.x + 2.5, z: L.log.z + 1.5, t: 'p', n: 12, yo: 0.6 }, { x: CANP[3][0] + LD.z * 2, z: CANP[3][1] - LD.x * 2, t: 'p', n: 12 }, { x: W.shed2.x + 0.6, z: W.shed2.z, y: W.shed2.y, t: 's', n: 6 },
   { x: T.x - 2.6, z: T.z + 3.6, t: 'p', n: 12 }, { x: R.x + 6.4, z: R.z + 2.6, t: 'p', n: 12, yo: 0.25 }, { x: R.x + 6.4, z: R.z - 2.6, t: 's', n: 6, yo: 0.25 },
   { x: W.shed3.x - 0.5, z: W.shed3.z, y: W.shed3.y, t: 'p', n: 12 }, { x: W.shed3.x + 0.5, z: W.shed3.z, y: W.shed3.y, t: 's', n: 6 }, { x: L.tunnel.x + 2.8, z: L.tunnel.z - 4.5, t: 'p', n: 12 },
-  { x: L.hatch.x + 2.2, z: L.hatch.z + 2, t: 's', n: 6 }, { x: Gv.x + 1, z: Gv.z - 2, t: 'p', n: 12 }
+  { x: L.hatch.x + 2.2, z: L.hatch.z + 2, t: 's', n: 6 }, { x: Gv.x + 1, z: Gv.z - 2, t: 'p', n: 12 },
+  { x: L.oldcamp.x + 2.4, z: L.oldcamp.z + 0.5, t: 'p', n: 12 }, { x: L.barn.x + 3.4, z: L.barn.z - 2.6, t: 's', n: 6, yo: 0.95 }, { x: L.stand.x + 1.6, z: L.stand.z - 1.6, t: 'p', n: 12 }
 ];
 
 // ================= WORLD ITEMS =================
@@ -112,19 +122,38 @@ addIt({ x: L.tunnel.x, z: L.tunnel.z - 2.2, r: 2.8, label: 'Get into the tunnel'
 { const ep = tPoint(TLEN - 1); addIt({ x: ep.x, z: ep.z, r: 1.8, tunnel: true, label: 'Climb out', hold: 0.7, cond: () => G.obj === 12, act: exitTunnel }); }
 addIt({ x: Hp.x, z: Hp.z, r: 9, label: 'Fire the flare gun', cond: () => G.obj === 13, act: fireFlare });
 addIt({ x: Hp.x, z: Hp.z + 0.6, r: 2.6, label: 'Grab the rope ladder', cond: () => G.obj === 15 && heli.ready, act: startClimb });
+const medM = MEDS.map(a => { const m = W.makeMedkit(); const y = H(a.x, a.z) + (a.yo || 0); m.position.set(a.x, y, a.z); m.rotation.y = rand() * 6; scene.add(m); m.userData.gl = glint(a.x, y + 0.5, a.z); return m; });
+MEDS.forEach((a, i) => addIt({ x: a.x, z: a.z, r: 2, label: () => P.hp >= 100 ? 'First aid kit (you’re not hurt)' : 'Use the first aid kit', cond: () => !G.med.includes(i), act: () => { if (P.hp >= 100) { hint('You’re not hurt. Save it for later.'); return; } G.med.push(i); hideItem(medM[i]); SND.pickup(); P.hp = Math.min(100, P.hp + 60); $('hurt').style.opacity = clamp((100 - P.hp) / 140, 0, 0.6); remark(['That’s better.', 'Okay… okay. I can keep going.', 'Patched up.']); } }));
 AMMO.forEach((a, i) => addIt({ x: a.x, z: a.z, r: 2, label: a.t === 'p' ? 'Take pistol ammo' : 'Take shotgun shells', cond: () => !G.ammo.includes(i), act: () => { G.ammo.push(i); hideItem(ammoM[i]); SND.pickup(); if (a.t === 'p') G.am.pr += a.n; else G.am.sr += a.n; hint(`+${a.n} ${a.t === 'p' ? 'pistol rounds' : 'shotgun shells'}`); remark(['Ammo. Good.', 'I’ll take that.', 'More ammo.'], 0.6); } }));
 NOTES.forEach((n, i) => addIt({ x: n.x, z: n.z, r: 1.9, label: 'Read the note', cond: () => true, act: () => { if (!G.notes.includes(i)) G.notes.push(i); noteM[i].userData.gl.visible = false; SND.ui(); openNote(n.t, () => remark(['Creepy…', 'Okay. That’s not good.', 'I really wish I hadn’t read that.'], 0.7)); } }));
 
 // ================= VOICE (you can hear yourself talk) =================
 const VOICE = { ok: 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window };
-function loadVoices() { if (!VOICE.ok) return; const v = speechSynthesis.getVoices().filter(x => /^en/i.test(x.lang)); VOICE.you = v.find(x => /en-US/i.test(x.lang)) || v[0] || null; VOICE.radio = v.find(x => x !== VOICE.you && /en-(GB|AU|IE|US)/i.test(x.lang)) || VOICE.you; }
+// pick the most human-sounding voice the device has (natural / neural / premium voices first, novelty robot voices never)
+const ROBOT = /albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|hysterical|jester|organ|superstar|trinoids|whisper|wobble|zarvox|fred|junior|ralph|kathy|princess|espeak|robot|grandma|grandpa|rocko|shelley|flo|eddy|reed|sandy/i;
+function voiceScore(v) {
+  const n = v.name; let s = 0;
+  if (/natural/i.test(n)) s += 100; if (/neural|online/i.test(n)) s += 60; if (/premium/i.test(n)) s += 70; if (/enhanced/i.test(n)) s += 50; if (/siri/i.test(n)) s += 45;
+  if (/google/i.test(n)) s += 35; if (/samantha|alex|aaron|nicky|evan|nathan|zoe|ava|allison|tom|susan|daniel|karen|moira|aria|guy|jenny|davis|tony|ryan|sonia|libby/i.test(n)) s += 20;
+  if (/en-US/i.test(v.lang)) s += 12; else if (/en-(GB|AU|IE|CA)/i.test(v.lang)) s += 6;
+  if (!v.localService) s += 8; if (ROBOT.test(n)) s -= 500; return s;
+}
+function loadVoices() {
+  if (!VOICE.ok) return; const v = speechSynthesis.getVoices().filter(x => /^en/i.test(x.lang) && !ROBOT.test(x.name)).sort((a, b) => voiceScore(b) - voiceScore(a));
+  VOICE.you = v[0] || null; VOICE.radio = v.find(x => x !== VOICE.you && voiceScore(x) > 20) || v[1] || VOICE.you; VOICE.pilot = v.find(x => x !== VOICE.you && x !== VOICE.radio && voiceScore(x) > 20) || VOICE.radio;
+}
 if (VOICE.ok) { loadVoices(); try { speechSynthesis.onvoiceschanged = loadVoices; } catch (e) {} }
 function speak(text, who) {
   if (!VOICE.ok || settings.voice === false || !['You', 'Radio', 'Pilot'].includes(who)) return;
   try {
-    const u = new SpeechSynthesisUtterance(text.replace(/…/g, '... ').replace(/—/g, ', ').replace(/\bkk+h*…?/gi, '').replace(/[“”]/g, ''));
-    const radio = who !== 'You'; if (VOICE.you) u.voice = radio ? VOICE.radio : VOICE.you;
-    u.pitch = who === 'Pilot' ? 0.65 : radio ? 0.82 : 1.0; u.rate = who === 'You' ? 1.04 : 0.97; u.volume = Math.min(1, settings.vol * 1.1);
+    const clean = text.replace(/…/g, '... ').replace(/—/g, ', ').replace(/\bkk+h*…?/gi, '').replace(/[“”]/g, '').replace(/\b([A-Z]{2,})\b/g, w => w.charAt(0) + w.slice(1).toLowerCase());
+    const u = new SpeechSynthesisUtterance(clean), radio = who !== 'You';
+    const v = who === 'Pilot' ? VOICE.pilot : radio ? VOICE.radio : VOICE.you; if (v) { u.voice = v; u.lang = v.lang; }
+    const scared = /!|run|no no|get back|stay away|he’s|behind you/i.test(text), quiet = /…/.test(text) && !scared;
+    // small natural variation every line, a little faster and higher when scared, slower when uneasy
+    u.pitch = 1 + (rand() - 0.5) * 0.06 + (scared ? 0.05 : 0) - (quiet ? 0.03 : 0);
+    u.rate = (radio ? 0.96 : 1.0) + (rand() - 0.5) * 0.06 + (scared ? 0.1 : 0) - (quiet ? 0.08 : 0);
+    u.volume = Math.min(1, settings.vol * (quiet ? 0.85 : 1.05));
     speechSynthesis.cancel(); speechSynthesis.speak(u);
     if (radio) SND.radioBlip();
   } catch (e) {}
@@ -139,13 +168,20 @@ const CHATTER = [
   ['Don’t stop. Don’t stop!', 'Where does this go?!'],
   ['Come on, come on, where’s that chopper?', 'Almost out. Almost out of here.']
 ];
-// ---- glowing hint when you can't find the next item for a minute ----
+// ---- arrow hints when you can't find the next item for a minute ----
 const hintG = new THREE.Group(); hintG.visible = false; scene.add(hintG);
-const hintSpr = new THREE.Sprite(new THREE.SpriteMaterial({ map: TX.glint, color: 0xffb040, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); hintSpr.position.y = 0.45; hintG.add(hintSpr);
+const HINT_ARROWS = (() => {
+  const sh = new THREE.Shape(); sh.moveTo(0, 0.75); sh.lineTo(0.5, 0.1); sh.lineTo(0.18, 0.1); sh.lineTo(0.18, -0.6); sh.lineTo(-0.18, -0.6); sh.lineTo(-0.18, 0.1); sh.lineTo(-0.5, 0.1); sh.closePath();
+  const ag = new THREE.ShapeGeometry(sh); ag.rotateX(-Math.PI / 2);
+  const out = []; for (let i = 0; i < 16; i++) { const m = new THREE.Mesh(ag, new THREE.MeshBasicMaterial({ color: 0xffb030, transparent: true, opacity: 0.8, depthWrite: false })); m.renderOrder = 4; m.visible = false; scene.add(m); out.push(m); }
+  return out;
+})();
 const hintPillar = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 40, 18, 1, true).translate(0, 20, 0), new THREE.ShaderMaterial({ uniforms: { uT: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false,
   vertexShader: 'varying float vY; varying vec3 vN; varying vec3 vV; void main(){ vY = position.y / 40.0; vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = -mv.xyz; vN = normalMatrix * normal; gl_Position = projectionMatrix * mv; }',
   fragmentShader: 'uniform float uT; varying float vY; varying vec3 vN; varying vec3 vV; void main(){ vec3 n = vN / max(length(vN), 1e-4), v = vV / max(length(vV), 1e-4); float f = pow(clamp(abs(dot(n, v)), 0.0, 1.0), 1.5); float a = pow(max(1.0 - vY, 0.0), 2.0) * f * (0.6 + 0.3 * sin(uT * 3.0)); gl_FragColor = vec4(vec3(1.0, 0.72, 0.28) * a * 1.6, 1.0); }' }));
-hintPillar.frustumCulled = false; hintG.add(hintPillar);
+hintPillar.frustumCulled = false; hintPillar.visible = false; scene.add(hintPillar);
+const hintGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: TX.glint, color: 0xffb040, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); hintGlow.visible = false; scene.add(hintGlow);
+const hintBig = (() => { const g = new THREE.Group(); const m = new THREE.MeshBasicMaterial({ color: 0xffb030 }); const c = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.6, 4), m); c.rotation.x = Math.PI; g.add(c); const st = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.55, 6), m); st.position.y = 0.55; g.add(st); hintG.add(g); return g; })();
 const keyWorld = W.key.getWorldPosition(new THREE.Vector3());
 function hintTarget() {
   if (P.onTower || P.inTunnel) return null;
@@ -157,14 +193,16 @@ function hintTarget() {
 }
 function updateHint(dt) {
   const t = hintTarget();
-  if (!t) { hintG.visible = false; G.hintK = null; return; }
+  if (!t) { hintG.visible = hintPillar.visible = hintGlow.visible = false; HINT_ARROWS.forEach(a => a.visible = false); G.hintK = null; return; }
   if (t.k !== G.hintK) { G.hintK = t.k; G.hintT = 0; G.hintShown = false; }
   if (G.mode === 'play') G.hintT += dt;
   if (G.hintT > 60) {
-    if (!G.hintShown) { G.hintShown = true; SND.obj(); say(pick(['Wait… what’s that glow over there?', 'Huh? Something’s glowing in the trees.', 'There! Something’s shining over there.']), 3.2, 'You'); }
-    hintG.visible = true; hintG.position.set(t.p.x, t.p.y, t.p.z); hintPillar.material.uniforms.uT.value = G.time;
-    const pul = 2.4 + Math.sin(G.time * 4) * 0.6; hintSpr.scale.set(pul, pul, pul);
-  } else hintG.visible = false;
+    if (!G.hintShown) { G.hintShown = true; SND.obj(); say(pick(['I’m lost… okay, which way was it?', 'Think. Where did I see it?', 'Okay… this way. I think it’s this way.']), 3.2, 'You'); hint('Follow the arrows', 3.5); }
+    hintG.visible = true; hintG.position.set(t.p.x, t.p.y + 1.4 + Math.sin(G.time * 3) * 0.18, t.p.z); hintBig.rotation.y += dt * 2;
+    hintPillar.visible = hintGlow.visible = true; hintPillar.position.set(t.p.x, t.p.y, t.p.z); hintPillar.material.uniforms.uT.value = G.time; hintGlow.position.set(t.p.x, t.p.y + 0.4, t.p.z); const pul = 2.2 + Math.sin(G.time * 4) * 0.5; hintGlow.scale.set(pul, pul, pul);
+    const dx = t.p.x - P.x, dz = t.p.z - P.z, dist = Math.hypot(dx, dz), ux = dx / (dist || 1), uz = dz / (dist || 1), yaw = Math.atan2(-dx, -dz);
+    HINT_ARROWS.forEach((a, i) => { const d = 2.5 + i * 2.7; if (d > dist - 1.2) { a.visible = false; return; } const x = P.x + ux * d, z = P.z + uz * d; a.visible = true; a.position.set(x, H(x, z) + 0.12, z); a.scale.setScalar(1.25); a.rotation.y = yaw; a.material.opacity = 0.3 + 0.65 * Math.max(0, Math.sin(G.time * 5 - i * 0.8)); });
+  } else { hintG.visible = hintPillar.visible = hintGlow.visible = false; HINT_ARROWS.forEach(a => a.visible = false); }
 }
 // ================= HUD =================
 const subQ = []; let subT = 0, hintT = 0;
@@ -421,8 +459,51 @@ function lightningReveal() {
     setTimeout(() => { if (G.mode === 'play') SND.stinger(); }, 250); setTimeout(() => remark(['Was that… him?', 'He’s watching me.', 'No no no no…']), 1200);
   } else remark(['Whoa!', 'That was close.', 'This storm keeps getting worse.'], 0.3);
 }
+// ================= THE WATCHER (rare; just stands there and stares) =================
+const WATCH = (() => {
+  const g = new THREE.Group(), coat = MSM({ color: 0x4a4d55, roughness: 0.85 }), face = MSM({ color: 0xf4eee4, roughness: 0.45, emissive: 0x1a1816 });
+  const body = mk(new THREE.CylinderGeometry(0.2, 0.36, 1.35, 12), coat, 0, 0.72, 0, g); mk(new THREE.CylinderGeometry(0.17, 0.21, 0.5, 12), coat, 0, 1.6, 0, g);
+  [-1, 1].forEach(sd => { const a = mk(new THREE.CapsuleGeometry(0.055, 0.6, 3, 8), coat, sd * 0.24, 1.25, 0, g); a.rotation.z = sd * 0.08; sph(0.045, face, sd * 0.26, 0.86, 0.02, g); });
+  const head = new THREE.Group(); head.position.y = 1.92; g.add(head);
+  sph(0.12, face, 0, 0, 0.02, head, 0.85, 1.12, 0.92); mk(new THREE.SphereGeometry(0.17, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.62), coat, 0, 0.02, -0.03, head).rotation.x = -0.35;
+  [-1, 1].forEach(sd => { sph(0.022, MAT.black, sd * 0.04, 0.02, 0.115, head, 1, 0.7, 0.5); sph(0.009, new THREE.MeshBasicMaterial({ color: 0xd8e0c8 }), sd * 0.04, 0.024, 0.128, head); });
+  g.visible = false; g.traverse(o => { if (o.isMesh) o.castShadow = true; }); scene.add(g);
+  return { g, head, on: false, t: 0, seen: 0, away: 0, next: 150 + rand() * 120 };
+})();
+function updateWatcher(dt) {
+  const w = WATCH;
+  if (!w.on) {
+    if (G.mode !== 'play' || P.inTunnel || P.onTower || C.state === 'chase' || cr.g.visible || G.obj >= 11) return;
+    w.next -= dt; if (w.next > 0) return;
+    w.next = 220 + rand() * 260; if (rand() > 0.55) return;
+    let best = null;
+    for (let k = 0; k < 16 && !best; k++) { const a = P.yaw + (rand() - 0.5) * 1.6, d = 22 + rand() * 9; let x = P.x - Math.sin(a) * d, z = P.z - Math.cos(a) * d; [x, z] = collide(x, z, 0.5); if (Math.hypot(x - LK.x, z - LK.z) < LK.c + 2) continue; const dx = x - P.x, dz = z - P.z, l = Math.hypot(dx, dz); let clear = true; for (let t = 2; t < l - 1 && clear; t += 0.8) { const qx = P.x + dx / l * t, qz = P.z + dz / l * t, A = CG.get(Math.floor(qx / 6) + ',' + Math.floor(qz / 6)); if (A) for (const c of A) if (Math.hypot(qx - c[0], qz - c[1]) < c[2] + 0.35) { clear = false; break; } } if (clear) best = { x, z }; }
+    if (!best) return; const x = best.x, z = best.z;
+    w.on = true; w.t = 0; w.seen = 0; w.away = 0; w.g.position.set(x, H(x, z), z); w.g.visible = true; return;
+  }
+  w.t += dt; const p = w.g.position, dx = P.x - p.x, dz = P.z - p.z, d = Math.hypot(dx, dz);
+  w.g.rotation.y += wrapA(Math.atan2(dx, dz) * 0.15 - w.g.rotation.y * 0.15) * 0; // body stays still
+  const want = wrapA(Math.atan2(dx, dz) - w.g.rotation.y); w.head.rotation.y += (clamp(want, -1.2, 1.2) - w.head.rotation.y) * Math.min(1, dt * 2.5);
+  w.head.rotation.z = Math.sin(w.t * 0.7) * 0.06;
+  camera.getWorldDirection(FW); const hx = p.x - camera.position.x, hy = p.y + 1.9 - camera.position.y, hz = p.z - camera.position.z, l = Math.hypot(hx, hy, hz), ang = Math.acos(clamp((FW.x * hx + FW.y * hy + FW.z * hz) / l, -1, 1));
+  const inView = ang < 0.55;
+  if (inView) { if (!w.seen) { w.seen = 0.001; SND.whisper(panOf(p.x, p.z)); setTimeout(() => remark(['Who… who is that?', 'Hey! HEY! Who’s there?', 'Someone’s just… standing there.', 'Why is he just staring at me?']), 900); } w.seen += dt; w.away = 0; }
+  else if (w.seen > 0.6) w.away += dt;
+  if (d < 13 || w.away > 1.0 || w.t > 35 || G.mode !== 'play' || P.inTunnel || C.state === 'chase') { w.on = false; w.g.visible = false; if (w.seen > 0.6 && d >= 13 && G.mode === 'play') setTimeout(() => remark(['He’s gone.', 'Where did he go?', 'I didn’t imagine that. Did I?'], 0.8), 700); }
+}
+// bats flitting over the trees
+const BATS = [];
+{ const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0.32, 0.02, -0.06, 0.05, 0, -0.16], 3)); wg.computeVertexNormals(); const bm = new THREE.MeshBasicMaterial({ color: 0x050505, side: THREE.DoubleSide });
+  for (let i = 0; i < 7; i++) { const g = new THREE.Group(), wl = new THREE.Mesh(wg, bm), wr = new THREE.Mesh(wg, bm); wr.scale.x = -1; g.add(wl, wr); g.add(new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 4), bm)); g.visible = false; scene.add(g); BATS.push({ g, wl, wr, ph: rand() * 6, o: new THREE.Vector3((rand() - 0.5) * 6, (rand() - 0.5) * 3, (rand() - 0.5) * 6) }); } }
+const BATF = { t: 30, on: false, p: new THREE.Vector3(), v: new THREE.Vector3(), life: 0 };
+function updateBats(dt) {
+  if (!BATF.on) { BATF.t -= dt; if (BATF.t <= 0 && !P.inTunnel) { BATF.t = 45 + rand() * 60; BATF.on = true; BATF.life = 9; const a = rand() * 6.28; BATF.p.set(P.x + Math.cos(a) * 40, P.y + 9 + rand() * 6, P.z + Math.sin(a) * 40); BATF.v.set(-Math.cos(a), 0, -Math.sin(a)).multiplyScalar(9); BATS.forEach(b => b.g.visible = true); } return; }
+  BATF.life -= dt; BATF.p.addScaledVector(BATF.v, dt);
+  BATS.forEach((b, i) => { b.ph += dt * (22 + i); const f = Math.sin(b.ph) * 0.9; b.wl.rotation.z = f; b.wr.rotation.z = -f; b.g.position.set(BATF.p.x + b.o.x + Math.sin(FX.t * 3 + i) * 1.2, BATF.p.y + b.o.y + Math.sin(FX.t * 5 + i * 2) * 0.6, BATF.p.z + b.o.z + Math.cos(FX.t * 2.6 + i) * 1.2); b.g.rotation.y = Math.atan2(BATF.v.x, BATF.v.z) + Math.sin(FX.t * 4 + i) * 0.5; });
+  if (BATF.life <= 0 || P.inTunnel) { BATF.on = false; BATS.forEach(b => b.g.visible = false); }
+}
 // ================= TUNNEL =================
-function setEnv(tunnel) { const c = tunnel ? FOG_TUNNEL : FOG_FOREST; scene.fog.color.copy(c); scene.fog.density = tunnel ? 0.07 : 0.026; scene.environment = tunnel ? null : (FX.env || null); hemi.intensity = tunnel ? 0.05 : 0.46; moon.intensity = tunnel ? 0 : 0.34; W.tunnel.visible = tunnel; W.endLight.intensity = tunnel ? 1.4 : 0; if (!tunnel) W.tunL.forEach(l => l.intensity = 0); SND.set('tunnel', tunnel ? 0.16 : 0, 0.5); SND.set('wind', tunnel ? 0.02 : 0.13, 0.5); SND.set('leaves', tunnel ? 0 : 0.025, 0.5); }
+function setEnv(tunnel) { const c = tunnel ? FOG_TUNNEL : FOG_FOREST; scene.fog.color.copy(c); scene.fog.density = tunnel ? 0.07 : 0.032; scene.environment = tunnel ? null : (FX.env || null); hemi.intensity = tunnel ? 0.05 : 0.46; moon.intensity = tunnel ? 0 : 0.34; W.tunnel.visible = tunnel; W.endLight.intensity = tunnel ? 1.4 : 0; if (!tunnel) W.tunL.forEach(l => l.intensity = 0); SND.set('tunnel', tunnel ? 0.16 : 0, 0.5); SND.set('wind', tunnel ? 0.02 : 0.13, 0.5); SND.set('leaves', tunnel ? 0 : 0.025, 0.5); }
 async function enterTunnel(restoring) {
   G.mode = 'cut'; fade(1); await wait(650);
   P.inTunnel = true; P.onTower = false; G.gateOpen = false; W.gate.position.y = TB.y; setEnv(true); updateChunks(9999, 9999, 0);
@@ -546,7 +627,7 @@ async function winSequence() {
 
 // ================= NOTES / PAUSE / DEATH =================
 let noteCb = null;
-function openNote(t, cb) { G.prevMode = G.mode; G.mode = 'note'; noteCb = cb || null; $('noteT').textContent = t; $('noteClose').textContent = touch ? 'Tap to close' : 'Click or press E to close'; $('note').style.display = 'grid'; }
+function openNote(t, cb) { G.prevMode = G.mode; G.mode = 'note'; noteCb = cb || null; $('noteT').textContent = t; $('noteClose').textContent = touch ? 'Close' : 'Close (E)'; $('note').style.display = 'grid'; }
 function closeNote() { if (G.mode !== 'note') return; $('note').style.display = 'none'; G.mode = 'play'; usePress = false; if (noteCb) { const c = noteCb; noteCb = null; c(); } }
 $('note').addEventListener('click', closeNote); $('note').addEventListener('touchend', e => { e.preventDefault(); closeNote(); });
 let pausedFrom = 'play';
@@ -630,7 +711,7 @@ function restore(s) {
   $('hurt').style.opacity = 0; setEnv(false); clearAnimals(); clearSubs(); G.carry = G.obj === 2 ? G.carry : -1;
   showItem(W.letter, G.obj === 0); W.flashPick.visible = G.obj === 0; W.letterGl.visible = G.obj === 0;
   cans.forEach((c, i) => showItem(c, !G.picked[i])); W.fpCan.visible = G.carry >= 0;
-  ammoM.forEach((m, i) => showItem(m, !G.ammo.includes(i))); noteM.forEach((m, i) => { m.visible = true; m.userData.gl.visible = !G.notes.includes(i); });
+  G.med = G.med || []; ammoM.forEach((m, i) => showItem(m, !G.ammo.includes(i))); medM.forEach((m, i) => showItem(m, !G.med.includes(i))); noteM.forEach((m, i) => { m.visible = true; m.userData.gl.visible = !G.notes.includes(i); });
   showItem(pistolPick, !G.guns.pistol); showItem(shotPick, !G.guns.shotgun); showItem(fusePick, !G.fuse);
   W.key.visible = !G.key; W.keyGl.visible = !G.key;
   applyPower(); W.arrows.visible = G.obj === 11;
@@ -795,7 +876,7 @@ function update(dt) {
   if (playing && G.obj === 14) { G.surviveT -= dt; if (G.surviveT <= 0) heliArrive(); }
   if (P.hp < 100 && playing) { P.hurtT += dt; if (P.hurtT > 5) P.hp = Math.min(100, P.hp + 5 * dt); $('hurt').style.opacity = clamp((100 - P.hp) / 140, 0, 0.6); }
   if (G.revealT > 0) { G.revealT -= dt; if (G.revealT <= 0 && C.state === 'hidden') showC(false); }
-  updateHint(dt);
+  updateHint(dt); updateWatcher(dt); updateBats(dt);
   if (playing && !P.inTunnel && C.state !== 'chase' && subT <= 0 && !subQ.length) { G.chatT = (G.chatT == null ? 40 : G.chatT) - dt; if (G.chatT <= 0) { G.chatT = 50 + rand() * 50; const pool = CHATTER[OBJ[G.obj][0]]; say(pick(pool), 3.2, 'You'); } }
   updateCreature(dt); updateAnimals(dt);
   stepParticles(BLOOD, dt); stepParticles(BLACKB, dt); stepPools(dt);
@@ -804,7 +885,7 @@ function update(dt) {
   W.fireL.intensity = 1.6 + Math.sin(G.time * 17) * 0.12 + Math.sin(G.time * 7.3) * 0.15;
   W.winMat.emissiveIntensity = 0.5 + Math.sin(G.time * 3) * 0.1 + (rand() < 0.02 ? -0.4 : 0);
   if (W.beacon.visible) W.beacon.material.opacity = Math.sin(G.time * 3) > 0 ? 1 : 0.1;
-  glintMat.opacity = 0.35 + Math.sin(G.time * 3) * 0.25;
+  for (const m of GL) { if (!m.visible) continue; const d = Math.hypot(m.position.x - P.x, m.position.z - P.z), sc = d < 16 ? 1 : d < 22 ? 1 - (d - 16) / 6 : 0.001; m.scale.setScalar(sc); m.position.y = m.userData.by + Math.sin(G.time * 3 + m.position.x) * 0.06; m.rotation.y += dt * 1.6; }
   if (P.inTunnel) { const near = TBULBS.map(b => [b, Math.hypot(b.x - P.x, b.z - P.z)]).sort((a, b) => a[1] - b[1]); W.tunL.forEach((l, i) => { const b = near[i][0]; l.position.set(b.x, TB.y + 2.2, b.z); l.intensity = 1.3 + (rand() < 0.04 ? -1 : 0); }); W.gate.position.y += ((G.gateOpen ? TB.y + 2.45 : TB.y) - W.gate.position.y) * Math.min(1, dt * 3); }
   if (G.flareT >= 0 && W.flare.visible) { G.flareT += dt; const gy = H(Hp.x, Hp.z), h = G.flareT < 3 ? smooth(0, 3, G.flareT) * 60 : 60 - (G.flareT - 3) * 0.4; W.flare.position.set(Hp.x + Math.sin(G.flareT * 0.3) * 4, gy + Math.max(25, h), Hp.z + 6); W.flareL.position.copy(W.flare.position); W.flareL.intensity = 2.2 + rand() * 0.4; scene.fog.color.lerp(FOG_FLARE, Math.min(1, dt)); }
   if (heli.g.visible) { if (heli.t >= 0 && heli.t < 7.5) heli.t += dt; if (G.mode !== 'cut' || heli.t < 7.5) { const hp = heliPos(heli.t); if (G.obj !== 15 || !heli.ready || G.mode !== 'cut') heli.g.position.set(hp.x, hp.y, hp.z); } heli.rot.rotation.y += dt * 24; heli.trot.rotation.x += dt * 30; heli.g.rotation.z = Math.sin(G.time * 0.8) * 0.03; const hd = Math.hypot(heli.g.position.x - P.x, heli.g.position.z - P.z); SND.set('heli', clamp(1 - hd / 300, 0, 1) * 0.5, 0.3); }
@@ -840,4 +921,4 @@ addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); FX
 bloodResize(); showMenu(); $('loading').style.display = 'none';
 requestAnimationFrame(loop);
 setTimeout(() => { faceImg = renderFace(); }, 1500);
-window.HP = { update, updateScare, K, G, P, C, cr, W, setObj, restore, begin, heli, ANIMALS, spawnAnimal, radioScene, enterTunnel, startClimb, startScare, heliArrive, fireFlare, bigChase, snapshot, hideMenu, tPoint, TLEN, GATE_S };
+window.HP = { WATCH, updateWatcher, update, updateScare, K, G, P, C, cr, W, setObj, restore, begin, heli, ANIMALS, spawnAnimal, radioScene, enterTunnel, startClimb, startScare, heliArrive, fireFlare, bigChase, snapshot, hideMenu, tPoint, TLEN, GATE_S };
