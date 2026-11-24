@@ -559,8 +559,8 @@ function updateBats(dt) {
   if (BATF.life <= 0 || P.inTunnel) { BATF.on = false; BATS.forEach(b => b.g.visible = false); }
 }
 // ================= TUNNEL =================
-const FOG_SWAMP = new THREE.Color(0x182016);
-function setEnv(tunnel) { const swamp = !tunnel && !P.inHeli && P.x > 1000; W.swamp.visible = swamp; W.cabin.visible = P.inHeli; W.cabinL.intensity = P.inHeli ? 0.45 : 0; if (!P.inHeli) W.alarmL.intensity = 0; W.crashFire.intensity = swamp ? 2.4 : 0; W.shackL.intensity = swamp ? 1.3 : 0; const c = tunnel ? FOG_TUNNEL : swamp ? FOG_SWAMP : FOG_FOREST; scene.fog.color.copy(c); scene.fog.density = tunnel ? 0.07 : swamp ? 0.04 : 0.032; scene.environment = tunnel ? null : (FX.env || null); hemi.intensity = tunnel ? 0.05 : 0.46; moon.intensity = tunnel ? 0 : 0.34; W.tunnel.visible = tunnel; W.endLight.intensity = tunnel ? 1.4 : 0; if (!tunnel) W.tunL.forEach(l => l.intensity = 0); SND.set('tunnel', tunnel ? 0.16 : 0, 0.5); SND.set('wind', tunnel ? 0.02 : 0.13, 0.5); SND.set('leaves', tunnel ? 0 : 0.025, 0.5); }
+const FOG_SWAMP = new THREE.Color(0x1e2818);
+function setEnv(tunnel) { const swamp = !tunnel && !P.inHeli && P.x > 1000; W.swamp.visible = swamp; W.cabin.visible = P.inHeli; W.cabinL.intensity = P.inHeli ? 0.45 : 0; if (!P.inHeli) W.alarmL.intensity = 0; W.crashFire.intensity = swamp ? 2.4 : 0; W.shackL.intensity = swamp ? 1.3 : 0; const c = tunnel ? FOG_TUNNEL : swamp ? FOG_SWAMP : FOG_FOREST; scene.fog.color.copy(c); scene.fog.density = tunnel ? 0.07 : swamp ? 0.047 : 0.032; scene.environment = tunnel ? null : (FX.env || null); hemi.intensity = tunnel ? 0.05 : 0.46; moon.intensity = tunnel ? 0 : 0.34; W.tunnel.visible = tunnel; W.endLight.intensity = tunnel ? 1.4 : 0; if (!tunnel) W.tunL.forEach(l => l.intensity = 0); SND.set('tunnel', tunnel ? 0.16 : 0, 0.5); SND.set('wind', tunnel ? 0.02 : 0.13, 0.5); SND.set('leaves', tunnel ? 0 : 0.025, 0.5); }
 async function enterTunnel(restoring) {
   G.mode = 'cut'; fade(1); await wait(650);
   P.inTunnel = true; P.onTower = false; G.gateOpen = false; W.gate.position.y = TB.y; setEnv(true); updateChunks(9999, 9999, 0);
@@ -762,6 +762,8 @@ function updateCh2(dt) {
     cb.rotation.z = roll; cb.rotation.x = pitch;
   }
   if (W.swamp.visible) {
+    W.rippleN.offset.x += dt * 0.006; W.rippleN.offset.y += dt * 0.0035;
+    G.bugT = (G.bugT || 3) - dt; if (G.bugT <= 0) { G.bugT = 4 + rand() * 7; const r = rand(); if (r < 0.45) SND.bullfrog(rand() * 2 - 1); else if (r < 0.75) SND.buzz(rand() * 2 - 1); else SND.plop(rand() * 2 - 1); }
     W.flames.forEach((f, i) => { const u = f.userData; u.ph += dt * 6; const sc = 1.4 + Math.sin(u.ph + i) * 0.5 + rand() * 0.3; f.scale.set(sc, sc * 1.5, sc); f.position.y = u.by + Math.sin(u.ph * 0.7) * 0.15; });
     W.smoke.forEach(sp => { const u = sp.userData; u.t = (u.t + dt * 0.08) % 1; sp.position.set(W.crash.x + Math.sin(u.t * 9) * 1.5, H(W.crash.x, W.crash.z) + 1.5 + u.t * 14, W.crash.z + u.t * 3); const sc = 2 + u.t * 7; sp.scale.set(sc, sc, sc); sp.material.opacity = 0.45 * (1 - u.t); });
     W.crashFire.intensity = 2.2 + Math.sin(G.time * 11) * 0.3 + rand() * 0.3; W.shackWin.emissiveIntensity = 0.8 + Math.sin(G.time * 5) * 0.1;
