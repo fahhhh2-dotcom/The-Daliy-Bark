@@ -33,10 +33,11 @@ const SND = (() => {
       for (let ch = 0; ch < 2; ch++) {
         const d = buf.getChannelData(ch); let lp = 0, lp2 = 0, hp = 0, prev = 0;
         for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; lp += (w - lp) * 0.08; lp2 += (lp - lp2) * 0.08; hp = 0.97 * (hp + w - prev); prev = w; d[i] = lp2 * 0.55 + hp * 0.045; }
-        const drop = (t0, f, amp, decay) => { const n = Math.floor(sr * decay * 6); let ph = Math.random() * 6.28; for (let k = 0; k < n; k++) { const j = (t0 + k) % len, e = Math.exp(-k / (sr * decay)); ph += 6.2832 * f * (1 - k / n * 0.35) / sr; d[j] += Math.sin(ph) * e * amp; } };
-        for (let k = 0; k < 9000; k++) drop(Math.floor(Math.random() * len), 2200 + Math.random() * 6500, 0.012 + Math.random() * 0.03, 0.0012 + Math.random() * 0.002);
-        for (let k = 0; k < 420; k++) drop(Math.floor(Math.random() * len), 700 + Math.random() * 1600, 0.04 + Math.random() * 0.07, 0.004 + Math.random() * 0.006);
-        for (let k = 0; k < 60; k++) { const t0 = Math.floor(Math.random() * len); drop(t0, 350 + Math.random() * 400, 0.08 + Math.random() * 0.06, 0.012); drop(t0 + Math.floor(sr * 0.004), 1400 + Math.random() * 900, 0.05, 0.006); }
+        // each drop is a tiny burst of filtered static (not a pitched ping): soft ticks on leaves, duller taps on the ground
+        const drop = (t0, bright, amp, decay) => { const n = Math.floor(sr * decay * 5); let y1 = 0, y2 = 0, px = 0; for (let k = 0; k < n; k++) { const j = (t0 + k) % len, e = Math.exp(-k / (sr * decay)), w = Math.random() * 2 - 1; y1 += (w - y1) * bright; y2 += (y1 - y2) * bright; const hpv = y1 - px * 0.6; px = y1; d[j] += (bright > 0.5 ? hpv : y2) * e * amp; } };
+        for (let k = 0; k < 14000; k++) drop(Math.floor(Math.random() * len), 0.55 + Math.random() * 0.4, 0.025 + Math.random() * 0.05, 0.0006 + Math.random() * 0.0012);
+        for (let k = 0; k < 900; k++) drop(Math.floor(Math.random() * len), 0.12 + Math.random() * 0.2, 0.08 + Math.random() * 0.12, 0.002 + Math.random() * 0.004);
+        for (let k = 0; k < 50; k++) drop(Math.floor(Math.random() * len), 0.05 + Math.random() * 0.06, 0.25 + Math.random() * 0.15, 0.01 + Math.random() * 0.008);
         const fade = Math.floor(sr * 0.25); for (let i = 0; i < fade; i++) { const k = i / fade; d[i] = d[i] * k + d[len - fade + i] * (1 - k); } for (let i = 0; i < len; i++) d[i] *= 2.6;
       }
       const src = AC.createBufferSource(); src.buffer = buf; src.loop = true; src.loopEnd = 6 - 0.25;
