@@ -163,10 +163,13 @@ NOTES.forEach((n, i) => addIt({ x: n.x, z: n.z, r: 1.9, label: 'Read the note', 
 const VOICE = { ok: 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window };
 // pick the most human-sounding voice the device has (natural / neural / premium voices first, novelty robot voices never)
 const ROBOT = /albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|hysterical|jester|organ|superstar|trinoids|whisper|wobble|zarvox|fred|junior|ralph|kathy|princess|espeak|robot|grandma|grandpa|rocko|shelley|flo|eddy|reed|sandy/i;
+const MALE = /\bmale\b|guy|davis|andrew|brian|christopher|eric|roger|steffan|ryan|thomas|david|mark|george|james|liam|william|connor|alex\b|aaron|daniel|tom\b|evan|nathan|arthur|gordon|rishi|oliver|lee\b|en-us-x-io[lm]|en-us-x-tpd|en-gb-x-rj|en-gb-x-gb[bd]|en-au-x-au[bd]/i;
+const FEMALE = /female|samantha|karen|moira|tessa|victoria|allison|ava\b|susan|zoe|nicky|aria|jenny|sonia|libby|zira|hazel|emma|michelle|ana\b|natasha|clara|catherine|fiona|serena|kate|joanna|salli|kimberly|ivy|amy|olivia|sara|nancy|jane|en-us-x-sfg|en-us-x-tp[cf]|google us english$/i;
+const isMale = v => MALE.test(v.name) && !/female/i.test(v.name);
 function voiceScore(v) {
-  const n = v.name; let s = 0;
+  const n = v.name; let s = 0; if (isMale(v)) s += 150; else if (FEMALE.test(n)) s -= 150;
   if (/natural/i.test(n)) s += 100; if (/neural|online/i.test(n)) s += 60; if (/premium/i.test(n)) s += 70; if (/enhanced/i.test(n)) s += 50; if (/siri/i.test(n)) s += 45;
-  if (/google/i.test(n)) s += 35; if (/samantha|alex|aaron|nicky|evan|nathan|zoe|ava|allison|tom|susan|daniel|karen|moira|aria|guy|jenny|davis|tony|ryan|sonia|libby/i.test(n)) s += 20;
+  if (/google/i.test(n)) s += 35; 
   if (/en-US/i.test(v.lang)) s += 12; else if (/en-(GB|AU|IE|CA)/i.test(v.lang)) s += 6;
   if (!v.localService) s += 8; if (ROBOT.test(n)) s -= 500; return s;
 }
@@ -174,7 +177,7 @@ function loadVoices() {
   if (!VOICE.ok) return; VOICE.bad = VOICE.bad || new Set();
   const all = speechSynthesis.getVoices(); const v = all.filter(x => /^en/i.test(x.lang) && !ROBOT.test(x.name) && !VOICE.bad.has(x.name)).sort((a, b) => voiceScore(b) - voiceScore(a));
   VOICE.you = v[0] || null; VOICE.radio = v.find(x => x !== VOICE.you && voiceScore(x) > 20) || v[1] || VOICE.you; VOICE.pilot = v.find(x => x !== VOICE.you && x !== VOICE.radio && voiceScore(x) > 20) || VOICE.radio;
-  VOICE.local = v.find(x => x.localService) || null; VOICE.count = all.length;
+  VOICE.local = v.find(x => x.localService && isMale(x)) || v.find(x => x.localService) || null; VOICE.count = all.length;
 }
 if (VOICE.ok) { loadVoices(); try { speechSynthesis.onvoiceschanged = loadVoices; if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', loadVoices); } catch (e) {} setTimeout(loadVoices, 600); setTimeout(loadVoices, 2500); }
 // Chrome/Edge/Safari speech is fragile: a line spoken right after cancel() can be dropped, some online voices never start,
@@ -183,14 +186,17 @@ function speakLine(clean, who, opts, tries) {
   const radio = who !== 'You'; let v = who === 'Pilot' ? VOICE.pilot : radio ? VOICE.radio : VOICE.you;
   if (tries > 0) v = tries === 1 ? VOICE.local : null;
   const u = new SpeechSynthesisUtterance(clean); if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-US';
-  u.pitch = opts.pitch; u.rate = opts.rate; u.volume = opts.vol; let started = false; VOICE.cur = u;
-  u.onstart = () => { started = true; VOICE.works = true; };
-  const retry = () => { if (started || VOICE.cur !== u || tries >= 2) return; if (v && v !== VOICE.local) { VOICE.bad.add(v.name); loadVoices(); } VOICE.cur = null; try { speechSynthesis.cancel(); } catch (e) {} setTimeout(() => speakLine(clean, who, opts, tries + 1), 90); };
+  u.pitch = v && isMale(v) ? opts.pitch * 0.94 : opts.pitch * 0.7; // no male voice on this device: pitch a default voice way down so it still sounds like a man
+  u.pitch = Math.max(0.1, u.pitch); u.rate = opts.rate; u.volume = opts.vol; let started = false; VOICE.cur = u;
+  u.onstart = () => { started = true; VOICE.works = true; if (opts.id === VOICE.line) VOICE.lineStarted = true; };
+  u.onend = () => { if (opts.id === VOICE.line && VOICE.cur === u) VOICE.lineOn = false; };
+  const retry = () => { if (started || VOICE.cur !== u) return; if (tries >= 2) { if (opts.id === VOICE.line) VOICE.lineOn = false; return; } if (v && v !== VOICE.local) { VOICE.bad.add(v.name); loadVoices(); } VOICE.cur = null; try { speechSynthesis.cancel(); } catch (e) {} setTimeout(() => speakLine(clean, who, opts, tries + 1), 90); };
   u.onerror = e => { if (e && (e.error === 'interrupted' || e.error === 'canceled')) return; retry(); };
   setTimeout(retry, VOICE.works ? 2600 : 1800);
   try { speechSynthesis.resume(); } catch (e) {} speechSynthesis.speak(u);
 }
 function speak(text, who) {
+  VOICE.lineOn = false;
   if (!VOICE.ok || settings.voice === false || !['You', 'Radio', 'Pilot'].includes(who)) return;
   try {
     if (!VOICE.you && !VOICE.count) loadVoices();
@@ -198,14 +204,14 @@ function speak(text, who) {
     if (!clean || clean === '...') return;
     const radio = who !== 'You', scared = /!|run|no no|get back|stay away|he’s|behind you/i.test(text), quiet = /…/.test(text) && !scared;
     const opts = { pitch: 1 + (rand() - 0.5) * 0.06 + (scared ? 0.05 : 0) - (quiet ? 0.03 : 0), rate: (radio ? 0.96 : 1.0) + (rand() - 0.5) * 0.06 + (scared ? 0.1 : 0) - (quiet ? 0.08 : 0), vol: Math.max(0.35, Math.min(1, settings.vol * (quiet ? 0.85 : 1.05))) };
-    VOICE.cur = null;
+    VOICE.cur = null; opts.id = VOICE.line = (VOICE.line || 0) + 1; VOICE.lineOn = true; VOICE.lineStarted = false; VOICE.lineStart = performance.now();
     if (speechSynthesis.speaking || speechSynthesis.pending) { speechSynthesis.cancel(); setTimeout(() => speakLine(clean, who, opts, 0), 70); } else speakLine(clean, who, opts, 0);
     if (radio) SND.radioBlip();
   } catch (e) {}
 }
 setInterval(() => { try { if (VOICE.ok && speechSynthesis.speaking && speechSynthesis.paused) speechSynthesis.resume(); } catch (e) {} }, 1000);
 function voiceUnlock() { if (!VOICE.ok || VOICE.unlocked) return; VOICE.unlocked = true; try { loadVoices(); speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('.'); u.volume = 0.01; u.rate = 2; speechSynthesis.speak(u); } catch (e) {} }
-function hush() { try { if (VOICE.ok) speechSynthesis.cancel(); } catch (e) {} }
+function hush() { VOICE.lineOn = false; VOICE.cur = null; try { if (VOICE.ok) speechSynthesis.cancel(); } catch (e) {} }
 const pick = a => a[Math.floor(rand() * a.length)];
 function remark(lines, chance = 1) { if (G.mode !== 'play' || rand() > chance || G.time - (G.lastRemark || -99) < 9 || subQ.length > 1) return; G.lastRemark = G.time; say(Array.isArray(lines) ? pick(lines) : lines, 2.8, 'You'); }
 const CHATTER = [
@@ -259,6 +265,7 @@ function updateHint(dt) {
 }
 // ================= HUD =================
 const subQ = []; let subT = 0, hintT = 0;
+async function waitSubs(max) { const t0 = performance.now(); while ((subQ.length || subT > 0) && performance.now() - t0 < max) await wait(100); }
 function say(text, dur = 3.5, who = '') { subQ.push({ text, dur, who }); }
 function clearSubs() { subQ.length = 0; subT = 0; $('subs').innerHTML = ''; hush(); }
 function hint(t, d = 2.5) { $('hint').textContent = t; $('hint').style.display = 'block'; hintT = d; }
@@ -285,7 +292,7 @@ function updateHUD(dt) {
   $('cross').style.display = w !== 'none' ? 'block' : 'none'; $('dot').style.display = w !== 'none' ? 'none' : 'block';
   $('lightIc').textContent = !G.hasLight ? '' : P.overheat > 0 ? `LIGHT OVERHEATED ${Math.ceil(P.overheat)}s` : P.light ? 'LIGHT ON' : 'LIGHT OFF';
   if ((G.obj === 14 || G.obj === 26) && G.surviveT > 0) { $('timer').style.display = 'block'; $('timer').textContent = Math.ceil(G.surviveT); } else $('timer').style.display = 'none';
-  if (subT > 0) { subT -= dt; if (subT <= 0) $('subs').innerHTML = ''; }
+  if (subT > 0) { subT -= dt; if (subT <= 0) { const el = performance.now() - (VOICE.lineStart || 0); if (VOICE.lineOn && (VOICE.lineStarted ? el < 14000 : el < 2800)) subT = 0.05; else $('subs').innerHTML = ''; } }
   if (subT <= 0 && subQ.length) { const s = subQ.shift(); $('subs').innerHTML = (s.who ? `<b>${s.who}:</b> ` : '') + s.text; subT = s.dur; speak(s.text, s.who); }
   if (hintT > 0) { hintT -= dt; if (hintT <= 0) $('hint').style.display = 'none'; }
 }
@@ -713,7 +720,7 @@ async function radioScene() {
   G.mode = 'cut'; SND.radioBlip(); SND.set('stat', 0.15, 0.05);
   const lines = [['You', 'Hello? This is the caretaker at Hollow Pines. Is anyone there?', 3.8], ['Radio', '…kkhh… Hollow Pines? That’s Harlan’s land.', 3.4], ['Radio', 'Harlan called us a week ago. He said he wasn’t going on vacation…', 4.2], ['Radio', '…he was running from something in the trees.', 3.6], ['You', 'Running from WHAT?', 2.4], ['Radio', 'Listen. Get the flare gun from the ranger station, west of the tower.', 4.2], ['Radio', 'Fire it on the helipad in the northeast. We’ll send a chopper.', 4.2], ['Radio', 'And stay in the light. Whatever you do, don’t let it get clo—', 4.2]];
   let tot = 0; for (const [w, t, d] of lines) { say(t, d, w); tot += d; }
-  await wait(tot * 1000 - 300); SND.set('stat', 0, 0.05); SND.radioBlip(); clearSubs();
+  await wait(tot * 1000 - 300); await waitSubs(15000); SND.set('stat', 0, 0.05); SND.radioBlip(); clearSubs();
   for (let i = 0; i < 6; i++) { W.flood.intensity = i % 2 ? 2.2 : 0; await wait(110); }
   C.x = T.x - 8; C.z = T.z + 13; C.state = 'scripted'; C.mode = 'idle'; showC(true); cr.g.position.set(C.x, H(C.x, C.z), C.z); cr.g.rotation.y = Math.atan2(T.x - C.x, T.z - C.z); W.flood.intensity = 2.2;
   const cy = TG0 + TY + 1.7; P.look = { yaw: Math.atan2(-(C.x - P.x), -(C.z - P.z)), pitch: Math.atan2(H(C.x, C.z) + 2.8 - cy, Math.hypot(C.x - P.x, C.z - P.z)) };
@@ -801,7 +808,7 @@ function startChapter2() {
 }
 async function pilotTalk() {
   const lines = [['Pilot', 'Harlan’s caretaker? Kid, you are lucky to be alive.', 3.4], ['You', 'Did you see it? Under the ladder? It was right under me!', 3.4], ['Pilot', 'I saw… something. Figured it was a shadow from the searchlight.', 3.8], ['Pilot', 'Sit tight. Hospital in Millbrook, twenty minutes.', 3.2]];
-  let tot = 0; for (const [w, t, d] of lines) { say(t, d, w); tot += d; } await wait(tot * 1000 + 2500);
+  let tot = 0; for (const [w, t, d] of lines) { say(t, d, w); tot += d; } await wait(tot * 1000); await waitSubs(15000); await wait(2500);
   if (G.obj !== 16 || !P.inHeli) return;
   SND.thud(); P.shake = 0.8; await wait(500); SND.thud(); SND.gate(); P.shake = 0.6;
   say('What the—? Something just landed on the roof!', 3, 'Pilot'); say('Go check the back window!', 2.6, 'Pilot');
