@@ -540,6 +540,7 @@ if (HIGH){
     for (let i=0;i<200;i++){ x.fillStyle=`rgba(150,140,120,${r()*0.3})`; x.fillRect(r()*64, r()*256, 1+r()*3, 1); }
     const t=mkTex(c); t.repeat.set(1,2); gfx.birchMat = new THREE.MeshLambertMaterial({ map:t, bumpMap:t, bumpScale:1 }); }
   gfx.pineGeo = pineFoliage();
+  gfx.sootStone = new THREE.MeshLambertMaterial({ map:gfx.rock, color:0x8a8580 });
   gfx.oakGeo = shadeGeo(mergeGeometries([ leafCards(70,[0,4.7,0],[2.5,1.8,2.5],1.6,11), leafCards(30,[1.3,4.0,0.5],[1.5,1.2,1.5],1.4,12) ]), [0.3,4.5,0.1], 2.6, 0.58);
   gfx.birchGeo = shadeGeo(leafCards(64,[0,5.3,0],[1.4,2.1,1.4],1.15,13), [0,5.3,0], 1.5, 0.65);
   gfx.bushGeo = shadeGeo(leafCards(26,[0,0,0],[0.75,0.6,0.75],0.75,14), [0,0,0], 0.8, 0.45);
@@ -605,6 +606,9 @@ if (HIGH){
   gfx.skyGain = { value:0.42 };
   gfx.sky.material.onBeforeCompile = sh => { sh.uniforms.uSkyGain = gfx.skyGain; sh.fragmentShader = 'uniform float uSkyGain;\n' + sh.fragmentShader.replace('gl_FragColor = vec4( retColor, 1.0 );', 'gl_FragColor = vec4( retColor * uSkyGain, 1.0 );'); };
   scene.add(gfx.sky); gfx.sunDir = new THREE.Vector3(0,1,0);
+  // a small copy of the sky used to light shiny/3D-model materials (image-based lighting)
+  gfx.pmrem = new THREE.PMREMGenerator(renderer); gfx.envScene = new THREE.Scene(); gfx.envSky = new Sky(); gfx.envSky.scale.setScalar(100);
+  gfx.envSky.material.onBeforeCompile = gfx.sky.material.onBeforeCompile; gfx.envScene.add(gfx.envSky); gfx.envT = 0;
   hemi.groundColor.setHex(0x56603c);
   gfx.cloudU = { uTime:{value:0}, uColor:{value:new THREE.Color(1,1,1)}, uCover:{value:0.5}, uOpacity:{value:0.85}, uCam:{value:new THREE.Vector3()} };
   const cg = new THREE.PlaneGeometry(1700,1700); cg.rotateX(Math.PI/2);
@@ -698,11 +702,15 @@ const _fogBlue=new THREE.Color(0x93aabb), _cDay=new THREE.Color(1.15,1.13,1.1), 
 function glowUp(){
   // bright lights get "HDR" colors so they glow through the bloom effect
   flame1.material.color.setRGB(3.2,1.1,0.18); flame2.material.color.setRGB(4.5,3.0,0.9);
-  fireGlow.material.color.setRGB(2.2,0.8,0.2);
+  fireGlow.material.color.setRGB(1.1,0.42,0.1);
   torchFlames.forEach(f => f.material.color.setRGB(3.5,1.6,0.35));
-  M.eye.color.setRGB(5,0.25,0.2);
+  M.eye.color.setRGB(3,0.2,0.15);
+  // natural rocks around the fire and smoother log seats
+  fireGroup.children.forEach(o => { if (o.isMesh && o.material===M.stone && o.geometry.type==='DodecahedronGeometry'){ o.geometry = gfx.rocks[(o.id)%6]; o.scale.set(0.3,0.24,0.3); o.material = gfx.sootStone; } });
+  scene.children.forEach(o => { if (o.isMesh && o.material===M.log && o.geometry.type==='CylinderGeometry'){ o.geometry = new THREE.CylinderGeometry(0.28,0.3,2,16); o.material = gfx.barkMat; } });
   watcher.traverse(o => { if (o.isMesh && o.material.color && o.material.color.r>0.9) o.material.color.setRGB(4,4,4.2); });
   ffMat.color.setRGB(1.3,1.8,0.5);
+  embers.material.color.setRGB(4,1.5,0.3); embers.material.size = 0.06;
   gfx.glow = true;
 }
 function updateGfx(T, sunA, sunUp, dark, dusk, flashA, dt){
@@ -713,6 +721,11 @@ function updateGfx(T, sunA, sunUp, dark, dusk, flashA, dt){
   const su = gfx.sky.material.uniforms;
   su.sunPosition.value.copy(gfx.sunDir); su.turbidity.value = G.rain ? 14 : 4.5 + dusk*3; su.rayleigh.value = G.rain ? 0.5 : 1.3 + dusk*1.4;
   gfx.sky.position.copy(cam); gfx.sky.visible = dark < 0.96; skyDome.visible = !gfx.sky.visible; sunDisc.visible = false;
+  gfx.envT -= dt;
+  if (gfx.envT <= 0){ gfx.envT = 4;
+    if (dark > 0.85){ scene.environment = null; }
+    else { const eu=gfx.envSky.material.uniforms; for (const k of ['turbidity','rayleigh','mieCoefficient','mieDirectionalG']) eu[k].value = su[k].value; eu.sunPosition.value.copy(gfx.sunDir);
+      const old = gfx.envRT; gfx.envRT = gfx.pmrem.fromScene(gfx.envScene, 0, 0.1, 200); scene.environment = gfx.envRT.texture; if (old) old.dispose(); } }
   // clouds
   _cTmp.copy(_cDay).lerp(_cDusk, dusk*0.8).lerp(_cRain, G.rain?0.85:0).lerp(_cNight, dark);
   if (G.blood && G.night) _cTmp.setRGB(0.12,0.01,0.01);
@@ -731,7 +744,7 @@ function updateGfx(T, sunA, sunUp, dark, dusk, flashA, dt){
   if (gfx.water.material.uniforms && gfx.water.material.uniforms.time){ const wu=gfx.water.material.uniforms; wu.time.value=T*0.5; wu.sunDirection.value.copy(gfx.sunDir); wu.sunColor.value.setScalar(G.night ? 0.12 : 1 - dark*0.8); }
   gfx.grade.uniforms.uSat.value = G.night ? 0.78 : (G.rain ? 0.9 : 1.12);
   gfx.grade.uniforms.uTint.value.setRGB(...(G.blood&&G.night ? [1.2,0.78,0.75] : G.night ? [0.85,0.95,1.18] : [1.03,1.0,0.96]));
-  gfx.bloom.strength = 0.35 + dark*0.5;
+  gfx.bloom.strength = 0.3 + dark*0.22;
   // keep it smooth: lower the resolution a little on slower computers
   gfx.fpsT += dt; gfx.frames++;
   if (gfx.fpsT > 2){ const fps = gfx.frames/gfx.fpsT; gfx.fpsT=0; gfx.frames=0;
@@ -947,7 +960,101 @@ const beds = new THREE.Group(); beds.visible=false; scene.add(beds);
 for (let i=0;i<3;i++){ const b=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.18,2), M.cloth); const a=Math.PI*0.9+i*0.35; b.position.set(Math.cos(a)*5.5,0.09,Math.sin(a)*5.5); b.rotation.y=-a; beds.add(b);
   const pil=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.15,0.35), M.white); pil.position.set(0,0.12,-0.75); b.add(pil); }
 
+// ---- High/Ultra: living flames (animated noise shader), puffy smoke, real canvas tents ----
+const fireU = { uTime:{ value:0 } };
+function flameMat(seed, power){
+  return new THREE.ShaderMaterial({ uniforms:{ uTime:fireU.uTime, uSeed:{value:seed}, uPower:{value:power} }, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide, fog:false,
+    vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+    fragmentShader:`uniform float uTime; uniform float uSeed; uniform float uPower; varying vec2 vUv;
+      float h(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+      float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(h(i),h(i+vec2(1.0,0.0)),f.x), mix(h(i+vec2(0.0,1.0)),h(i+vec2(1.0,1.0)),f.x), f.y); }
+      float fbm(vec2 p){ float v=0.0, a=0.5; for(int i=0;i<5;i++){ v+=a*n(p); p=p*2.07+vec2(3.1,1.7); a*=0.5; } return v; }
+      void main(){
+        vec2 uv=vUv; float x=(uv.x-0.5)*2.0;
+        float t=uTime*1.0;
+        float n1=fbm(vec2(uv.x*3.0+uSeed, uv.y*2.4-t*2.2)), n2=fbm(vec2(uv.x*7.0-uSeed, uv.y*5.0-t*3.6));
+        x += (n1-0.5)*0.55*uv.y;                                   // flames lick sideways as they rise
+        float width = 1.0 - uv.y*0.92;
+        float shape = 1.0 - smoothstep(0.15, 1.0, abs(x)/max(width,0.02));
+        float f = shape*(1.25-uv.y) + (n1*0.85 + n2*0.45 - 0.62) - uv.y*0.35;
+        f = clamp(f,0.0,1.0) * smoothstep(0.0,0.06,uv.y) * (1.0 - smoothstep(0.85,1.0,uv.y));
+        vec3 col = mix(vec3(0.75,0.12,0.015), vec3(1.0,0.42,0.06), smoothstep(0.12,0.5,f));
+        col = mix(col, vec3(1.0,0.72,0.28), smoothstep(0.55,0.85,f));
+        col = mix(col, vec3(1.0,0.9,0.65), smoothstep(0.9,1.0,f) * (1.0-uv.y));
+        gl_FragColor = vec4(col*uPower*(0.35+f*1.1), smoothstep(0.04,0.3,f)*0.9);
+      }` });
+}
+const flameQuad = new THREE.PlaneGeometry(1,1); flameQuad.translate(0,0.5,0);
+const fireFX = { flames:[], torch:[], puffs:[], logs:[], burst:0 };
+if (HIGH){
+  flame1.visible = flame2.visible = false;
+  // a bed of glowing coals and ash under the flames
+  fireFX.coal = new THREE.Mesh(new THREE.CircleGeometry(1.0, 40), new THREE.ShaderMaterial({ uniforms:{ uTime:fireU.uTime, uHeat:{ value:1 } }, fog:false,
+    vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+    fragmentShader:`uniform float uTime; uniform float uHeat; varying vec2 vUv;
+      float h(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+      float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(h(i),h(i+vec2(1.0,0.0)),f.x), mix(h(i+vec2(0.0,1.0)),h(i+vec2(1.0,1.0)),f.x), f.y); }
+      void main(){ vec2 p=(vUv-0.5)*2.0; float r=length(p);
+        float cells = n(p*7.0) * 0.6 + n(p*16.0 + uTime*0.15) * 0.4;
+        float pulse = 0.75 + 0.25*sin(uTime*2.3 + cells*9.0);
+        float glow = smoothstep(0.38, 0.72, cells) * (1.0 - smoothstep(0.3, 0.9, r)) * uHeat * pulse;
+        vec3 ash = mix(vec3(0.012,0.01,0.008), vec3(0.05,0.042,0.034), n(p*9.0)) * (1.0 - r*0.4);
+        float ember = smoothstep(0.55, 0.85, n(p*30.0 - uTime*0.05)) * (1.0 - smoothstep(0.2, 0.9, r)) * uHeat;
+        gl_FragColor = vec4(ash + vec3(2.6,0.55,0.08)*glow + vec3(1.6,0.35,0.05)*ember*pulse, 1.0); }` }));
+  fireFX.coal.rotation.x = -Math.PI/2; fireFX.coal.position.y = 0.05; fireGroup.add(fireFX.coal);
+  // charred logs that glow where they burn
+  const char = new THREE.MeshLambertMaterial({ color:0x1c1410, map:barkTex, emissive:0xff4a0c, emissiveMap:barkTex, emissiveIntensity:0.0 });
+  fireGroup.children.forEach(o => { if (o.isMesh && o.material===M.log){ o.material = char; fireFX.logs.push(o); } });
+  fireFX.char = char;
+  [[1.9,2.6,0.0,1.0],[1.25,2.0,4.7,0.85],[0.75,1.3,9.3,1.1]].forEach(([w,h,seed,pw]) => { const m=new THREE.Mesh(flameQuad, flameMat(seed,pw)); m.userData.size=[w,h]; m.position.y=0.18; m.renderOrder=5; fireGroup.add(m); fireFX.flames.push(m); });
+  torchFlames.forEach((f,i) => { f.visible=false; const m=new THREE.Mesh(flameQuad, flameMat(20+i*3.7, 1.1)); m.scale.set(0.38,0.7,1); m.position.copy(f.position); m.position.y-=0.22; m.renderOrder=5; f.parent.add(m); fireFX.torch.push(m); });
+  // puffy smoke: each puff grows and fades as it rises
+  const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d'), r=mulberry32(55);
+  for (let i=0;i<26;i++){ const px=64+(r()-0.5)*60, py=64+(r()-0.5)*60, rad=18+r()*26, g=x.createRadialGradient(px,py,0,px,py,rad); g.addColorStop(0,'rgba(255,255,255,0.35)'); g.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=g; x.fillRect(0,0,128,128); }
+  const puffTex = new THREE.CanvasTexture(c);
+  smoke.visible = false;
+  for (let i=0;i<28;i++){ const sp=new THREE.Sprite(new THREE.SpriteMaterial({ map:puffTex, color:0x8a8a8a, transparent:true, depthWrite:false, opacity:0 })); sp.userData.t=i/28; sp.userData.sx=(r()-0.5); sp.userData.rot=r()*6.28; fireGroup.add(sp); fireFX.puffs.push(sp); }
+}
+function updateFireFX(dt, T, fs, dark){
+  if (!HIGH) return;
+  fireU.uTime.value = T;
+  const cam = camera.position, on = G.fuel > 0;
+  fireFX.burst = Math.max(0, fireFX.burst - dt);
+  const heat = on ? 0.45 + (G.fuel/G.fuelMax)*0.8 : 0.12;
+  fireFX.coal.material.uniforms.uHeat.value = heat * (1 + fireFX.burst*0.3);
+  fireFX.char.emissiveIntensity = heat * (0.55 + Math.sin(T*3.1)*0.12 + Math.sin(T*7.3)*0.06) * 0.45;
+  fs *= 1 + fireFX.burst*0.35;                                  // the fire flares up when wood is added
+  const pw = 1 - dark*0.45; fireFX.flames.forEach((m,i) => m.material.uniforms.uPower.value = [1.0,0.85,1.1][i]*pw*(1+fireFX.burst*0.2));
+  const face = Math.atan2(cam.x, cam.z);                       // flames always face you (they look round from every side)
+  fireFX.flames.forEach((m,i) => { m.visible = on; const [w,h]=m.userData.size; m.scale.set(w*fs, h*fs*(0.95+Math.sin(T*7+i*2)*0.05), 1); m.rotation.y = face + (i-1)*0.35; });
+  fireFX.torch.forEach(m => { m.visible = G.torches; const wp=m.parent.position; m.rotation.y = Math.atan2(cam.x-wp.x, cam.z-wp.z); });
+  const sc = THREE.MathUtils.lerp(0.55, 0.05, dark);
+  fireFX.puffs.forEach(sp => { const u=sp.userData; u.t += dt*0.09; if (u.t>1) u.t-=1; const e=u.t;
+    sp.visible = on; sp.position.set(u.sx*0.6 + e*e*3.2, 1.6 + e*10*Math.max(fs,0.5), e*e*1.4 + u.sx*0.4);
+    const s = 0.7 + e*4.2; sp.scale.set(s,s,1); sp.material.rotation = u.rot + e*1.5;
+    sp.material.opacity = Math.min(1, e*8) * (1-e) * 0.55 * (G.rain?1.3:1); const lit = (1-e)*(1-e)*dark*0.45; sp.material.color.setRGB(sc + lit, sc + lit*0.45, sc + lit*0.15); });
+}
+function fabricTex(){ const c=mkCanvas(128), x=c.getContext('2d'), r=mulberry32(8); x.fillStyle='#fff'; x.fillRect(0,0,128,128);
+  for (let i=0;i<128;i+=3){ x.fillStyle=`rgba(0,0,0,${0.04+r()*0.04})`; x.fillRect(i,0,1,128); x.fillRect(0,i,128,1); }
+  x.fillStyle='rgba(0,0,0,.12)'; x.fillRect(62,0,4,128);
+  for (let i=0;i<30;i++){ x.fillStyle=`rgba(70,50,30,${r()*0.15})`; x.beginPath(); x.arc(r()*128, 100+r()*28, 4+r()*10, 0, 6.3); x.fill(); }
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(2,2); return t; }
+let _fabric = null;
 function makeTent(color){
+  if (HIGH){
+    _fabric = _fabric || fabricTex();
+    const g=new THREE.Group(), sh=new THREE.Shape(); sh.moveTo(-1.35,0); sh.lineTo(1.35,0); sh.lineTo(0,1.85); sh.closePath();
+    const body=new THREE.ExtrudeGeometry(sh,{ depth:2.8, bevelEnabled:false }); body.translate(0,0,-1.4);
+    const t=new THREE.Mesh(body, new THREE.MeshLambertMaterial({ color, map:_fabric, side:THREE.DoubleSide })); g.add(t);
+    const ds=new THREE.Shape(); ds.moveTo(-0.55,0); ds.lineTo(0.55,0); ds.lineTo(0,1.3); ds.closePath();
+    const door=new THREE.Mesh(new THREE.ShapeGeometry(ds), new THREE.MeshBasicMaterial({ color:0x0a0806 })); door.position.z=1.41; g.add(door);
+    const flap=new THREE.Mesh(new THREE.ShapeGeometry(ds), new THREE.MeshLambertMaterial({ color, map:_fabric, side:THREE.DoubleSide })); flap.scale.set(0.5,1,1); flap.position.set(0.5,0,1.43); flap.rotation.y=-0.6; g.add(flap);
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,3.1,6), new THREE.MeshLambertMaterial({ color:0x6b6b6b })); pole.rotation.x=Math.PI/2; pole.position.y=1.86; g.add(pole);
+    const rope=new THREE.LineBasicMaterial({ color:0x6f6656 }), pts=[];
+    for (const z of [-1.45,1.45]){ pts.push(new THREE.Vector3(0,1.86,z), new THREE.Vector3(0,0,z*1.7)); for (const sx of [-1,1]) pts.push(new THREE.Vector3(sx*0.68,0.93,z*0.8), new THREE.Vector3(sx*2.1,0,z*1.1)); }
+    g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), rope));
+    return castAll(g);
+  }
   const g=new THREE.Group();
   const t=new THREE.Mesh(new THREE.ConeGeometry(1.6,2.2,4), new THREE.MeshLambertMaterial({ color })); t.position.y=1.1; t.rotation.y=Math.PI/4; g.add(t);
   const d=new THREE.Mesh(new THREE.PlaneGeometry(0.7,1.1), new THREE.MeshBasicMaterial({ color:0x111111 })); d.position.set(0,0.55,1.14); g.add(d);
@@ -1726,7 +1833,7 @@ function useAction(){
   if (f){ if (me.band<=0){ toast('You need a bandage! 🩹',1.8); return; } me.band--; act({ a:'revive', target:f.id }); f.down=false; return; }
   if (nearFire()){
     let did=false;
-    if (me.wood>0){ act({ a:'fuel', n:me.wood }); feed(`🔥 Added ${me.wood} wood to the fire`); me.wood=0; did=true; beep(200,0.3,'triangle',0.08,200); noiseBurst(0.5,600,0.1); }
+    if (me.wood>0){ fireFX.burst = 1.6; act({ a:'fuel', n:me.wood }); feed(`🔥 Added ${me.wood} wood to the fire`); me.wood=0; did=true; beep(200,0.3,'triangle',0.08,200); noiseBurst(0.5,600,0.1); }
     if (me.meat>0){ me.food=Math.min(100,me.food+45); me.hp=Math.min(100,me.hp+15); me.meat--; did=true; toast('Cooked & ate meat',1.5); noiseBurst(0.7,5000,0.04,'highpass'); }
     if (did) return;
   }
@@ -2122,9 +2229,11 @@ function localSim(dt, now){
   fireLight.intensity = G.fuel>0 ? (8+45*ff)*flick*lvl : 0; fireLight.distance = safeRadius()*2.4+4;
   const fs = G.fuel>0 ? (0.35+ff*0.9)*lvl : 0.001;
   flame1.scale.set(fs*flick, fs*(0.95+Math.sin(now*0.03)*0.12), fs*flick); flame2.scale.set(fs, fs*(0.95+Math.sin(now*0.041)*0.15), fs); flame1.rotation.y+=dt*2;
-  fireGlow.visible = G.fuel>0; fireGlow.scale.setScalar(3+fs*4*flick); fireGlow.material.opacity = 0.25+dark*0.35;
-  embers.visible=G.fuel>0; smoke.visible=G.fuel>0;
-  for (let i=0;i<EMB;i++){ emberT[i]+=dt*0.5; if(emberT[i]>1) emberT[i]=0; const e=emberT[i]; emberPos[i*3]=Math.sin(i*7.1+e*3)*0.5*e; emberPos[i*3+1]=0.5+e*3*fs; emberPos[i*3+2]=Math.cos(i*3.3+e*3)*0.5*e; }
+  updateFireFX(dt, T, fs, dark);
+  fireGlow.visible = G.fuel>0; fireGlow.scale.setScalar(3+fs*4*flick); fireGlow.material.opacity = HIGH ? 0.06+dark*0.04 : 0.25+dark*0.35; if (HIGH) fireGlow.scale.setScalar(2+fs*2.2*flick);
+  embers.visible=G.fuel>0; smoke.visible=!HIGH && G.fuel>0;
+  const eb = 1 + fireFX.burst*1.4;
+  for (let i=0;i<EMB;i++){ emberT[i]+=dt*0.5*(1+fireFX.burst); if(emberT[i]>1) emberT[i]=0; const e=emberT[i]; emberPos[i*3]=Math.sin(i*7.1+e*3+T*0.7)*0.5*e*eb; emberPos[i*3+1]=0.5+e*3*fs*eb + Math.sin(i+T*5)*0.05; emberPos[i*3+2]=Math.cos(i*3.3+e*3+T*0.5)*0.5*e*eb; }
   for (let i=0;i<SMK;i++){ smokeT[i]+=dt*0.12; if(smokeT[i]>1) smokeT[i]=0; const e=smokeT[i]; smokePos[i*3]=Math.sin(i*1.7+T*0.3)*0.4*e + e*e*3; smokePos[i*3+1]=1.5+e*9*fs; smokePos[i*3+2]=Math.cos(i*2.3)*0.4*e + e*e*1.5; }
   emberGeo.attributes.position.needsUpdate=true; smokeGeo.attributes.position.needsUpdate=true;
   torchFlames.forEach((f,i)=>f.scale.set(1, 0.85+Math.sin(now*0.03+i)*0.2, 1));
