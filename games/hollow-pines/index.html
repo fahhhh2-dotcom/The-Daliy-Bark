@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Hollow Pines</title>
+<meta name="theme-color" content="#050203">
+<link rel="icon" href="../icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nosifer&family=Special+Elite&family=Oswald:wght@400;600&display=swap" rel="stylesheet">
+<script src="../account.js"></script>
+<style>
+:root{--red:#a30d0d;--blood:#5e0000;--ink:#e8dfd3;--bone:#cfc4b5}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#000;overflow:hidden;color:var(--ink);font:16px/1.45 'Special Elite',ui-monospace,monospace;user-select:none;-webkit-user-select:none;touch-action:none;overscroll-behavior:none}
+button{font:inherit;color:inherit}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block}
+.layer{position:fixed;inset:0}
+#grain{pointer-events:none;width:100%;height:100%;opacity:.12;mix-blend-mode:overlay;image-rendering:pixelated;z-index:2}
+#vig{pointer-events:none;z-index:3;background:radial-gradient(ellipse at center,transparent 42%,rgba(0,0,0,.88) 100%)}
+#fear{pointer-events:none;z-index:3;opacity:0;background:radial-gradient(ellipse at center,transparent 30%,rgba(110,0,0,.92) 100%)}
+#hurt{pointer-events:none;z-index:3;opacity:0;background:radial-gradient(ellipse at center,rgba(120,0,0,.15) 20%,rgba(140,0,0,.95) 100%);transition:opacity .25s}
+#fade{pointer-events:none;z-index:15;background:#000;opacity:0;transition:opacity .6s ease}
+#fade.white{background:#fff}
+/* HUD */
+#hud{pointer-events:none;display:none;z-index:6}
+#compass{position:absolute;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(380px,62vw);height:28px;overflow:hidden;border-bottom:1px solid rgba(232,223,211,.22);-webkit-mask-image:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent);mask-image:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent)}
+#compass span{position:absolute;top:5px;transform:translateX(-50%);font:600 13px Oswald,sans-serif;color:rgba(232,223,211,.72)}
+#compass span.s{font-size:10px;top:8px;color:rgba(232,223,211,.4)}
+#compass .mk{color:#ff3b2f;font-size:15px;top:3px;text-shadow:0 0 8px #f00}
+#dist{position:absolute;top:calc(max(12px,env(safe-area-inset-top)) + 31px);left:50%;transform:translateX(-50%);font:13px Oswald,sans-serif;color:#ff6a5f}
+#obj{position:absolute;top:max(14px,env(safe-area-inset-top));left:max(14px,env(safe-area-inset-left));max-width:min(290px,34vw);font-size:14px;padding:8px 12px;border-left:2px solid var(--red);background:linear-gradient(90deg,rgba(0,0,0,.65),transparent)}
+#obj small{display:block;font:12px Oswald,sans-serif;color:#d04a3f;letter-spacing:.03em}
+#obj.new{animation:objIn 1.4s ease}
+@keyframes objIn{0%{transform:translateX(-20px);opacity:0}30%{opacity:1;transform:none;background:linear-gradient(90deg,rgba(120,0,0,.7),transparent)}}
+#prompt{position:absolute;bottom:26%;left:50%;transform:translateX(-50%);font:16px Oswald,sans-serif;padding:7px 16px;background:rgba(0,0,0,.6);border:1px solid rgba(232,223,211,.28);display:none;white-space:nowrap;border-radius:3px}
+#prompt i{display:block;height:3px;background:#c11;width:0;margin-top:5px}
+#subs{position:absolute;bottom:13%;left:50%;transform:translateX(-50%);width:min(720px,90vw);text-align:center;font-size:18px;text-shadow:0 2px 6px #000,0 0 3px #000;transition:opacity .3s}
+#subs b{color:#e0453a;font-weight:normal}
+#bars{position:absolute;bottom:max(18px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:5px;align-items:center}
+.bar{width:150px;height:4px;background:rgba(255,255,255,.12);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;width:100%;transition:width .15s}
+#hpI{background:#b3121b}#stamI{background:#ddd}
+#stam{opacity:0;transition:opacity .4s}
+#dot{position:absolute;top:50%;left:50%;width:4px;height:4px;margin:-2px;border-radius:50%;background:rgba(255,255,255,.55)}
+#cross{position:absolute;top:50%;left:50%;width:22px;height:22px;margin:-11px;display:none}
+#cross::before,#cross::after{content:'';position:absolute;background:rgba(255,255,255,.7)}
+#cross::before{left:10px;top:0;width:2px;height:7px;box-shadow:0 15px 0 rgba(255,255,255,.7)}
+#cross::after{top:10px;left:0;height:2px;width:7px;box-shadow:15px 0 0 rgba(255,255,255,.7)}
+#cross.hit::before,#cross.hit::after{background:#f33;box-shadow:0 15px 0 #f33}
+#cross.hit::after{box-shadow:15px 0 0 #f33}
+#wep{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));text-align:right;font:14px Oswald,sans-serif;color:var(--bone)}
+#wep b{display:block;font:600 26px Oswald,sans-serif;color:var(--ink)}
+#lightIc{position:absolute;top:calc(max(14px,env(safe-area-inset-top)) + 4px);right:70px;font:12px Oswald,sans-serif;color:var(--bone)}
+#timer{position:absolute;top:80px;left:50%;transform:translateX(-50%);font:46px Nosifer,serif;color:#c01010;text-shadow:0 0 20px #f00;display:none}
+#hint{position:absolute;top:50%;left:50%;transform:translate(-50%,40px);font:14px Oswald,sans-serif;opacity:.7;display:none}
+#pauseBtn{pointer-events:auto;position:absolute;top:max(10px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.45);font:600 14px Oswald,sans-serif;cursor:pointer}
+/* touch */
+#touch{display:none;z-index:5}
+#joy{position:absolute;width:120px;height:120px;border-radius:50%;border:2px solid rgba(255,255,255,.18);background:rgba(0,0,0,.18);display:none;margin:-60px 0 0 -60px}
+#knob{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(232,223,211,.32)}
+.tb{position:absolute;width:62px;height:62px;border-radius:50%;border:2px solid rgba(255,255,255,.25);background:rgba(0,0,0,.4);font:600 12px Oswald,sans-serif;display:grid;place-items:center;letter-spacing:.03em}
+.tb.on{background:rgba(160,10,10,.6);border-color:#f55}
+#bFire{right:22px;bottom:150px;width:78px;height:78px;background:rgba(120,0,0,.45)}
+#bUse{right:112px;bottom:96px}
+#bRun{right:24px;bottom:68px}
+#bLight{right:112px;bottom:22px}
+#bSwap{right:196px;bottom:40px;width:52px;height:52px}
+#bReload{right:110px;bottom:172px;width:52px;height:52px}
+body.touch #wep{bottom:auto;top:calc(max(14px,env(safe-area-inset-top)) + 54px)}
+body.touch #bars{bottom:max(10px,env(safe-area-inset-bottom));left:38%}
+/* overlays */
+#intro{z-index:16;background:#000;display:none;place-items:center;text-align:center;padding:24px}
+#intro p{font-size:clamp(18px,3.2vw,26px);max-width:700px;animation:fadeIn 1.2s ease}
+#intro small{position:absolute;bottom:30px;left:0;right:0;opacity:.4;font-size:13px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#note{z-index:17;display:none;place-items:center;background:rgba(0,0,0,.6)}
+.paper{width:min(520px,90vw);max-height:80vh;overflow:auto;padding:30px 30px 22px;background:#d8ccb0 radial-gradient(circle at 80% 15%,rgba(110,60,20,.28),transparent 35%),radial-gradient(circle at 12% 85%,rgba(90,0,0,.25),transparent 25%);color:#2a1c10;transform:rotate(-1.2deg);box-shadow:0 18px 60px #000;font-size:17px;line-height:1.55;white-space:pre-line;animation:fadeIn .4s}
+.paper small{display:block;margin-top:16px;font:13px Oswald,sans-serif;color:#6a4a30;text-align:right}
+#scare{z-index:18;display:none}
+/* menu */
+#blood{z-index:19;pointer-events:none;display:none}
+#menu{z-index:20;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 50% 40%,transparent 30%,rgba(0,0,0,.65) 100%)}
+#menu h1{font:400 clamp(30px,min(11vw,16vh),124px)/1.02 Nosifer,serif;color:#b30c0c;text-align:center;text-shadow:0 0 22px rgba(255,0,0,.35),0 4px 0 #3a0000,0 12px 34px #000;letter-spacing:.02em}
+#menu .tag{font-size:clamp(14px,2.2vw,18px);color:var(--bone);margin:10px 0 34px;text-align:center;text-shadow:0 2px 8px #000}
+#playBtn{font:400 clamp(22px,4vw,34px) Nosifer,serif;color:#f1e6da;background:none;border:0;cursor:pointer;padding:14px 34px;position:relative;isolation:isolate;animation:breathe 2.6s ease-in-out infinite;text-shadow:0 0 14px #f00}
+#playBtn::before{content:'';position:absolute;inset:6px -10px;z-index:-1;background:radial-gradient(ellipse at center,rgba(150,0,0,.85),rgba(80,0,0,.55) 55%,transparent 72%);border-radius:50%}
+@keyframes breathe{50%{transform:scale(1.06);text-shadow:0 0 26px #f00}}
+.row{display:flex;gap:6px;margin-top:22px;flex-wrap:wrap;justify-content:center}
+.btn{font:18px 'Special Elite',monospace;background:none;border:0;padding:10px 18px;min-height:44px;cursor:pointer;position:relative;isolation:isolate;color:var(--ink);text-shadow:0 2px 6px #000}
+.btn::before{content:'';position:absolute;left:4%;right:4%;top:50%;height:80%;transform:translateY(-50%) scaleX(0);background:radial-gradient(ellipse at center,rgba(150,0,0,.9),rgba(90,0,0,.6) 60%,transparent 74%);transition:transform .25s ease;z-index:-1;border-radius:40%}
+.btn:hover::before,.btn:focus-visible::before{transform:translateY(-50%) scaleX(1)}
+.btn:focus-visible{outline:none}
+.btn:disabled{opacity:.35;cursor:default}
+.btn:disabled::before{display:none}
+#tapSound{position:absolute;bottom:max(20px,env(safe-area-inset-bottom));font:13px Oswald,sans-serif;opacity:.5}
+#loading{position:absolute;bottom:50%;font:15px Oswald,sans-serif;opacity:.7}
+.panel{position:fixed;inset:0;z-index:30;display:none;place-items:center;background:rgba(0,0,0,.8);padding:16px}
+.card{width:min(560px,94vw);max-height:88vh;overflow:auto;padding:26px;border:1px solid #3a0606;background:#0c0707;box-shadow:0 0 50px #300;text-align:center}
+.card h2{font:400 clamp(26px,5vw,38px)/1.1 Nosifer,serif;color:#b30c0c;margin-bottom:16px}
+.card p,.card li{color:var(--bone);font-size:15px;text-align:left}
+.card ul{list-style:none;display:grid;gap:8px;margin:0 0 18px}
+.card li b{color:var(--ink);font-weight:normal;font-family:Oswald,sans-serif}
+.slot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;text-align:left;padding:14px;margin-bottom:10px;border:1px solid #2a1010;background:#120909}
+.slot h3{font:600 17px Oswald,sans-serif;color:var(--ink)}
+.slot p{font-size:13px;color:#a8998a;margin:0}
+.slot .acts{display:flex;gap:2px;flex-wrap:wrap;justify-content:flex-end}
+.slot .btn{font-size:15px;padding:8px 12px}
+.set{display:grid;gap:14px;margin-bottom:18px;text-align:left}
+.set label{display:grid;gap:4px;font:15px Oswald,sans-serif;color:var(--bone)}
+input[type=range]{width:100%;accent-color:#b30c0c;height:28px}
+.credits{white-space:pre-line;text-align:center!important;line-height:1.9}
+#dead{background:radial-gradient(ellipse at center,rgba(60,0,0,.85),rgba(0,0,0,.96))}
+#dead h2,#win h2{font:400 clamp(40px,10vw,92px)/1.05 Nosifer,serif;color:#b80d0d;text-shadow:0 0 30px #f00,0 6px 0 #300;text-align:center}
+#dead p,#win p{text-align:center;color:var(--bone);margin:14px auto 22px;max-width:520px}
+#win{background:radial-gradient(ellipse at center,rgba(30,10,10,.9),#000)}
+@media (max-height:520px){#menu{justify-content:flex-end;padding-bottom:14px}#menu .tag{margin:4px auto 10px;font-size:13px;max-width:78vw}#playBtn{padding:8px 26px}.row{margin-top:6px}#tapSound{display:none}.card{padding:16px}}
+@media (prefers-reduced-motion:reduce){#playBtn{animation:none}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<canvas id="grain" class="layer" width="160" height="160"></canvas>
+<div id="vig" class="layer"></div>
+<div id="fear" class="layer"></div>
+<div id="hurt" class="layer"></div>
+<div id="touch" class="layer">
+  <div id="joy"><div id="knob"></div></div>
+  <button class="tb" id="bFire">FIRE</button><button class="tb" id="bReload">RELOAD</button>
+  <button class="tb" id="bUse">USE</button><button class="tb" id="bRun">RUN</button>
+  <button class="tb" id="bLight">LIGHT</button><button class="tb" id="bSwap">SWAP</button>
+</div>
+<div id="hud" class="layer">
+  <div id="compass"></div><div id="dist"></div>
+  <div id="obj"><small id="chap"></small><span id="objT"></span></div>
+  <div id="timer"></div>
+  <div id="dot"></div><div id="cross"></div>
+  <div id="prompt"><span id="promptT"></span><i id="promptP"></i></div>
+  <div id="subs"></div>
+  <div id="bars"><div class="bar" id="stam"><i id="stamI"></i></div><div class="bar"><i id="hpI"></i></div></div>
+  <div id="wep"></div>
+  <div id="lightIc"></div>
+  <div id="hint"></div>
+  <button id="pauseBtn" aria-label="Pause">II</button>
+</div>
+<div id="fade" class="layer"></div>
+<div id="intro" class="layer"></div>
+<div id="note" class="layer"><div class="paper"><div id="noteT"></div><small id="noteClose"></small></div></div>
+<canvas id="scare" class="layer"></canvas>
+<canvas id="blood" class="layer"></canvas>
+<div id="menu" class="layer">
+  <h1>Hollow<br>Pines</h1>
+  <p class="tag">Mr. Harlan is on vacation. You're looking after his forest. Something else lives in it.</p>
+  <button id="playBtn">Press Play</button>
+  <div class="row"><button class="btn" id="mHow">How to Play</button><button class="btn" id="mSet">Settings</button><button class="btn" id="mCred">Credits</button></div>
+  <div id="loading">Loading the forest…</div>
+  <div id="tapSound">Tap anywhere for sound · best with headphones</div>
+</div>
+<div id="slotP" class="panel"><div class="card"><h2>Choose a Save</h2><div id="slots"></div><button class="btn" data-back>Back</button></div></div>
+<div id="howP" class="panel"><div class="card"><h2>How to Play</h2><ul>
+  <li><b>Move</b> — WASD or arrow keys · left side of the screen on phones</li>
+  <li><b>Look</b> — mouse (click the game first) · drag the right side on phones</li>
+  <li><b>Run</b> — Shift · RUN button. Watch your stamina.</li>
+  <li><b>Use / pick up</b> — E · USE. Some things need you to hold it.</li>
+  <li><b>Shoot</b> — left click · FIRE. <b>Reload</b> — R. <b>Switch weapon</b> — Q or 1, 2, 3 · SWAP</li>
+  <li><b>Flashlight</b> — F · LIGHT. Keep the beam right on him and he backs off, but it overheats.</li>
+  <li><b>Follow the red ◆</b> on the compass. Weapons and ammo are hidden in old sheds around the forest.</li>
+  <li><b>Checkpoints</b> save at every objective. If you die, you go back to the last one. You have 3 save slots.</li>
+</ul><button class="btn" data-back>Back</button></div></div>
+<div id="setP" class="panel"><div class="card"><h2>Settings</h2><div class="set">
+  <label>Look speed <input type="range" id="sSens" min="0.4" max="2.2" step="0.05"></label>
+  <label>Volume <input type="range" id="sVol" min="0" max="1" step="0.05"></label>
+  <label><span><input type="checkbox" id="sShadow"> Flashlight shadows (looks better, slower on phones)</span></label>
+</div><button class="btn" data-back>Back</button></div></div>
+<div id="credP" class="panel"><div class="card"><h2>Credits</h2><p class="credits">HOLLOW PINES
+
+Game idea &amp; story — fahhhh2
+Built with Claude
+3D engine — three.js
+Fonts — Nosifer, Special Elite, Oswald
+Every sound is made live in your browser
+
+Mr. Harlan — on vacation
+The Tall Man — himself
+
+Thanks for playing. Don't look at him too long.</p><button class="btn" data-back>Back</button></div></div>
+<div id="pauseP" class="panel"><div class="card"><h2>Paused</h2><button class="btn" id="pResume">Resume</button><br><button class="btn" id="pSet">Settings</button><br><button class="btn" id="pMenu">Save &amp; Quit to Menu</button></div></div>
+<div id="dead" class="panel"><div><h2>You Died</h2><p id="deadTip"></p><div class="row"><button class="btn" id="dRetry">Back to Checkpoint</button><button class="btn" id="dMenu">Main Menu</button></div></div></div>
+<div id="win" class="panel"><div><h2>You Escaped</h2><p id="winT"></p><div class="row"><button class="btn" id="wMenu">Main Menu</button><button class="btn" id="wCred">Credits</button></div></div></div>
+<script src="../royale/three.min.js"></script>
+<script src="hp-audio.js"></script>
+<script src="hp-world.js"></script>
+<script src="hp-game.js"></script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+'use strict';
+/* Hollow Pines — every sound is synthesised with Web Audio */
+const SND = (() => {
+  let AC = null, MG = null, NB = null, vol = 0.9;
+  const L = {};
+  const clampP = p => Math.max(-1, Math.min(1, p || 0));
+  function init() {
+    if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+    try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+    MG = AC.createGain(); MG.gain.value = vol;
+    const comp = AC.createDynamicsCompressor(); comp.threshold.value = -12; comp.ratio.value = 4;
+    MG.connect(comp); comp.connect(AC.destination);
+    NB = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate);
+    const d = NB.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    // forest bed
+    L.wind = loopNoise('lowpass', 380, 0.7, 0.13);
+    lfo(L.wind.f.frequency, 0.07, 220);
+    L.leaves = loopNoise('bandpass', 3200, 0.6, 0.025);
+    lfo(L.leaves.g.gain, 0.13, 0.02);
+    L.drone = tone([55, 58.3, 82.4, 110.6], 'sawtooth', 520, 0);
+    L.menu = tone([41.2, 43.6, 61.7], 'sawtooth', 300, 0);
+    L.hum = tone([50, 100, 150], 'sawtooth', 240, 0);
+    L.stat = loopNoise('bandpass', 2400, 0.8, 0);
+    L.heli = (() => { const n = loopNoise('lowpass', 220, 1, 0); const am = AC.createGain(); am.gain.value = 0.5;
+      n.f.disconnect(); n.f.connect(am); am.connect(n.g);
+      const o = AC.createOscillator(); o.type = 'square'; o.frequency.value = 12; const og = AC.createGain(); og.gain.value = 0.5; o.connect(og); og.connect(am.gain); o.start(); return n; })();
+    L.tunnel = loopNoise('lowpass', 140, 1.5, 0);
+    L.breath = loopNoise('bandpass', 900, 1.2, 0); lfo(L.breath.f.frequency, 0.9, 300);
+    L.crickets = { g: AC.createGain() }; L.crickets.g.gain.value = 0.5; L.crickets.g.connect(MG);
+  }
+  function lfo(param, f, depth) { const o = AC.createOscillator(); o.frequency.value = f; const g = AC.createGain(); g.gain.value = depth; o.connect(g); g.connect(param); o.start(); }
+  function loopNoise(type, freq, q, v) { const s = AC.createBufferSource(); s.buffer = NB; s.loop = true; const f = AC.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q; const g = AC.createGain(); g.gain.value = v; s.connect(f); f.connect(g); g.connect(MG); s.start(); return { s, f, g }; }
+  function tone(fr, type, lp, v) { const g = AC.createGain(); g.gain.value = v; const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = lp; f.connect(g); g.connect(MG); fr.forEach(x => { const o = AC.createOscillator(); o.type = type; o.frequency.value = x; const og = AC.createGain(); og.gain.value = 0.28; o.connect(og); og.connect(f); o.start(); }); return { g, f }; }
+  function out(pan) { if (AC.createStereoPanner) { const s = AC.createStereoPanner(); s.pan.value = clampP(pan); s.connect(MG); return s; } return MG; }
+  function burst({ dur = 0.1, type = 'lowpass', freq = 800, q = 1, v = 0.3, pan = 0, att = 0.002, delay = 0, f2 = 0 }) {
+    if (!AC) return; const t = AC.currentTime + delay;
+    const s = AC.createBufferSource(); s.buffer = NB; const f = AC.createBiquadFilter(); f.type = type; f.frequency.setValueAtTime(freq, t); if (f2) f.frequency.exponentialRampToValueAtTime(f2, t + dur); f.Q.value = q;
+    const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + att); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(out(pan)); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05);
+  }
+  function osc({ f = 440, f2 = 0, type = 'sine', dur = 0.3, v = 0.2, pan = 0, delay = 0, att = 0.005, vib = 0, vibF = 6, dest = null }) {
+    if (!AC) return; const t = AC.currentTime + delay;
+    const o = AC.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    if (vib) { const l = AC.createOscillator(); l.frequency.value = vibF; const lg = AC.createGain(); lg.gain.value = vib; l.connect(lg); lg.connect(o.frequency); l.start(t); l.stop(t + dur + 0.05); }
+    const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + att); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(dest || out(pan)); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function shaper(amt) { const ws = AC.createWaveShaper(); const c = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; c[i] = Math.tanh(x * amt); } ws.curve = c; return ws; }
+  function scream(v = 1, dur = 1.9, base = 300) {
+    if (!AC) return; const t = AC.currentTime; const ws = shaper(7); const g = AC.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + 0.03); g.gain.setValueAtTime(v, t + dur * 0.55); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    ws.connect(g); g.connect(MG);
+    [1, 1.07, 1.5, 2.03, 0.5, 2.9].forEach((m, i) => {
+      const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(base * m, t); o.frequency.exponentialRampToValueAtTime(base * 5 * m, t + 0.14); o.frequency.linearRampToValueAtTime(base * 3.4 * m, t + dur);
+      const l = AC.createOscillator(); l.frequency.value = 8 + i * 2.7; const lg = AC.createGain(); lg.gain.value = 70 * m; l.connect(lg); lg.connect(o.frequency);
+      const og = AC.createGain(); og.gain.value = 0.13; o.connect(og); og.connect(ws); o.start(t); l.start(t); o.stop(t + dur); l.stop(t + dur);
+    });
+    const n = AC.createBufferSource(); n.buffer = NB; const nf = AC.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 2600; nf.Q.value = 0.6; const ng = AC.createGain(); ng.gain.value = 0.55; n.connect(nf); nf.connect(ng); ng.connect(ws); n.start(t); n.stop(t + dur);
+    osc({ f: 70, f2: 30, dur: 1.2, v: 0.9, type: 'sine' });
+  }
+  const S = {
+    init, get ok() { return !!AC; },
+    setVol(v) { vol = v; if (MG) MG.gain.value = v; },
+    set(name, v, tc = 0.3) { if (!AC || !L[name]) return; L[name].g.gain.setTargetAtTime(v, AC.currentTime, tc); },
+    step(run, wood) { burst({ dur: run ? 0.11 : 0.09, freq: wood ? 380 : (run ? 760 : 520), q: wood ? 3 : 0.6, v: run ? 0.17 : 0.1 }); if (!wood && Math.random() < 0.35) burst({ dur: 0.03, type: 'highpass', freq: 3500, v: 0.05, delay: 0.02 }); },
+    cstep(pan, v) { osc({ f: 75, f2: 38, dur: 0.22, v: v * 0.55, pan }); burst({ dur: 0.14, freq: 420, v: v * 0.3, pan }); },
+    crawl(pan, v) { burst({ dur: 0.18, type: 'bandpass', freq: 1200 + Math.random() * 600, q: 2, v: v * 0.25, pan }); osc({ f: 50, f2: 35, dur: 0.12, v: v * 0.4, pan, delay: 0.05 }); },
+    snap(pan) { burst({ dur: 0.04, type: 'highpass', freq: 2600, v: 0.35, pan }); burst({ dur: 0.07, type: 'bandpass', freq: 1300, q: 3, v: 0.22, pan, delay: 0.05 }); },
+    owl(pan) { [0, 0.45, 0.62].forEach((d, i) => osc({ f: 410 - i * 25, f2: 370 - i * 25, dur: i ? 0.22 : 0.38, v: 0.06, pan, delay: d, att: 0.04 })); },
+    howl(pan) { osc({ f: 380, f2: 720, dur: 1.4, v: 0.06, pan, att: 0.3, vib: 8, vibF: 5 }); osc({ f: 720, f2: 480, dur: 1.6, v: 0.05, pan, delay: 1.3, att: 0.1, vib: 10, vibF: 5 }); },
+    creak(pan) { if (!AC) return; const t = AC.currentTime; const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(70, t); o.frequency.linearRampToValueAtTime(95, t + 1.2); const f = AC.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 12; f.frequency.setValueAtTime(600, t); f.frequency.linearRampToValueAtTime(1100, t + 1.2); const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.05, t + 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.3); o.connect(f); f.connect(g); g.connect(out(pan)); o.start(t); o.stop(t + 1.4); },
+    cricket() { if (!AC) return; const f = 4200 + Math.random() * 900, pan = Math.random() * 2 - 1; for (let i = 0; i < 3; i++) osc({ f, dur: 0.05, v: 0.018, pan, delay: i * 0.07, dest: null }); },
+    whisper(pan) { for (let i = 0; i < 7; i++) burst({ dur: 0.2, type: 'bandpass', freq: 2200 + Math.random() * 2800, q: 7, v: 0.07, pan, delay: i * 0.15 }); },
+    clink() { osc({ f: 880, dur: 0.25, v: 0.12 }); osc({ f: 1320, dur: 0.18, v: 0.08, delay: 0.03 }); },
+    pickup() { osc({ f: 520, dur: 0.12, v: 0.1, type: 'triangle' }); osc({ f: 780, dur: 0.18, v: 0.1, type: 'triangle', delay: 0.07 }); },
+    pour() { for (let i = 0; i < 11; i++) burst({ dur: 0.15, type: 'bandpass', freq: 280 + Math.random() * 520, q: 4, v: 0.17, delay: i * 0.13 }); },
+    sputter() { for (let i = 0; i < 9; i++) burst({ dur: 0.12, freq: 220, v: 0.45, delay: i * 0.17 + Math.random() * 0.05 }); },
+    door() { [0, 0.2, 0.4].forEach(d => { osc({ f: 130, f2: 90, type: 'square', dur: 0.1, v: 0.12, delay: d }); burst({ dur: 0.08, type: 'highpass', freq: 2000, v: 0.12, delay: d }); }); },
+    unlock() { osc({ f: 1500, dur: 0.05, v: 0.12, type: 'square' }); osc({ f: 900, dur: 0.08, v: 0.12, type: 'square', delay: 0.12 }); burst({ dur: 0.3, freq: 600, v: 0.15, delay: 0.25 }); },
+    obj() { osc({ f: 196, dur: 1.4, v: 0.07, type: 'triangle' }); osc({ f: 293, dur: 1.3, v: 0.05, type: 'triangle', delay: 0.12 }); },
+    heart(v) { osc({ f: 58, f2: 40, dur: 0.16, v: 0.55 * v }); osc({ f: 52, f2: 38, dur: 0.18, v: 0.38 * v, delay: 0.22 }); },
+    stinger() { [1046, 1108, 1174, 1244, 1318].forEach(f => osc({ f, f2: f * 0.96, type: 'sawtooth', dur: 2.4, v: 0.045, att: 0.02, vib: 12, vibF: 7 })); osc({ f: 46, f2: 28, dur: 2.2, v: 0.75 }); burst({ dur: 1.4, type: 'highpass', freq: 3200, v: 0.14, att: 0.01 }); },
+    shriek() { scream(0.45, 0.7, 380); },
+    scream() { scream(1, 1.9, 300); },
+    growl(pan, v = 1) { if (!AC) return; const t = AC.currentTime; const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(85, t); o.frequency.linearRampToValueAtTime(70, t + 1); const am = AC.createGain(); am.gain.value = 0.5; const l = AC.createOscillator(); l.frequency.value = 23; const lg = AC.createGain(); lg.gain.value = 0.5; l.connect(lg); lg.connect(am.gain); const f = AC.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 420; f.Q.value = 1.5; const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22 * v, t + 0.15); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1); o.connect(am); am.connect(f); f.connect(g); g.connect(out(pan)); o.start(t); l.start(t); o.stop(t + 1.2); l.stop(t + 1.2); },
+    bite(pan) { burst({ dur: 0.12, type: 'bandpass', freq: 900, q: 1, v: 0.4, pan }); osc({ f: 260, f2: 120, type: 'sawtooth', dur: 0.25, v: 0.15, pan }); },
+    yelp(pan) { osc({ f: 1100, f2: 500, type: 'triangle', dur: 0.35, v: 0.16, pan }); },
+    bleat(pan) { osc({ f: 620, f2: 420, type: 'sawtooth', dur: 0.4, v: 0.05, pan, vib: 30, vibF: 18 }); },
+    hurt() { burst({ dur: 0.25, type: 'bandpass', freq: 500, q: 1, v: 0.35 }); osc({ f: 210, f2: 140, type: 'triangle', dur: 0.3, v: 0.18 }); },
+    splat(pan) { burst({ dur: 0.18, type: 'lowpass', freq: 600, f2: 120, v: 0.35, pan }); },
+    pistol() { burst({ dur: 0.09, type: 'highpass', freq: 1200, v: 0.7, att: 0.001 }); burst({ dur: 0.5, type: 'lowpass', freq: 1800, f2: 200, v: 0.55, att: 0.001 }); osc({ f: 140, f2: 45, dur: 0.22, v: 0.8 }); burst({ dur: 1.2, type: 'lowpass', freq: 500, v: 0.08, delay: 0.1, att: 0.05 }); },
+    shotgun() { burst({ dur: 0.14, type: 'highpass', freq: 800, v: 0.9, att: 0.001 }); burst({ dur: 0.8, type: 'lowpass', freq: 1400, f2: 120, v: 0.85, att: 0.001 }); osc({ f: 100, f2: 32, dur: 0.35, v: 1 }); burst({ dur: 1.6, type: 'lowpass', freq: 400, v: 0.12, delay: 0.12, att: 0.08 }); burst({ dur: 0.1, type: 'bandpass', freq: 1500, q: 4, v: 0.18, delay: 0.55 }); burst({ dur: 0.1, type: 'bandpass', freq: 1100, q: 4, v: 0.18, delay: 0.7 }); },
+    dry() { burst({ dur: 0.03, type: 'highpass', freq: 3000, v: 0.2 }); },
+    reload() { burst({ dur: 0.05, type: 'bandpass', freq: 2200, q: 5, v: 0.2 }); burst({ dur: 0.06, type: 'bandpass', freq: 1500, q: 5, v: 0.22, delay: 0.45 }); burst({ dur: 0.05, type: 'bandpass', freq: 2600, q: 6, v: 0.25, delay: 0.85 }); },
+    flare() { burst({ dur: 0.5, type: 'highpass', freq: 2500, v: 0.6 }); osc({ f: 120, f2: 40, dur: 0.3, v: 0.6 }); burst({ dur: 3.2, type: 'bandpass', freq: 900, q: 0.5, v: 0.22, att: 0.08 }); },
+    gate() { if (!AC) return; const t = AC.currentTime; const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(180, t); o.frequency.linearRampToValueAtTime(260, t + 1.4); const f = AC.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 9; f.frequency.setValueAtTime(900, t); f.frequency.linearRampToValueAtTime(1600, t + 1.4); const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.12, t + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5); o.connect(f); f.connect(g); g.connect(MG); o.start(t); o.stop(t + 1.6); },
+    clang() { osc({ f: 320, dur: 1.2, v: 0.2, type: 'triangle' }); osc({ f: 471, dur: 1, v: 0.12, type: 'triangle' }); burst({ dur: 0.2, type: 'highpass', freq: 1800, v: 0.3 }); },
+    rung() { osc({ f: 160 + Math.random() * 40, dur: 0.1, v: 0.1, type: 'triangle' }); burst({ dur: 0.06, type: 'bandpass', freq: 700, q: 2, v: 0.1 }); },
+    thud() { osc({ f: 90, f2: 40, dur: 0.4, v: 0.6 }); burst({ dur: 0.3, freq: 300, v: 0.3 }); },
+    radioBlip() { osc({ f: 1200, dur: 0.06, v: 0.06, type: 'square' }); burst({ dur: 0.25, type: 'bandpass', freq: 2500, q: 0.7, v: 0.15, delay: 0.05 }); },
+    ui() { osc({ f: 330, dur: 0.12, v: 0.06, type: 'triangle' }); },
+    thunder() { burst({ dur: 3.5, type: 'lowpass', freq: 220, v: 0.5, att: 0.05 }); osc({ f: 50, f2: 30, dur: 2.5, v: 0.3 }); }
+  };
+  return S;
+})();
