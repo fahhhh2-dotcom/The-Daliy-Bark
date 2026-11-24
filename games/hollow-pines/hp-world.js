@@ -130,7 +130,7 @@ function windify(mat, amp, h0, key) {
 }
 const MSM = o => new THREE.MeshStandardMaterial(o);
 const MAT = {
-  ground: MSM({ map: GROUND.map, normalMap: GROUND.nrm, normalScale: new THREE.Vector2(1.4, 1.4), vertexColors: true, roughness: 0.7, envMapIntensity: 0.45 }),
+  ground: MSM({ map: GROUND.map, normalMap: GROUND.nrm, normalScale: new THREE.Vector2(0.9, 0.9), vertexColors: true, roughness: 0.82, envMapIntensity: 0.3 }),
   bark: MSM({ map: BARK.map, normalMap: BARK.nrm, normalScale: new THREE.Vector2(1.6, 1.6), roughness: 0.95 }),
   leaf: windify(MSM({ map: TX.branch, alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.8 }), 0.012, 2.0, 'leaf'),
   dead: MSM({ map: BARK.map, normalMap: BARK.nrm, color: 0x9a9088, roughness: 1 }),

@@ -38,7 +38,6 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(120, 32, 16), new THREE.Shad
       vec3 top = vec3(0.004, 0.007, 0.016);
       vec3 col = mix(uFog, top, smoothstep(-0.02, 0.55, h));
       vec3 sp = floor(d * 380.0); float s = h3(sp);
-      col += vec3(0.85, 0.9, 1.0) * step(0.9991, s) * smoothstep(0.05, 0.4, h) * (0.55 + 0.45 * sin(uTime * 2.0 + s * 90.0));
       float md = max(dot(d, uMoon), 0.0);
       col += vec3(1.0, 0.96, 0.88) * smoothstep(0.99955, 0.99975, md) * 2.2;
       col += vec3(0.18, 0.21, 0.28) * pow(md, 260.0) + vec3(0.04, 0.05, 0.075) * pow(md, 14.0);
@@ -111,7 +110,7 @@ const FX = { t: 0, flash: 0, rainAmt: 0.4, hemiBase: hemi.intensity, moonBase: m
 const RAIN_MAX = 1500;
 const rain = (() => {
   const geo = new THREE.BufferGeometry(), pos = new Float32Array(RAIN_MAX * 6); pos.fill(-9999); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const m = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0x9aa4b0, transparent: true, opacity: 0.18, depthWrite: false }));
+  const m = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0x7c8692, transparent: true, opacity: 0.11, depthWrite: false }));
   m.frustumCulled = false; scene.add(m); return { m, pos, head: new Float32Array(RAIN_MAX * 3).fill(-9999), wind: 1.2 };
 })();
 function updateRain(dt, amt) {
@@ -121,8 +120,8 @@ function updateRain(dt, amt) {
     const j = i * 3, k = i * 6;
     if (i >= n) { p[k + 1] = p[k + 4] = -9999; continue; }
     hd[j + 1] -= 15 * dt; hd[j] += rain.wind * dt;
-    if (hd[j + 1] < cy - 4 || Math.abs(hd[j] - cx) > 20 || Math.abs(hd[j + 2] - cz) > 20) { hd[j] = cx + (rand() - 0.5) * 38; hd[j + 2] = cz + (rand() - 0.5) * 38; hd[j + 1] = cy + 2 + rand() * 14; }
-    p[k] = hd[j]; p[k + 1] = hd[j + 1]; p[k + 2] = hd[j + 2]; p[k + 3] = hd[j] - rain.wind * 0.04; p[k + 4] = hd[j + 1] + 0.6; p[k + 5] = hd[j + 2];
+    if (hd[j + 1] < cy - 3 || Math.abs(hd[j] - cx) > 11 || Math.abs(hd[j + 2] - cz) > 11) { hd[j] = cx + (rand() - 0.5) * 20; hd[j + 2] = cz + (rand() - 0.5) * 20; hd[j + 1] = cy + 1 + rand() * 9; }
+    p[k] = hd[j]; p[k + 1] = hd[j + 1]; p[k + 2] = hd[j + 2]; p[k + 3] = hd[j] - rain.wind * 0.05; p[k + 4] = hd[j + 1] + 0.9; p[k + 5] = hd[j + 2];
   }
   rain.m.geometry.attributes.position.needsUpdate = true;
 }
