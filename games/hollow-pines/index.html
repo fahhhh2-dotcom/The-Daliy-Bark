@@ -22,6 +22,8 @@ button{font:inherit;color:inherit}
 #hurt{pointer-events:none;z-index:3;opacity:0;background:radial-gradient(ellipse at center,rgba(120,0,0,.15) 20%,rgba(140,0,0,.95) 100%);transition:opacity .25s}
 #fade{pointer-events:none;z-index:15;background:#000;opacity:0;transition:opacity .6s ease}
 #fade.white{background:#fff}
+#fade.water{background:#0a2418}
+#unlockTag{display:none;font:600 15px Oswald,sans-serif;color:#ffd27a;margin:-22px 0 16px;text-shadow:0 2px 8px #000;letter-spacing:.03em}
 /* HUD */
 #hud{pointer-events:none;display:none;z-index:6}
 #compass{position:absolute;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(380px,62vw);height:28px;overflow:hidden;border-bottom:1px solid rgba(232,223,211,.22);-webkit-mask-image:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent);mask-image:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent)}
@@ -152,6 +154,7 @@ input[type=range]{width:100%;accent-color:#b30c0c;height:28px}
 <div id="menu" class="layer">
   <h1>Hollow<br>Pines</h1>
   <p class="tag">Mr. Harlan is on vacation. You're looking after his forest. Something else lives in it.</p>
+  <p id="unlockTag">Chapter 2 unlocked — choose it from your save</p>
   <button id="playBtn">Press Play</button>
   <div class="row"><button class="btn" id="mHow">How to Play</button><button class="btn" id="mSet">Settings</button><button class="btn" id="mCred">Credits</button></div>
   <div id="loading">Loading the forest…</div>
@@ -189,7 +192,7 @@ The Tall Man — himself
 Thanks for playing. Don't look at him too long.</p><button class="btn" data-back>Back</button></div></div>
 <div id="pauseP" class="panel"><div class="card"><h2>Paused</h2><button class="btn" id="pResume">Resume</button><br><button class="btn" id="pSet">Settings</button><br><button class="btn" id="pMenu">Save &amp; Quit to Menu</button></div></div>
 <div id="dead" class="panel"><div><h2>You Died</h2><p id="deadTip"></p><div class="row"><button class="btn" id="dRetry">Back to Checkpoint</button><button class="btn" id="dMenu">Main Menu</button></div></div></div>
-<div id="win" class="panel"><div><h2>You Escaped</h2><p id="winT"></p><div class="row"><button class="btn" id="wMenu">Main Menu</button><button class="btn" id="wCred">Credits</button></div></div></div>
+<div id="win" class="panel"><div><h2 id="winH">Chapter 1 Complete</h2><p id="winT"></p><div class="row"><button class="btn" id="wMenu">Home Screen</button><button class="btn" id="wCred">Credits</button></div></div></div>
 <script src="../royale/three.min.js"></script>
 <script src="hp-audio.js"></script>
 <script src="hp-world.js"></script>

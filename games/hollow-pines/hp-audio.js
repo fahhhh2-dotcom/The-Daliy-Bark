@@ -79,7 +79,49 @@ const SND = (() => {
     const n = AC.createBufferSource(); n.buffer = NB; const nf = AC.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 2600; nf.Q.value = 0.6; const ng = AC.createGain(); ng.gain.value = 0.55; n.connect(nf); nf.connect(ng); ng.connect(ws); n.start(t); n.stop(t + dur);
     osc({ f: 70, f2: 30, dur: 1.2, v: 0.9, type: 'sine' });
   }
+  // ---------- home screen horror score ----------
+  const MU = { on: false, next: 0, step: 0, timer: null, bus: null, rev: null };
+  function musicInit() {
+    if (MU.bus) return;
+    MU.bus = AC.createGain(); MU.bus.gain.value = 0; MU.bus.connect(MG);
+    MU.rev = AC.createConvolver(); const len = AC.sampleRate * 4, ir = AC.createBuffer(2, len, AC.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+    MU.rev.buffer = ir; MU.wet = AC.createGain(); MU.wet.gain.value = 0.9; MU.rev.connect(MU.wet); MU.wet.connect(MU.bus);
+  }
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  function mNote(t, f, dur, { type = 'sine', v = 0.1, att = 0.01, wet = 0.5, det = 0, lp = 0 } = {}) {
+    const o = AC.createOscillator(); o.type = type; o.frequency.value = f; o.detune.value = det;
+    const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + att); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    let n = o; if (lp) { const f2 = AC.createBiquadFilter(); f2.type = 'lowpass'; f2.frequency.value = lp; o.connect(f2); n = f2; }
+    n.connect(g); g.connect(MU.bus); const w = AC.createGain(); w.gain.value = wet; g.connect(w); w.connect(MU.rev); o.start(t); o.stop(t + dur + 0.1);
+  }
+  // A minor: Am – F – Dm – E (8 s each), music box phrases on top
+  const CHORDS = [[45, 48, 52], [41, 45, 48], [38, 41, 45], [40, 44, 47]];
+  const BOX = [[81, 0, 84, 83, 0, 79, 76, 0], [77, 0, 76, 72, 0, 74, 76, 0], [74, 0, 77, 76, 74, 0, 72, 0], [71, 0, 72, 74, 0, 68, 71, 0]];
+  function musicTick() {
+    if (!MU.on) return;
+    while (MU.next < AC.currentTime + 0.6) {
+      const t = MU.next, bar = Math.floor(MU.step / 8) % 4, beat = MU.step % 8;
+      if (beat === 0) {
+        CHORDS[bar].forEach((m, i) => { mNote(t, hz(m), 8.6, { type: 'sawtooth', v: 0.035, att: 2.2, wet: 0.7, det: (i - 1) * 7, lp: 520 }); mNote(t, hz(m + 12), 8.6, { type: 'triangle', v: 0.018, att: 3, wet: 0.9, det: -9 + i * 6 }); });
+        mNote(t, hz(CHORDS[bar][0] - 12), 7.8, { type: 'sine', v: 0.16, att: 1.5, wet: 0.2 });
+        if (bar === 0 || bar === 2) { mNote(t, 34, 3.5, { v: 0.4, att: 0.01, wet: 0.5 }); }
+        if (bar === 3) { const f = hz(76); mNote(t + 1, f, 6, { type: 'sawtooth', v: 0.02, att: 4, wet: 1, det: 0, lp: 2400 }); mNote(t + 1, f * Math.pow(2, 1 / 12), 6, { type: 'sawtooth', v: 0.02, att: 4, wet: 1, det: 12, lp: 2400 }); }
+      }
+      if (beat % 2 === 0) { mNote(t, 55, 0.35, { v: beat === 0 ? 0.22 : 0.12, att: 0.005, wet: 0.1 }); mNote(t + 0.24, 50, 0.3, { v: beat === 0 ? 0.14 : 0.07, att: 0.005, wet: 0.1 }); }
+      const bn = BOX[bar][beat];
+      if (bn && Math.random() < 0.92) { const det = (Math.random() - 0.5) * 30; mNote(t + Math.random() * 0.04, hz(bn), 2.2, { type: 'sine', v: 0.06, att: 0.004, wet: 0.85, det }); mNote(t, hz(bn) * 2.01, 0.9, { type: 'sine', v: 0.015, att: 0.003, wet: 0.9, det }); }
+      if (Math.random() < 0.03) { const s = AC.createBufferSource(); s.buffer = NB; const f = AC.createBiquadFilter(); f.type = 'bandpass'; f.frequency.setValueAtTime(400, t); f.frequency.exponentialRampToValueAtTime(3000, t + 2.5); f.Q.value = 2; const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.05, t + 2.2); g.gain.exponentialRampToValueAtTime(0.0001, t + 2.6); s.connect(f); f.connect(g); g.connect(MU.rev); s.start(t); s.stop(t + 2.7); }
+      MU.next += 1; MU.step++;
+    }
+  }
+  function music(on) {
+    if (!AC) return; musicInit();
+    if (on && !MU.on) { MU.on = true; MU.next = AC.currentTime + 0.2; MU.step = 0; MU.bus.gain.cancelScheduledValues(AC.currentTime); MU.bus.gain.setTargetAtTime(0.9, AC.currentTime, 1.5); MU.timer = setInterval(musicTick, 120); musicTick(); }
+    else if (!on && MU.on) { MU.on = false; clearInterval(MU.timer); MU.bus.gain.cancelScheduledValues(AC.currentTime); MU.bus.gain.setTargetAtTime(0, AC.currentTime, 0.6); }
+  }
   const S = {
+    music,
     init, get ok() { return !!AC; },
     setVol(v) { vol = v; if (MG) MG.gain.value = v; },
     set(name, v, tc = 0.3) { if (!AC || !L[name]) return; L[name].g.gain.setTargetAtTime(v, AC.currentTime, tc); },
@@ -87,6 +129,11 @@ const SND = (() => {
     cstep(pan, v) { osc({ f: 75, f2: 38, dur: 0.22, v: v * 0.55, pan }); burst({ dur: 0.14, freq: 420, v: v * 0.3, pan }); },
     crawl(pan, v) { burst({ dur: 0.18, type: 'bandpass', freq: 1200 + Math.random() * 600, q: 2, v: v * 0.25, pan }); osc({ f: 50, f2: 35, dur: 0.12, v: v * 0.4, pan, delay: 0.05 }); },
     snap(pan) { burst({ dur: 0.04, type: 'highpass', freq: 2600, v: 0.35, pan }); burst({ dur: 0.07, type: 'bandpass', freq: 1300, q: 3, v: 0.22, pan, delay: 0.05 }); },
+    splash(run) { burst({ dur: run ? 0.35 : 0.28, type: 'bandpass', freq: 700 + Math.random() * 300, q: 0.8, v: run ? 0.3 : 0.2 }); burst({ dur: 0.2, type: 'highpass', freq: 2500, v: 0.08, delay: 0.05 }); },
+    bigSplash() { burst({ dur: 1.4, type: 'lowpass', freq: 1800, f2: 200, v: 0.9, att: 0.005 }); osc({ f: 80, f2: 30, dur: 0.6, v: 0.8 }); burst({ dur: 2.5, type: 'bandpass', freq: 900, q: 0.6, v: 0.25, delay: 0.2, att: 0.1 }); },
+    whoosh() { burst({ dur: 1.6, type: 'bandpass', freq: 500, f2: 2500, q: 0.7, v: 0.5, att: 0.3 }); },
+    alarm() { osc({ f: 880, dur: 0.18, v: 0.09, type: 'square' }); osc({ f: 660, dur: 0.18, v: 0.09, type: 'square', delay: 0.22 }); },
+    boom() { burst({ dur: 3, type: 'lowpass', freq: 600, f2: 60, v: 1, att: 0.005 }); osc({ f: 60, f2: 22, dur: 2, v: 1 }); burst({ dur: 1.5, type: 'highpass', freq: 1500, v: 0.2, delay: 0.05 }); },
     frog(pan) { const n = 2 + Math.floor(Math.random() * 3), f0 = 95 + Math.random() * 40; for (let i = 0; i < n; i++) osc({ f: f0, f2: f0 * 0.8, type: 'sawtooth', dur: 0.22, v: 0.05, pan, delay: i * 0.32, att: 0.02, vib: 25, vibF: 32 }); },
     owl(pan) { [0, 0.45, 0.62].forEach((d, i) => osc({ f: 410 - i * 25, f2: 370 - i * 25, dur: i ? 0.22 : 0.38, v: 0.06, pan, delay: d, att: 0.04 })); },
     howl(pan) { osc({ f: 380, f2: 720, dur: 1.4, v: 0.06, pan, att: 0.3, vib: 8, vibF: 5 }); osc({ f: 720, f2: 480, dur: 1.6, v: 0.05, pan, delay: 1.3, att: 0.1, vib: 10, vibF: 5 }); },

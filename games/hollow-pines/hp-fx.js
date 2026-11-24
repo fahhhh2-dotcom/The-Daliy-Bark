@@ -151,7 +151,8 @@ function placeCover(px, pz, force) {
     for (let i = 0; i < n; i++) {
       const x = px + ((((c.off[i * 4] - px) % T2) + T2) % T2) - half, z = pz + ((((c.off[i * 4 + 1] - pz) % T2) + T2) % T2) - half;
       let ok = Math.hypot(x - LK.x, z - LK.z) > LK.c + 1.5 && pathDist(x, z) > 1.5;
-      if (ok && c.clear) for (const f of FLAT) if (Math.hypot(x - f.x, z - f.z) < f.r * 0.95) { ok = false; break; }
+      if (ok && x > 1000) { const hh = H(x, z); if (c.clear ? hh < 0.15 : hh < -0.5) ok = false; else if (Math.abs(x - SW.x) > 148) ok = false; }
+      if (ok && c.clear && x < 1000) for (const f of FLAT) if (Math.hypot(x - f.x, z - f.z) < f.r * 0.95) { ok = false; break; }
       if (ok) for (const b of BOX) if (Math.abs(x - b[0]) < b[2] + 0.4 && Math.abs(z - b[1]) < b[3] + 0.4) { ok = false; break; }
       const sc = ok ? c.off[i * 4 + 3] : 0; _e.set(0, c.off[i * 4 + 2], 0); _q.setFromEuler(_e); _p.set(x, H(x, z) - 0.03, z); _s.set(sc, sc * (0.8 + (i % 5) * 0.1), sc);
       _m.compose(_p, _q, _s); c.im.setMatrixAt(i, _m);
@@ -200,7 +201,7 @@ FX.update = (dt, o) => {
   FX.flash = f; SKYU.uFlash.value = f; FX.final.uniforms.uFlash.value = f * 0.4;
   if (f > 0) { hemi.intensity = FX.hemiBase + f * 1.3; moon.intensity = FX.moonBase + f * 2.2; } else if (FX.light.e < 0) { hemi.intensity = FX.hemiBase; moon.intensity = FX.moonBase; }
   updateRain(dt, inside ? 0 : o.rain);
-  if (!inside) placeCover(o.x, o.z, false); for (const c of COVER) c.im.visible = !inside;
+  if (!inside && !o.noCover) placeCover(o.x, o.z, false); for (const c of COVER) c.im.visible = !inside && !o.noCover;
 
   beamFX.material.uniforms.uI.value = flash.intensity > 0 ? (inside ? 0.05 : 0.085) * Math.min(1, flash.intensity / 2.7) : 0;
   updateDust(dt, flash.intensity > 0);

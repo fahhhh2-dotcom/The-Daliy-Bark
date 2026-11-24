@@ -10,10 +10,10 @@ const FW = new THREE.Vector3(), TV = new THREE.Vector3();
 const fmtT = s => { s = Math.floor(s); const m = Math.floor(s / 60); return m + ':' + String(s % 60).padStart(2, '0'); };
 
 // ================= STATE =================
-const PKEYS = ['med', 'obj', 'poured', 'picked', 'carry', 'key', 'fuse', 'fuseIn', 'power', 'guns', 'am', 'wep', 'ammo', 'notes', 'time', 'hasLight', 'deaths', 'done'];
-const fresh = () => ({ med: [], obj: 0, poured: 0, picked: [0, 0, 0, 0], carry: -1, key: false, fuse: false, fuseIn: false, power: false, guns: { pistol: false, shotgun: false, flare: false }, am: { p: 0, pr: 0, s: 0, sr: 0 }, wep: 'none', ammo: [], notes: [], time: 0, hasLight: false, deaths: 0, done: false });
+const PKEYS = ['ch1done', 'ch2done', 'med', 'obj', 'poured', 'picked', 'carry', 'key', 'fuse', 'fuseIn', 'power', 'guns', 'am', 'wep', 'ammo', 'notes', 'time', 'hasLight', 'deaths', 'done'];
+const fresh = () => ({ ch1done: false, ch2done: false, med: [], obj: 0, poured: 0, picked: [0, 0, 0, 0], carry: -1, key: false, fuse: false, fuseIn: false, power: false, guns: { pistol: false, shotgun: false, flare: false }, am: { p: 0, pr: 0, s: 0, sr: 0 }, wep: 'none', ammo: [], notes: [], time: 0, hasLight: false, deaths: 0, done: false });
 const G = Object.assign({ mode: 'boot', slot: 0, surviveT: 0, glimpseAt: 0, tips: {}, gateOpen: false, wolfT: 60, ambT: 8, cricketT: 1 }, fresh());
-const P = { x: 0, z: 5, y: 0, yaw: 0, pitch: 0, stam: 100, tired: false, hp: 100, hurtT: 9, onTower: false, inTunnel: false, light: false, overheat: 0, ohMax: 6, bob: 0, stepAcc: 0, look: null, cy: 0, cv: 0, shake: 0 };
+const P = { inHeli: false, x: 0, z: 5, y: 0, yaw: 0, pitch: 0, stam: 100, tired: false, hp: 100, hurtT: 9, onTower: false, inTunnel: false, light: false, overheat: 0, ohMax: 6, bob: 0, stepAcc: 0, look: null, cy: 0, cv: 0, shake: 0 };
 const C = { state: 'off', x: 0, z: 0, timer: 0, seen: 0, burn: 0, pain: 0, stag: 0, aggr: 0, final: false, scripted: false, rush: false, ph: 0, stepT: 0, stung: false, s: 0, cy: 0, chaseT: 0, mode: 'idle', tw: { z: 0, y: 0, tz: 0, ty: 0, t: 0 }, speed: 0 };
 const cr = makeCreature();
 let CP = null;
@@ -47,7 +47,14 @@ const OBJ = [
   [3, 'Get through the tunnel!', () => tPoint(TLEN)],
   [4, 'Fire the flare gun on the helipad', () => Hp],
   [4, 'Survive until the helicopter gets here', () => Hp],
-  [4, 'Grab the rope ladder and CLIMB!', () => Hp]
+  [4, 'Grab the rope ladder and CLIMB!', () => Hp],
+  [5, 'Talk to the pilot', () => null],
+  [5, 'Check the back of the helicopter', () => null],
+  [5, 'JUMP out the door!', () => null],
+  [5, 'Get out of the water — reach dry land', () => ({ x: SW.x + 16, z: SW.z - 8 })],
+  [5, 'Find the helicopter crash site', () => W.crash],
+  [5, 'Follow the old boardwalk out of the swamp', () => { const e = SW_WALK[SW_WALK.length - 1]; return { x: SW.x + e.x, z: SW.z + e.z }; }],
+  [5, 'Get inside the fishing shack!', () => ({ x: W.shack.x, z: W.shack.z + 2.2 })]
 ];
 const LETTER = `Kid —
 
@@ -77,7 +84,7 @@ NOTES.push(
 );
 const MEDS = [
   { x: L.oldcamp.x - 1.2, z: L.oldcamp.z + 2 }, { x: L.barn.x + 1.2, z: L.barn.z + 2.4 }, { x: L.cabin.x + 2.8, z: L.cabin.z + 3.9, yo: 0.2 }, { x: R.x + 6.6, z: R.z - 1.5, yo: 0.25 },
-  { x: T.x + 3.2, z: T.z + 4 }, { x: W.shed3.x, z: W.shed3.z + 0.9 }, { x: L.hatch.x - 2, z: L.hatch.z + 1.5 }, { x: L.stand.x - 1.8, z: L.stand.z + 1.6 }
+  { x: T.x + 3.2, z: T.z + 4 }, { x: W.shed3.x, z: W.shed3.z + 0.9 }, { x: W.crash.x + 4.5, z: W.crash.z - 2 }, { x: L.hatch.x - 2, z: L.hatch.z + 1.5 }, { x: L.stand.x - 1.8, z: L.stand.z + 1.6 }
 ];
 const AMMO = [
   { x: W.shed1.x + 0.6, z: W.shed1.z, y: W.shed1.y, t: 'p', n: 12 }, { x: L.truck.x + 2.6, z: L.truck.z + 1.2, t: 'p', n: 12 }, { x: L.cabin.x - 1.8, z: L.cabin.z + 3.9, t: 'p', n: 12, yo: 0.2 },
@@ -90,7 +97,7 @@ const AMMO = [
 
 // ================= WORLD ITEMS =================
 const IT = [];
-const addIt = o => { IT.push(Object.assign({ r: 2.2, hold: 0, tower: false, tunnel: false }, o)); return o; };
+const addIt = o => { IT.push(Object.assign({ r: 2.2, hold: 0, tower: false, tunnel: false, heli: false }, o)); return o; };
 const cans = CANP.map(([x, z], i) => { const c = makeCan(); c.position.set(x, H(x, z) + (i === 1 ? 0.2 : 0), z); c.rotation.y = i * 1.7; scene.add(c); c.userData.gl = glint(x, c.position.y + 0.7, z); return c; });
 const ammoM = AMMO.map(a => { const m = makeAmmo(); const y = a.y != null ? a.y : H(a.x, a.z) + (a.yo || 0); m.position.set(a.x, y, a.z); m.rotation.y = rand() * 6; scene.add(m); m.userData.gl = glint(a.x, y + 0.45, a.z); return m; });
 const noteM = NOTES.map(n => { const m = bx(0.22, 0.012, 0.3, MAT.paper, n.x, H(n.x, n.z) + 0.03, n.z); m.rotation.y = rand() * 6; m.userData.gl = glint(n.x, m.position.y + 0.4, n.z); return m; });
@@ -125,6 +132,10 @@ addIt({ x: Hp.x, z: Hp.z + 0.6, r: 2.6, label: 'Grab the rope ladder', cond: () 
 const medM = MEDS.map(a => { const m = W.makeMedkit(); const y = H(a.x, a.z) + (a.yo || 0); m.position.set(a.x, y, a.z); m.rotation.y = rand() * 6; scene.add(m); m.userData.gl = glint(a.x, y + 0.5, a.z); return m; });
 MEDS.forEach((a, i) => addIt({ x: a.x, z: a.z, r: 2, label: () => P.hp >= 100 ? 'First aid kit (you’re not hurt)' : 'Use the first aid kit', cond: () => !G.med.includes(i), act: () => { if (P.hp >= 100) { hint('You’re not hurt. Save it for later.'); return; } G.med.push(i); hideItem(medM[i]); SND.pickup(); P.hp = Math.min(100, P.hp + 60); $('hurt').style.opacity = clamp((100 - P.hp) / 140, 0, 0.6); remark(['That’s better.', 'Okay… okay. I can keep going.', 'Patched up.']); } }));
 AMMO.forEach((a, i) => addIt({ x: a.x, z: a.z, r: 2, label: a.t === 'p' ? 'Take pistol ammo' : 'Take shotgun shells', cond: () => !G.ammo.includes(i), act: () => { G.ammo.push(i); hideItem(ammoM[i]); SND.pickup(); if (a.t === 'p') G.am.pr += a.n; else G.am.sr += a.n; hint(`+${a.n} ${a.t === 'p' ? 'pistol rounds' : 'shotgun shells'}`); remark(['Ammo. Good.', 'I’ll take that.', 'More ammo.'], 0.6); } }));
+addIt({ x: -0.6, z: -1.9, r: 1.3, heli: true, label: 'Talk to the pilot', cond: () => G.obj === 16 && !CH2.talked, act: () => { CH2.talked = true; pilotTalk(); } });
+addIt({ x: 0, z: 2.2, r: 1.2, heli: true, label: 'Look out the back window', cond: () => G.obj === 17, act: backWindowScene });
+addIt({ x: 1.15, z: 0.1, r: 1.2, heli: true, label: 'JUMP!', cond: () => G.obj === 18, act: jumpOut });
+addIt({ x: W.shack.x, z: W.shack.z + 2.2, r: 2.6, label: 'Get inside!', hold: 0.5, cond: () => G.obj === 22 || G.obj === 21, act: ch2End });
 NOTES.forEach((n, i) => addIt({ x: n.x, z: n.z, r: 1.9, label: 'Read the note', cond: () => true, act: () => { if (!G.notes.includes(i)) G.notes.push(i); noteM[i].userData.gl.visible = false; SND.ui(); openNote(n.t, () => remark(['Creepy…', 'Okay. That’s not good.', 'I really wish I hadn’t read that.'], 0.7)); } }));
 
 // ================= VOICE (you can hear yourself talk) =================
@@ -166,7 +177,8 @@ const CHATTER = [
   ['That tower looks a lot taller up close.', 'I keep hearing branches snap behind me.', 'Just a fuse. Just get the fuse.', 'Something smells like… wet dog. Or worse.', 'I don’t like how the wind sounds out here.'],
   ['I feel like I’m being watched.', 'Don’t look at him… don’t look at him.', 'Harlan, what did you leave me with?', 'Keep the light on. Keep the light on.', 'He’s out there. I know he is.', 'I just want to go home.'],
   ['Don’t stop. Don’t stop!', 'Where does this go?!'],
-  ['Come on, come on, where’s that chopper?', 'Almost out. Almost out of here.']
+  ['Come on, come on, where’s that chopper?', 'Almost out. Almost out of here.'],
+  ['This water is freezing.', 'Something just brushed my leg.', 'Where am I? This isn’t Hollow Pines anymore.', 'Every step, the mud pulls at my boots.', 'I can still smell the smoke.', 'Please let there be a road out of here.']
 ];
 // ---- arrow hints when you can't find the next item for a minute ----
 const hintG = new THREE.Group(); hintG.visible = false; scene.add(hintG);
@@ -210,11 +222,11 @@ function say(text, dur = 3.5, who = '') { subQ.push({ text, dur, who }); }
 function clearSubs() { subQ.length = 0; subT = 0; $('subs').innerHTML = ''; hush(); }
 function hint(t, d = 2.5) { $('hint').textContent = t; $('hint').style.display = 'block'; hintT = d; }
 function tip(id, t) { if (G.tips[id]) return; G.tips[id] = 1; say(t, 4.5, 'Tip'); }
-function refreshObj() { const o = OBJ[G.obj]; $('chap').textContent = CHAP[o[0]]; $('objT').textContent = typeof o[1] === 'function' ? o[1]() : o[1]; }
-function setObj(n) {
+function refreshObj() { const o = OBJ[G.obj]; $('chap').textContent = G.obj >= 16 ? 'Chapter 2 — The Swamp' : 'Chapter 1 — Hollow Pines'; $('objT').textContent = typeof o[1] === 'function' ? o[1]() : o[1]; }
+function setObj(n, noSave) {
   G.obj = n; refreshObj(); const e = $('obj'); e.classList.remove('new'); void e.offsetWidth; e.classList.add('new'); SND.obj();
   if (n === 8) C.aggr = 1; if (n === 10) C.aggr = 2; if (n === 13) C.aggr = 3;
-  checkpoint();
+  if (!noSave) checkpoint();
 }
 const compEl = $('compass');
 const compItems = [['N', 0], ['NE', -Math.PI / 4], ['E', -Math.PI / 2], ['SE', -3 * Math.PI / 4], ['S', Math.PI], ['SW', 3 * Math.PI / 4], ['W', Math.PI / 2], ['NW', Math.PI / 4]].map(([t, a]) => { const s = document.createElement('span'); s.textContent = t; if (t.length > 1) s.className = 's'; compEl.appendChild(s); return [s, a]; });
@@ -223,7 +235,7 @@ let hudT = 0;
 function updateHUD(dt) {
   const wd = compEl.clientWidth || 300;
   for (const [s, a] of compItems) { const rel = wrapA(a - P.yaw); s.style.display = Math.abs(rel) < Math.PI / 2 ? '' : 'none'; s.style.left = (wd / 2 - rel / (Math.PI / 2) * wd / 2) + 'px'; }
-  const tg = OBJ[G.obj][2](); if (tg && !P.inTunnel) { const rel = clamp(wrapA(Math.atan2(-(tg.x - P.x), -(tg.z - P.z)) - P.yaw), -Math.PI / 2 * 0.96, Math.PI / 2 * 0.96); compMk.style.display = ''; compMk.style.left = (wd / 2 - rel / (Math.PI / 2) * wd / 2) + 'px'; $('dist').textContent = Math.round(Math.hypot(tg.x - P.x, tg.z - P.z)) + ' m'; }
+  const tg = OBJ[G.obj][2](); if (tg && !P.inTunnel && !P.inHeli) { const rel = clamp(wrapA(Math.atan2(-(tg.x - P.x), -(tg.z - P.z)) - P.yaw), -Math.PI / 2 * 0.96, Math.PI / 2 * 0.96); compMk.style.display = ''; compMk.style.left = (wd / 2 - rel / (Math.PI / 2) * wd / 2) + 'px'; $('dist').textContent = Math.round(Math.hypot(tg.x - P.x, tg.z - P.z)) + ' m'; }
   else if (P.inTunnel) { compMk.style.display = 'none'; $('dist').textContent = Math.round(TLEN - (tProject(P.x, P.z).s)) + ' m to the exit'; }
   else { compMk.style.display = 'none'; $('dist').textContent = ''; }
   $('stamI').style.width = P.stam + '%'; $('stam').style.opacity = P.stam < 99 ? 1 : 0; $('stamI').style.background = P.tired ? '#c33' : '#ddd';
@@ -361,14 +373,14 @@ function killAnimal(a) { remark(a.deer ? ['Poor thing.', 'Sorry, deer.'] : ['Got
 function scareDeer(x, z, r) { for (const a of ANIMALS) if (a.deer && !a.dead && Math.hypot(a.x - x, a.z - z) < r) a.flee = 7; }
 function panOf(x, z) { return -Math.sin(wrapA(Math.atan2(-(x - P.x), -(z - P.z)) - P.yaw)); }
 function updateAnimals(dt) {
-  const active = !P.inTunnel && !P.onTower && G.mode !== 'climb';
+  const active = !P.inTunnel && !P.onTower && !P.inHeli && G.mode !== 'climb';
   animT -= dt;
   if (active && animT <= 0) {
     animT = 2;
-    const deer = ANIMALS.filter(a => a.deer).length; if (deer < 5) spawnAnimal('deer', 45 + rand() * 40, Math.PI * (0.6 + rand() * 0.8) * (rand() < 0.5 ? 1 : -1));
+    const deer = ANIMALS.filter(a => a.deer).length; if (deer < 5 && P.x < 1000) spawnAnimal('deer', 45 + rand() * 40, Math.PI * (0.6 + rand() * 0.8) * (rand() < 0.5 ? 1 : -1));
     for (const a of ANIMALS.slice()) if (Math.hypot(a.x - P.x, a.z - P.z) > 130 || (a.dead && a.deadT > 80)) removeAnimal(a);
   }
-  if (active && G.obj >= 2 && G.obj !== 11 && G.obj !== 12 && G.obj !== 15 && G.mode === 'play') {
+  if (active && G.obj >= 2 && G.obj <= 14 && G.obj !== 11 && G.obj !== 12 && P.x < 1000 && G.mode === 'play') {
     G.wolfT -= dt;
     if (G.wolfT <= 0) { const n = ANIMALS.filter(a => !a.deer && !a.dead).length; remark(['Wolves… Harlan wasn’t kidding.', 'Something’s growling out there.', 'I hear wolves. Close.'], 0.8); G.wolfT = G.obj >= 13 ? 16 + rand() * 10 : 50 + rand() * 40; if (n < 3) { const k = G.obj >= 13 ? 2 : 1 + (rand() < 0.4 ? 1 : 0), ang = Math.PI * (0.7 + rand() * 0.6); for (let i = 0; i < k; i++) spawnAnimal('wolf', 42 + rand() * 10, ang + (rand() - 0.5) * 0.6); rand() < 0.5 ? SND.howl(panOf(P.x - Math.sin(P.yaw + ang) * 40, P.z - Math.cos(P.yaw + ang) * 40)) : SND.growl(0, 0.6); } }
   }
@@ -422,6 +434,7 @@ function moveC(speed, dt) {
 function updateCreature(dt) {
   updateTwitch(dt);
   const st = C.state; if (st === 'off') { if (cr.g.visible && G.mode !== 'menu') showC(false); return; }
+  if (st === 'rise') { C.timer -= dt; const gy = H(C.x, C.z), k = 1 - Math.max(0, C.timer) / 1.6; cr.g.position.set(C.x, gy - 3.3 * (1 - k), C.z); cr.g.rotation.y = Math.atan2(P.x - C.x, P.z - C.z); C.mode = 'idle'; poseCreature(cr, 'idle', 0, C.tw, dt); if (C.timer <= 0) { C.stung = true; startChase(999, true); } return; }
   if (st === 'scripted' || st === 'tunnelWait') { poseCreature(cr, C.mode, C.ph += dt * 6, C.tw, dt); return; }
   if (st === 'tunnel') return updateTunnelC(dt);
   if (st === 'climbRun' || st === 'climb' || st === 'fall') return;
@@ -503,7 +516,8 @@ function updateBats(dt) {
   if (BATF.life <= 0 || P.inTunnel) { BATF.on = false; BATS.forEach(b => b.g.visible = false); }
 }
 // ================= TUNNEL =================
-function setEnv(tunnel) { const c = tunnel ? FOG_TUNNEL : FOG_FOREST; scene.fog.color.copy(c); scene.fog.density = tunnel ? 0.07 : 0.032; scene.environment = tunnel ? null : (FX.env || null); hemi.intensity = tunnel ? 0.05 : 0.46; moon.intensity = tunnel ? 0 : 0.34; W.tunnel.visible = tunnel; W.endLight.intensity = tunnel ? 1.4 : 0; if (!tunnel) W.tunL.forEach(l => l.intensity = 0); SND.set('tunnel', tunnel ? 0.16 : 0, 0.5); SND.set('wind', tunnel ? 0.02 : 0.13, 0.5); SND.set('leaves', tunnel ? 0 : 0.025, 0.5); }
+const FOG_SWAMP = new THREE.Color(0x182016);
+function setEnv(tunnel) { const swamp = !tunnel && !P.inHeli && P.x > 1000; W.swamp.visible = swamp; W.cabin.visible = P.inHeli; W.cabinL.intensity = P.inHeli ? 0.45 : 0; if (!P.inHeli) W.alarmL.intensity = 0; W.crashFire.intensity = swamp ? 2.4 : 0; W.shackL.intensity = swamp ? 1.3 : 0; const c = tunnel ? FOG_TUNNEL : swamp ? FOG_SWAMP : FOG_FOREST; scene.fog.color.copy(c); scene.fog.density = tunnel ? 0.07 : swamp ? 0.04 : 0.032; scene.environment = tunnel ? null : (FX.env || null); hemi.intensity = tunnel ? 0.05 : 0.46; moon.intensity = tunnel ? 0 : 0.34; W.tunnel.visible = tunnel; W.endLight.intensity = tunnel ? 1.4 : 0; if (!tunnel) W.tunL.forEach(l => l.intensity = 0); SND.set('tunnel', tunnel ? 0.16 : 0, 0.5); SND.set('wind', tunnel ? 0.02 : 0.13, 0.5); SND.set('leaves', tunnel ? 0 : 0.025, 0.5); }
 async function enterTunnel(restoring) {
   G.mode = 'cut'; fade(1); await wait(650);
   P.inTunnel = true; P.onTower = false; G.gateOpen = false; W.gate.position.y = TB.y; setEnv(true); updateChunks(9999, 9999, 0);
@@ -538,7 +552,7 @@ async function exitTunnel() {
 }
 
 // ================= CUTSCENES =================
-function fade(v, white) { const f = $('fade'); f.classList.toggle('white', !!white); f.style.opacity = v; }
+function fade(v, kind) { const f = $('fade'); f.classList.toggle('white', kind === true); f.classList.toggle('water', kind === 'water'); f.style.opacity = v; }
 async function climb(up) {
   G.mode = 'cut'; fade(1); await wait(650);
   if (up) { P.onTower = true; P.x = T.x; P.z = T.z + 0.6; P.yaw = 0; P.pitch = 0; P.y = TG0 + TY + 0.08; }
@@ -619,12 +633,88 @@ async function winSequence() {
   C.state = 'fall'; let vy = 0; const t0 = performance.now();
   while (performance.now() - t0 < 2200) { const dt = 0.016; vy -= 9.8 * dt; cr.g.position.y = Math.max(H(Hp.x, Hp.z), cr.g.position.y + vy * dt); cr.g.rotation.x += dt * 1.5; heli.g.position.y += dt * 2; P.y += dt * 2; await wait(16); }
   SND.thud(); fade(1, true); await wait(1200);
-  G.done = true; checkpoint(); try { const st = JSON.parse(localStorage.getItem('hollowPinesStats') || '{}'); st.escaped = (st.escaped || 0) + 1; st.bestTime = Math.min(st.bestTime || 1e9, G.time); localStorage.setItem('hollowPinesStats', JSON.stringify(st)); } catch (e) {}
+  G.done = true; G.ch1done = true; G.obj = 16; G.hintK = null; checkpoint(); try { const st = JSON.parse(localStorage.getItem('hollowPinesStats') || '{}'); st.escaped = (st.escaped || 0) + 1; st.bestTime = Math.min(st.bestTime || 1e9, G.time); localStorage.setItem('hollowPinesStats', JSON.stringify(st)); } catch (e) {}
   G.mode = 'win'; showC(false); C.state = 'off'; $('hud').style.display = 'none'; $('touch').style.display = 'none'; SND.set('heli', 0, 2); SND.set('drone', 0, 1);
-  $('winT').innerHTML = `The helicopter lifts you over the pines. Far below, in the red glow of the flare, a tall shape stands in the clearing… watching you leave.<br><br>Time: ${fmtT(G.time)} · Deaths: ${G.deaths}<br><br>Mr. Harlan never came back from his “vacation.”`;
+  $('winT').innerHTML = `The helicopter lifts you over the pines. Far below, in the red glow of the flare, a tall shape stands in the clearing… watching you leave.<br><br>Time: ${fmtT(G.time)} · Deaths: ${G.deaths}<br><br><b>Chapter 2 is now unlocked</b> on the home screen.<br><br>Mr. Harlan never came back from his “vacation.”`;
   $('win').style.display = 'grid'; fade(0); try { document.exitPointerLock(); } catch (e) {}
 }
 
+// ================= CHAPTER 2: THE HELICOPTER + THE SWAMP =================
+const CH2 = { crashT: -1, beep: 0 };
+function heliMove(dt, mx, mz, moving) {
+  const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
+  let nx = P.x + (fx * mz + rx * mx) * 2.6 * dt, nz = P.z + (fz * mz + rz * mx) * 2.6 * dt;
+  const door = nz > -0.65 && nz < 0.8; nx = clamp(nx, -0.7, door ? 1.3 : 1.0); nz = clamp(nz, -2.1, 2.35);
+  const mv = Math.hypot(nx - P.x, nz - P.z); P.x = nx; P.z = nz;
+  if (moving && G.mode === 'play') { P.bob += mv * 2.3; P.stepAcc += mv; if (P.stepAcc > 0.8) { P.stepAcc = 0; SND.step(false, true); } }
+}
+function startChapter2() {
+  P.inHeli = true; P.onTower = false; P.inTunnel = false; P.falling = false; P.x = 0.2; P.z = 1.9; P.yaw = 0; P.pitch = -0.05; P.y = 0;
+  W.cabin.rotation.set(0, 0, 0); CH2.crashT = -1; W.alarmL.intensity = 0; W.cabinScreens.forEach(m => m.emissive.setHex(m === W.cabinScreens[0] ? 0x40ff90 : 0xffb040));
+  C.state = 'off'; showC(false); cr.g.scale.set(1, 1, 1); cr.g.rotation.set(0, 0, 0); clearAnimals(); heli.g.visible = false; W.flare.visible = false; W.flareL.intensity = 0; W.arrows.visible = false; G.flareT = -1;
+  G.obj = 16; refreshObj(); setEnv(false); SND.set('heli', 0.5, 1); SND.set('drone', 0, 0.5);
+  say('Chapter 2 — The Swamp', 3, ''); say('The pilot is up front. Go talk to him.', 3.5, 'Tip');
+}
+async function pilotTalk() {
+  const lines = [['Pilot', 'Harlan’s caretaker? Kid, you are lucky to be alive.', 3.4], ['You', 'Did you see it? Under the ladder? It was right under me!', 3.4], ['Pilot', 'I saw… something. Figured it was a shadow from the searchlight.', 3.8], ['Pilot', 'Sit tight. Hospital in Millbrook, twenty minutes.', 3.2]];
+  let tot = 0; for (const [w, t, d] of lines) { say(t, d, w); tot += d; } await wait(tot * 1000 + 2500);
+  if (G.obj !== 16 || !P.inHeli) return;
+  SND.thud(); P.shake = 0.8; await wait(500); SND.thud(); SND.gate(); P.shake = 0.6;
+  say('What the—? Something just landed on the roof!', 3, 'Pilot'); say('Go check the back window!', 2.6, 'Pilot');
+  setObj(17, true);
+}
+async function backWindowScene() {
+  G.mode = 'cut'; clearSubs(); const cb = W.cabin; cb.updateMatrixWorld();
+  const head = cb.localToWorld(new THREE.Vector3(0, -1.75, 3.05)); cr.g.position.copy(head); cr.g.rotation.set(0, cb.rotation.y + Math.PI, 0); C.state = 'scripted'; C.mode = 'climb'; showC(true);
+  P.look = { yaw: Math.PI, pitch: 0.05 }; await wait(700);
+  SND.stinger(); SND.scream(); P.shake = 1; await wait(1300);
+  SND.clang(); await wait(500); showC(false); C.state = 'off'; P.look = null;
+  say('IT’S ON THE TAIL ROTOR! WE’RE GOING DOWN!', 3, 'Pilot'); say('There’s water below us — JUMP! JUMP NOW!', 3.2, 'Pilot');
+  CH2.crashT = 14; G.mode = 'play'; setObj(18, true);
+}
+async function jumpOut() {
+  G.mode = 'cut'; clearSubs(); SND.whoosh(); fade(1, true); await wait(500);
+  P.inHeli = false; W.cabin.visible = false; W.alarmL.intensity = 0; CH2.crashT = -1; SND.set('heli', 0, 0.8);
+  P.x = SW.x; P.z = SW.z; P.y = 30; P.yaw = 0.3; P.pitch = -1.35; P.falling = true; setEnv(false); updateChunks(9999, 0, 0);
+  fade(0); const t0 = performance.now(); while (performance.now() - t0 < 1300) { const k = (performance.now() - t0) / 1300; P.y = 30 - 32 * k * k; await wait(16); }
+  SND.bigSplash(); fade(0.9, 'water'); P.y = -2.2; await wait(1300);
+  P.falling = false; P.y = H(P.x, P.z); P.pitch = 0.08; P.yaw = Math.atan2(-(W.crash.x - P.x), -(W.crash.z - P.z)) + 0.5; fade(0);
+  await wait(400); SND.boom(); P.shake = 0.6;
+  say('*gasp* I’m… I’m alive.', 2.6, 'You'); say('The helicopter… it went down over there. I can see the fire.', 3.6, 'You');
+  G.mode = 'play'; setObj(19);
+}
+function swampChase() {
+  placeC(24, Math.PI); C.state = 'rise'; C.timer = 1.6; C.stung = true; showC(true); SND.bigSplash(); SND.stinger();
+  say('Something’s coming out of the water — RUN!', 3, 'You');
+  setObj(22);
+}
+async function ch2End() {
+  G.mode = 'cut'; showC(false); C.state = 'off'; SND.set('drone', 0, 0.3); SND.door(); fade(1); await wait(800); SND.thud(); await wait(1600);
+  for (let i = 0; i < 3; i++) { SND.thud(); P.shake = 0.5; await wait(700); } SND.whisper(0); await wait(1500);
+  G.ch2done = true; checkpoint(); G.mode = 'win'; $('hud').style.display = 'none'; $('touch').style.display = 'none';
+  $('winH').textContent = 'Chapter 2 Complete';
+  $('winT').innerHTML = 'You slam the shack door and drop the bar across it.<br>Something scrapes slowly down the wall outside… then the swamp goes quiet.<br><br>Time: ' + fmtT(G.time) + ' · Deaths: ' + G.deaths + '<br><br><b>Chapter 3 is coming soon.</b>';
+  $('win').style.display = 'grid'; fade(0); try { document.exitPointerLock(); } catch (e) {}
+}
+function updateCh2(dt) {
+  if (P.inHeli) {
+    const cb = W.cabin, t = G.time; let roll = Math.sin(t * 0.8) * 0.02, pitch = Math.sin(t * 0.6) * 0.012;
+    if (CH2.crashT >= 0) { const k = 1 - CH2.crashT / 14; roll += Math.sin(t * 3.1) * (0.08 + k * 0.2); pitch += Math.sin(t * 2.3) * 0.06 * (1 + k); cb.rotation.y += dt * (0.4 + k * 1.4); P.shake = Math.max(P.shake, 0.25 + k * 0.4);
+      CH2.beep -= dt; if (CH2.beep <= 0) { CH2.beep = 0.45; SND.alarm(); } const on = Math.sin(t * 12) > 0; W.alarmL.intensity = on ? 1.6 : 0.1; W.cabinScreens.forEach(m => m.emissive.setHex(on ? 0xff2010 : 0x200000));
+      if (G.mode === 'play') { CH2.crashT -= dt; if (CH2.crashT <= 0) { CH2.crashT = -1; SND.boom(); fade(1, true); setTimeout(() => { fade(0); G.deaths++; showDead('The helicopter went down with you inside. Jump out the open door!'); }, 900); G.mode = 'cut'; } } }
+    cb.rotation.z = roll; cb.rotation.x = pitch;
+  }
+  if (W.swamp.visible) {
+    W.flames.forEach((f, i) => { const u = f.userData; u.ph += dt * 6; const sc = 1.4 + Math.sin(u.ph + i) * 0.5 + rand() * 0.3; f.scale.set(sc, sc * 1.5, sc); f.position.y = u.by + Math.sin(u.ph * 0.7) * 0.15; });
+    W.smoke.forEach(sp => { const u = sp.userData; u.t = (u.t + dt * 0.08) % 1; sp.position.set(W.crash.x + Math.sin(u.t * 9) * 1.5, H(W.crash.x, W.crash.z) + 1.5 + u.t * 14, W.crash.z + u.t * 3); const sc = 2 + u.t * 7; sp.scale.set(sc, sc, sc); sp.material.opacity = 0.45 * (1 - u.t); });
+    W.crashFire.intensity = 2.2 + Math.sin(G.time * 11) * 0.3 + rand() * 0.3; W.shackWin.emissiveIntensity = 0.8 + Math.sin(G.time * 5) * 0.1;
+    if (G.mode === 'play') {
+      if (G.obj === 19 && H(P.x, P.z) > 0.25) { say('Solid ground. Finally.', 2.6, 'You'); setObj(20); }
+      if (G.obj === 20 && Math.hypot(P.x - W.crash.x, P.z - W.crash.z) < 15) { say('The pilot… he’s gone.', 2.8, 'You'); say('There are drag marks… going into the water.', 3.2, 'You'); say('That boardwalk has to lead somewhere. Go!', 3, 'You'); setObj(21); }
+      if (G.obj === 21 && C.state === 'off') { const wi = walkInfo(P.x - SW.x, P.z - SW.z); if (wi.d < 1.5 && wi.s > wi.len * 0.4) swampChase(); }
+    }
+  }
+}
 // ================= NOTES / PAUSE / DEATH =================
 let noteCb = null;
 function openNote(t, cb) { G.prevMode = G.mode; G.mode = 'note'; noteCb = cb || null; $('noteT').textContent = t; $('noteClose').textContent = touch ? 'Close' : 'Close (E)'; $('note').style.display = 'grid'; }
@@ -722,17 +812,19 @@ function restore(s) {
   G.wolfT = 40; G.glimpseAt = 0; G.gateOpen = false; W.gate.position.y = TB.y;
   if (G.obj >= 8 && G.obj <= 10) { C.state = 'hidden'; C.timer = 25; }
   if (G.obj === 13) { C.state = 'hidden'; C.timer = 30; }
-  if (G.obj >= 14) { G.flareT = 6; W.flare.visible = true; W.flareL.intensity = 2.4; W.padLightMat.opacity = 0.9; }
+  P.inHeli = false; P.falling = false; W.cabin.rotation.set(0, 0, 0); CH2.crashT = -1; CH2.talked = false; if (G.obj >= 16) G.ch1done = true; if (G.obj === 22) G.obj = 21; if (G.obj === 17 || G.obj === 18) G.obj = 16;
+  if (G.obj >= 14 && G.obj <= 15) { G.flareT = 6; W.flare.visible = true; W.flareL.intensity = 2.4; W.padLightMat.opacity = 0.9; }
   if (G.obj === 14) { G.surviveT = 30; C.final = true; C.state = 'hidden'; C.timer = 5; G.wolfT = 3; }
   if (G.obj === 15) { heli.g.visible = true; heli.t = 7.5; heli.ready = true; heli.spot.intensity = 3.2; heli.ladder.scale.y = 1; C.final = true; C.rush = true; C.state = 'hidden'; C.timer = 3; }
   updateChunks(P.x, P.z, 125); refreshObj(); CP = snapshot(); CP.x = s.x; CP.z = s.z;
-  G.pendingStart = G.obj === 11 ? 'chase' : G.obj === 12 ? 'tunnel' : null;
+  G.pendingStart = G.obj === 11 ? 'chase' : G.obj === 12 ? 'tunnel' : G.obj === 16 ? 'heli' : null;
 }
 function begin() {
   G.mode = 'play'; $('hud').style.display = 'block'; if (touch) $('touch').style.display = 'block'; $('scare').style.display = 'none';
-  SND.set('menu', 0, 1); setEnv(P.inTunnel); lock();
+  SND.set('menu', 0, 1); SND.music(false); setEnv(P.inTunnel); lock();
   if (G.pendingStart === 'chase') { G.pendingStart = null; P.x = R.x + 7.5; P.z = R.z; P.yaw = Math.atan2(-(L.tunnel.x - P.x), -(L.tunnel.z - P.z)); W.arrows.visible = true; const away = P.yaw + Math.PI; C.x = P.x - Math.sin(away) * 26; C.z = P.z - Math.cos(away) * 26; [C.x, C.z] = collide(C.x, C.z, 0.5); C.stung = false; startChase(999, true); say('RUN! Follow the red arrows!', 3, ''); }
   else if (G.pendingStart === 'tunnel') { G.pendingStart = null; enterTunnel(true); }
+  else if (G.pendingStart === 'heli') { G.pendingStart = null; startChapter2(); }
   if (G.obj === 15) say('Grab the ladder! GO!', 2.6, 'Pilot');
 }
 async function newGame(slot) {
@@ -744,7 +836,7 @@ async function newGame(slot) {
   el.style.display = 'none';
   begin(); say('Harlan left a letter on the log by the fire.', 3.5, 'You');
 }
-function continueSlot(slot) { const d = readSlot(slot); if (!d) return newGame(slot); G.slot = slot; G.tips = { light: 1, gun: 1 }; restore(d); hideMenu(); lock(true); begin(); }
+function continueSlot(slot) { const d = readSlot(slot); if (!d) return newGame(slot); if (d.ch2done) return playChapter(slot, 2); G.slot = slot; G.tips = { light: 1, gun: 1 }; restore(d); hideMenu(); lock(true); begin(); }
 
 // ================= MENU =================
 let menuOn = false; const MENU_CAM = { x: 4, z: 10 }, MENU_CR = { x: 8, z: -13 };
@@ -768,11 +860,11 @@ function showMenu() { hush();
   ['slotP', 'howP', 'setP', 'credP', 'pauseP', 'dead', 'win', 'note', 'intro'].forEach(id => $(id).style.display = 'none'); $('scare').style.display = 'none'; fade(0);
   P.inTunnel = false; P.onTower = false; setEnv(false); clearAnimals(); heli.g.visible = false; W.flare.visible = false; W.flareL.intensity = 0;
   C.state = 'menu'; showC(true); cr.g.scale.set(1, 1, 1); cr.g.rotation.x = 0; cr.g.position.set(MENU_CR.x, H(MENU_CR.x, MENU_CR.z), MENU_CR.z); cr.g.rotation.y = Math.atan2(MENU_CAM.x - MENU_CR.x, MENU_CAM.z - MENU_CR.z);
-  flash.intensity = 0; W.rig.visible = false; updateChunks(0, 0, 125); clearSubs();
-  ['drone', 'hum', 'stat', 'heli', 'breath', 'tunnel'].forEach(n => SND.set(n, 0, 0.3)); SND.set('menu', 0.12, 1);
+  flash.intensity = 0; W.rig.visible = false; P.inHeli = false; P.x = 0; P.z = 5; setEnv(false); updateChunks(0, 0, 125); clearSubs(); let un = false; for (let i = 0; i < 3; i++) { const d = readSlot(i); if (d && d.ch1done) un = true; } $('unlockTag').style.display = un ? 'block' : 'none';
+  ['drone', 'hum', 'stat', 'heli', 'breath', 'tunnel'].forEach(n => SND.set(n, 0, 0.3)); SND.set('menu', 0.06, 1); SND.music(true);
   try { document.exitPointerLock(); } catch (e) {}
 }
-function hideMenu() { menuOn = false; $('menu').style.display = 'none'; bl.style.display = 'none'; ['slotP', 'howP', 'setP', 'credP'].forEach(id => $(id).style.display = 'none'); W.rig.visible = true; showC(false); C.state = 'off'; }
+function hideMenu() { SND.music(false); menuOn = false; $('menu').style.display = 'none'; bl.style.display = 'none'; ['slotP', 'howP', 'setP', 'credP'].forEach(id => $(id).style.display = 'none'); W.rig.visible = true; showC(false); C.state = 'off'; }
 let menuT = 0;
 function menuFrame(dt) {
   menuT += dt; const gy = H(MENU_CAM.x, MENU_CAM.z);
@@ -794,32 +886,41 @@ $('sVoice').onchange = e => { settings.voice = e.target.checked; if (!settings.v
 $('sHQ').onchange = e => { settings.quality = e.target.checked ? 'high' : 'low'; FX.setQuality(); saveSettings(); };
 $('sShadow').onchange = e => { settings.shadows = e.target.checked; flash.castShadow = settings.shadows; saveSettings(); };
 let delArm = -1;
+function playChapter(i, ch) {
+  const d = readSlot(i) || {}; G.slot = i; Object.assign(G, fresh(), { tips: { light: 1, gun: 1 } });
+  const base = Object.assign(fresh(), { x: 0, z: 5, yaw: 0, tower: false, ch1done: true, ch2done: !!d.ch2done, time: d.time || 0, deaths: d.deaths || 0 });
+  if (ch === 2) Object.assign(base, { obj: 16, hasLight: true, guns: d.guns || { pistol: true, shotgun: false, flare: false }, am: d.am || { p: 12, pr: 12, s: 0, sr: 0 }, wep: 'none', med: [] });
+  restore(base); checkpoint(); hideMenu(); lock(true); begin(); if (ch === 1) say('Harlan left a letter on the log by the fire.', 3.5, 'You');
+}
 function renderSlots() {
   const el = $('slots'); el.innerHTML = '';
   for (let i = 0; i < 3; i++) {
-    const d = readSlot(i), div = document.createElement('div'); div.className = 'slot';
-    const title = d ? (d.done ? `Save ${i + 1} — Escaped!` : `Save ${i + 1} — ${CHAP[OBJ[d.obj][0]]}`) : `Save ${i + 1} — Empty`;
-    const info = d ? (d.done ? `Finished in ${fmtT(d.time)} · ${d.deaths} deaths` : `${typeof OBJ[d.obj][1] === 'function' ? 'Find fuel cans for the generator' : OBJ[d.obj][1]} · played ${fmtT(d.time)}`) : 'Start a new story here';
+    const d = readSlot(i), div = document.createElement('div'); div.className = 'slot'; const ch = d ? (d.obj >= 16 ? 2 : 1) : 0;
+    const title = !d ? `Save ${i + 1} — Empty` : d.ch2done ? `Save ${i + 1} — Chapters 1 & 2 beaten!` : `Save ${i + 1} — Chapter ${ch}${ch === 1 ? ': Hollow Pines' : ': The Swamp'}`;
+    const ot = d && OBJ[d.obj] ? (typeof OBJ[d.obj][1] === 'function' ? 'Find fuel cans for the generator' : OBJ[d.obj][1]) : '';
+    const info = !d ? 'Start a new story here' : (d.ch2done ? 'Chapter 3 coming soon · ' : '') + (d.ch1done && !d.ch2done && ch === 2 ? 'Chapter 2 unlocked! · ' : '') + (d.ch2done ? '' : ot + ' · ') + 'played ' + fmtT(d.time || 0);
     div.innerHTML = `<div><h3></h3><p></p></div><div class="acts"></div>`; div.querySelector('h3').textContent = title; div.querySelector('p').textContent = info;
     const acts = div.querySelector('.acts'); const mkb = (t, fn) => { const b = document.createElement('button'); b.className = 'btn'; b.textContent = t; b.onclick = fn; acts.appendChild(b); return b; };
-    if (d && !d.done) mkb('Continue', () => { SND.init(); continueSlot(i); });
+    if (d && !d.ch2done) mkb(ch === 2 ? 'Continue Chapter 2' : 'Continue', () => { SND.init(); continueSlot(i); });
+    if (d && d.ch1done) { mkb('Chapter 1', () => { SND.init(); playChapter(i, 1); }); mkb('Chapter 2', () => { SND.init(); playChapter(i, 2); }); }
+    else if (d) { const lb = mkb('Chapter 2 🔒', () => {}); lb.disabled = true; lb.title = 'Beat Chapter 1 to unlock'; }
     mkb(d ? 'New Game' : 'Start', () => { SND.init(); newGame(i); });
     if (d) mkb(delArm === i ? 'Tap again to delete' : 'Delete', () => { if (delArm === i) { delSlot(i); delArm = -1; } else delArm = i; renderSlots(); });
     el.appendChild(div);
   }
 }
 addEventListener('keydown', () => { if (G.mode === 'intro') G.skipIntro = true; });
-document.addEventListener('pointerdown', () => { if (G.mode === 'intro') G.skipIntro = true; if (VOICE.ok && !VOICE.unlocked) { VOICE.unlocked = true; try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) {} } if (!SND.ok) { SND.init(); SND.setVol(settings.vol); $('tapSound').style.display = 'none'; if (menuOn) SND.set('menu', 0.12, 1); } }, { capture: true });
+document.addEventListener('pointerdown', () => { if (G.mode === 'intro') G.skipIntro = true; if (VOICE.ok && !VOICE.unlocked) { VOICE.unlocked = true; try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) {} } if (!SND.ok) { SND.init(); SND.setVol(settings.vol); $('tapSound').style.display = 'none'; if (menuOn) { SND.set('menu', 0.06, 1); SND.music(true); } } }, { capture: true });
 
 // ================= AMBIENCE =================
 function ambience(dt) {
   const near = cr.g.visible && C.state !== 'menu' ? Math.hypot(cr.g.position.x - P.x, cr.g.position.z - P.z) : 99;
-  const calm = (C.state === 'off' || C.state === 'hidden' || C.state === 'menu') && !P.inTunnel;
+  const calm = (C.state === 'off' || C.state === 'hidden' || C.state === 'menu') && !P.inTunnel && !P.inHeli;
   const quiet = !calm || near < 35 || (C.state === 'chase');
   SND.set('chorus', quiet ? 0 : (menuOn ? 0.55 : G.obj >= 8 ? 0.35 : 0.5), quiet ? 0.4 : 2.5);
   G.cricketT -= dt; if (G.cricketT <= 0) { G.cricketT = 0.25 + rand() * 0.6; if (!quiet) SND.cricket(); }
   const lakeD = Math.hypot(camera.position.x - LK.x, camera.position.z - LK.z);
-  G.frogT = (G.frogT || 2) - dt; if (G.frogT <= 0) { G.frogT = 1.2 + rand() * 3; if (!quiet && lakeD < 110) SND.frog(clamp((LK.x - camera.position.x) / 60, -1, 1) * 0.8); }
+  G.frogT = (G.frogT || 2) - dt; if (G.frogT <= 0) { G.frogT = 1.2 + rand() * 3; if (!quiet && (lakeD < 110 || P.x > 1000)) SND.frog(clamp((LK.x - camera.position.x) / 60, -1, 1) * 0.8); }
   G.ambT -= dt; if (G.ambT <= 0 && !P.inTunnel) { G.ambT = 9 + rand() * 18; const r = rand(), pan = rand() * 2 - 1; if (r < 0.25) SND.owl(pan); else if (r < 0.45) SND.creak(pan); else if (r < 0.65) SND.snap(pan); else if (r < 0.8) SND.howl(pan); else if (G.obj >= 8 || menuOn) SND.whisper(pan); else SND.owl(pan); }
 }
 
@@ -838,21 +939,24 @@ function update(dt) {
   const run = (K.ShiftLeft || K.ShiftRight || touchRun) && moving && mz > -0.2 && !P.tired && !P.onTower;
   if (run) { P.stam -= (adren ? 4.5 : 15) * dt; if (P.stam <= 0) { P.stam = 0; P.tired = true; if (touchRun) { touchRun = false; $('bRun').classList.remove('on'); } } } else P.stam = Math.min(100, P.stam + (moving ? 9 : 16) * dt);
   SND.set('breath', P.tired || P.stam < 25 ? 0.08 : 0, 0.4);
-  const sp = (run ? 6.4 : 3.4) * (G.carry >= 0 ? 0.92 : 1) * (P.tired ? 0.88 : 1);
-  if (!climbing) {
+  const wade = P.x > 1000 && !P.inHeli ? clamp(1 + H(P.x, P.z) * 0.55, 0.5, 1) : 1;
+  const sp = (run ? 6.4 : 3.4) * (G.carry >= 0 ? 0.92 : 1) * (P.tired ? 0.88 : 1) * wade;
+  if (P.inHeli) heliMove(dt, mx, mz, moving);
+  else if (!climbing) {
     const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
     let nx = P.x + (fx * mz + rx * mx) * sp * dt, nz = P.z + (fz * mz + rz * mx) * sp * dt;
     if (P.onTower) { nx = clamp(nx, T.x - 1.4, T.x + 1.4); nz = clamp(nz, T.z - 1.4, T.z + 1.4); }
     else if (P.inTunnel) { let pr = tProject(nx, nz); if (pr.d > 0.95) { const k = 0.95 / pr.d; nx = pr.px + (nx - pr.px) * k; nz = pr.pz + (nz - pr.pz) * k; pr = tProject(nx, nz); } if (pr.s < 1.0 || (!G.gateOpen && pr.s > GATE_S - 0.6)) { const lim = pr.s < 1.0 ? 1.0 : GATE_S - 0.6, q = tPoint(lim); nx = q.x; nz = q.z; } }
     else[nx, nz] = collide(nx, nz, 0.4);
     const moved = Math.hypot(nx - P.x, nz - P.z); P.x = nx; P.z = nz;
-    if (moving && playing) { P.bob += moved * (run ? 1.9 : 2.3); P.stepAcc += moved; if (P.stepAcc > (run ? 1.15 : 0.85)) { P.stepAcc = 0; SND.step(run, P.onTower || P.inTunnel); } }
-    const gy = P.onTower ? TG0 + TY + 0.08 : P.inTunnel ? TB.y : H(P.x, P.z); P.y += (gy - P.y) * Math.min(1, dt * 12);
+    if (moving && playing) { P.bob += moved * (run ? 1.9 : 2.3); P.stepAcc += moved; if (P.stepAcc > (run ? 1.15 : 0.85)) { P.stepAcc = 0; if (wade < 0.98) SND.splash(run); else SND.step(run, P.onTower || P.inTunnel || (P.x > 1000 && H(P.x, P.z) > 0.5)); } }
+    const gy = P.onTower ? TG0 + TY + 0.08 : P.inTunnel ? TB.y : H(P.x, P.z); if (!P.falling) P.y += (gy - P.y) * Math.min(1, dt * 12);
   } else updateClimb(dt);
   P.shake = Math.max(0, P.shake - dt * 1.5); const sh = P.shake * 0.05 + (climbing ? 0.012 : 0);
-  camera.position.set(P.x + (rand() - 0.5) * sh, P.y + (climbing ? 1.5 : 1.65) + Math.sin(P.bob) * 0.045 + (rand() - 0.5) * sh, P.z + (rand() - 0.5) * sh);
   const breath = Math.sin(G.time * 1.7) * (moving ? 0.001 : 0.004);
-  camera.rotation.set(P.pitch + breath, P.yaw + Math.sin(G.time * 0.9) * 0.0015, Math.sin(P.bob * 0.5) * 0.006);
+  if (P.inHeli) { const cb = W.cabin; TV.set(P.x + (rand() - 0.5) * sh, 1.65 + Math.sin(P.bob) * 0.03 + (rand() - 0.5) * sh, P.z); cb.updateMatrixWorld(); camera.position.copy(cb.localToWorld(TV)); camera.rotation.set(P.pitch + breath + cb.rotation.x, P.yaw + cb.rotation.y, cb.rotation.z * Math.cos(P.yaw) + Math.sin(P.bob * 0.5) * 0.006); }
+  else { camera.position.set(P.x + (rand() - 0.5) * sh, P.y + (climbing ? 1.5 : 1.65) + Math.sin(P.bob) * 0.045 + (rand() - 0.5) * sh, P.z + (rand() - 0.5) * sh);
+  camera.rotation.set(P.pitch + breath, P.yaw + Math.sin(G.time * 0.9) * 0.0015, Math.sin(P.bob * 0.5) * 0.006); }
   const tf = run ? 77 : 70; if (Math.abs(camera.fov - tf) > 0.05) { camera.fov += (tf - camera.fov) * Math.min(1, dt * 5); camera.updateProjectionMatrix(); }
   // flashlight
   let fi = P.light && G.hasLight ? 2.7 : 0;
@@ -862,7 +966,7 @@ function update(dt) {
   flash.intensity = fi; W.lensMat.color.setHex(fi > 0 ? 0xfff2d8 : 0x222222);
   // interactions
   let best = null, bd = 99;
-  if (playing) for (const it of IT) { if (it.tower !== P.onTower || it.tunnel !== P.inTunnel || !it.cond()) continue; const d = Math.hypot(it.x - P.x, it.z - P.z); if (d < it.r && d < bd) { bd = d; best = it; } }
+  if (playing) for (const it of IT) { if (it.tower !== P.onTower || it.tunnel !== P.inTunnel || it.heli !== P.inHeli || !it.cond()) continue; const d = Math.hypot(it.x - P.x, it.z - P.z); if (d < it.r && d < bd) { bd = d; best = it; } }
   if (best !== curIt) { curIt = best; holdT = 0; }
   const pe = $('prompt');
   if (best) { pe.style.display = 'block'; $('promptT').textContent = (best.hold ? `Hold ${KEYN} · ` : `${KEYN} · `) + (typeof best.label === 'function' ? best.label() : best.label);
@@ -876,12 +980,12 @@ function update(dt) {
   if (playing && G.obj === 14) { G.surviveT -= dt; if (G.surviveT <= 0) heliArrive(); }
   if (P.hp < 100 && playing) { P.hurtT += dt; if (P.hurtT > 5) P.hp = Math.min(100, P.hp + 5 * dt); $('hurt').style.opacity = clamp((100 - P.hp) / 140, 0, 0.6); }
   if (G.revealT > 0) { G.revealT -= dt; if (G.revealT <= 0 && C.state === 'hidden') showC(false); }
-  updateHint(dt); updateWatcher(dt); updateBats(dt);
+  updateHint(dt); updateWatcher(dt); updateBats(dt); updateCh2(dt);
   if (playing && !P.inTunnel && C.state !== 'chase' && subT <= 0 && !subQ.length) { G.chatT = (G.chatT == null ? 40 : G.chatT) - dt; if (G.chatT <= 0) { G.chatT = 50 + rand() * 50; const pool = CHATTER[OBJ[G.obj][0]]; say(pick(pool), 3.2, 'You'); } }
   updateCreature(dt); updateAnimals(dt);
   stepParticles(BLOOD, dt); stepParticles(BLACKB, dt); stepPools(dt);
   // world fx
-  chunkT -= dt; if (chunkT <= 0) { chunkT = 0.3; if (!P.inTunnel) updateChunks(P.x, P.z, 125); }
+  chunkT -= dt; if (chunkT <= 0) { chunkT = 0.3; if (!P.inTunnel) updateChunks(P.inHeli ? 9999 : P.x, P.z, 125); }
   W.fireL.intensity = 1.6 + Math.sin(G.time * 17) * 0.12 + Math.sin(G.time * 7.3) * 0.15;
   W.winMat.emissiveIntensity = 0.5 + Math.sin(G.time * 3) * 0.1 + (rand() < 0.02 ? -0.4 : 0);
   if (W.beacon.visible) W.beacon.material.opacity = Math.sin(G.time * 3) > 0 ? 1 : 0.1;
@@ -911,8 +1015,8 @@ function loop(now) {
   else if (G.mode === 'play' || G.mode === 'cut' || G.mode === 'climb') update(dt);
   else if (G.mode === 'scare') updateScare(dt);
   if (!(G.mode === 'scare' && scareT >= 0.32)) {
-    const ox = menuOn ? camera.position.x : P.x, oz = menuOn ? camera.position.z : P.z;
-    FX.update(dt, { tunnel: !menuOn && P.inTunnel, storm: menuOn ? 1 : G.obj >= 8 ? 1 : G.obj >= 4 ? 0.6 : 0.35, rain: menuOn ? 0.55 : G.obj < 4 ? 0.35 : G.obj < 8 ? 0.6 : 0.9, x: ox, z: oz, red: W.flare.visible ? 0.18 : 0, onStrike: lightningReveal });
+    const ox = (menuOn || P.inHeli) ? camera.position.x : P.x, oz = (menuOn || P.inHeli) ? camera.position.z : P.z;
+    FX.update(dt, { noCover: !menuOn && P.inHeli, tunnel: !menuOn && P.inTunnel, storm: menuOn ? 1 : G.obj >= 8 ? 1 : G.obj >= 4 ? 0.6 : 0.35, rain: menuOn ? 0.55 : G.obj < 4 ? 0.35 : G.obj < 8 ? 0.6 : 0.9, x: ox, z: oz, red: W.flare.visible ? 0.18 : 0, onStrike: lightningReveal });
     SND.set('rain', !menuOn && P.inTunnel ? 0.015 : (menuOn ? 0.55 : G.obj < 4 ? 0.35 : G.obj < 8 ? 0.6 : 0.9) * 0.22, 0.6);
     FX.render();
   }
@@ -921,4 +1025,4 @@ addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); FX
 bloodResize(); showMenu(); $('loading').style.display = 'none';
 requestAnimationFrame(loop);
 setTimeout(() => { faceImg = renderFace(); }, 1500);
-window.HP = { WATCH, updateWatcher, update, updateScare, K, G, P, C, cr, W, setObj, restore, begin, heli, ANIMALS, spawnAnimal, radioScene, enterTunnel, startClimb, startScare, heliArrive, fireFlare, bigChase, snapshot, hideMenu, tPoint, TLEN, GATE_S };
+window.HP = { playChapter, CH2, walkInfo, WATCH, updateWatcher, update, updateScare, K, G, P, C, cr, W, setObj, restore, begin, heli, ANIMALS, spawnAnimal, radioScene, enterTunnel, startClimb, startScare, heliArrive, fireFlare, bigChase, snapshot, hideMenu, tPoint, TLEN, GATE_S };
