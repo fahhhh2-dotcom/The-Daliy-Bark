@@ -272,33 +272,56 @@ function mireCatch() { MS.state = 'off'; G.mode = 'cut'; SND.mireRoar(1.2); P.sh
 function tallManDeath() {
   G.mode = 'cut'; clearSubs(); C.final = false; C.state = 'scripted'; C.mode = 'stalk'; showC(true); resetTallMan(); cr.g.scale.set(1, 1, 1);
   const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
-  let tx = P.x + fx * 17, tz = P.z + fz * 17; [tx, tz] = collide(tx, tz, 0.6); C.x = tx; C.z = tz;
+  let tx = P.x + fx * 12, tz = P.z + fz * 12; [tx, tz] = collide(tx, tz, 0.6); C.x = tx; C.z = tz;
   const TM = { x: tx, z: tz, y: H(tx, tz), vy: 0, fall: 0, lift: 0 };
   cr.g.position.set(tx, TM.y, tz); cr.g.rotation.set(0, Math.atan2(P.x - tx, P.z - tz), 0);
-  hShow(true); HS.state = 'scene'; hPlace(tx + rx * 15 + fx * 3, tz + rz * 15 + fz * 3, 0); hFace(tx, tz); HOL.crouch = 0.6;
+  hShow(true); HS.state = 'scene'; hPlace(tx + rx * 11 + fx * 2, tz + rz * 11 + fz * 2, 0); hFace(tx, tz); HOL.crouch = 0.6;
   P.look = lookAtPt(tx, TM.y + 2.6, tz); SND.stinger(); SND.set('drone', 0.2, 0.5);
   runScene((S, dt) => {
     const t = S.t;
-    if (t < 2.6) { const dx = P.x - TM.x, dz = P.z - TM.z, d = Math.hypot(dx, dz); if (d > 9) { TM.x += dx / d * 1.7 * dt; TM.z += dz / d * 1.7 * dt; } else C.mode = 'idle'; TM.y = H(TM.x, TM.z); cr.g.position.set(TM.x, TM.y, TM.z); P.look = lookAtPt(TM.x, TM.y + 2.6, TM.z); }
+    if (t < 2.6) { const dx = P.x - TM.x, dz = P.z - TM.z, d = Math.hypot(dx, dz); if (d > 6.5) { TM.x += dx / d * 1.7 * dt; TM.z += dz / d * 1.7 * dt; } else C.mode = 'idle'; TM.y = H(TM.x, TM.z); cr.g.position.set(TM.x, TM.y, TM.z); P.look = lookAtPt(TM.x, TM.y + 2.6, TM.z); }
     if (at(S, 1.0, 'l1')) say('No… not him. Not again.', 2.4, 'You');
     if (at(S, 2.6, 'charge')) { SND.hollowScream(1); HOL.crouch = 0; P.shake = 0.3; C.mode = 'idle'; cr.g.rotation.y = Math.atan2(HS.x - TM.x, HS.z - TM.z); }
-    if (t > 2.6 && !S.hit) { const d = hMove(TM.x, TM.z, 12, dt); P.look = lookAtPt((TM.x + HS.x) / 2, TM.y + 2.2, (TM.z + HS.z) / 2); if (d < 1.8 || t > 4) { S.hit = true; S.dir = Math.atan2(TM.x - HS.x, TM.z - HS.z); SND.thud(); SND.crunch(0); SND.splat(0); SND.shriek(); P.shake = 0.7; rumble(1, 0.8, 500); TM.vx = Math.sin(S.dir) * 7; TM.vz = Math.cos(S.dir) * 7; spray(BLACKB, TM.x, TM.y + 2, TM.z, 40, 4); C.mode = 'run'; } }
-    if (S.hit && !S.lifted) { TM.fall = Math.min(1, TM.fall + dt * 3); TM.vx *= Math.max(0, 1 - dt * 3); TM.vz *= Math.max(0, 1 - dt * 3); TM.x += TM.vx * dt; TM.z += TM.vz * dt; TM.y = H(TM.x, TM.z); cr.g.position.set(TM.x, TM.y + 0.15, TM.z); cr.g.rotation.set(-1.45 * TM.fall, cr.g.rotation.y, 0);
-      if (t > 4.2) { const bx = TM.x - Math.sin(cr.g.rotation.y) * 1.4, bz = TM.z - Math.cos(cr.g.rotation.y) * 1.4; hMove(bx + Math.sin(S.dir) * 0.9, bz + Math.cos(S.dir) * 0.9, 3, dt); hFace(bx, bz, dt); HOL.walk = 0; HOL.crouch = 0.8; } }
-    if (t > 4.6 && t < 7.2) { HOL.armPose = { L: [-0.55 + Math.sin(t * 9) * 0.65, 0.12], R: [-0.55 - Math.sin(t * 9) * 0.65, 0.12] }; HOL.jawT = 0.6 + Math.sin(t * 9) * 0.3; S.st = (S.st || 0) - dt; if (S.st <= 0) { S.st = 0.35; cr.torso.updateMatrixWorld(true); const tp = cr.torso.getWorldPosition(V4); SND.splat(0); SND.crunch(0); spray(BLACKB, tp.x, tp.y + 0.3, tp.z, 28, 3.2, 0, 1.4, 0); spray(BLOOD, tp.x, tp.y + 0.3, tp.z, 10, 2.5, 0, 1, 0); P.shake = Math.max(P.shake, 0.18); bloodPool(tp.x + (rand() - 0.5), tp.z + (rand() - 0.5), 0.6 + rand() * 0.5, 1, Math.max(H(tp.x, tp.z), 0) ); } C.mode = t < 6 ? 'run' : 'idle'; if (at(S, 4.7, 'l2')) say('It’s… it’s killing him!', 2.4, 'You'); }
-    if (at(S, 7.2, 'lift')) { S.lifted = true; HOL.crouch = 0; HOL.armPose = { L: [0.2, 0.2], R: [-2.8, 0.12] }; HOL.grip = true; HOL.jawT = null; C.mode = 'run'; SND.growl(0, 1.4); TM.lift = 0; }
-    if (S.lifted && !S.ripped) { TM.lift = Math.min(1, TM.lift + dt * 2); HOL.g.updateMatrixWorld(true); const g = gripPos(1, V2); cr.g.rotation.set(-1.45 * (1 - TM.lift), cr.g.rotation.y, 0); cr.g.updateMatrixWorld(true); const hw = cr.head.getWorldPosition(V5); cr.g.position.x += (g.x - hw.x) * TM.lift; cr.g.position.y += (g.y - hw.y) * TM.lift; cr.g.position.z += (g.z - hw.z) * TM.lift; HOL.look = g.clone(); if (t > 8.2) C.mode = 'idle'; }
-    if (at(S, 8.8, 'rip')) { S.ripped = true; scene.attach(cr.head); SND.rip(); SND.gore(); SND.crunch(0); P.shake = 0.8; rumble(1, 1, 800); TM.vy = 0; TM.by = cr.g.position.y; C.state = 'fall'; }
+    if (t > 2.6 && !S.hit) { const d = hMove(TM.x, TM.z, 12, dt); P.look = lookAtPt((TM.x + HS.x) / 2, TM.y + 2.2, (TM.z + HS.z) / 2); if (d < 1.8 || t > 4) { S.hit = true; S.dir = Math.atan2(TM.x - HS.x, TM.z - HS.z); SND.thud(); SND.crunch(0); SND.splat(0); SND.shriek(); P.shake = 0.7; rumble(1, 0.8, 500); TM.vx = Math.sin(S.dir) * 7; TM.vz = Math.cos(S.dir) * 7; spray(BLACKB, TM.x, TM.y + 2, TM.z, 40, 4); C.mode = 'run'; TM.ft = 1; } }
+    // the fight: knocked down, he gets back up, the Hollow One smacks him again and again until he stays down
+    if (S.hit && !S.lifted) {
+      TM.vx = (TM.vx || 0) * Math.max(0, 1 - dt * 3); TM.vz = (TM.vz || 0) * Math.max(0, 1 - dt * 3); [TM.x, TM.z] = collide(TM.x + TM.vx * dt, TM.z + TM.vz * dt, 0.5); TM.y = H(TM.x, TM.z);
+      TM.fall += ((TM.ft || 0) - TM.fall) * Math.min(1, dt * (TM.ft ? 4 : 2.2)); TM.tilt = (TM.tilt || 0) * Math.max(0, 1 - dt * 3);
+      if (S.up && !S.down2) cr.g.rotation.y += wrapA(Math.atan2(HS.x - TM.x, HS.z - TM.z) - cr.g.rotation.y) * Math.min(1, dt * 5);
+      cr.g.position.set(TM.x, TM.y + 0.15 * TM.fall, TM.z); cr.g.rotation.x = -1.45 * TM.fall; cr.g.rotation.z = TM.tilt;
+      if (t > 4.2 && !S.down2) { const d = Math.hypot(TM.x - HS.x, TM.z - HS.z); if (d > 1.9) hMove(TM.x, TM.z, 3.5, dt); else { HOL.walk = 0; hFace(TM.x, TM.z, dt); } P.look = lookAtPt((TM.x + HS.x) / 2, TM.y + 2.4, (TM.z + HS.z) / 2); }
+    }
+    if (at(S, 4.4, 'getup')) { S.up = true; TM.ft = 0; C.mode = 'idle'; SND.growl(0, 0.9); }
+    if (at(S, 5.0, 'fightback')) { C.mode = 'lunge'; SND.shriek(); const a2 = Math.atan2(HS.x - TM.x, HS.z - TM.z); TM.vx = Math.sin(a2) * 2.5; TM.vz = Math.cos(a2) * 2.5; say('He’s fighting back—', 1.6, 'You'); }
+    [5.5, 6.3, 7.1, 7.9, 8.6].forEach((ht, i) => {
+      const side = i % 2 ? 'R' : 'L', sg = i % 2 ? 1 : -1;
+      if (at(S, ht - 0.35, 'wind' + i)) { HOL.armPose = { L: [-0.2, 0.1], R: [-0.2, 0.1] }; HOL.armPose[side] = [-1.25, 1.45]; HOL.jawT = 0.7; }
+      if (at(S, ht, 'smack' + i)) { HOL.armPose[side] = [-1.55, -0.55]; HOL.jawT = 0.4;
+        const a2 = HS.yaw + sg * Math.PI / 2, kb = i === 4 ? 6 : 3.4; TM.vx = Math.sin(a2) * kb + Math.sin(HS.yaw) * 1.5; TM.vz = Math.cos(a2) * kb + Math.cos(HS.yaw) * 1.5; TM.tilt = sg * (i === 4 ? 0.9 : 0.55); cr.g.rotation.y += sg * 0.9;
+        cr.head.updateMatrixWorld(true); const hp = cr.head.getWorldPosition(V4); spray(BLACKB, hp.x, hp.y, hp.z, 36, 4.2, Math.sin(a2), 0.3, Math.cos(a2)); spray(BLOOD, hp.x, hp.y, hp.z, 14, 3);
+        if (i % 2 === 0) chunk(hp.x, hp.y, hp.z, 4, BONEM, 0.025); bloodPool(TM.x + Math.sin(a2) * 1.5, TM.z + Math.cos(a2) * 1.5, 0.5, 0.5, Math.max(TM.y, 0));
+        SND.thud(); SND.crunch(panOf(TM.x, TM.z)); SND.splat(0); if (i < 4) SND.shriek(); P.shake = Math.max(P.shake, 0.35 + i * 0.05); rumble(0.9, 0.6, 220);
+        C.mode = i < 4 ? 'idle' : 'run'; if (i === 4) { S.down2 = true; TM.ft = 1; } }
+    });
+    if (at(S, 7.0, 'l2')) say('It’s beating him to death…', 2.6, 'You');
+    if (S.down2 && t > 9.0 && t < 11.2) { const bx = TM.x - Math.sin(cr.g.rotation.y) * 1.3, bz = TM.z - Math.cos(cr.g.rotation.y) * 1.3; if (Math.hypot(HS.x - bx, HS.z - bz) > 1.2) hMove(bx, bz, 3, dt); else { HOL.walk = 0; hFace(bx, bz, dt); } HOL.crouch = 0.8;
+      HOL.armPose = { L: [-0.55 + Math.sin(t * 9) * 0.7, 0.12], R: [-0.55 - Math.sin(t * 9) * 0.7, 0.12] }; HOL.jawT = 0.6 + Math.sin(t * 9) * 0.3;
+      S.st = (S.st || 0) - dt; if (S.st <= 0) { S.st = 0.35; cr.torso.updateMatrixWorld(true); const tp = cr.torso.getWorldPosition(V4); SND.thud(); SND.splat(0); SND.crunch(0); spray(BLACKB, tp.x, tp.y + 0.3, tp.z, 28, 3.2, 0, 1.4, 0); spray(BLOOD, tp.x, tp.y + 0.3, tp.z, 10, 2.5, 0, 1, 0); P.shake = Math.max(P.shake, 0.2); bloodPool(tp.x + (rand() - 0.5), tp.z + (rand() - 0.5), 0.6 + rand() * 0.5, 1, Math.max(H(tp.x, tp.z), 0)); }
+      C.mode = t < 10 ? 'run' : 'idle'; P.look = lookAtPt(TM.x, TM.y + 0.8, TM.z); }
+    if (at(S, 10.4, 'dead')) say('He’s… not moving anymore.', 2.4, 'You');
+    if (at(S, 11.2, 'lift')) { S.lifted = true; HOL.crouch = 0; HOL.armPose = { L: [0.2, 0.2], R: [-2.8, 0.12] }; HOL.grip = true; HOL.jawT = null; C.mode = 'run'; SND.growl(0, 1.4); TM.lift = 0; }
+    if (S.lifted && !S.ripped) { TM.lift = Math.min(1, TM.lift + dt * 2); HOL.g.updateMatrixWorld(true); const g = gripPos(1, V2); cr.g.rotation.set(-1.45 * (1 - TM.lift), cr.g.rotation.y, 0); cr.g.updateMatrixWorld(true); const hw = cr.head.getWorldPosition(V5); cr.g.position.x += (g.x - hw.x) * TM.lift; cr.g.position.y += (g.y - hw.y) * TM.lift; cr.g.position.z += (g.z - hw.z) * TM.lift; HOL.look = g.clone(); if (t > 12.2) C.mode = 'idle'; }
+    if (at(S, 12.8, 'rip')) { S.ripped = true; scene.attach(cr.head); SND.rip(); SND.gore(); SND.crunch(0); P.shake = 0.8; rumble(1, 1, 800); TM.vy = 0; TM.by = cr.g.position.y; C.state = 'fall'; }
     if (S.ripped) { HOL.g.updateMatrixWorld(true);
       if (!S.thrown) { const g = gripPos(1, V2); cr.head.position.copy(g); }
       if (TM.by > TM.y + 0.05) { TM.vy -= 9.8 * dt; TM.by = Math.max(TM.y + 0.1, TM.by + TM.vy * dt); cr.g.position.y = TM.by; if (TM.by <= TM.y + 0.1) { SND.thud(); P.shake = Math.max(P.shake, 0.3); } }
       else cr.g.rotation.x += (-1.5 - cr.g.rotation.x) * Math.min(1, dt * 3);
-      if (t < 12) { cr.neck.updateMatrixWorld(true); const n = cr.neck.getWorldPosition(V4); spray(BLACKB, n.x, n.y + 0.2, n.z, 5, 1.5, 0, 2.6, 0); spray(BLOOD, n.x, n.y + 0.2, n.z, 3, 1.8, 0, 2.2, 0); if (rand() < dt * 2) bloodPool(n.x, n.z, 1.2, 3, Math.max(H(n.x, n.z), 0)); } }
-    if (at(S, 9.6, 'look')) { HOL.look = camera.position; HOL.twitchT = 0.8; P.look = lookAtPt(HS.x, HOL.headPos(V2).y, HS.z); SND.stinger(); }
-    if (at(S, 10.4, 'throw')) { S.thrown = true; HOL.armPose = { L: [0.1, 0.2], R: [-1.4, 0.1] }; const fx2 = -Math.sin(P.yaw), fz2 = -Math.cos(P.yaw); const tgt = V3(P.x + fx2 * 2.2, Math.max(H(P.x + fx2 * 2.2, P.z + fz2 * 2.2), 0) + 0.12, P.z + fz2 * 2.2); const s0 = cr.head.position.clone(), T = 0.85; S.hv = V3((tgt.x - s0.x) / T, (tgt.y - s0.y + 4.9 * T * T) / T, (tgt.z - s0.z) / T); S.hy = tgt.y; SND.whoosh(); }
+      if (t < 16) { cr.neck.updateMatrixWorld(true); const n = cr.neck.getWorldPosition(V4); spray(BLACKB, n.x, n.y + 0.2, n.z, 5, 1.5, 0, 2.6, 0); spray(BLOOD, n.x, n.y + 0.2, n.z, 3, 1.8, 0, 2.2, 0); if (rand() < dt * 2) bloodPool(n.x, n.z, 1.2, 3, Math.max(H(n.x, n.z), 0)); } }
+    if (at(S, 13.6, 'look')) { HOL.look = camera.position; HOL.twitchT = 0.8; P.look = lookAtPt(HS.x, HOL.headPos(V2).y, HS.z); SND.stinger(); }
+    if (at(S, 14.4, 'throw')) { S.thrown = true; HOL.armPose = { L: [0.1, 0.2], R: [-1.4, 0.1] }; const fx2 = -Math.sin(P.yaw), fz2 = -Math.cos(P.yaw); const tgt = V3(P.x + fx2 * 2.2, Math.max(H(P.x + fx2 * 2.2, P.z + fz2 * 2.2), 0) + 0.12, P.z + fz2 * 2.2); const s0 = cr.head.position.clone(), T = 0.85; S.hv = V3((tgt.x - s0.x) / T, (tgt.y - s0.y + 4.9 * T * T) / T, (tgt.z - s0.z) / T); S.hy = tgt.y; SND.whoosh(); }
     if (S.thrown && S.hv) { S.hv.y -= 9.8 * dt; cr.head.position.addScaledVector(S.hv, dt); cr.head.rotation.x += dt * 11; cr.head.rotation.z += dt * 5; spray(BLACKB, cr.head.position.x, cr.head.position.y, cr.head.position.z, 1, 0.5); P.look = lookAtPt(cr.head.position.x, cr.head.position.y, cr.head.position.z); if (cr.head.position.y <= S.hy) { cr.head.position.y = S.hy; S.hv = null; SND.thud(); SND.splat(0); P.shake = 0.3; spray(BLACKB, cr.head.position.x, S.hy, cr.head.position.z, 30, 2.5); bloodPool(cr.head.position.x, cr.head.position.z, 0.7, 1, S.hy - 0.1); cr.head.rotation.set(1.3, 0.4, 0.3); say('Oh god… OH GOD!', 2.2, 'You'); } }
-    if (at(S, 11.8, 'roar')) { HOL.armPose = null; HOL.grip = false; HOL.scream = 1; SND.hollowScream(1.2); P.shake = 0.5; rumble(0.8, 1, 1000); P.look = lookAtPt(HS.x, HOL.headPos(V2).y, HS.z); }
-    if (at(S, 13.6, 'go')) { HOL.scream = 0; HOL.look = null; HS.state = 'leave'; HS.tx = W.wtower.x; HS.tz = W.wtower.z; HS.t = 0; SCN = null; G.mode = 'play'; P.look = null; SND.set('drone', 0, 2);
+    if (at(S, 15.8, 'roar')) { HOL.armPose = null; HOL.grip = false; HOL.scream = 1; SND.hollowScream(1.2); P.shake = 0.5; rumble(0.8, 1, 1000); P.look = lookAtPt(HS.x, HOL.headPos(V2).y, HS.z); }
+    if (at(S, 17.6, 'go')) { HOL.scream = 0; HOL.look = null; HS.state = 'leave'; HS.tx = W.wtower.x; HS.tz = W.wtower.z; HS.t = 0; SCN = null; G.mode = 'play'; P.look = null; SND.set('drone', 0, 2);
       SND.radioBlip(); say('It killed him. It killed the Tall Man… and it’s heading for the old water tower.', 4.2, 'You'); say('Kid! I SEE your lights — but I can’t get the boat through the reeds there!', 4, 'Radio'); say('Meet me at the fishing shack dock — west of you, past the old water tower!', 4, 'Radio'); say('Past the tower. Where it just went. Great.', 3, 'You');
       setObj(32); }
   });
@@ -352,11 +375,49 @@ function updateHollow(dt) {
   HOL.update(dt);
 }
 
+
+// ---------- frogs: sit on the banks and lily pads, croak, and hop away when you get close ----------
+const FROGM = [MSM({ color: 0x4a5a26, roughness: 0.35 }), MSM({ color: 0x5a4a28, roughness: 0.35 }), MSM({ color: 0x3a4a30, roughness: 0.3 })], FROGB = MSM({ color: 0xc8c090, roughness: 0.5 }), FROGE = MSM({ color: 0xd8b030, roughness: 0.1, emissive: 0x1a1000 });
+function makeFrog() { const g = new THREE.Group(), m = FROGM[Math.floor(rand() * 3)], body = new THREE.Group(); g.add(body);
+  sph(1, m, 0, 0.05, 0, body, 0.07, 0.045, 0.09); sph(1, FROGB, 0, 0.035, 0.01, body, 0.06, 0.03, 0.075); const th = sph(1, FROGB, 0, 0.035, 0.06, body, 0.035, 0.022, 0.03); sph(1, m, 0, 0.07, 0.07, body, 0.05, 0.03, 0.045);
+  [-1, 1].forEach(sd => { sph(0.016, FROGE, sd * 0.03, 0.095, 0.075, body); sph(0.008, MAT.black, sd * 0.036, 0.1, 0.087, body); const bl = sph(1, m, sd * 0.06, 0.025, -0.04, body, 0.03, 0.025, 0.06); bl.rotation.y = sd * 0.4; sph(1, m, sd * 0.05, 0.015, 0.06, body, 0.015, 0.03, 0.015); });
+  g.traverse(o => { if (o.isMesh) o.castShadow = false; }); g.scale.setScalar(1.3 + rand() * 0.8); scene.add(g); return { g, th, x: 0, z: 0, y: 0, on: false, hop: null, croak: 2 + rand() * 8 };
+}
+const FROGS = []; for (let i = 0; i < 22; i++) FROGS.push(makeFrog());
+function frogSpot(fr, near) { for (let k = 0; k < 14; k++) { const a = rand() * 6.28, d = (near ? 6 : 10) + rand() * 22, x = P.x + Math.sin(a) * d, z = P.z + Math.cos(a) * d; let ok = false, y = 0;
+    if (x > 1000) { if (Math.abs(x - SW.x) > 148) continue; const h = H(x, z); ok = h > -0.4 && h < 0.35; y = Math.max(h, 0); }
+    else { const ld = Math.hypot(x - LK.x, z - LK.z); ok = ld > LK.c - 1 && ld < LK.c + 9 || rand() < 0.08; y = ld < LK.c ? Math.max(H(x, z), LK.w) : H(x, z); }
+    if (ok) { fr.x = x; fr.z = z; fr.y = y; fr.on = true; fr.hop = null; fr.g.position.set(x, y, z); fr.g.rotation.y = rand() * 6.28; fr.g.visible = true; return; } } fr.on = false; fr.g.visible = false; }
+function updateFrogs(dt) {
+  const play = G.mode === 'play' || G.mode === 'cut', want = P.inHeli || P.inTunnel || P.onTower || !play ? 0 : P.x > 1000 ? 22 : (Math.hypot(P.x - LK.x, P.z - LK.z) < LK.c + 60 ? 12 : 4);
+  FROGS.forEach((fr, i) => {
+    if (i >= want) { fr.g.visible = false; fr.on = false; return; }
+    if (!fr.on || Math.hypot(fr.x - P.x, fr.z - P.z) > 40) { if (rand() < dt * 2) frogSpot(fr, false); return; }
+    const d = Math.hypot(fr.x - P.x, fr.z - P.z);
+    if (fr.hop) { const h = fr.hop; h.t += dt; const k = Math.min(1, h.t / h.T); fr.x = lerp(h.x0, h.x1, k); fr.z = lerp(h.z0, h.z1, k); fr.g.position.set(fr.x, lerp(h.y0, h.y1, k) + Math.sin(k * Math.PI) * h.hgt, fr.z); fr.g.rotation.x = -0.5 + k; if (k >= 1) { fr.hop = null; fr.g.rotation.x = 0; fr.y = h.y1; if (h.water) { SND.plop(panOf(fr.x, fr.z)); if (rand() < 0.5) { fr.g.visible = false; fr.on = false; } } } return; }
+    if (d < 3.2 || (HS.state === 'chase' && d < 8)) { const a = Math.atan2(fr.x - P.x, fr.z - P.z) + (rand() - 0.5) * 0.8, L = 1.4 + rand() * 1.6, x1 = fr.x + Math.sin(a) * L, z1 = fr.z + Math.cos(a) * L, h1 = x1 > 1000 ? H(x1, z1) : H(x1, z1); fr.g.rotation.y = a; fr.hop = { t: 0, T: 0.42, x0: fr.x, z0: fr.z, y0: fr.y, x1, z1, y1: Math.max(h1, x1 > 1000 ? 0 : h1), hgt: 0.35 + rand() * 0.25, water: x1 > 1000 ? h1 < 0 : Math.hypot(x1 - LK.x, z1 - LK.z) < LK.c }; return; }
+    fr.croak -= dt; const pulse = fr.croak < 0.6 ? Math.abs(Math.sin(fr.croak * 18)) : 0; fr.th.scale.set(0.035 * (1 + pulse * 1.4), 0.022 * (1 + pulse * 1.6), 0.03 * (1 + pulse));
+    if (fr.croak <= 0) { fr.croak = 3 + rand() * 9; if (d < 25) SND.frog(panOf(fr.x, fr.z)); }
+  });
+}
+
+// the first step onto dry land squashes a frog flat — look down at the mess
+function frogSquish() {
+  G.mode = 'cut'; clearSubs(); const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), x = P.x + fx * 0.55, z = P.z + fz * 0.55, y = H(x, z) + 0.01;
+  const f = makeFrog(); f.g.position.set(x, y, z); f.g.rotation.y = rand() * 6.28; f.g.scale.set(2.1, 0.45, 2.3); f.th.visible = false; GOREOBJ.push(f.g);
+  const gut = MSM({ color: 0xb05a5a, roughness: 0.25 }), gut2 = MSM({ color: 0x6a1010, roughness: 0.2 });
+  for (let k = 0; k < 4; k++) { let a = rand() * 6.28, px = x, pz = z; for (let j = 0; j < 9; j++) { a += (rand() - 0.5) * 1.4; const nx = px + Math.sin(a) * 0.075, nz = pz + Math.cos(a) * 0.075; const c = new THREE.Mesh(new THREE.CapsuleGeometry(0.02 + rand() * 0.008, 0.075, 3, 6), k === 1 ? gut2 : gut); c.position.set((px + nx) / 2, y + 0.012, (pz + nz) / 2); c.rotation.set(Math.PI / 2, 0, -a); scene.add(c); GOREOBJ.push(c); px = nx; pz = nz; } }
+  SND.splat(0); SND.crunch(0); SND.plop(0); P.shake = 0.15; spray(BLOOD, x, y + 0.05, z, 18, 1.2); bloodPool(x, z, 0.28, 0.6, y);
+  P.look = { yaw: P.yaw, pitch: -1.15 };
+  setTimeout(() => { say('*squelch* …what was that?', 2.2, 'You'); }, 400);
+  setTimeout(() => { say('Ugh — I stepped on a frog. Its guts are hanging out everywhere…', 3.6, 'You'); }, 2300);
+  setTimeout(() => { P.look = null; G.mode = 'play'; say('Solid ground at least. Keep moving.', 2.6, 'You'); setObj(20); }, 5600);
+}
 // ---------- main per-frame update (called from updateCh2) ----------
 function updateMonsters(dt) {
   if (SCN) { SCN.t += dt; SCN.f(SCN, dt); }
   if (G.mode === 'play' && G.obj === 24 && !G.h1 && P.x > 1000) { const dp = Math.hypot(P.x - W.pump.x, P.z - W.pump.z); if (dp < 75 && dp > 28) hollowDeer(); }
-  updateMire(dt); updateHollow(dt); stepChunks(dt); stepParticles(ACIDP, dt); stepParticles(MUDP, dt);
+  updateMire(dt); updateHollow(dt); updateFrogs(dt); stepChunks(dt); stepParticles(ACIDP, dt); stepParticles(MUDP, dt);
   if (S_DEER && !SCN) { stepHalf(S_DEER.front, dt); stepHalf(S_DEER.back, dt); }
   if (W.swamp.visible) { const on = Math.sin(G.time * 2.2) > 0.6; W.wtLampM.color.setHex(on ? 0xff2010 : 0x300000); W.wtLampL.intensity = on ? 2.2 : 0; }
   if (!P.held && P.sinkY > 0) P.sinkY = Math.max(0, P.sinkY - dt * 1.5);

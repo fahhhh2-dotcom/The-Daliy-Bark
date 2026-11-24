@@ -212,7 +212,7 @@ function speak(text, who) {
     const clean = text.replace(/…/g, '... ').replace(/—/g, ', ').replace(/\bkk+h*…?/gi, '').replace(/[“”*]/g, '').replace(/\b([A-Z]{2,})\b/g, w => w.charAt(0) + w.slice(1).toLowerCase()).trim();
     if (!clean || clean === '...') return;
     const radio = who !== 'You', scared = /!|run|no no|get back|stay away|he’s|behind you/i.test(text), quiet = /…/.test(text) && !scared;
-    const opts = { pitch: 1 + (rand() - 0.5) * 0.06 + (scared ? 0.05 : 0) - (quiet ? 0.03 : 0), rate: (radio ? 0.96 : 1.0) + (rand() - 0.5) * 0.06 + (scared ? 0.1 : 0) - (quiet ? 0.08 : 0), vol: Math.max(0.35, Math.min(1, settings.vol * (quiet ? 0.85 : 1.05))) };
+    const opts = { pitch: 1 + (rand() - 0.5) * 0.06 + (scared ? 0.05 : 0) - (quiet ? 0.03 : 0), rate: (radio ? 1.12 : 1.18) + (rand() - 0.5) * 0.06 + (scared ? 0.1 : 0) - (quiet ? 0.08 : 0), vol: Math.max(0.35, Math.min(1, settings.vol * (quiet ? 0.85 : 1.05))) };
     VOICE.cur = null; opts.id = VOICE.line = (VOICE.line || 0) + 1; VOICE.lineOn = true; VOICE.lineStarted = false; VOICE.lineStart = performance.now();
     if (speechSynthesis.speaking || speechSynthesis.pending) { speechSynthesis.cancel(); setTimeout(() => speakLine(clean, who, opts, 0), 70); } else speakLine(clean, who, opts, 0);
     if (radio) SND.radioBlip();
@@ -882,7 +882,7 @@ function updateCh2(dt) {
     W.smoke.forEach(sp => { const u = sp.userData; u.t = (u.t + dt * 0.08) % 1; sp.position.set(W.crash.x + Math.sin(u.t * 9) * 1.5, H(W.crash.x, W.crash.z) + 1.5 + u.t * 14, W.crash.z + u.t * 3); const sc = 2 + u.t * 7; sp.scale.set(sc, sc, sc); sp.material.opacity = 0.45 * (1 - u.t); });
     W.crashFire.intensity = 2.2 + Math.sin(G.time * 11) * 0.3 + rand() * 0.3; W.shackWin.emissiveIntensity = 0.8 + Math.sin(G.time * 5) * 0.1;
     if (G.mode === 'play') {
-      if (G.obj === 19 && H(P.x, P.z) > 0.25) { say('Solid ground. Finally.', 2.6, 'You'); setObj(20); }
+      if (G.obj === 19 && H(P.x, P.z) > 0.25) { if (typeof frogSquish === 'function') frogSquish(); else { say('Solid ground. Finally.', 2.6, 'You'); setObj(20); } }
       if (G.obj === 20 && Math.hypot(P.x - W.crash.x, P.z - W.crash.z) < 15) { say('The pilot… he’s gone.', 2.8, 'You'); say('Maybe there’s something useful in the wreck.', 3, 'You'); setObj(21); }
       if (G.obj === 24 && Math.hypot(P.x - W.pump.x, P.z - W.pump.z) < 14) { say('The pump station. Generator’s around the side.', 3, 'You'); setObj(25); }
       if (G.obj === 26) { G.surviveT -= dt; if (G.surviveT <= 0) { C.final = false; C.state = 'off'; showC(false); tallManDeath(); } }

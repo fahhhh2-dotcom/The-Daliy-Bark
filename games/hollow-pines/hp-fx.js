@@ -134,9 +134,21 @@ function coverGeo(cards, tilt, w, h, up) {
   for (let k = 0; k < ps.count; k++) { v.set(ps.getX(k) * 0.6, up, ps.getZ(k) * 0.6).normalize(); nr.setXYZ(k, v.x, v.y, v.z); }
   return g;
 }
+// forest-floor detail: leaf litter, fallen twigs and little mushroom clusters (dense on high quality)
+const LITTER_TX = ctex(256, 256, (g, w, h) => { g.clearRect(0, 0, w, h); for (let i = 0; i < 110; i++) { const x = rand() * w, y = rand() * h, r = 5 + rand() * 9, a = rand() * 6.28; g.save(); g.translate(x, y); g.rotate(a); const c = [['#5a3a1e', '#7a4a22'], ['#6e5a2a', '#8a6a30'], ['#3e2a18', '#5a3a20'], ['#7a3a18', '#9a5a24']][i % 4]; g.fillStyle = c[rand() < 0.5 ? 0 : 1]; g.beginPath(); g.ellipse(0, 0, r, r * 0.45, 0, 0, 7); g.fill(); g.strokeStyle = 'rgba(30,18,8,.6)'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(-r, 0); g.lineTo(r, 0); g.stroke(); g.restore(); } for (let i = 0; i < 260; i++) { g.strokeStyle = `rgba(${90 + rand() * 40},${60 + rand() * 20},30,.9)`; g.lineWidth = 0.8; const x = rand() * w, y = rand() * h, a = rand() * 6.28, L = 6 + rand() * 10; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L); g.stroke(); } });
+const litterGeo = (() => { const parts = []; for (let i = 0; i < 4; i++) { const p = new THREE.PlaneGeometry(1.1 + rand() * 0.6, 1.1 + rand() * 0.6); p.rotateX(-Math.PI / 2); p.rotateY(rand() * 6.28); p.translate((rand() - 0.5) * 0.9, 0.035 + i * 0.006, (rand() - 0.5) * 0.9); parts.push(p); } return merge(parts); })();
+const twigGeo = (() => { const parts = []; for (let i = 0; i < 5; i++) { const L = 0.4 + rand() * 0.9, c = new THREE.CylinderGeometry(0.012, 0.022, L, 4); c.rotateZ(Math.PI / 2); c.rotateY(rand() * 6.28); c.translate((rand() - 0.5) * 0.6, 0.03, (rand() - 0.5) * 0.6); parts.push(c); } return merge(parts); })();
+const shroomGeo = (() => { const parts = []; const n = 3 + Math.floor(rand() * 3); for (let i = 0; i < 5; i++) { const x = (rand() - 0.5) * 0.25, z = (rand() - 0.5) * 0.25, h = 0.05 + rand() * 0.09, r = 0.025 + rand() * 0.035; const st = new THREE.CylinderGeometry(r * 0.3, r * 0.4, h, 5); st.translate(x, h / 2, z); parts.push(st); const cp = new THREE.SphereGeometry(r, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2); cp.scale(1, 0.6, 1); cp.translate(x, h, z); parts.push(cp); } return merge(parts); })();
+const lilyGeo = (() => { const parts = []; for (let i = 0; i < 5; i++) { const p = new THREE.CircleGeometry(0.16 + rand() * 0.14, 14, 0.3, Math.PI * 2 - 0.45); p.rotateX(-Math.PI / 2); p.translate((rand() - 0.5) * 1.4, 0.012 + i * 0.002, (rand() - 0.5) * 1.4); parts.push(p); } const f = new THREE.SphereGeometry(0.06, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2); f.translate(0.2, 0.02, 0.1); parts.push(f); return merge(parts); })();
+const flowerGeo = (() => { const parts = []; for (let i = 0; i < 6; i++) { const x = (rand() - 0.5) * 0.5, z = (rand() - 0.5) * 0.5, h = 0.15 + rand() * 0.25; const st = new THREE.CylinderGeometry(0.004, 0.006, h, 3); st.translate(x, h / 2, z); parts.push(st); const fl = new THREE.SphereGeometry(0.025 + rand() * 0.015, 6, 4); fl.scale(1, 0.5, 1); fl.translate(x, h, z); parts.push(fl); } return merge(parts); })();
 const COVER = [
-  { geo: coverGeo(6, 0.75, 0.75, 1.0, 1.4), mat: windify(MSM({ map: TX.fern, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.75 }), 0.06, 0.15, 'fern'), n: 1600, tile: 76, clear: true },
-  { geo: coverGeo(3, 0.12, 0.7, 0.55, 2.0), mat: windify(MSM({ map: TX.grass, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.85 }), 0.1, 0.05, 'grass'), n: 3200, tile: 70, clear: false }
+  { geo: coverGeo(6, 0.75, 0.75, 1.0, 1.4), mat: windify(MSM({ map: TX.fern, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.75 }), 0.06, 0.15, 'fern'), n: 2400, tile: 76, clear: true },
+  { geo: coverGeo(3, 0.12, 0.7, 0.55, 2.0), mat: windify(MSM({ map: TX.grass, alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.85 }), 0.1, 0.05, 'grass'), n: 5000, tile: 70, clear: false },
+  { geo: litterGeo, mat: MSM({ map: LITTER_TX, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.95 }), n: 1500, tile: 64, clear: false, hqOnly: true, flat: true },
+  { geo: twigGeo, mat: MSM({ color: 0x3a2c20, roughness: 1 }), n: 700, tile: 60, clear: true, hqOnly: true, flat: true },
+  { geo: lilyGeo, mat: MSM({ color: 0x3e5a24, roughness: 0.35, side: THREE.DoubleSide }), n: 900, tile: 70, water: true, flat: true },
+  { geo: flowerGeo, mat: MSM({ color: 0xb8a8d0, roughness: 0.7, emissive: 0x0a0812 }), n: 700, tile: 66, clear: true, hqOnly: true },
+  { geo: shroomGeo, mat: MSM({ color: 0xc8b89a, roughness: 0.6 }), n: 240, tile: 70, clear: true, hqOnly: true }
 ].map(c => {
   const im = new THREE.InstancedMesh(c.geo, c.mat, c.n); im.frustumCulled = false; im.castShadow = false; im.receiveShadow = true; scene.add(im);
   const off = new Float32Array(c.n * 4); for (let i = 0; i < c.n; i++) { off[i * 4] = rand() * c.tile; off[i * 4 + 1] = rand() * c.tile; off[i * 4 + 2] = rand() * 6.28; off[i * 4 + 3] = 0.6 + rand() * 0.9; }
@@ -147,14 +159,14 @@ const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Eule
 function placeCover(px, pz, force) {
   for (const c of COVER) {
     if (!force && Math.hypot(px - c.lx, pz - c.lz) < 2.5) continue; c.lx = px; c.lz = pz;
-    const n = Math.floor(c.n * (HQ() ? 1 : 0.4)); c.im.count = n; const T2 = c.tile, half = T2 / 2;
+    const n = Math.floor(c.n * (HQ() ? 1 : c.hqOnly ? 0 : 0.35)); c.im.count = n; const T2 = c.tile, half = T2 / 2;
     for (let i = 0; i < n; i++) {
       const x = px + ((((c.off[i * 4] - px) % T2) + T2) % T2) - half, z = pz + ((((c.off[i * 4 + 1] - pz) % T2) + T2) % T2) - half;
-      let ok = Math.hypot(x - LK.x, z - LK.z) > LK.c + 1.5 && pathDist(x, z) > 1.5;
-      if (ok && x > 1000) { const hh = H(x, z); if (c.clear ? hh < 0.15 : hh < -0.5) ok = false; else if (Math.abs(x - SW.x) > 148) ok = false; }
+      let ok = c.water ? (x > 1000 && H(x, z) < -0.12 && Math.abs(x - SW.x) < 148) : Math.hypot(x - LK.x, z - LK.z) > LK.c + 1.5 && pathDist(x, z) > 1.5;
+      if (ok && x > 1000 && !c.water) { const hh = H(x, z); if (c.clear ? hh < 0.15 : hh < -0.5) ok = false; else if (Math.abs(x - SW.x) > 148) ok = false; }
       if (ok && c.clear && x < 1000) for (const f of FLAT) if (Math.hypot(x - f.x, z - f.z) < f.r * 0.95) { ok = false; break; }
       if (ok) for (const b of BOX) if (Math.abs(x - b[0]) < b[2] + 0.4 && Math.abs(z - b[1]) < b[3] + 0.4) { ok = false; break; }
-      const sc = ok ? c.off[i * 4 + 3] : 0; _e.set(0, c.off[i * 4 + 2], 0); _q.setFromEuler(_e); _p.set(x, H(x, z) - 0.03, z); _s.set(sc, sc * (0.8 + (i % 5) * 0.1), sc);
+      const sc = ok ? c.off[i * 4 + 3] : 0; _e.set(0, c.off[i * 4 + 2], 0); _q.setFromEuler(_e); _p.set(x, c.water ? 0 : H(x, z) - (c.flat ? 0 : 0.03), z); _s.set(sc, c.flat ? 1 : sc * (0.8 + (i % 5) * 0.1), sc); if (c.flat && !c.water && x > 1000 && H(x, z) < 0.05) _s.set(0, 0, 0);
       _m.compose(_p, _q, _s); c.im.setMatrixAt(i, _m);
     }
     c.im.instanceMatrix.needsUpdate = true;
