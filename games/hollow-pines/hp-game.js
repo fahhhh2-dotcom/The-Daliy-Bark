@@ -21,10 +21,14 @@ let CP = null;
 // ================= SAVES (3 slots) =================
 const SK = i => 'hollowPinesSlot' + i;
 const readSlot = i => { try { return JSON.parse(localStorage.getItem(SK(i)) || 'null'); } catch (e) { return null; } };
-const writeSlot = (i, d) => { try { localStorage.setItem(SK(i), JSON.stringify(d)); if (d && d.obj >= 16 && !d.ch2done) localStorage.setItem('hollowPinesCh2_' + i, JSON.stringify(d)); } catch (e) {} };
+const writeSlot = (i, d) => { try { localStorage.setItem(SK(i), JSON.stringify(d)); saveGear(i, d); if (d && d.obj >= 16 && !d.ch2done) localStorage.setItem('hollowPinesCh2_' + i, JSON.stringify(d)); } catch (e) {} };
+// every gun you've found on a save is remembered, so Chapter 2 always starts with them
+const readGear = i => { try { return JSON.parse(localStorage.getItem('hollowPinesGear_' + i) || 'null'); } catch (e) { return null; } };
+function saveGear(i, d) { if (!d || !d.guns) return; const g = readGear(i) || { guns: { pistol: false, shotgun: false }, am: { p: 12, pr: 12, s: 0, sr: 0 } }; g.guns.pistol = g.guns.pistol || !!d.guns.pistol; g.guns.shotgun = g.guns.shotgun || !!d.guns.shotgun; if (d.obj <= 16 && d.am) { g.am = g.am || {}; for (const k of ['p', 'pr', 's', 'sr']) g.am[k] = Math.max(g.am[k] || 0, d.am[k] || 0); } try { localStorage.setItem('hollowPinesGear_' + i, JSON.stringify(g)); } catch (e) {} }
+function applyGear(i) { const g = readGear(i); if (!g) return; G.guns.pistol = G.guns.pistol || g.guns.pistol; G.guns.shotgun = G.guns.shotgun || g.guns.shotgun; if (G.obj === 16) for (const k of ['p', 'pr', 's', 'sr']) G.am[k] = Math.max(G.am[k] || 0, (g.am && g.am[k]) || 0); if (G.guns.pistol) { G.am.p = Math.max(G.am.p, 6); } if (G.guns.shotgun) { G.am.s = Math.max(G.am.s, 2); } }
 const readCh2 = i => { try { const d = JSON.parse(localStorage.getItem('hollowPinesCh2_' + i) || 'null'); return d && d.obj >= 16 && !d.ch2done ? d : null; } catch (e) { return null; } };
 const clearCh2 = i => { try { localStorage.removeItem('hollowPinesCh2_' + i); } catch (e) {} };
-const delSlot = i => { try { localStorage.removeItem(SK(i)); localStorage.removeItem('hollowPinesCh2_' + i); } catch (e) {} };
+const delSlot = i => { try { localStorage.removeItem(SK(i)); localStorage.removeItem('hollowPinesCh2_' + i); localStorage.removeItem('hollowPinesGear_' + i); } catch (e) {} };
 function snapshot() { const o = {}; PKEYS.forEach(k => o[k] = JSON.parse(JSON.stringify(G[k]))); o.x = P.x; o.z = P.z; o.yaw = P.yaw; o.tower = P.onTower; o.updated = Date.now(); return o; }
 function checkpoint() { CP = snapshot(); writeSlot(G.slot, CP); try { const st = JSON.parse(localStorage.getItem('hollowPinesStats') || '{}'); st.best = Math.max(st.best || 0, G.obj); if (G.done) st.escaped = (st.escaped || 0); localStorage.setItem('hollowPinesStats', JSON.stringify(st)); } catch (e) {} }
 
@@ -971,7 +975,7 @@ function updateScare(dt) {
 function restore(s) {
   s = s || Object.assign(fresh(), { x: 0, z: 5, yaw: 0, tower: false });
   PKEYS.forEach(k => { if (s[k] !== undefined) G[k] = JSON.parse(JSON.stringify(s[k])); });
-  G.am = Object.assign({ p: 0, pr: 0, s: 0, sr: 0 }, G.am); G.guns = Object.assign({ pistol: false, shotgun: false, flare: false }, G.guns);
+  G.am = Object.assign({ p: 0, pr: 0, s: 0, sr: 0 }, G.am); G.guns = Object.assign({ pistol: false, shotgun: false, flare: false }, G.guns); if (G.obj >= 16) { G.guns.flare = false; applyGear(G.slot); }
   P.x = s.x; P.z = s.z; P.yaw = s.yaw || 0; P.pitch = 0; P.onTower = !!s.tower; P.inTunnel = false; P.y = P.onTower ? TG0 + TY + 0.08 : H(P.x, P.z);
   P.hp = 100; P.stam = 100; P.tired = false; P.overheat = 0; P.light = G.hasLight; P.look = null; P.hurtT = 9; P.shake = 0;
   $('hurt').style.opacity = 0; setEnv(false); clearAnimals(); clearSubs(); G.carry = G.obj === 2 ? G.carry : -1;
@@ -1010,7 +1014,7 @@ function begin() {
   if (G.obj === 15) say('Grab the ladder! GO!', 2.6, 'Pilot');
 }
 async function newGame(slot) {
-  G.slot = slot; clearCh2(slot); Object.assign(G, fresh(), { tips: {} }); restore(null); checkpoint(); hideMenu();
+  G.slot = slot; clearCh2(slot); try { localStorage.removeItem('hollowPinesGear_' + slot); } catch (e) {} Object.assign(G, fresh(), { tips: {} }); restore(null); checkpoint(); hideMenu();
   G.mode = 'intro'; lock(true);
   const lines = ['Mr. Harlan owns every tree in Hollow Pines.', 'He’s gone away on vacation for a week.', 'He asked you to look after his forest while he’s gone.', 'It’s your first night alone out here.', 'Something in the trees already knows your name.'];
   const el = $('intro'); el.style.display = 'grid'; G.skipIntro = false;

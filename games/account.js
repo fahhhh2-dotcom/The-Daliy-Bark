@@ -29,7 +29,7 @@
     "melonLabStats",                     // Melon Lab
     "spaceSusStats", "susName", "susColor",  // Space Suspects
     "skyDropStats", "royaleName",        // Sky Drop Royale
-    "hollowPinesSlot0", "hollowPinesSlot1", "hollowPinesSlot2", "hollowPinesCh2_0", "hollowPinesCh2_1", "hollowPinesCh2_2", "hollowPinesSettings", "hollowPinesStats"   // Hollow Pines saves + Chapter 2 progress
+    "hollowPinesSlot0", "hollowPinesSlot1", "hollowPinesSlot2", "hollowPinesCh2_0", "hollowPinesCh2_1", "hollowPinesCh2_2", "hollowPinesGear_0", "hollowPinesGear_1", "hollowPinesGear_2", "hollowPinesSettings", "hollowPinesStats"   // Hollow Pines saves + Chapter 2 progress
   ];
   const META = "arcade_sync_times";
   const IS_HUB = !!window.ARCADE_HUB;
