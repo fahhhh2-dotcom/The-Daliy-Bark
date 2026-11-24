@@ -23,7 +23,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
 const FOG_FOREST = new THREE.Color(0x090d12), FOG_TUNNEL = new THREE.Color(0x020202), FOG_FLARE = new THREE.Color(0x1c0606);
-scene.background = FOG_FOREST.clone(); scene.fog = new THREE.FogExp2(FOG_FOREST.clone(), 0.03);
+scene.background = FOG_FOREST.clone(); scene.fog = new THREE.FogExp2(FOG_FOREST.clone(), 0.026);
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.04, 150); camera.rotation.order = 'YXZ'; scene.add(camera);
 const hemi = new THREE.HemisphereLight(0x4a5878, 0x15110c, 0.55); scene.add(hemi);
 const moon = new THREE.DirectionalLight(0x8494c4, 0.25); moon.position.set(-60, 100, 40); scene.add(moon);
@@ -130,7 +130,7 @@ function windify(mat, amp, h0, key) {
 }
 const MSM = o => new THREE.MeshStandardMaterial(o);
 const MAT = {
-  ground: MSM({ map: GROUND.map, normalMap: GROUND.nrm, normalScale: new THREE.Vector2(1.3, 1.3), vertexColors: true, roughness: 0.82 }),
+  ground: MSM({ map: GROUND.map, normalMap: GROUND.nrm, normalScale: new THREE.Vector2(1.4, 1.4), vertexColors: true, roughness: 0.7, envMapIntensity: 0.45 }),
   bark: MSM({ map: BARK.map, normalMap: BARK.nrm, normalScale: new THREE.Vector2(1.6, 1.6), roughness: 0.95 }),
   leaf: windify(MSM({ map: TX.branch, alphaTest: 0.42, side: THREE.DoubleSide, roughness: 0.8 }), 0.012, 2.0, 'leaf'),
   dead: MSM({ map: BARK.map, normalMap: BARK.nrm, color: 0x9a9088, roughness: 1 }),
@@ -153,7 +153,7 @@ const MAT = {
   paper: MSM({ color: 0xe0d6be, roughness: 0.9 }),
   glass: MSM({ color: 0x0e161c, roughness: 0.15, metalness: 0.6 }),
   car: MSM({ color: 0x1d2a36, roughness: 0.35, metalness: 0.6 }),
-  skin: new THREE.MeshPhysicalMaterial({ map: TX.skin, color: 0x857a72, normalMap: NRM.skin, normalScale: new THREE.Vector2(1.8, 1.8), roughness: 0.62, clearcoat: 0.12, clearcoatRoughness: 0.7, sheen: 0.5, sheenColor: new THREE.Color(0x4a2a2a) }),
+  skin: new THREE.MeshPhysicalMaterial({ map: TX.skin, color: 0x76777a, normalMap: NRM.skin, normalScale: new THREE.Vector2(1.8, 1.8), roughness: 0.62, clearcoat: 0.12, clearcoatRoughness: 0.7, sheen: 0.5, sheenColor: new THREE.Color(0x4a2a2a) }),
   cdark: MSM({ color: 0x120707, roughness: 0.9 }),
   mouth: MSM({ color: 0x2a0303, roughness: 0.4 }),
   teeth: MSM({ color: 0xd8cfae, roughness: 0.4 }),
@@ -247,7 +247,7 @@ const noCast = o => o.traverse(c => { if (c.isMesh) { c.castShadow = false; } })
     gc[i * 3] = r; gc[i * 3 + 1] = g; gc[i * 3 + 2] = b;
   }
   gg.setAttribute('color', new THREE.BufferAttribute(gc, 3)); gg.computeVertexNormals();
-  const ground = new THREE.Mesh(gg, MAT.ground); ground.receiveShadow = true; scene.add(ground);
+  const ground = new THREE.Mesh(gg, MAT.ground); ground.receiveShadow = true; scene.add(ground); window.GROUND_GEO = gg;
   const water = new THREE.Mesh(new THREE.CircleGeometry(LK.r + 9, 56), MAT.water); water.rotation.x = -Math.PI / 2; water.position.set(LK.x, LK.w, LK.z); scene.add(water);
 }
 

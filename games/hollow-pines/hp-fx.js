@@ -54,25 +54,25 @@ const FX = { t: 0, flash: 0, rainAmt: 0.4, hemiBase: hemi.intensity, moonBase: m
       c += (texture2D(tDiffuse, vUv + uDir * 1.3846).rgb + texture2D(tDiffuse, vUv - uDir * 1.3846).rgb) * 0.3162;
       c += (texture2D(tDiffuse, vUv + uDir * 3.2308).rgb + texture2D(tDiffuse, vUv - uDir * 3.2308).rgb) * 0.0703;
       gl_FragColor = vec4(c, 1.0); }`);
-  FX.final = SM({ tDiffuse: { value: null }, tBloom: { value: null }, uTime: { value: 0 }, uRes: { value: new THREE.Vector2() }, uExposure: { value: 1.35 }, uBloom: { value: 0.65 }, uGrain: { value: 0.05 }, uCA: { value: 0.007 }, uVig: { value: 0.62 }, uRed: { value: 0 }, uFlash: { value: 0 } },
+  FX.final = SM({ tDiffuse: { value: null }, tBloom: { value: null }, uTime: { value: 0 }, uRes: { value: new THREE.Vector2() }, uExposure: { value: 1.35 }, uBloom: { value: 0.65 }, uGrain: { value: 0.028 }, uCA: { value: 0.007 }, uVig: { value: 0.62 }, uRed: { value: 0 }, uFlash: { value: 0 } },
     `uniform sampler2D tDiffuse, tBloom; uniform float uTime, uExposure, uBloom, uGrain, uCA, uVig, uRed, uFlash; uniform vec2 uRes; varying vec2 vUv;
     vec3 aces(vec3 x){ return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
     vec3 srgb(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
     void main(){
       vec2 cc = vUv - 0.5; float r2 = dot(cc, cc); vec2 off = cc * r2 * uCA * 4.0;
-      vec3 col = vec3(texture2D(tDiffuse, vUv + off).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv - off).b);
+      vec3 col = texture2D(tDiffuse, vUv).rgb;
       if (!(col.r < 65000.0) || !(col.g < 65000.0) || !(col.b < 65000.0)) col = vec3(0.0);
       vec3 bl = texture2D(tBloom, vUv).rgb; if (!(bl.r < 65000.0)) bl = vec3(0.0); col += bl * uBloom;
       col *= uExposure * (1.0 + uFlash * 0.6);
       float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
-      col = mix(vec3(l), col, 0.8);
-      col *= mix(vec3(0.82, 0.94, 1.14), vec3(1.06, 1.0, 0.93), smoothstep(0.0, 0.4, l));
+      col = mix(vec3(l), col, 0.88);
+      col *= mix(vec3(0.92, 0.97, 1.06), vec3(1.03, 1.0, 0.96), smoothstep(0.0, 0.4, l));
       col = mix(col, col * vec3(1.35, 0.55, 0.5), uRed);
       col = aces(col);
       col *= 1.0 - uVig * smoothstep(0.12, 0.85, r2 * 2.3);
       col = srgb(col);
       float g = fract(sin(dot(floor(vUv * uRes) + fract(uTime * 7.13) * 91.7, vec2(12.9898, 78.233))) * 43758.5453);
-      col += (g - 0.5) * uGrain;
+      col += (g - 0.5) * uGrain * (1.0 - l * 0.5);
       gl_FragColor = vec4(col, 1.0);
     }`);
   FX.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), FX.final); FX.quad.frustumCulled = false;
@@ -94,7 +94,7 @@ const FX = { t: 0, flash: 0, rainAmt: 0.4, hemiBase: hemi.intensity, moonBase: m
 const RAIN_MAX = 1500;
 const rain = (() => {
   const geo = new THREE.BufferGeometry(), pos = new Float32Array(RAIN_MAX * 6); pos.fill(-9999); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const m = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0x8090a2, transparent: true, opacity: 0.3, depthWrite: false }));
+  const m = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0x9aa4b0, transparent: true, opacity: 0.18, depthWrite: false }));
   m.frustumCulled = false; scene.add(m); return { m, pos, head: new Float32Array(RAIN_MAX * 3).fill(-9999), wind: 1.2 };
 })();
 function updateRain(dt, amt) {
@@ -146,7 +146,7 @@ function placeCover(px, pz, force) {
 
 // ---------- ground mist ----------
 const MIST = [];
-{ const mm = new THREE.SpriteMaterial({ map: TX.mist, color: 0x9aa6b4, transparent: true, opacity: 0.16, depthWrite: false }); for (let i = 0; i < 28; i++) { const s = new THREE.Sprite(mm); s.scale.set(10 + rand() * 6, 3 + rand() * 1.5, 1); s.userData = { ox: rand() * 64, oz: rand() * 64, sp: 0.2 + rand() * 0.4 }; scene.add(s); MIST.push(s); } }
+{ const mm = new THREE.SpriteMaterial({ map: TX.mist, color: 0x9aa6b4, transparent: true, opacity: 0.16, depthWrite: false }); for (let i = 0; i < 0; i++) { const s = new THREE.Sprite(mm); s.scale.set(10 + rand() * 6, 3 + rand() * 1.5, 1); s.userData = { ox: rand() * 64, oz: rand() * 64, sp: 0.2 + rand() * 0.4 }; scene.add(s); MIST.push(s); } }
 function updateMist(px, pz, dt, vis) { for (const s of MIST) { s.visible = vis; if (!vis) continue; const u = s.userData; u.ox += u.sp * dt; const x = px + ((((u.ox - px) % 64) + 64) % 64) - 32, z = pz + ((((u.oz - pz) % 64) + 64) % 64) - 32; s.position.set(x, H(x, z) + 0.9, z); } }
 
 // ---------- flashlight beam (fake volumetric) + dust in the beam ----------
@@ -182,12 +182,60 @@ FX.update = (dt, o) => {
   if (inside) f = 0;
   if (FX.flash === 0 && f === 0) { FX.hemiBase = hemi.intensity; FX.moonBase = moon.intensity; }
   FX.flash = f; SKYU.uFlash.value = f; FX.final.uniforms.uFlash.value = f * 0.4;
-  if (f > 0) { hemi.intensity = FX.hemiBase + f * 2.2; moon.intensity = FX.moonBase + f * 3; } else if (FX.light.e < 0) { hemi.intensity = FX.hemiBase; moon.intensity = FX.moonBase; }
+  if (f > 0) { hemi.intensity = FX.hemiBase + f * 1.3; moon.intensity = FX.moonBase + f * 2.2; } else if (FX.light.e < 0) { hemi.intensity = FX.hemiBase; moon.intensity = FX.moonBase; }
   updateRain(dt, inside ? 0 : o.rain);
   if (!inside) placeCover(o.x, o.z, false); for (const c of COVER) c.im.visible = !inside;
-  updateMist(o.x, o.z, dt, !inside);
+
   beamFX.material.uniforms.uI.value = flash.intensity > 0 ? (inside ? 0.05 : 0.085) * Math.min(1, flash.intensity / 2.7) : 0;
   updateDust(dt, flash.intensity > 0);
   FX.final.uniforms.uRed.value += ((o.red || 0) - FX.final.uniforms.uRed.value) * Math.min(1, dt * 2);
 };
 FX.setQuality = () => { FX.makeRT(); FX.resize(); placeCover(camera.position.x, camera.position.z, true); };
+
+// ---------- hyper-real extras ----------
+// 1) moonlight shadows (high quality)
+moon.target = new THREE.Object3D(); scene.add(moon.target);
+moon.shadow.mapSize.set(2048, 2048); moon.shadow.bias = -0.0004; moon.shadow.normalBias = 0.03;
+Object.assign(moon.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, near: 1, far: 320 });
+moon.intensity = 0.34; hemi.intensity = 0.46; FX.hemiBase = 0.46; FX.moonBase = 0.34;
+FX.applyShadows = () => { moon.castShadow = HQ(); };
+FX.applyShadows();
+FX.followMoon = (x, z) => { const y = H(x, z); moon.target.position.set(x, y, z); moon.position.set(x + SKYU.uMoon.value.x * 160, y + SKYU.uMoon.value.y * 160, z + SKYU.uMoon.value.z * 160); };
+// 2) sky reflections on wet surfaces (image-based light from the night sky)
+try {
+  const envScene = new THREE.Scene(), envSky = new THREE.Mesh(new THREE.SphereGeometry(100, 32, 16), sky.material); envScene.add(envSky);
+  const pm = new THREE.PMREMGenerator(renderer); FX.env = pm.fromScene(envScene, 0.02).texture; pm.dispose(); scene.environment = FX.env;
+} catch (e) { FX.env = null; }
+// 3) contact shadows: darker, damper ground around every trunk, rock and stump
+{
+  const gp = window.GROUND_GEO.attributes.position, gc = window.GROUND_GEO.attributes.color;
+  for (let i = 0; i < gp.count; i++) {
+    const x = gp.getX(i), z = gp.getZ(i), cx = Math.floor(x / 6), cz = Math.floor(z / 6); let k = 1;
+    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const A = CG.get((cx + a) + ',' + (cz + b)); if (!A) continue; for (const t of A) { if (t[2] > 1.5) continue; const d = Math.hypot(x - t[0], z - t[1]); if (d < 3.5) k *= 1 - 0.38 * (1 - smooth(t[2], 3.5, d)); } }
+    if (k < 1) gc.setXYZ(i, gc.getX(i) * k, gc.getY(i) * k, gc.getZ(i) * k);
+  }
+  gc.needsUpdate = true;
+}
+// 4) rain puddles along the trails (mirror-smooth, follow the ground)
+{
+  const pm = new THREE.MeshStandardMaterial({ color: 0x0b0d10, roughness: 0.04, metalness: 0.1, envMapIntensity: 1.4, polygonOffset: true, polygonOffsetFactor: -3, transparent: true, opacity: 0.92 });
+  for (let i = 0; i < 90; i++) {
+    const sg = SEG[Math.floor(rng() * SEG.length)], t = rng(), x0 = sg[0] + (sg[2] - sg[0]) * t + (rng() - 0.5) * 1.6, z0 = sg[1] + (sg[3] - sg[1]) * t + (rng() - 0.5) * 1.6;
+    if (Math.hypot(x0 - LK.x, z0 - LK.z) < LK.c + 4) continue;
+    const g = new THREE.CircleGeometry(1, 18); g.rotateX(-Math.PI / 2); const sx = 0.5 + rng() * 1.3, sz = 0.4 + rng() * 0.9, ra = rng() * 6.28, ps = g.attributes.position;
+    for (let k = 0; k < ps.count; k++) { const lx = ps.getX(k) * sx * (0.85 + hash(k, i) * 0.3), lz = ps.getZ(k) * sz * (0.85 + hash(i, k) * 0.3), wx = x0 + lx * Math.cos(ra) - lz * Math.sin(ra), wz = z0 + lx * Math.sin(ra) + lz * Math.cos(ra); ps.setXYZ(k, wx, H(wx, wz) + 0.035, wz); }
+    g.computeVertexNormals(); const m = new THREE.Mesh(g, pm); m.receiveShadow = true; scene.add(m);
+  }
+}
+// 5) realistic flashlight beam pattern (hot centre, ring, soft falloff)
+{
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'), gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.18, '#f4f0e8'); gr.addColorStop(0.32, '#b8b2a8'); gr.addColorStop(0.42, '#d6d0c6'); gr.addColorStop(0.5, '#8a857e'); gr.addColorStop(0.75, '#3a3835'); gr.addColorStop(1, '#000000');
+  g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  const id = g.getImageData(0, 0, 256, 256), d = id.data; for (let i = 0; i < d.length; i += 4) { const n = (Math.random() - 0.5) * 10; d[i] += n; d[i + 1] += n; d[i + 2] += n; } g.putImageData(id, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; flash.map = t;
+}
+const _fxUpdate = FX.update;
+FX.update = (dt, o) => { _fxUpdate(dt, o); if (moon.castShadow) FX.followMoon(o.x, o.z); };
+const _fxQ = FX.setQuality;
+FX.setQuality = () => { _fxQ(); FX.applyShadows(); };

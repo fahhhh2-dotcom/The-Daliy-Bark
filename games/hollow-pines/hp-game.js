@@ -422,7 +422,7 @@ function lightningReveal() {
   } else remark(['Whoa!', 'That was close.', 'This storm keeps getting worse.'], 0.3);
 }
 // ================= TUNNEL =================
-function setEnv(tunnel) { const c = tunnel ? FOG_TUNNEL : FOG_FOREST; scene.fog.color.copy(c); scene.fog.density = tunnel ? 0.07 : 0.03; hemi.intensity = tunnel ? 0.05 : 0.55; moon.intensity = tunnel ? 0 : 0.25; W.tunnel.visible = tunnel; W.endLight.intensity = tunnel ? 1.4 : 0; if (!tunnel) W.tunL.forEach(l => l.intensity = 0); SND.set('tunnel', tunnel ? 0.16 : 0, 0.5); SND.set('wind', tunnel ? 0.02 : 0.13, 0.5); SND.set('leaves', tunnel ? 0 : 0.025, 0.5); }
+function setEnv(tunnel) { const c = tunnel ? FOG_TUNNEL : FOG_FOREST; scene.fog.color.copy(c); scene.fog.density = tunnel ? 0.07 : 0.026; scene.environment = tunnel ? null : (FX.env || null); hemi.intensity = tunnel ? 0.05 : 0.46; moon.intensity = tunnel ? 0 : 0.34; W.tunnel.visible = tunnel; W.endLight.intensity = tunnel ? 1.4 : 0; if (!tunnel) W.tunL.forEach(l => l.intensity = 0); SND.set('tunnel', tunnel ? 0.16 : 0, 0.5); SND.set('wind', tunnel ? 0.02 : 0.13, 0.5); SND.set('leaves', tunnel ? 0 : 0.025, 0.5); }
 async function enterTunnel(restoring) {
   G.mode = 'cut'; fade(1); await wait(650);
   P.inTunnel = true; P.onTower = false; G.gateOpen = false; W.gate.position.y = TB.y; setEnv(true); updateChunks(9999, 9999, 0);
