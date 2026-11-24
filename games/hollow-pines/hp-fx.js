@@ -165,6 +165,7 @@ function placeCover(px, pz, force) {
       let ok = c.water ? (x > 1000 && H(x, z) < -0.12 && Math.abs(x - SW.x) < 148) : Math.hypot(x - LK.x, z - LK.z) > LK.c + 1.5 && pathDist(x, z) > 1.5;
       if (ok && x > 1000 && !c.water) { const hh = H(x, z); if (c.clear ? hh < 0.15 : hh < -0.5) ok = false; else if (Math.abs(x - SW.x) > 148) ok = false; }
       if (ok && c.clear && x < 1000) for (const f of FLAT) if (Math.hypot(x - f.x, z - f.z) < f.r * 0.95) { ok = false; break; }
+      if (ok && window.CARC_CELLS && CARC_CELLS.has(Math.floor(x / 2) + ',' + Math.floor(z / 2))) ok = false;
       if (ok) for (const b of BOX) if (Math.abs(x - b[0]) < b[2] + 0.4 && Math.abs(z - b[1]) < b[3] + 0.4) { ok = false; break; }
       const sc = ok ? c.off[i * 4 + 3] : 0; _e.set(0, c.off[i * 4 + 2], 0); _q.setFromEuler(_e); _p.set(x, c.water ? 0 : H(x, z) - (c.flat ? 0 : 0.03), z); _s.set(sc, c.flat ? 1 : sc * (0.8 + (i % 5) * 0.1), sc); if (c.flat && !c.water && x > 1000 && H(x, z) < 0.05) _s.set(0, 0, 0);
       _m.compose(_p, _q, _s); c.im.setMatrixAt(i, _m);

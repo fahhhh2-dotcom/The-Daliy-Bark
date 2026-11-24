@@ -377,19 +377,19 @@ function updateHollow(dt) {
 
 
 // ---------- frogs: sit on the banks and lily pads, croak, and hop away when you get close ----------
-const FROGM = [MSM({ color: 0x4a5a26, roughness: 0.35 }), MSM({ color: 0x5a4a28, roughness: 0.35 }), MSM({ color: 0x3a4a30, roughness: 0.3 })], FROGB = MSM({ color: 0xc8c090, roughness: 0.5 }), FROGE = MSM({ color: 0xd8b030, roughness: 0.1, emissive: 0x1a1000 });
+const FROGM = [MSM({ color: 0x4a5a26, roughness: 0.35 }), MSM({ color: 0x5a4a28, roughness: 0.35 }), MSM({ color: 0x3a4a30, roughness: 0.3 })], FROGB = MSM({ color: 0xc8c090, roughness: 0.5 }), FROGE = MSM({ color: 0xe8c040, roughness: 0.05, emissive: 0x6a4a00, emissiveIntensity: 1 });
 function makeFrog() { const g = new THREE.Group(), m = FROGM[Math.floor(rand() * 3)], body = new THREE.Group(); g.add(body);
   sph(1, m, 0, 0.05, 0, body, 0.07, 0.045, 0.09); sph(1, FROGB, 0, 0.035, 0.01, body, 0.06, 0.03, 0.075); const th = sph(1, FROGB, 0, 0.035, 0.06, body, 0.035, 0.022, 0.03); sph(1, m, 0, 0.07, 0.07, body, 0.05, 0.03, 0.045);
   [-1, 1].forEach(sd => { sph(0.016, FROGE, sd * 0.03, 0.095, 0.075, body); sph(0.008, MAT.black, sd * 0.036, 0.1, 0.087, body); const bl = sph(1, m, sd * 0.06, 0.025, -0.04, body, 0.03, 0.025, 0.06); bl.rotation.y = sd * 0.4; sph(1, m, sd * 0.05, 0.015, 0.06, body, 0.015, 0.03, 0.015); });
-  g.traverse(o => { if (o.isMesh) o.castShadow = false; }); g.scale.setScalar(1.3 + rand() * 0.8); scene.add(g); return { g, th, x: 0, z: 0, y: 0, on: false, hop: null, croak: 2 + rand() * 8 };
+  g.traverse(o => { if (o.isMesh) o.castShadow = false; }); g.scale.setScalar(2.2 + rand() * 1.1); scene.add(g); return { g, th, x: 0, z: 0, y: 0, on: false, hop: null, croak: 2 + rand() * 8 };
 }
 const FROGS = []; for (let i = 0; i < 22; i++) FROGS.push(makeFrog());
-function frogSpot(fr, near) { for (let k = 0; k < 14; k++) { const a = rand() * 6.28, d = (near ? 6 : 10) + rand() * 22, x = P.x + Math.sin(a) * d, z = P.z + Math.cos(a) * d; let ok = false, y = 0;
+function frogSpot(fr, near) { for (let k = 0; k < 14; k++) { const a = P.yaw + Math.PI + (rand() - 0.5) * 2.6, d = 4 + rand() * 16, x = P.x + Math.sin(a) * d, z = P.z + Math.cos(a) * d; let ok = false, y = 0;
     if (x > 1000) { if (Math.abs(x - SW.x) > 148) continue; const h = H(x, z); ok = h > -0.4 && h < 0.35; y = Math.max(h, 0); }
-    else { const ld = Math.hypot(x - LK.x, z - LK.z); ok = ld > LK.c - 1 && ld < LK.c + 9 || rand() < 0.08; y = ld < LK.c ? Math.max(H(x, z), LK.w) : H(x, z); }
+    else { const ld = Math.hypot(x - LK.x, z - LK.z); ok = ld > LK.c - 1 && ld < LK.c + 9 || pathDist(x, z) < 1.6 || rand() < 0.15; y = ld < LK.c ? Math.max(H(x, z), LK.w) : H(x, z); }
     if (ok) { fr.x = x; fr.z = z; fr.y = y; fr.on = true; fr.hop = null; fr.g.position.set(x, y, z); fr.g.rotation.y = rand() * 6.28; fr.g.visible = true; return; } } fr.on = false; fr.g.visible = false; }
 function updateFrogs(dt) {
-  const play = G.mode === 'play' || G.mode === 'cut', want = P.inHeli || P.inTunnel || P.onTower || !play ? 0 : P.x > 1000 ? 22 : (Math.hypot(P.x - LK.x, P.z - LK.z) < LK.c + 60 ? 12 : 4);
+  const play = G.mode === 'play' || G.mode === 'cut', want = P.inHeli || P.inTunnel || P.onTower || !play ? 0 : P.x > 1000 ? 22 : (Math.hypot(P.x - LK.x, P.z - LK.z) < LK.c + 60 ? 14 : 8);
   FROGS.forEach((fr, i) => {
     if (i >= want) { fr.g.visible = false; fr.on = false; return; }
     if (!fr.on || Math.hypot(fr.x - P.x, fr.z - P.z) > 40) { if (rand() < dt * 2) frogSpot(fr, false); return; }
@@ -413,11 +413,50 @@ function frogSquish() {
   setTimeout(() => { say('Ugh — I stepped on a frog. Its guts are hanging out everywhere…', 3.6, 'You'); }, 2300);
   setTimeout(() => { P.look = null; G.mode = 'play'; say('Solid ground at least. Keep moving.', 2.6, 'You'); setObj(20); }, 5600);
 }
+
+// ---------- dead animals scattered around both maps (only the nearby ones are drawn) ----------
+const CARC = [];
+function carcassGore(g, len, side) { // torn-open belly: raw flesh, ribs, spilled guts
+  const fl = new THREE.Mesh(new THREE.CircleGeometry(1, 14), FLESH); fl.scale.set(0.22 * len, 0.5 * len, 1); fl.rotation.x = -Math.PI / 2; fl.position.set(side * 0.05, 0.02, 0); g.add(fl);
+  for (let i = 0; i < 5; i++) { const r = new THREE.Mesh(new THREE.TorusGeometry(0.16 * len, 0.012, 4, 10, Math.PI), BONEM); r.position.set(side * 0.05, 0.02, (i - 2) * 0.1 * len); r.rotation.y = Math.PI / 2; g.add(r); }
+  for (let k = 0; k < 3; k++) { let a = rand() * 6.28, px = side * 0.15, pz = (rand() - 0.5) * 0.3; for (let j = 0; j < 6; j++) { a += (rand() - 0.5) * 1.3; const nx = px + Math.sin(a) * 0.09 * len, nz = pz + Math.cos(a) * 0.09 * len; const c = new THREE.Mesh(new THREE.CapsuleGeometry(0.025 * len, 0.08 * len, 3, 5), k === 1 ? FLESH : GUTS); c.position.set((px + nx) / 2, 0.03, (pz + nz) / 2); c.rotation.set(Math.PI / 2, 0, -a); g.add(c); px = nx; pz = nz; } }
+}
+function addCarcass(type, x, z, water) {
+  const root = new THREE.Group(); const gy = water ? 0 : H(x, z); root.position.set(x, gy, z); root.rotation.y = rand() * 6.28; scene.add(root);
+  let flies = true;
+  if (type === 'deer' || type === 'wolf') {
+    const m = makeAnimal(type); scene.remove(m.g); const side = rand() < 0.5 ? 1 : -1; m.g.rotation.z = side * Math.PI / 2; m.g.position.set(side * m.bh * 0.97, m.bh * (type === 'deer' ? 0.3 : 0.28), 0); root.add(m.g); const top = new THREE.Group(); top.position.y = type === 'deer' ? 0.6 : 0.4; root.add(top);
+    m.legs.forEach(l => { l.hp.rotation.x = (rand() - 0.5) * 1.2; l.kn.rotation.x = rand() * 1.2; }); m.neck.rotation.x = 0.6 + rand() * 0.8; m.neck.rotation.z = (rand() - 0.5) * 0.8;
+    if (rand() < 0.75) carcassGore(top, type === 'deer' ? 1 : 0.75, 0); else { const ex = new THREE.Mesh(new THREE.CircleGeometry(0.18, 10), FLESH); ex.rotation.x = -Math.PI / 2; ex.position.set(0, 0.02, 0.3); top.add(ex); }
+    const p = new THREE.Mesh(new THREE.CircleGeometry(type === 'deer' ? 1.3 : 0.9, 18), MAT.blood); p.rotation.x = -Math.PI / 2; p.position.y = 0.025; p.scale.set(1, 0.7, 1); root.add(p);
+  } else if (type === 'crow' || type === 'rabbit') {
+    const mat = type === 'crow' ? MSM({ color: 0x111114, roughness: 0.4 }) : MSM({ color: 0x6a5440, roughness: 0.9 });
+    if (type === 'crow') { sph(1, mat, 0, 0.06, 0, root, 0.08, 0.06, 0.14); sph(0.05, mat, 0, 0.06, 0.15, root); const bk = mk(new THREE.ConeGeometry(0.018, 0.07, 5), MAT.black, 0, 0.06, 0.22, root); bk.rotation.x = Math.PI / 2; [-1, 1].forEach(sd => { const w = bx(0.3, 0.01, 0.13, mat, sd * 0.18, 0.04, 0, root); w.rotation.z = sd * 0.2; }); }
+    else { sph(1, mat, 0, 0.08, 0, root, 0.1, 0.08, 0.16); sph(0.06, mat, 0, 0.1, 0.16, root); [-1, 1].forEach(sd => { const e = sph(1, mat, sd * 0.025, 0.13, 0.12, root, 0.015, 0.012, 0.06); e.rotation.x = -1; }); const fl = new THREE.Mesh(new THREE.CircleGeometry(0.08, 10), FLESH); fl.rotation.x = -Math.PI / 2; fl.position.set(0.05, 0.09, 0); root.add(fl); }
+    root.rotation.z = (rand() - 0.5) * 0.4; const p = new THREE.Mesh(new THREE.CircleGeometry(0.32, 12), MAT.blood); p.rotation.x = -Math.PI / 2; p.position.y = 0.02; root.add(p); for (let i = 0; i < 8; i++) { const f = bx(0.12, 0.005, 0.02, mat, (rand() - 0.5) * 0.9, 0.012, (rand() - 0.5) * 0.9, root); f.rotation.y = rand() * 6; }
+  } else if (type === 'fish') {
+    flies = false; const fm = MSM({ color: 0x9aa4a0, roughness: 0.25, metalness: 0.3 }); for (let i = 0; i < 1 + Math.floor(rand() * 3); i++) { const f = new THREE.Group(); f.position.set((rand() - 0.5) * 1.2, 0.03, (rand() - 0.5) * 1.2); f.rotation.y = rand() * 6; root.add(f); sph(1, fm, 0, 0, 0, f, 0.05, 0.035, 0.2); const t = mk(new THREE.ConeGeometry(0.06, 0.1, 4), fm, 0, 0, -0.22, f); t.rotation.x = -Math.PI / 2; t.scale.set(1, 1, 0.2); sph(0.012, MSM({ color: 0xe8e0c0 }), 0.03, 0.02, 0.14, f); }
+  } else if (type === 'gator') {
+    const m = makeGator(); scene.remove(m.g); m.g.rotation.z = Math.PI; m.g.position.y = 0.18; root.add(m.g); const top = new THREE.Group(); top.position.y = 0.42; root.add(top); carcassGore(top, 1.2, 0);
+  }
+  root.traverse(o => { if (o.isMesh) o.castShadow = false; }); root.visible = false; CARC.push({ g: root, x, z, flies, buzz: rand() * 5 });
+}
+{ // forest: along the trails where you'll see them, a few deeper in the woods
+  let n = 0; for (let i = 0; i < 4000 && n < 34; i++) { const x = (rand() - 0.5) * 600, z = (rand() - 0.5) * 600, pd = pathDist(x, z); if (pd < 2.5 || pd > (n < 24 ? 9 : 60)) continue; if (Math.hypot(x - LK.x, z - LK.z) < LK.c + 2 || Math.hypot(x, z - 5) < 14) continue; const r = rand(); addCarcass(r < 0.38 ? 'deer' : r < 0.6 ? 'wolf' : r < 0.82 ? 'crow' : 'rabbit', x, z); n++; }
+  // swamp: on the islands and banks, fish floating in the water, one gutted gator
+  let m = 0; for (let i = 0; i < 4000 && m < 26; i++) { const lx = (rand() - 0.5) * 290, lz = -60 + (rand() - 0.5) * 300, x = SW.x + lx, z = SW.z + lz, h = H(x, z); const r = rand();
+    if (h > 0.25 && r < 0.55) { addCarcass(r < 0.25 ? 'deer' : r < 0.4 ? 'crow' : 'rabbit', x, z); m++; } else if (h < -0.3 && r >= 0.55) { addCarcass(m === 5 ? 'gator' : 'fish', x, z, true); m++; } }
+}
+let carcT = 0;
+window.CARC_CELLS = new Set(); CARC.forEach(c => { for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) CARC_CELLS.add((Math.floor(c.x / 2) + i) + ',' + (Math.floor(c.z / 2) + j)); }); placeCover(P.x, P.z, true);
+function updateCarcasses(dt) { carcT -= dt; const near = []; if (carcT <= 0) { carcT = 0.5; for (const c of CARC) { const d = Math.hypot(c.x - P.x, c.z - P.z); c.g.visible = !P.inHeli && !P.inTunnel && d < 75 && (c.x > 1000) === (P.x > 1000); } }
+  if (G.mode !== 'play') return; for (const c of CARC) { if (!c.flies || !c.g.visible) continue; const d = Math.hypot(c.x - P.x, c.z - P.z); if (d < 9) { c.buzz -= dt; if (c.buzz <= 0) { c.buzz = 1.2 + rand() * 1.8; SND.buzz(panOf(c.x, c.z)); if (!c.seen && d < 5) { c.seen = true; remark(['Ugh, the smell… something’s been eating it.', 'Another dead one. Torn wide open.', 'Flies everywhere. It’s been here a while.', 'What keeps killing all these animals?'], 0.6); } } } } }
+
 // ---------- main per-frame update (called from updateCh2) ----------
 function updateMonsters(dt) {
   if (SCN) { SCN.t += dt; SCN.f(SCN, dt); }
   if (G.mode === 'play' && G.obj === 24 && !G.h1 && P.x > 1000) { const dp = Math.hypot(P.x - W.pump.x, P.z - W.pump.z); if (dp < 75 && dp > 28) hollowDeer(); }
-  updateMire(dt); updateHollow(dt); updateFrogs(dt); stepChunks(dt); stepParticles(ACIDP, dt); stepParticles(MUDP, dt);
+  updateMire(dt); updateHollow(dt); updateFrogs(dt); updateCarcasses(dt); stepChunks(dt); stepParticles(ACIDP, dt); stepParticles(MUDP, dt);
   if (S_DEER && !SCN) { stepHalf(S_DEER.front, dt); stepHalf(S_DEER.back, dt); }
   if (W.swamp.visible) { const on = Math.sin(G.time * 2.2) > 0.6; W.wtLampM.color.setHex(on ? 0xff2010 : 0x300000); W.wtLampL.intensity = on ? 2.2 : 0; }
   if (!P.held && P.sinkY > 0) P.sinkY = Math.max(0, P.sinkY - dt * 1.5);
