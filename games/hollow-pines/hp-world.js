@@ -220,7 +220,7 @@ function collide(x, z, r) {
   for (const b of BOX) { if (x > b[0] - b[2] - r && x < b[0] + b[2] + r && z > b[1] - b[3] - r && z < b[1] + b[3] + r) { const px = (b[2] + r) - Math.abs(x - b[0]), pz = (b[3] + r) - Math.abs(z - b[1]); if (px < pz) x += Math.sign(x - b[0] || 1) * px; else z += Math.sign(z - b[1] || 1) * pz; } }
   const lx = x - LK.x, lz = z - LK.z, ld = Math.hypot(lx, lz); if (ld < LK.c) { x = LK.x + lx / ld * LK.c; z = LK.z + lz / ld * LK.c; }
   if (x > 1000) return [clamp(x, SW.x - 150, SW.x + 150), clamp(z, SW.z - 222, SW.z + 100)];
-  if (x < -1000) { if (P.inRoom) return [clamp(x, HX - 2.75, HX + 2.75), clamp(z, HZ - 0.4, HZ + 2.2)]; return typeof cityCollide === 'function' ? cityCollide(x, z, r) : [x, z]; }
+  if (x < -1000) { if (P.inRoom) return houseCollide(x, z, r); return typeof cityCollide === 'function' ? cityCollide(x, z, r) : [x, z]; }
   return [clamp(x, -325, 325), clamp(z, -325, 325)];
 }
 

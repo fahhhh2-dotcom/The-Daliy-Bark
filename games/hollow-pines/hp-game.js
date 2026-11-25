@@ -10,8 +10,8 @@ const FW = new THREE.Vector3(), TV = new THREE.Vector3();
 const fmtT = s => { s = Math.floor(s); const m = Math.floor(s / 60); return m + ':' + String(s % 60).padStart(2, '0'); };
 
 // ================= STATE =================
-const PKEYS = ['sgas', 'ch1done', 'ch2done', 'med', 'obj', 'poured', 'picked', 'carry', 'key', 'fuse', 'fuseIn', 'power', 'guns', 'am', 'wep', 'ammo', 'notes', 'time', 'hasLight', 'deaths', 'done', 'h1', 'valves', 'acid', 'grates', 'kicks', 'powder', 'paper', 'charge', 'ate', 'mland', 'ch3done'];
-const fresh = () => ({ sgas: [], ch1done: false, ch2done: false, med: [], obj: 0, poured: 0, picked: [0, 0, 0, 0], carry: -1, key: false, fuse: false, fuseIn: false, power: false, guns: { pistol: false, shotgun: false, flare: false }, am: { p: 0, pr: 0, s: 0, sr: 0 }, wep: 'none', ammo: [], notes: [], time: 0, hasLight: false, deaths: 0, done: false, h1: false, valves: [], acid: false, grates: [], kicks: 0, powder: false, paper: false, charge: false, ate: false, mland: false, ch3done: false });
+const PKEYS = ['chore', 'sgas', 'ch1done', 'ch2done', 'med', 'obj', 'poured', 'picked', 'carry', 'key', 'fuse', 'fuseIn', 'power', 'guns', 'am', 'wep', 'ammo', 'notes', 'time', 'hasLight', 'deaths', 'done', 'h1', 'valves', 'acid', 'grates', 'kicks', 'powder', 'paper', 'charge', 'ate', 'mland', 'ch3done'];
+const fresh = () => ({ chore: 0, sgas: [], ch1done: false, ch2done: false, med: [], obj: 0, poured: 0, picked: [0, 0, 0, 0], carry: -1, key: false, fuse: false, fuseIn: false, power: false, guns: { pistol: false, shotgun: false, flare: false }, am: { p: 0, pr: 0, s: 0, sr: 0 }, wep: 'none', ammo: [], notes: [], time: 0, hasLight: false, deaths: 0, done: false, h1: false, valves: [], acid: false, grates: [], kicks: 0, powder: false, paper: false, charge: false, ate: false, mland: false, ch3done: false });
 const G = Object.assign({ mode: 'boot', slot: 0, surviveT: 0, glimpseAt: 0, tips: {}, gateOpen: false, wolfT: 60, ambT: 8, cricketT: 1 }, fresh());
 const P = { inHeli: false, x: 0, z: 5, y: 0, yaw: 0, pitch: 0, stam: 100, tired: false, hp: 100, hurtT: 9, onTower: false, inTunnel: false, light: false, overheat: 0, ohMax: 6, bob: 0, stepAcc: 0, look: null, cy: 0, cv: 0, shake: 0 };
 const C = { state: 'off', x: 0, z: 0, timer: 0, seen: 0, burn: 0, pain: 0, stag: 0, aggr: 0, final: false, scripted: false, rush: false, ph: 0, stepT: 0, stung: false, s: 0, cy: 0, chaseT: 0, mode: 'idle', tw: { z: 0, y: 0, tz: 0, ty: 0, t: 0 }, speed: 0 };
@@ -88,7 +88,7 @@ const OBJ = [
   [6, 'CLIMB the ladder into the helicopter!', () => null],
   [6, 'Get in the car they left for you', () => CAR0],
   [6, 'Drive home — west side of town', () => ({ x: HOME.x + 4.5, z: HOME.z + 4.5 })],
-  [6, 'Survive the night until 6 AM', () => null],
+  [6, () => (CHORES[G.chore] ? CHORES[G.chore].t : 'Get out of the house!'), () => choreSpot()],
   [6, 'Done', () => null]
 ];
 const LETTER = `Kid —

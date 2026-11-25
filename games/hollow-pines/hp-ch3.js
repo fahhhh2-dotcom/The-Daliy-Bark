@@ -1,6 +1,6 @@
 'use strict';
 /* Hollow Pines — Chapter 3: the flare, the flight to the city, the drive home, and the night in your own house
-   with the Grinner (FNAF 4 style: listen at the doors, hold them shut, check the halls, the closet and the bed). */
+   where you do chores while the house slowly goes wrong — and the Grinner is in there with you. */
 const CX = -3000, HX = -3000, HZ = 1400;            // city centre, and the bedroom (its own sealed set)
 const START3 = () => ({ x: W.wtower.x + 40, z: W.wtower.z + 70 });
 const HELIPAD = { x: CX + 236, z: 8 }, CAR0 = { x: CX + 226, z: 22, yaw: Math.PI / 2 }, HOME = { x: CX - 252, z: 146 };
@@ -59,42 +59,76 @@ CAR.g = new THREE.Group(); scene.add(CAR.g); CAR.g.visible = false;
 { const g = CAR.g, body = makeCarBody(0x2a3a5a); g.add(body); const dash = MSM({ color: 0x15151a, roughness: 0.7 }); bx(1.8, 0.35, 0.6, dash, 0, 1.0, 0.95, g); const wheel = mk(new THREE.TorusGeometry(0.19, 0.028, 6, 20), dash, -0.42, 1.12, 0.62, g); wheel.rotation.x = -0.4; CAR.wheel = wheel;
   CAR.speedo = bx(0.22, 0.12, 0.01, MSM({ color: 0x000000, emissive: 0x40c0ff, emissiveIntensity: 1.2 }), -0.42, 1.2, 0.66, g); CAR.speedo.rotation.x = -0.6; }
 
-// ---------- the bedroom (and the halls, the closet, the bed) ----------
+// ---------- your house: bedroom, bathroom, laundry, kitchen, living room and the long hall ----------
 const ROOM = new THREE.Group(); ROOM.visible = false; ROOM.position.set(HX, 0, HZ); scene.add(ROOM);
-const DOORS = { L: { x: -3.1, z: 0.2 }, R: { x: 3.1, z: 0.2 }, C: { x: 0, z: 2.55 }, B: { x: 0, z: -1.6 } };
+const WALLS = [], FUR = [], WH = 2.7;
+const HOU = { busy: false, cab: 0, dryer: false, dT: 0, tv: false, tvT: 0, amb: 20, glimpse: false, peek: null, chase: null, flick: {} };
 {
-  const wall = MSM({ map: ctex(256, 256, (c, w, h) => { c.fillStyle = '#3e4a52'; c.fillRect(0, 0, w, h); for (let x = 0; x < w; x += 32) { c.fillStyle = 'rgba(20,26,30,.35)'; c.fillRect(x, 0, 10, h); } for (let i = 0; i < 30; i++) { c.fillStyle = 'rgba(255,255,255,.06)'; c.beginPath(); c.arc(rand() * w, rand() * h, 6, 0, 7); c.fill(); } }), roughness: 0.9 });
-  const floorM = MSM({ map: TX.wood, color: 0x6a4a32, roughness: 0.6 }), trim = MSM({ color: 0xd8d0c0, roughness: 0.6 }), dark = MSM({ color: 0x0a0a0c, roughness: 1 });
-  const g = ROOM; bx(6.4, 0.1, 5.4, floorM, 0, -0.05, 0, g); bx(6.4, 0.1, 5.4, MSM({ color: 0x8a8884 }), 0, 2.8, 0, g);
-  // back wall (closet) and front wall (window), side walls with door openings into the halls
-  bx(6.4, 2.8, 0.15, wall, 0, 1.4, 2.7, g); bx(6.4, 2.8, 0.15, wall, 0, 1.4, -2.7, g);
-  [-1, 1].forEach(s => { bx(0.15, 2.8, 1.9, wall, s * 3.2, 1.4, 1.75, g); bx(0.15, 2.8, 1.9, wall, s * 3.2, 1.4, -1.6, g); bx(0.15, 0.6, 1.1, wall, s * 3.2, 2.5, 0.2, g);
-    // the hall: long, dark, ends in a doorway into black
-    bx(7, 0.1, 1.6, floorM, s * 6.7, -0.05, 0.2, g); bx(7, 0.1, 1.6, MSM({ color: 0x5a5854 }), s * 6.7, 2.4, 0.2, g); bx(7, 2.4, 0.12, wall, s * 6.7, 1.2, -0.62, g); bx(7, 2.4, 0.12, wall, s * 6.7, 1.2, 1.02, g); bx(0.1, 2.4, 1.6, dark, s * 10.2, 1.2, 0.2, g);
-    const fr = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 2.2), MSM({ map: ctex(64, 128, (c, w, h) => { c.fillStyle = '#5a4a3a'; c.fillRect(0, 0, w, h); c.fillStyle = '#c8b8a0'; c.fillRect(10, 14, 44, 56); }), roughness: 0.8 })); fr.position.set(s * 5.5, 1.5, 0.95); fr.rotation.y = Math.PI; g.add(fr);
-    // the bedroom door that you hold shut
-    const dp = new THREE.Group(); dp.position.set(s * 3.2, 0, 0.2 + 0.55 * s); g.add(dp); const dm = bx(0.06, 2.15, 1.1, MSM({ map: TX.wood, color: 0xb8a890 }), 0, 1.08, -0.55 * s, dp); dp.rotation.y = s * 1.4; DOORS[s < 0 ? 'L' : 'R'].door = dp; });
-  // closet double doors
-  DOORS.C.doors = [-1, 1].map(s => { const d = new THREE.Group(); d.position.set(s * 0.9, 0, 2.6); g.add(d); bx(0.9, 2.2, 0.05, MSM({ map: TX.wood, color: 0xc8b8a0 }), -s * 0.45, 1.1, 0, d); return d; }); bx(1.8, 2.2, 0.05, dark, 0, 1.1, 2.66, g);
-  // bed, nightstand, alarm clock, a window with rain outside, toys
-  bx(1.6, 0.45, 2.1, MSM({ map: TX.wood, color: 0x6a4a32 }), 0, 0.23, -1.6, g); bx(1.5, 0.2, 2, MSM({ color: 0x5a6a8a, roughness: 0.9 }), 0, 0.55, -1.6, g); bx(1.0, 0.18, 0.45, MSM({ color: 0xe8e8e0 }), 0, 0.72, -2.35, g);
-  bx(0.5, 0.55, 0.45, MSM({ map: TX.wood, color: 0x5a3a22 }), 1.2, 0.28, -2.35, g); const clk = ctex(128, 64, (c, w, h) => { c.fillStyle = '#100'; c.fillRect(0, 0, w, h); }); ROOM.clockTx = clk; const cm = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.14), new THREE.MeshBasicMaterial({ map: clk })); cm.position.set(1.2, 0.66, -2.12); g.add(cm);
-  const win = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.1), new THREE.MeshBasicMaterial({ color: 0x141c2a })); win.position.set(-1.6, 1.6, -2.6); g.add(win); bx(1.5, 0.08, 0.1, trim, -1.6, 1.05, -2.6, g); bx(0.06, 1.1, 0.06, trim, -1.6, 1.6, -2.6, g);
-  for (let i = 0; i < 5; i++) sph(0.12, MSM({ color: [0xc83a3a, 0x3a8ac8, 0xe8c040][i % 3] }), -2 + rand() * 0.8, 0.12, 1 + rand(), g);
-  // the bed critters: three little grinning heads that crawl onto the blanket
-  ROOM.crit = []; for (let i = 0; i < 3; i++) { const c = new THREE.Group(); g.add(c); sph(0.11, MSM({ color: 0xe8e0d0, roughness: 0.4 }), 0, 0.1, 0, c); bx(0.12, 0.02, 0.01, MAT.black, 0, 0.07, 0.105, c); [-1, 1].forEach(sd => sph(0.022, MAT.black, sd * 0.04, 0.13, 0.095, c)); c.position.set(-0.4 + i * 0.4, 0.66, -1.2 - (i % 2) * 0.5); c.visible = false; ROOM.crit.push(c); }
-  ROOM.lamp = new THREE.PointLight(0x8a9cc8, 0, 11, 1.2); ROOM.lamp.position.set(-1.6, 1.8, -2.2); g.add(ROOM.lamp);
+  const wallTx = (base, stripe) => ctex(256, 256, (c, w, h) => { c.fillStyle = base; c.fillRect(0, 0, w, h); for (let x = 0; x < w; x += 32) { c.fillStyle = stripe; c.fillRect(x, 0, 12, h); } for (let i = 0; i < 40; i++) { c.fillStyle = 'rgba(0,0,0,.05)'; c.beginPath(); c.arc(rand() * w, rand() * h, 4 + rand() * 10, 0, 7); c.fill(); } }, [3, 1]);
+  const wall = MSM({ map: wallTx('#4e5444', 'rgba(30,34,24,.3)'), roughness: 0.9 });
+  const floorM = MSM({ map: TX.wood, color: 0x7a5a3a, roughness: 0.6 }), ceilM = MSM({ color: 0x9a968c, roughness: 1 }), trim = MSM({ color: 0xd8d0c0, roughness: 0.6 });
+  const tile = MSM({ map: ctex(128, 128, (c, w, h) => { c.fillStyle = '#c8c4b8'; c.fillRect(0, 0, w, h); c.strokeStyle = '#8a867a'; c.lineWidth = 3; for (let i = 0; i <= w; i += 32) { c.beginPath(); c.moveTo(i, 0); c.lineTo(i, h); c.moveTo(0, i); c.lineTo(w, i); c.stroke(); } }, [6, 4]), roughness: 0.35 });
+  const g = ROOM;
+  bx(16.2, 0.1, 12.2, floorM, 0, -0.05, 0, g); bx(16.2, 0.1, 12.2, ceilM, 0, WH + 0.05, 0, g);
+  const tf = (x, z, w, d) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), tile); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.005, z); g.add(m); };
+  tf(-4.5, -3.5, 7, 5); tf(0, 3.5, 4, 5); tf(5, 3.5, 6, 5);
+  // walls with doorway gaps
+  function wallRun(x0, z0, x1, z1, gaps = []) { const hor = z0 === z1, a0 = hor ? x0 : z0, a1 = hor ? x1 : z1; const cuts = gaps.map(([c, w]) => [c - w / 2, c + w / 2]).sort((a, b) => a[0] - b[0]); let s = a0; const segs = []; for (const [c0, c1] of cuts) { segs.push([s, c0]); s = c1; } segs.push([s, a1]);
+    for (const [s0, s1] of segs) { const L = s1 - s0; if (L <= 0.01) continue; const c = (s0 + s1) / 2; if (hor) { bx(L, WH, 0.15, wall, c, WH / 2, z0, g); WALLS.push([c, z0, L / 2, 0.075]); } else { bx(0.15, WH, L, wall, x0, WH / 2, c, g); WALLS.push([x0, c, 0.075, L / 2]); } }
+    for (const [c0, c1] of cuts) { const c = (c0 + c1) / 2, L = c1 - c0; if (hor) bx(L, 0.5, 0.15, wall, c, WH - 0.25, z0, g); else bx(0.15, 0.5, L, wall, x0, WH - 0.25, c, g); } }
+  wallRun(-8, -6, 8, -6, [[1.5, 1.0]]); WALLS.push([1.5, -6, 0.5, 0.075]); wallRun(-8, 6, 8, 6); wallRun(-8, -6, -8, 6); wallRun(8, -6, 8, 6);
+  wallRun(-8, 1, 8, 1, [[-5, 1.1], [0, 1.1], [5, 1.1]]); wallRun(-8, -1, 8, -1, [[-4.5, 1.1], [3, 2.6]]);
+  wallRun(-2, 1, -2, 6); wallRun(2, 1, 2, 6); wallRun(-1, -6, -1, -1);
+  const fur = (w, h, d, m, x, y, z, solid = true) => { const o = bx(w, h, d, m, x, y, z, g); if (solid) FUR.push([x, z, w / 2, d / 2]); return o; };
+  const wood = MSM({ map: TX.wood, color: 0x6a4a32 }), white = MSM({ color: 0xe8e6e0, roughness: 0.4 }), steel = MSM({ color: 0xa8acb0, metalness: 0.6, roughness: 0.35 }), cloth = MSM({ color: 0x4a5a7a, roughness: 0.95 });
+  // bedroom
+  fur(1.5, 0.45, 2.1, wood, -6.6, 0.23, 4.2); bx(1.4, 0.2, 2.0, cloth, -6.6, 0.55, 4.2, g); bx(1.0, 0.16, 0.42, white, -6.6, 0.72, 5.0, g);
+  fur(0.5, 0.55, 0.45, wood, -5.5, 0.28, 5.6);
+  const clk = ctex(128, 64, (c, w, h) => { c.fillStyle = '#100'; c.fillRect(0, 0, w, h); }); ROOM.clockTx = clk; const cm = new THREE.Mesh(new THREE.PlaneGeometry(0.28, 0.14), new THREE.MeshBasicMaterial({ map: clk })); cm.position.set(-5.5, 0.66, 5.36); cm.rotation.y = Math.PI; g.add(cm);
+  fur(0.6, 2.0, 1.6, wood, -2.4, 1.0, 3.4);
+  const winM = new THREE.MeshBasicMaterial({ color: 0x0c1220 }); [[-4, 5.92, Math.PI], [-7.92, 0, Math.PI / 2], [-3.5, -5.92, 0]].forEach(([x, z, r]) => { const w = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.1), winM); w.position.set(x, 1.6, z); w.rotation.y = r; g.add(w); });
+  // bathroom: sink, mirror, toilet, tub + shower curtain
+  fur(1.0, 0.85, 0.5, white, 0.4, 0.43, 5.7); bx(0.4, 0.06, 0.3, steel, 0.4, 0.88, 5.7, g);
+  const MIR = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.8), MSM({ color: 0x8a949a, metalness: 0.9, roughness: 0.12 })); MIR.position.set(0.4, 1.6, 5.9); MIR.rotation.y = Math.PI; g.add(MIR);
+  const smile = ctex(256, 228, (c, w, h) => { c.clearRect(0, 0, w, h); c.fillStyle = 'rgba(220,230,235,.35)'; c.fillRect(0, 0, w, h); c.strokeStyle = '#6a0a08'; c.fillStyle = '#6a0a08'; c.lineWidth = 7; c.font = 'bold 54px serif'; c.textAlign = 'center'; c.fillText('SMILE', w / 2, 66); c.beginPath(); c.arc(w / 2, 100, 70, 0.25, Math.PI - 0.25); c.stroke(); for (let i = -5; i <= 5; i++) { c.beginPath(); c.moveTo(w / 2 + i * 12, 158); c.lineTo(w / 2 + i * 12, 172); c.stroke(); } for (let i = 0; i < 9; i++) { const x = 40 + rand() * 176; c.fillRect(x, 70 + rand() * 90, 3, 30 + rand() * 60); } });
+  ROOM.smile = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.8), new THREE.MeshBasicMaterial({ map: smile, transparent: true })); ROOM.smile.position.set(0.4, 1.6, 5.88); ROOM.smile.rotation.y = Math.PI; ROOM.smile.visible = false; g.add(ROOM.smile);
+  fur(0.45, 0.45, 0.6, white, 1.5, 0.23, 5.6); bx(0.45, 0.4, 0.2, white, 1.5, 0.65, 5.85, g);
+  fur(0.8, 0.55, 3.2, white, -1.55, 0.28, 4.3);
+  const curt = (sil) => ctex(128, 128, (c, w, h) => { c.fillStyle = '#b8c8c0'; c.fillRect(0, 0, w, h); for (let x = 0; x < w; x += 8) { c.fillStyle = 'rgba(0,0,0,.12)'; c.fillRect(x, 0, 3, h); } if (sil) { c.fillStyle = 'rgba(10,8,8,.75)'; c.beginPath(); c.ellipse(64, 40, 13, 16, 0.2, 0, 7); c.fill(); c.beginPath(); c.ellipse(64, 74, 20, 26, 0, 0, 7); c.fill(); c.lineWidth = 5; c.strokeStyle = 'rgba(10,8,8,.75)'; [[-1, 1], [1, 1]].forEach(([s]) => { c.beginPath(); c.moveTo(64 + s * 16, 66); c.lineTo(64 + s * 40, 40); c.lineTo(64 + s * 48, 118); c.stroke(); c.beginPath(); c.moveTo(64 + s * 12, 96); c.lineTo(64 + s * 34, 84); c.lineTo(64 + s * 38, 126); c.stroke(); }); } });
+  ROOM.curtTx = [curt(false), curt(true)]; ROOM.curtain = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 1.9), MSM({ map: ROOM.curtTx[0], roughness: 0.9, side: THREE.DoubleSide })); ROOM.curtain.position.set(-1.12, 1.4, 4.3); ROOM.curtain.rotation.y = Math.PI / 2; g.add(ROOM.curtain);
+  // laundry
+  ROOM.washer = fur(0.7, 0.9, 0.7, white, 4, 0.45, 5.6); ROOM.dryer = fur(0.7, 0.9, 0.7, white, 5, 0.45, 5.6); [4, 5].forEach(x => { const r = new THREE.Mesh(new THREE.CircleGeometry(0.22, 20), MSM({ color: 0x20262a, metalness: 0.5, roughness: 0.2 })); r.position.set(x, 0.5, 5.24); r.rotation.y = Math.PI; g.add(r); });
+  fur(0.4, 1.8, 1.4, wood, 7.7, 0.9, 3.4);
+  ROOM.hair = new THREE.Group(); ROOM.hair.position.set(5, 0.3, 5.15); g.add(ROOM.hair); ROOM.hair.visible = false; for (let i = 0; i < 26; i++) { const s = bx(0.012, 0.012, 0.4 + rand() * 0.7, MSM({ color: 0x0a0908, roughness: 0.4 }), (rand() - 0.5) * 0.4, -0.28 + rand() * 0.05, -0.2 - rand() * 0.4, ROOM.hair); s.rotation.y = (rand() - 0.5) * 1.4; }
+  // kitchen: counters, sink, cabinets that open by themselves, fridge, table
+  fur(5.4, 0.9, 0.6, wood, -5, 0.45, -5.65); bx(5.4, 0.05, 0.62, MSM({ color: 0x3a3a3c, roughness: 0.3 }), -5, 0.92, -5.65, g); bx(0.6, 0.06, 0.4, steel, -4.5, 0.95, -5.6, g);
+  for (let i = 0; i < 6; i++) sph(0.11, white, -4.62 + i * 0.05, 0.98, -5.62, g, 1, 0.15, 1);
+  bx(5.4, 0.7, 0.35, wood, -5, 1.95, -5.78, g);
+  ROOM.cabs = []; for (let i = 0; i < 6; i++) { const p = new THREE.Group(); p.position.set(-7.6 + i * 0.9, 1.95, -5.59); g.add(p); bx(0.86, 0.66, 0.04, MSM({ map: TX.wood, color: 0x8a6a4a }), 0.43, 0, 0, p); ROOM.cabs.push(p); }
+  fur(0.8, 1.9, 0.75, white, -7.5, 0.95, -3.0); fur(1.4, 0.75, 0.9, wood, -4.3, 0.38, -2.9);
+  // living room: couch, TV, lamp, front door with porch outside
+  fur(0.9, 0.5, 2.2, MSM({ color: 0x6a3a2a, roughness: 0.9 }), 4.6, 0.25, -3.5); bx(0.25, 0.5, 2.2, MSM({ color: 0x6a3a2a, roughness: 0.9 }), 4.2, 0.7, -3.5, g);
+  fur(0.45, 0.5, 1.6, wood, 7.65, 0.25, -3.5); bx(0.08, 0.9, 1.55, MAT.black, 7.62, 1.0, -3.5, g);
+  ROOM.tvTx = ctex(128, 72, (c, w, h) => { c.fillStyle = '#000'; c.fillRect(0, 0, w, h); }); ROOM.tv = new THREE.Mesh(new THREE.PlaneGeometry(1.45, 0.82), new THREE.MeshBasicMaterial({ map: ROOM.tvTx })); ROOM.tv.position.set(7.57, 1.0, -3.5); ROOM.tv.rotation.y = -Math.PI / 2; g.add(ROOM.tv);
+  ROOM.door = new THREE.Group(); ROOM.door.position.set(1.0, 0, -6); g.add(ROOM.door); bx(1.0, 2.2, 0.08, MSM({ map: TX.wood, color: 0x5a3020 }), 0.5, 1.1, 0, ROOM.door); sph(0.04, steel, 0.88, 1.0, 0.06, ROOM.door);
+  bx(5, 0.15, 3, MSM({ map: TX.wood, color: 0x5a4a3a }), 1.5, -0.07, -7.6, g);
+  // hall: back door, pictures that fall
+  bx(0.08, 2.2, 1.0, MSM({ map: TX.wood, color: 0x5a3020 }), 7.9, 1.1, 0, g);
+  ROOM.frames = []; [[-6, 0.92], [-2.5, -0.92], [1.8, 0.92], [6, -0.92]].forEach(([x, z], i) => { const f = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.75), MSM({ map: ctex(64, 80, (c, w, h) => { c.fillStyle = '#3a2a1a'; c.fillRect(0, 0, w, h); c.fillStyle = ['#a8b8c0', '#c0a888', '#98a888', '#b8a8b8'][i]; c.fillRect(6, 6, 52, 68); c.fillStyle = '#4a3a30'; c.beginPath(); c.arc(32, 34, 10, 0, 7); c.fill(); c.fillRect(22, 46, 20, 28); }), roughness: 0.6 })); f.position.set(x, 1.6, z); f.rotation.y = z > 0 ? Math.PI : 0; f.userData.p0 = f.position.clone(); g.add(f); ROOM.frames.push(f); });
+  // ceiling lights, one per room (made now and only dimmed later, never added mid-game)
+  ROOM.lights = {}; [['bed', -5, 3.5], ['bath', 0, 3.5], ['laundry', 5, 3.5], ['kitchen', -4.5, -3.5], ['living', 3.5, -3.5], ['hall', 0, 0], ['porch', 1.5, -7.2]].forEach(([k, x, z]) => { const l = new THREE.PointLight(k === 'porch' ? 0xffc890 : 0xffd8a8, 0, k === 'hall' ? 10 : 8, 1.5); l.position.set(x, k === 'porch' ? 2.4 : 2.45, z); g.add(l); const b = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 6), new THREE.MeshBasicMaterial({ color: 0xfff0d0 })); b.position.set(x, WH - 0.08, z); g.add(b); ROOM.lights[k] = { l, b, on: 1, base: k === 'hall' ? 0.9 : 1.15 }; });
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
 }
+function houseCollide(x, z, r) { if (G.chore >= 10) return [x, z]; let lx = x - HX, lz = z - HZ; for (const [cx, cz, hx, hz] of WALLS.concat(FUR)) { const dx = lx - cx, dz = lz - cz, px = hx + r - Math.abs(dx), pz = hz + r - Math.abs(dz); if (px > 0 && pz > 0) { if (px < pz) lx += Math.sign(dx || 1) * px; else lz += Math.sign(dz || 1) * pz; } } return [HX + clamp(lx, -7.7, 7.7), HZ + clamp(lz, -5.7, 5.7)]; }
 // the Grinner — the Creeping Grinner model: crawls on all fours like a spider, never stops smiling,
 // and when it grins its head turns upside down. It giggles when it notices you looking.
 const CRP = MON.makeCreeper(); CRP.g.scale.setScalar(1.3); CRP.g.traverse(o => { if (o.isMesh) o.castShadow = true; });
-CRP.stepCb = () => { if (CRP.g.visible && rand() < 0.5) SND.crawl((CRP.g.position.x - HX) > 0 ? 0.5 : -0.5); };
+CRP.stepCb = () => { if (CRP.g.visible && rand() < 0.5) SND.crawl(clamp((CRP.g.position.x - P.x) * 0.2, -0.8, 0.8)); };
 const GRIN = CRP.g;
 GRIN.userData = { head: CRP.head, gT: 0, update: (dt, scare) => { const u = GRIN.userData; u.gT = Math.max(0, u.gT - dt); CRP.grin += ((scare || u.gT > 0 ? 1 : 0) - CRP.grin) * Math.min(1, dt * (scare ? 20 : 4)); CRP.update(dt); } };
 function grinGiggle() { GRIN.userData.gT = 1.6; SND.giggle && SND.giggle(9, 0.25); }
 
-function grinAt(lx, lz, yaw, y) { GRIN.visible = true; GRIN.position.set(HX + lx, y || 0, HZ + lz); GRIN.rotation.set(0, yaw, 0); }
+function grinAt(lx, lz, yaw, y) { CRP.limbs.forEach(l => { l.F.copy(l.rest); l.stepping = false; }); GRIN.visible = true; GRIN.position.set(HX + lx, y || 0, HZ + lz); GRIN.rotation.set(0, yaw, 0); }
 
 // ---------- chapter 3 flow ----------
 function flareSpot() { const s = START3(); for (let r = 10; r < 50; r += 2) for (let a = 0; a < 6.28; a += 0.3) { const x = s.x + Math.sin(a) * r, z = s.z + Math.cos(a) * r, h = H(x, z); if (h > 0.1 && h < 0.7) return { x, z }; } return { x: s.x + 6, z: s.z + 6 }; }
@@ -115,13 +149,13 @@ function ch3Restore() {
   if (G.obj === 45) G.obj = 44; if (G.obj === 47) G.obj = 46; if (G.obj === 49) G.obj = 48;
   if (G.obj === 43 || G.obj === 44) { if (G.obj === 44) { G.guns.flare = true; } }
   if (G.obj === 46) { P.x = CAR0.x - 2.5; P.z = CAR0.z + 3; P.y = 0; P.yaw = 0; }
-  if (G.obj === 48) { enterRoom(); }
+  if (G.obj === 48) { if (G.chore == null) G.chore = 0; if (G.chore > 8) G.chore = 8; enterRoom(); resetHouse(); G.night = { t: 0 }; }
   ch3Env();
 }
 function ch3Env() {
   const city = P.x < -1000 && !P.inRoom, room = !!P.inRoom; CITY.visible = city; ROOM.visible = room;
   if (city) { W.swamp.visible = false; scene.fog.color.setHex(0x232838); scene.fog.density = 0.0065; hemi.intensity = 0.55; moon.intensity = 0.35; CITY.porch.intensity = 1.5; }
-  if (room) { W.swamp.visible = false; scene.fog.color.setHex(0x050608); scene.fog.density = 0.03; hemi.intensity = 0.14; moon.intensity = 0; scene.environment = null; ROOM.lamp.intensity = 1; }
+  if (room) { W.swamp.visible = false; scene.fog.color.setHex(0x050608); scene.fog.density = 0.03; hemi.intensity = 0.14; moon.intensity = 0; scene.environment = null; }
   if (!city) CITY.lights.forEach(l => l.intensity = 0);
 }
 addIt({ x: 0, z: 0, r: 2.4, label: 'Search the boat — take the flare gun', cond: () => G.obj === 43 && FLG && Math.hypot(P.x - FLG.x, P.z - FLG.z) < 2.6, act: () => { G.guns.flare = true; flareBoat.userData.gl.visible = false; SND.pickup(); equip('flare'); say('A flare gun. One shell left.', 2.4, 'You'); say('Point it straight up and pull the trigger.', 2.8, 'You'); setObj(44); hint('Fire the flare straight up into the sky', 4); } });
@@ -192,70 +226,142 @@ function arriveHome() {
   runScene((S, dt) => { if (at(S, 0.6, 'l1')) say('Home.', 1.8, 'You'); if (at(S, 2.2, 'l2')) { SND.door(); say('Shower. Bed. And I am never, EVER house-sitting a forest again.', 3.8, 'You'); } if (at(S, 6, 'f')) fade(1); if (at(S, 8, 'sleep')) { SCN = null; startNight(); } });
 }
 
-// ---------- the night ----------
+// ---------- the night: chores around the house… and things start getting wrong ----------
 const clockEl = document.createElement('div'); clockEl.id = 'clock3'; clockEl.style.cssText = 'display:none;position:fixed;right:18px;top:70px;z-index:20;font:600 28px Oswald,sans-serif;color:#e8e0d0;text-shadow:0 2px 8px #000;pointer-events:none'; document.body.appendChild(clockEl);
-function enterRoom() { P.inRoom = true; CAR.g.visible = false; CITY.visible = false; P.x = HX; P.z = HZ - 0.4; P.y = 0; P.yaw = Math.PI; P.pitch = -0.05; P.falling = false; P.held = false; ch3Env(); }
-function startNight() {
-  clearSubs(); enterRoom(); setObj(48); G.night = { t: 0, hour: 0 }; Object.assign(GR, { state: 'away', t: 6, side: 0, closet: 0, bed: 0, heldL: 0, heldR: 0, heldC: 0, at: null }); GRIN.visible = false; ROOM.crit.forEach(c => c.visible = false);
-  [DOORS.L, DOORS.R].forEach((d, i) => d.door.rotation.y = (i ? 1 : -1) * 1.4); DOORS.C.doors.forEach(d => d.rotation.y = 0);
-  fade(0); G.mode = 'cut'; P.light = false; SND.set('rain', 0.05, 1);
-  runScene((S, dt) => {
-    if (at(S, 0.5, 'clk')) { SND.alarm && SND.alarm(); say('*12:00 AM*', 1.8, ''); }
-    if (at(S, 1.8, 'l1')) say('…something woke me up.', 2.4, 'You');
-    if (at(S, 4.4, 'l2')) { SND.creak(-0.6); say('The hallway floor just creaked. I live alone.', 3.2, 'You'); }
-    if (at(S, 8, 'l3')) { say('Okay. Listen at the doors. If I hear breathing — hold the door shut. Don’t shine the light.', 4.4, 'You'); say('If it’s quiet — light the hall and check. And watch the closet. And the bed.', 4, 'You'); }
-    if (at(S, 13.5, 'go')) { SCN = null; G.mode = 'play'; hint('Walk to a door · HOLD E to hold it shut · F flashlight · survive until 6 AM', 6); }
-  });
+const CHORES = [
+  { t: 'Lock the front door', p: [1.5, -5.3], time: '11:00 PM', after: () => evKnock() },
+  { t: 'Wash the dishes in the kitchen', p: [-4.5, -4.9], hold: 4, time: '11:15 PM', after: () => evCabinets() },
+  { t: 'Close the kitchen cabinets', p: [-5, -4.9], hold: 1.2, time: '11:25 PM', after: () => { HOU.cab = 0; SND.thud(); HOU.glimpse = true; say('There. Closed. All of them.', 2.4, 'You'); } },
+  { t: 'Move the wet laundry into the dryer', p: [4.4, 4.9], hold: 3, time: '11:50 PM', after: () => evDryer() },
+  { t: 'Turn the dryer off', p: [5, 4.9], time: '12:10 AM', after: () => evHair() },
+  { t: 'Brush your teeth', p: [0.4, 5.0], hold: 3.5, time: '12:35 AM', after: () => evMirror() },
+  { t: 'Check behind the shower curtain', p: [-0.5, 4.3], hold: 1, time: '12:40 AM', after: () => evCurtain() },
+  { t: 'Turn off the TV in the living room', p: [6.6, -3.5], time: '1:10 AM', after: () => evTV() },
+  { t: 'Go to bed', p: [-5.6, 4.0], time: '1:30 AM', after: () => evBed() },
+  { t: 'RUN — unlock the front door!', p: [1.5, -5.3], hold: 0.8, time: '3:33 AM', after: () => evEscape() }
+];
+CHORES.forEach((c, i) => addIt({ x: HX + c.p[0], z: HZ + c.p[1], r: i === 9 ? 1.6 : 1.5, hold: c.hold || 0, label: c.t.replace('RUN — ', ''), cond: () => G.obj === 48 && P.inRoom && G.chore === i && !HOU.busy, act: () => { SND.pickup(); G.chore = i + 1; setObj(48); CHORES[i].after(); } }));
+function choreSpot() { const c = CHORES[G.chore]; return c ? { x: HX + c.p[0], y: 1, z: HZ + c.p[1] } : null; }
+const LATER = []; function later(fn, ms) { LATER.push({ t: ms / 1000, fn }); }
+const LX = () => P.x - HX, LZ = () => P.z - HZ, FWD = () => V3(-Math.sin(P.yaw), 0, -Math.cos(P.yaw));
+function facing(lx, lz, dot = 0.8) { const v = V3(lx - LX(), 0, lz - LZ()); const d = v.length(); v.normalize(); return FWD().dot(v) > dot && d; }
+function setLights(on) { for (const k in ROOM.lights) if (k !== 'porch') ROOM.lights[k].on = on; }
+function grinCeil(lx, lz, yaw) { grinAt(lx, lz, yaw, WH - 0.02); GRIN.rotation.z = Math.PI; }
+function grinWhisper(pan) { SND.whisper(pan || 0); try { if (window.speechSynthesis && settings.voice !== false) { const u = new SpeechSynthesisUtterance(pick(['I like your house', 'smile for me', 'I can see you', 'don’t go to bed', 'you left the door open', 'I live here now'])); u.pitch = 0.1; u.rate = 0.55; u.volume = 0.32; if (VOICE.you) u.voice = VOICE.you; speechSynthesis.speak(u); } } catch (e) {} }
+// --- the creepy things that happen after each chore ---
+function evKnock() { SND.unlock(); say('Locked. Chain on.', 2, 'You'); later(() => { if (G.obj !== 48) return; SND.knock(0); say('…', 1.2, ''); say('Who is knocking at eleven at night?', 2.8, 'You'); later(() => { if (G.obj !== 48) return; SND.knock(-0.4); later(() => { say('Nobody on the porch. I can see the whole porch.', 3, 'You'); say('Dishes. Just do the dishes.', 2.4, 'You'); }, 1500); }, 3500); }, 2200); }
+function evCabinets() { SND.pour(); say('Done.', 1.4, 'You'); HOU.busy = true; later(() => { HOU.cab = 1; SND.thud(); SND.thud(); SND.stinger(); P.shake = 0.5; HOU.flick.kitchen = 0.8; later(() => { say('Every cabinet just opened. At the same time.', 3, 'You'); say('…right behind me.', 2, 'You'); HOU.busy = false; }, 900); }, 900); }
+function evDryer() { SND.thud(); say('Laundry in.', 1.6, 'You'); later(() => { if (G.obj !== 48) return; HOU.dryer = true; say('…I didn’t turn it on.', 2.4, 'You'); say('Something’s banging around inside. Shoes? I didn’t put shoes in.', 3.4, 'You'); }, 1800); }
+function evHair() { HOU.dryer = false; SND.creak(0.3); ROOM.hair.visible = true; SND.stinger(); say('Hair. Long black hair. Handfuls of it.', 3, 'You'); say('That is NOT mine.', 2, 'You'); later(() => { if (G.obj === 48) grinGiggle(); }, 3500); }
+function evMirror() { SND.pour(); HOU.busy = true; setLights(0); SND.thud(); later(() => { setLights(1); ROOM.smile.visible = true; ROOM.curtain.material.map = ROOM.curtTx[1]; SND.stinger(); say('The lights came back on and the mirror—', 2.6, 'You'); say('“SMILE.” Written in the fog. From the INSIDE of the mirror.', 3.6, 'You'); say('…and there’s a shape behind the shower curtain.', 3, 'You'); HOU.busy = false; }, 2200); }
+function evCurtain() { SND.whoosh(); ROOM.curtain.position.z = 5.0; ROOM.curtain.scale.x = 0.45; ROOM.curtain.material.map = ROOM.curtTx[0]; say('…', 1, ''); say('Empty. Just water dripping.', 2.4, 'You'); later(() => { if (G.obj !== 48) return; HOU.tv = true; SND.hiss(0.6); say('…the TV just turned on. By itself.', 2.8, 'You'); }, 3500); }
+function evTV() { HOU.tv = false; drawTV(false); HOU.busy = true; G.mode = 'cut'; const y0 = P.yaw;
+  runScene((S, dt) => { GRIN.userData.update(dt, S.t > 3.3);
+    if (at(S, 0.3, 'a')) { say('Black screen.', 1.4, 'You'); say('…there’s a reflection in it. Above me.', 2.6, 'You'); grinCeil(4.2, -3.5, -Math.PI / 2); }
+    if (S.t > 2.6) { const k = Math.min(1, (S.t - 2.6) / 0.9); P.yaw = y0 + Math.PI * (k * k * (3 - 2 * k)); P.pitch = lerp(0, 0.75, k); }
+    if (at(S, 3.5, 'g')) { grinGiggle(); SND.stinger(); P.shake = 0.6; rumble(0.8, 0.8, 500); }
+    if (S.t > 4.6) { CRP.v = 3; GRIN.position.x -= dt * 4.5; GRIN.rotation.y = -Math.PI / 2; }
+    if (at(S, 4.6, 'run')) SND.crawl(-0.4);
+    if (at(S, 6.2, 'e')) { GRIN.visible = false; CRP.v = 0; GRIN.rotation.z = 0; SCN = null; G.mode = 'play'; HOU.busy = false; P.pitch = 0; say('It was on the ceiling. It was SMILING at me.', 3, 'You'); say('Bed. Lock the bedroom door and get under the covers. Please be a dream.', 3.6, 'You'); setLights(0.35); } });
 }
-function nearDoor() { const lx = P.x - HX, lz = P.z - HZ; for (const k of ['L', 'R', 'C', 'B']) { const d = DOORS[k]; if (Math.hypot(lx - d.x * (k === 'C' || k === 'B' ? 1 : 0.85), lz - d.z) < (k === 'B' ? 1.5 : 1.1)) return k; } return null; }
-function roomMove(ox, oz, nx, nz) { const lx = clamp(nx - HX, -2.75, 2.75), lz = clamp(nz - HZ, -0.4, 2.2); return [HX + lx, HZ + lz]; }
+function evBed() { HOU.busy = true; G.mode = 'cut'; P.light = false; clearSubs();
+  runScene((S, dt) => { GRIN.userData.update(dt, S.t > 9.6);
+    if (at(S, 0.1, 'f')) fade(1);
+    if (at(S, 1.3, 'lie')) { setLights(0); ROOM.lights.bed.l.color.setHex(0x5a74b8); ROOM.lights.bed.on = 0.55; P.x = HX - 6.6; P.z = HZ + 4.75; P.y = -0.95; P.yaw = 0; P.pitch = 1.0; G.chore = 9; G.clockOv = '3:33 AM'; }
+    if (at(S, 2.2, 'u')) { fade(0); say('*3:33 AM*', 2, ''); }
+    if (at(S, 3.6, 'c')) { SND.crawl(-0.3); SND.crawl(0.2); }
+    if (at(S, 4.8, 'l')) say('…something is crawling on the ceiling.', 2.8, 'You');
+    if (at(S, 5.2, 'sh')) { grinCeil(-6.6, 1.9, 0); }
+    if (S.t > 5.2 && S.t < 9.2) { GRIN.position.z = HZ + lerp(1.9, 3.7, (S.t - 5.2) / 4); CRP.v = 0.35; P.pitch = lerp(1.0, 0.75, Math.min(1, (S.t - 5.2) / 3)); }
+    if (at(S, 9.2, 'stop')) { CRP.v = 0; grinWhisper(0); }
+    if (at(S, 9.7, 'grin')) { grinGiggle(); SND.stinger(); rumble(0.6, 0.6, 400); }
+    if (at(S, 10.6, 'drop')) { ROOM.lights.bed.on = 0.3; SND.hollowScream(1); SND.thud(); P.shake = 1; rumble(1, 1, 700); $('hurt').style.opacity = 0.8; GRIN.rotation.z = 0; GRIN.position.set(HX - 6.6, 0.5, HZ + 3.3); }
+    if (at(S, 11.1, 'up')) { P.x = HX - 5.0; P.z = HZ + 2.6; P.y = 0; P.yaw = Math.atan2(-(-5.0 + 6.6), -(2.6 - 3.3)) + Math.PI; P.pitch = -0.1; P.light = true; say('RUN!', 1.6, 'You'); }
+    if (at(S, 11.9, 'go')) { SCN = null; G.mode = 'play'; HOU.busy = false; P.yaw = 0; setObj(48); $('hurt').style.opacity = 0; HOU.chase = { wait: 1.1, trail: [[P.x, P.z]], stall: 0, lit: 0 }; GRIN.position.y = 0; hint('Run to the front door! Shine your light on it to slow it down', 4); grinGiggle(); } });
+}
+function evEscape() { HOU.chase = null; HOU.busy = true; G.mode = 'cut'; SND.unlock(); SND.door();
+  runScene((S, dt) => { GRIN.userData.update(dt, S.t > 2.6);
+    ROOM.door.rotation.y = -Math.min(1.6, S.t * 4);
+    if (S.t < 1.4) { const k = Math.min(1, S.t / 1.4); P.x = HX + 1.5; P.z = HZ + lerp(-5.3, -9.0, k); P.yaw = 0; P.pitch = -0.05; }
+    if (at(S, 0.05, 'p')) { ROOM.lights.porch.on = 1; GRIN.visible = false; }
+    if (at(S, 1.5, 't')) say('*gasp*', 1.2, 'You');
+    if (S.t > 1.6) { const k = Math.min(1, (S.t - 1.6) / 0.8); P.yaw = Math.PI * k; }
+    if (at(S, 2.3, 'g')) { grinAt(1.5, -4.3, Math.PI); grinGiggle(); SND.stinger(); }
+    if (S.t > 4.4) ROOM.door.rotation.y = -1.6 + Math.min(1.6, (S.t - 4.4) * 0.55);
+    if (at(S, 4.4, 'w')) grinWhisper(0);
+    if (at(S, 7.4, 'cl')) { SND.thud(); GRIN.visible = false; }
+    if (at(S, 8.2, 'end')) { SCN = null; winNight(); } });
+}
+function drawTV(on) { const c = ROOM.tvTx.image.getContext('2d'), w = 128, h = 72; if (!on) { c.fillStyle = '#000'; c.fillRect(0, 0, w, h); ROOM.tvTx.needsUpdate = true; return; } const im = c.createImageData(w, h); for (let i = 0; i < im.data.length; i += 4) { const v = rand() * 200; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; } c.putImageData(im, 0, 0); if (rand() < 0.35) { c.fillStyle = 'rgba(230,225,215,.85)'; c.beginPath(); c.ellipse(64, 34, 16, 21, 0, 0, 7); c.fill(); c.fillStyle = '#000'; c.beginPath(); c.arc(57, 29, 2.5, 0, 7); c.arc(71, 29, 2.5, 0, 7); c.fill(); c.strokeStyle = '#000'; c.lineWidth = 2; c.beginPath(); c.arc(64, 32, 12, 0.3, Math.PI - 0.3); c.stroke(); } ROOM.tvTx.needsUpdate = true; }
+// --- entering the house ---
+function enterRoom() { P.inRoom = true; CAR.g.visible = false; CITY.visible = false; P.x = HX + 1.5; P.z = HZ - 4.6; P.y = 0; P.yaw = Math.PI; P.pitch = -0.05; P.falling = false; P.held = false; ch3Env(); }
+function resetHouse() { LATER.length = 0; HOU.busy = false; HOU.cab = 0; HOU.dryer = false; HOU.tv = false; HOU.glimpse = false; HOU.peek = null; HOU.chase = null; HOU.amb = 18; HOU.flick = {}; G.clockOv = null; ROOM.cabs.forEach(c => c.rotation.y = 0); ROOM.hair.visible = G.chore >= 5; ROOM.smile.visible = G.chore >= 6; ROOM.curtain.material.map = ROOM.curtTx[0]; ROOM.curtain.position.z = G.chore >= 7 ? 5.0 : 4.3; ROOM.curtain.scale.x = G.chore >= 7 ? 0.45 : 1; ROOM.door.rotation.y = 0; ROOM.frames.forEach((f, i) => { f.position.copy(f.userData.p0); f.rotation.set(0, f.position.z > 0 ? Math.PI : 0, 0); f.userData.fell = false; }); drawTV(false); ROOM.lights.bed.l.color.setHex(0xffd8a8); for (const k in ROOM.lights) ROOM.lights[k].on = k === 'porch' ? 0 : G.chore >= 8 ? 0.35 : 1; GRIN.visible = false; GRIN.rotation.set(0, 0, 0); CRP.v = 0; }
+function startNight(restored) {
+  clearSubs(); if (!restored || G.chore == null) G.chore = 0; if (G.chore > 8) G.chore = 8; enterRoom(); resetHouse(); setObj(48); G.night = { t: 0 }; P.light = false; fade(0); SND.set('rain', 0.05, 1);
+  if (restored) { G.mode = 'play'; say(['Okay. Lock up.', 'Dishes.', 'Close them. Close them all.', 'Laundry.', 'Turn the dryer off…', 'Teeth. Then bed.', 'The shower curtain…', 'The TV…', 'Bed. Now.'][G.chore], 2.4, 'You'); return; }
+  G.mode = 'cut'; runScene((S, dt) => {
+    if (at(S, 0.4, 'a')) { SND.door(); say('Home. My own house. No forest, no swamp, no monsters.', 3.4, 'You'); }
+    if (at(S, 4, 'b')) say('Okay. Lock up, clean up, laundry, teeth, bed. Normal stuff.', 3.4, 'You');
+    if (at(S, 7.6, 'go')) { SCN = null; G.mode = 'play'; hint('Do your chores around the house · F flashlight', 5); } });
+}
+// --- every frame inside the house ---
+function inHall() { return Math.abs(LZ()) < 1; }
 function updateNight(dt) {
   if (G.obj !== 48 || !P.inRoom) { clockEl.style.display = 'none'; return; }
-  const N = G.night; if (!N) return; clockEl.style.display = 'block'; const hr = Math.floor(N.t / 48); clockEl.textContent = (hr === 0 ? 12 : hr) + ' AM';
-  if (ROOM.clockTx && ROOM.clockTx._h !== hr) { const c = ROOM.clockTx.image.getContext('2d'); c.fillStyle = '#100'; c.fillRect(0, 0, 128, 64); c.fillStyle = '#ff3020'; c.font = 'bold 40px monospace'; c.textAlign = 'center'; c.fillText((hr === 0 ? 12 : hr) + ':00', 64, 46); ROOM.clockTx.needsUpdate = true; ROOM.clockTx._h = hr; }
-  ROOM.lamp.intensity = 1.0 + Math.sin(G.time * 0.7) * 0.06; P.held = false;
-  if (G.mode !== 'play') return; N.t += dt; if (N.t >= 48 * 6) return winNight();
-  const lvl = 0.6 + hr * 0.22, at2 = nearDoor(), lx = P.x - HX, lz = P.z - HZ; const holding = useHeld() && at2;
-  // facing a door with the light on?
-  const fwd = V3(-Math.sin(P.yaw), 0, -Math.cos(P.yaw)), lookingAt = k => { const d = DOORS[k]; const v = V3(d.x * 2.2 - lx, 0, d.z - lz).normalize(); return fwd.dot(v) > 0.75; };
-  // doors: hold them shut
-  ['L', 'R'].forEach(k => { const d = DOORS[k], shut = holding && at2 === k; d.door.rotation.y += ((shut ? 0 : (k === 'L' ? -1.4 : 1.4)) - d.door.rotation.y) * Math.min(1, dt * 10); if (shut && !d.wasShut) SND.thud(); d.wasShut = shut; });
-  DOORS.C.doors.forEach((d, i) => { const open = holding && at2 === 'C' ? 0 : GR.closet * 0.18; d.rotation.y += ((i ? -1 : 1) * open - d.rotation.y) * Math.min(1, dt * 6); });
-  // the Grinner's hallway track
-  GR.t -= dt * lvl;
-  if (GR.state === 'away') { GRIN.visible = false; if (GR.t <= 0) { GR.side = rand() < 0.5 ? 'L' : 'R'; GR.state = 'hall'; GR.t = 6 + rand() * 4; GR.T0 = GR.t; const s = GR.side === 'L' ? -1 : 1; GR.ceil = rand() < 0.45; grinAt(s * 9.4, 0.2, -s * Math.PI / 2); if (GR.ceil) { GRIN.rotation.z = Math.PI; GRIN.position.y = 2.42; } SND.crawl(s * 0.7); } }
-  else if (GR.state === 'hall') { const s = GR.side === 'L' ? -1 : 1, pr = 1 - Math.max(0, GR.t) / (GR.T0 || 8); GRIN.position.x = HX + s * (9.4 - 4.4 * pr); CRP.v = (4.4 / (GR.T0 || 8)) * lvl / 1.3;
-    if (P.light && at2 === GR.side && lookingAt(GR.side)) { GR.state = 'flee'; GR.ft = 1.4; CRP.v = 0; grinGiggle(); SND.stinger(); remark(['It was crawling down the hall — it SMILED at me!', 'GET BACK!'], 1); }
-    else if (GR.t <= 0) { GR.state = 'door'; GR.t = 7.5 - hr * 0.5; GR.held = 0; GR.wh = 1.5; CRP.v = 0; grinAt(s * 4.4, 0.2, -s * Math.PI / 2); } }
-  else if (GR.state === 'flee') { GR.ft -= dt; const s = GR.side === 'L' ? -1 : 1; if (GR.ft < 0.6) { GRIN.position.x += s * dt * 7; GRIN.rotation.y = s * Math.PI / 2; CRP.v = 3; } if (GR.ft <= 0) { GR.state = 'away'; GR.t = 5 + rand() * 5; CRP.v = 0; } }
-  else if (GR.state === 'door') { const s = GR.side === 'L' ? -1 : 1, listening = at2 === GR.side && !P.light;
-    SND.set('breath', listening ? 0.45 : 0, 0.2);
-    GR.wh -= dt; if (listening && GR.wh <= 0) { GR.wh = 3 + rand() * 3; grinWhisper(); }
-    if (P.light && at2 === GR.side && lookingAt(GR.side)) return grinScare(GR.side);
-    if (holding && at2 === GR.side) { GR.held += dt; if (GR.held > 2.6) { GR.state = 'away'; GR.t = 6 + rand() * 6; SND.set('breath', 0, 0.2); SND.step(false, true); SND.crawl(s * 0.5); say('…footsteps. It’s going away.', 2.2, 'You'); } }
-    else if (GR.t <= 0) return grinScare(GR.side); }
-  if (GR.state !== 'door') SND.set('breath', 0, 0.3);
-  if (GR.state === 'away' || GR.state === 'door') CRP.v = 0;
-  // the closet: it creeps further out unless you hold the doors shut
-  GR.cT = (GR.cT == null ? 25 : GR.cT) - dt * lvl; if (GR.cT <= 0) { GR.cT = 14 + rand() * 10; GR.closet++; SND.creak(0); if (GR.closet === 2) remark(['The closet door just moved…'], 1); if (GR.closet >= 4) return grinScare('C'); }
-  if (holding && at2 === 'C' && GR.closet > 0) { GR.heldC += dt; if (GR.heldC > 2.4) { GR.heldC = 0; GR.closet = Math.max(0, GR.closet - 2); SND.thud(); remark(['Something pushed back from inside…'], 0.8); } }
-  // the bed: little grinning heads crawl up onto the blanket — shine the light on them
-  GR.bT = (GR.bT == null ? 30 : GR.bT) - dt * lvl; if (GR.bT <= 0) { GR.bT = 16 + rand() * 10; GR.bed++; SND.crawl(0); if (GR.bed >= 4) return grinScare('B'); }
-  ROOM.crit.forEach((c, i) => { c.visible = i < GR.bed; c.position.y = 0.66 + Math.abs(Math.sin(G.time * 6 + i)) * 0.02; });
-  if (GR.bed > 0 && P.light && at2 === 'B' && lookingAt('B')) { GR.bed = 0; SND.crawl(0); SND.whisper(0); remark(['They scattered under the bed…'], 1); }
+  if (!G.night) return; const ch = Math.min(G.chore, 9); clockEl.style.display = 'block'; clockEl.textContent = G.clockOv || (CHORES[ch] ? CHORES[ch].time : '3:33 AM');
+  const hr = clockEl.textContent; if (ROOM.clockTx._h !== hr) { const c = ROOM.clockTx.image.getContext('2d'); c.fillStyle = '#100'; c.fillRect(0, 0, 128, 64); c.fillStyle = '#ff3020'; c.font = 'bold 34px monospace'; c.textAlign = 'center'; c.fillText(hr.replace(/ [AP]M/, ''), 64, 44); ROOM.clockTx.needsUpdate = true; ROOM.clockTx._h = hr; }
+  P.held = false;
+  // lights (with flickers)
+  for (const k in ROOM.lights) { const L = ROOM.lights[k]; let v = L.on * L.base; if (HOU.flick[k] > 0) { HOU.flick[k] -= dt; v *= rand() < 0.5 ? 0.05 : 1; } L.l.intensity += (v * (k === 'porch' ? 2 : 1) - L.l.intensity) * Math.min(1, dt * 18); L.b.visible = L.l.intensity > 0.15; }
+  ROOM.cabs.forEach((c, i) => { c.rotation.y += (-HOU.cab * (1.2 + (i % 3) * 0.2) - c.rotation.y) * Math.min(1, dt * (HOU.cab ? 14 : 6)); });
+  if (HOU.tv) { HOU.tvT -= dt; if (HOU.tvT <= 0) { HOU.tvT = 0.07; drawTV(true); if (rand() < 0.08) SND.hiss(0.6); } }
+  if (HOU.dryer) { HOU.dT -= dt; ROOM.dryer.position.x = 5 + Math.sin(G.time * 40) * 0.01; if (HOU.dT <= 0) { HOU.dT = 0.5 + rand() * 0.5; SND.thud(); } }
+  if (G.mode === 'play' || G.mode === 'cut') for (let i = LATER.length - 1; i >= 0; i--) { if ((LATER[i].t -= dt) <= 0) { const f = LATER[i].fn; LATER.splice(i, 1); f(); } }
+  if (G.mode !== 'play') return; G.night.t += dt;
+  if (curIt && curIt.hold && useHeld()) { if (G.chore === 1) HOU.flick.kitchen = Math.max(HOU.flick.kitchen || 0, rand() < 0.02 ? 0.4 : 0); if (G.chore === 5 && rand() < 0.01) SND.knock(0.5); }
+  // the hallway: after the cabinets it's on the ceiling at the end of the hall, then scurries off
+  if (HOU.glimpse && inHall() && !HOU.peek) { HOU.glimpse = false; const s = FWD().x > 0 ? 1 : -1, x = clamp(LX() + s * 6, -7.3, 7.3); grinCeil(x, 0, s > 0 ? -Math.PI / 2 : Math.PI / 2); HOU.peek = { t: 0, s, kind: 'hall' }; SND.crawl(s * 0.6); }
+  if (HOU.peek) { const pk = HOU.peek; pk.t += dt; GRIN.userData.update(dt, false);
+    if (pk.kind === 'hall') { if (pk.t > 0.8 && !pk.g) { pk.g = 1; grinGiggle(); remark(['It’s ON THE CEILING—', 'What is THAT?!'], 1); P.shake = 0.3; } if (pk.t > 1.6) { CRP.v = 3.5; GRIN.position.x += pk.s * dt * 6; GRIN.rotation.y = pk.s > 0 ? Math.PI / 2 : -Math.PI / 2; } if (pk.t > 3.2) { GRIN.visible = false; GRIN.rotation.z = 0; CRP.v = 0; HOU.peek = null; } }
+    else if (pk.t > (P.light && facing(GRIN.position.x - HX, GRIN.position.z - HZ, 0.9) ? 0.5 : 1.6)) { if (!pk.g) grinGiggle(); GRIN.visible = false; HOU.peek = null; } }
+  // random creepy stuff, more and worse with every chore
+  HOU.amb -= dt; if (HOU.amb <= 0 && !HOU.chase && !HOU.busy) { HOU.amb = Math.max(9, 24 - G.chore * 1.8) + rand() * 8; ambient(); }
+  if (HOU.chase) updateChase(dt);
 }
-function grinWhisper() { SND.whisper(GR.side === 'L' ? -0.7 : 0.7); try { if (window.speechSynthesis && settings.voice !== false) { const u = new SpeechSynthesisUtterance(pick(['let me in', 'let me in', 'I can hear you breathing', 'open the door', 'I like your room'])); u.pitch = 0.1; u.rate = 0.55; u.volume = 0.32; if (VOICE.you) u.voice = VOICE.you; speechSynthesis.speak(u); } } catch (e) {} }
-function grinScare(where) {
-  G.mode = 'cut'; SND.set('breath', 0, 0.1); const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
+function ambient() {
+  const c = G.chore, opts = ['knock', 'creak', 'flick'];
+  if (c >= 2) opts.push('frame', 'crawl'); if (c >= 3) opts.push('whisper', 'peek'); if (c >= 5) opts.push('giggle', 'peek', 'flick');
+  const e = pick(opts);
+  if (e === 'knock') { SND.knock(rand() * 2 - 1); remark(['…knocking. Inside the walls?', 'Something knocked.'], 0.6); }
+  if (e === 'creak') SND.creak(rand() * 2 - 1);
+  if (e === 'flick') { const ks = Object.keys(ROOM.lights).filter(k => k !== 'porch'); HOU.flick[pick(ks)] = 1.2; SND.buzz && SND.buzz(0); }
+  if (e === 'crawl') { for (let i = 0; i < 4; i++) later(() => SND.crawl(rand() - 0.5), i * 220); remark(['Something is crawling above the ceiling.', 'The attic. Something’s in the attic.'], 0.8); }
+  if (e === 'whisper') grinWhisper(rand() - 0.5);
+  if (e === 'giggle') grinGiggle();
+  if (e === 'frame') { const f = ROOM.frames.find(f => !f.userData.fell); if (f) { f.userData.fell = true; f.position.y = 0.02; f.position.z *= 0.6; f.rotation.set(-Math.PI / 2, 0, rand() * 6); SND.thud(); SND.clink(); remark(['A picture just fell off the wall.'], 1); } }
+  if (e === 'peek' && !HOU.peek) { const doors = [[-5, 1.6], [0, 1.6], [5, 1.6], [-4.5, -1.6], [3, -1.8], [-7.3, 0], [7.3, 0]]; const ok = doors.filter(([x, z]) => { const d = facing(x, z, 0.85); return d && d > 4 && d < 11; }); if (ok.length) { const [x, z] = pick(ok); grinAt(x, z, Math.atan2(LX() - x, LZ() - z)); HOU.peek = { t: 0, kind: 'peek' }; SND.creak(0); } }
+}
+// --- the chase: it follows the exact path you ran ---
+function updateChase(dt) { const C2 = HOU.chase; const last = C2.trail[C2.trail.length - 1]; if (Math.hypot(P.x - last[0], P.z - last[1]) > 0.3) C2.trail.push([P.x, P.z]);
+  GRIN.userData.update(dt, false);
+  if (C2.wait > 0) { C2.wait -= dt; return; }
+  const lit = P.light && facing(GRIN.position.x - HX, GRIN.position.z - HZ, 0.88) && Math.hypot(GRIN.position.x - P.x, GRIN.position.z - P.z) < 9; if (lit && C2.lit <= 0) { C2.stall = 0.7; C2.lit = 2.5; grinGiggle(); } C2.lit -= dt;
+  let mv = (C2.stall > 0 ? 0 : 4.7) * dt; C2.stall -= dt; CRP.v = mv / dt / 1.3;
+  while (mv > 0 && C2.trail.length) { const [tx, tz] = C2.trail[0], dx = tx - GRIN.position.x, dz = tz - GRIN.position.z, d = Math.hypot(dx, dz); if (d <= mv) { GRIN.position.x = tx; GRIN.position.z = tz; mv -= d; C2.trail.shift(); } else { GRIN.position.x += dx / d * mv; GRIN.position.z += dz / d * mv; GRIN.rotation.y = Math.atan2(dx, dz); mv = 0; } }
+  if (!C2.trail.length) C2.trail.push([P.x, P.z]);
+  if (rand() < dt * 3) SND.crawl(0); SND.set('breath', 0.3, 0.2);
+  if (Math.hypot(GRIN.position.x - P.x, GRIN.position.z - P.z) < 0.85) grinScare();
+}
+function grinScare() {
+  HOU.chase = null; G.mode = 'cut'; SND.set('breath', 0, 0.1); const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
   runScene((S, dt) => { const k = Math.min(1, S.t / 0.2); GRIN.visible = true; GRIN.rotation.set(0, Math.atan2(-fx, -fz), 0); GRIN.userData.update(dt, true); GRIN.updateMatrixWorld(true); const hp = GRIN.userData.head.getWorldPosition(V2), d = lerp(2.4, 0.42, k); GRIN.position.x += camera.position.x + fx * d - hp.x; GRIN.position.y += camera.position.y + 0.02 - hp.y; GRIN.position.z += camera.position.z + fz * d - hp.z; P.shake = 1;
     if (at(S, 0.02, 'scr')) { SND.giggle && SND.giggle(5, 0.3); SND.scream && SND.scream(); SND.hollowScream(1.2); rumble(1, 1, 1000); $('hurt').style.opacity = 1; }
-    if (at(S, 1.1, 'dead')) { SCN = null; GRIN.visible = false; G.deaths++; showDead(where === 'C' ? 'It came out of the closet. Hold the closet doors shut when they start to open.' : where === 'B' ? 'They covered the bed. Shine your light on the bed when you hear them crawling.' : 'The Grinner got in. Listen at the door first — if you hear breathing, HOLD the door shut. Never shine the light on it.'); } });
+    if (at(S, 1.1, 'dead')) { SCN = null; GRIN.visible = false; G.deaths++; G.chore = 8; showDead('The Grinner caught you. Sprint for the front door — and shine your flashlight back at it to make it stop for a second.'); } });
 }
 function winNight() {
-  G.mode = 'cut'; SND.set('breath', 0, 0.2); GRIN.visible = false; clockEl.textContent = '6 AM'; SND.bell && SND.bell(0);
-  ROOM.lamp.color.setHex(0xffd8a0); ROOM.lamp.intensity = 2.5; say('6 AM. Sunlight.', 2.4, 'You'); say('It’s… gone. For now.', 2.6, 'You');
+  G.mode = 'cut'; SND.set('breath', 0, 0.2); GRIN.visible = false; SND.bell && SND.bell(0);
   setTimeout(() => { G.ch3done = true; checkpoint(); clearCh3(G.slot); G.mode = 'win'; $('hud').style.display = 'none'; $('touch').style.display = 'none'; clockEl.style.display = 'none';
-    $('winH').textContent = 'Chapter 3 Complete'; $('winT').innerHTML = 'You survived the night.<br>On the bedroom floor, small muddy handprints lead from the closet to the bed… and stop.<br>Out in Hollow Pines, the radio in Harlan’s cabin crackles once and goes quiet.<br><br>Time: ' + fmtT(G.time) + ' · Deaths: ' + G.deaths + '<br><br><b>Thanks for playing Hollow Pines.</b>'; $('win').style.display = 'grid'; try { document.exitPointerLock(); } catch (e) {} }, 5200);
+    $('winH').textContent = 'Chapter 3 Complete'; $('winT').innerHTML = 'You got out of the house.<br>The neighbors found you on their porch at 3:40 AM, barefoot and shaking.<br>When the police went inside, every light was on. Every cabinet was open.<br>And on the bathroom mirror, written from the inside: <b>SEE YOU SOON.</b><br><br>Time: ' + fmtT(G.time) + ' · Deaths: ' + G.deaths + '<br><br><b>Thanks for playing Hollow Pines.</b>'; $('win').style.display = 'grid'; try { document.exitPointerLock(); } catch (e) {} }, 1200);
 }
 // ---------- hooks ----------
 function updateCh3(dt) {
@@ -265,5 +371,5 @@ function updateCh3(dt) {
   if (CITY.visible) { let best = []; for (const [x, z] of CITYL) { const d = Math.abs(x - P.x) + Math.abs(z - P.z); if (d < 120) best.push([d, x, z]); } best.sort((a, b) => a[0] - b[0]); CITY.lights.forEach((l, i) => { const b = best[i]; if (b) { l.position.set(b[1], 6.6, b[2]); l.intensity = 1.6; } else l.intensity = 0; }); }
   if (G.obj === 43 && flareBoat) flareBoat.userData.gl.visible = true;
 }
-function ch3Hint() { if (G.obj === 43 && FLG) return { k: 'boat', p: { x: FLG.x, y: H(FLG.x, FLG.z) + 0.8, z: FLG.z } }; if (G.obj === 46) return { k: 'car', p: { x: CAR0.x, y: 1.4, z: CAR0.z } }; return null; }
-window.HP4 = { CITY, CAR, ROOM, GR, GRIN, playChapter3, ch3FireFlare, flight, landCity, arriveHome, startNight, winNight, HOME, HELIPAD, cityCollide };
+function ch3Hint() { if (G.obj === 43 && FLG) return { k: 'boat', p: { x: FLG.x, y: H(FLG.x, FLG.z) + 0.8, z: FLG.z } }; if (G.obj === 46) return { k: 'car', p: { x: CAR0.x, y: 1.4, z: CAR0.z } }; if (G.obj === 48 && !HOU.chase) { const p = choreSpot(); return p ? { k: 'ch' + G.chore, p } : null; } return null; }
+window.HP4 = { CITY, CAR, ROOM, GR, GRIN, playChapter3, ch3FireFlare, flight, landCity, arriveHome, startNight, winNight, HOU, CHORES, houseCollide, evBed, HOME, HELIPAD, cityCollide };
