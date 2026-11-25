@@ -34,7 +34,7 @@ function checkpoint() { CP = snapshot(); writeSlot(G.slot, CP); try { const st =
 
 // ================= STORY =================
 const CHAP = ['Chapter 1 — The Caretaker', 'Chapter 2 — The Tower', 'Chapter 3 — The Tall Man', 'Chapter 4 — The Run', 'Chapter 5 — The Signal'];
-const CANP = [[L.truck.x + 2.4, L.truck.z + 3.4], [L.cabin.x + 1.8, L.cabin.z + 3.9], [L.log.x + 3.6, L.log.z + 2.8], [LK.x + LD.x * 50.5 + LD.z * 1.5, LK.z + LD.z * 50.5 - LD.x * 1.5]];
+const CANP = [[5.8, 23.6], [52.9, -14.6], [-16.3, -30], [-8.3, 15.9]]; // all within a short walk of the camp, beside the trails
 function nearestCan() { let b = null, bd = 1e9; CANP.forEach(([x, z], i) => { if (G.picked[i]) return; const d = Math.hypot(x - P.x, z - P.z); if (d < bd) { bd = d; b = { x, z }; } }); return b; }
 const FUSEPT = { x: T.x + 2, z: T.z + 3.1 };
 const OBJ = [
@@ -87,7 +87,7 @@ const LETTER = `Kid —
 Thanks for looking after Hollow Pines while I’m away on vacation. Just a few chores:
 
 1. My pistol is in the tool shed past the old car. Keep it on you. The wolves get bold after dark.
-2. Keep the generator fueled. I left cans at my truck, the hunting cabin, the logging site and the lake dock.
+2. Keep the generator fueled. I left four cans of gas along the trails right around camp.
 3. Check the radio tower every night.
 
 One more thing. If you see a tall man standing in the trees, don’t stare at him. Shine a light on him and walk away. Never let him get close.
@@ -131,7 +131,7 @@ const AMMO = [
 // ================= WORLD ITEMS =================
 const IT = [];
 const addIt = o => { IT.push(Object.assign({ r: 2.2, hold: 0, tower: false, tunnel: false, heli: false }, o)); return o; };
-const cans = CANP.map(([x, z], i) => { const c = makeCan(); c.position.set(x, H(x, z) + (i === 1 ? 0.2 : 0), z); c.rotation.y = i * 1.7; scene.add(c); c.userData.gl = glint(x, c.position.y + 0.7, z); return c; });
+const cans = CANP.map(([x, z], i) => { const c = makeCan(); c.position.set(x, H(x, z), z); c.rotation.y = i * 1.7; scene.add(c); c.userData.gl = glint(x, c.position.y + 0.7, z); return c; });
 const ammoM = AMMO.map(a => { const m = makeAmmo(); const y = a.y != null ? a.y : H(a.x, a.z) + (a.yo || 0); m.position.set(a.x, y, a.z); m.rotation.y = rand() * 6; scene.add(m); m.userData.gl = glint(a.x, y + 0.45, a.z); return m; });
 const noteM = NOTES.map(n => { const m = bx(0.22, 0.012, 0.3, MAT.paper, n.x, (n.y != null ? n.y : H(n.x, n.z)) + 0.03, n.z); m.rotation.y = rand() * 6; m.userData.gl = glint(n.x, m.position.y + 0.4, n.z); return m; });
 const pistolPick = makePistol(); pistolPick.position.set(W.shed1.x - 0.3, W.shed1.y + 0.02, W.shed1.z); pistolPick.rotation.set(0, 1.3, Math.PI / 2); scene.add(pistolPick); pistolPick.userData.gl = glint(W.shed1.x - 0.3, W.shed1.y + 0.4, W.shed1.z);
