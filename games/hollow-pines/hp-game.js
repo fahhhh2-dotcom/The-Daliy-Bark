@@ -10,8 +10,8 @@ const FW = new THREE.Vector3(), TV = new THREE.Vector3();
 const fmtT = s => { s = Math.floor(s); const m = Math.floor(s / 60); return m + ':' + String(s % 60).padStart(2, '0'); };
 
 // ================= STATE =================
-const PKEYS = ['sgas', 'ch1done', 'ch2done', 'med', 'obj', 'poured', 'picked', 'carry', 'key', 'fuse', 'fuseIn', 'power', 'guns', 'am', 'wep', 'ammo', 'notes', 'time', 'hasLight', 'deaths', 'done', 'h1', 'valves', 'acid', 'grates', 'kicks', 'powder', 'paper', 'charge', 'ate', 'mland'];
-const fresh = () => ({ sgas: [], ch1done: false, ch2done: false, med: [], obj: 0, poured: 0, picked: [0, 0, 0, 0], carry: -1, key: false, fuse: false, fuseIn: false, power: false, guns: { pistol: false, shotgun: false, flare: false }, am: { p: 0, pr: 0, s: 0, sr: 0 }, wep: 'none', ammo: [], notes: [], time: 0, hasLight: false, deaths: 0, done: false, h1: false, valves: [], acid: false, grates: [], kicks: 0, powder: false, paper: false, charge: false, ate: false, mland: false });
+const PKEYS = ['sgas', 'ch1done', 'ch2done', 'med', 'obj', 'poured', 'picked', 'carry', 'key', 'fuse', 'fuseIn', 'power', 'guns', 'am', 'wep', 'ammo', 'notes', 'time', 'hasLight', 'deaths', 'done', 'h1', 'valves', 'acid', 'grates', 'kicks', 'powder', 'paper', 'charge', 'ate', 'mland', 'ch3done'];
+const fresh = () => ({ sgas: [], ch1done: false, ch2done: false, med: [], obj: 0, poured: 0, picked: [0, 0, 0, 0], carry: -1, key: false, fuse: false, fuseIn: false, power: false, guns: { pistol: false, shotgun: false, flare: false }, am: { p: 0, pr: 0, s: 0, sr: 0 }, wep: 'none', ammo: [], notes: [], time: 0, hasLight: false, deaths: 0, done: false, h1: false, valves: [], acid: false, grates: [], kicks: 0, powder: false, paper: false, charge: false, ate: false, mland: false, ch3done: false });
 const G = Object.assign({ mode: 'boot', slot: 0, surviveT: 0, glimpseAt: 0, tips: {}, gateOpen: false, wolfT: 60, ambT: 8, cricketT: 1 }, fresh());
 const P = { inHeli: false, x: 0, z: 5, y: 0, yaw: 0, pitch: 0, stam: 100, tired: false, hp: 100, hurtT: 9, onTower: false, inTunnel: false, light: false, overheat: 0, ohMax: 6, bob: 0, stepAcc: 0, look: null, cy: 0, cv: 0, shake: 0 };
 const C = { state: 'off', x: 0, z: 0, timer: 0, seen: 0, burn: 0, pain: 0, stag: 0, aggr: 0, final: false, scripted: false, rush: false, ph: 0, stepT: 0, stung: false, s: 0, cy: 0, chaseT: 0, mode: 'idle', tw: { z: 0, y: 0, tz: 0, ty: 0, t: 0 }, speed: 0 };
@@ -21,14 +21,16 @@ let CP = null;
 // ================= SAVES (3 slots) =================
 const SK = i => 'hollowPinesSlot' + i;
 const readSlot = i => { try { return JSON.parse(localStorage.getItem(SK(i)) || 'null'); } catch (e) { return null; } };
-const writeSlot = (i, d) => { try { localStorage.setItem(SK(i), JSON.stringify(d)); saveGear(i, d); if (d && d.obj >= 16 && !d.ch2done) localStorage.setItem('hollowPinesCh2_' + i, JSON.stringify(d)); } catch (e) {} };
+const writeSlot = (i, d) => { try { localStorage.setItem(SK(i), JSON.stringify(d)); saveGear(i, d); if (d && d.obj >= 43 && !d.ch3done) localStorage.setItem('hollowPinesCh3_' + i, JSON.stringify(d)); if (d && d.obj >= 16 && !d.ch2done) localStorage.setItem('hollowPinesCh2_' + i, JSON.stringify(d)); } catch (e) {} };
 // every gun you've found on a save is remembered, so Chapter 2 always starts with them
 const readGear = i => { try { return JSON.parse(localStorage.getItem('hollowPinesGear_' + i) || 'null'); } catch (e) { return null; } };
 function saveGear(i, d) { if (!d || !d.guns) return; const g = readGear(i) || { guns: { pistol: false, shotgun: false }, am: { p: 12, pr: 12, s: 0, sr: 0 } }; g.guns.pistol = g.guns.pistol || !!d.guns.pistol; g.guns.shotgun = g.guns.shotgun || !!d.guns.shotgun; if (d.obj <= 16 && d.am) { g.am = g.am || {}; for (const k of ['p', 'pr', 's', 'sr']) g.am[k] = Math.max(g.am[k] || 0, d.am[k] || 0); } try { localStorage.setItem('hollowPinesGear_' + i, JSON.stringify(g)); } catch (e) {} }
 function applyGear(i) { const g = readGear(i); if (!g) return; G.guns.pistol = G.guns.pistol || g.guns.pistol; G.guns.shotgun = G.guns.shotgun || g.guns.shotgun; if (G.obj === 16) for (const k of ['p', 'pr', 's', 'sr']) G.am[k] = Math.max(G.am[k] || 0, (g.am && g.am[k]) || 0); if (G.guns.pistol) { G.am.p = Math.max(G.am.p, 6); } if (G.guns.shotgun) { G.am.s = Math.max(G.am.s, 2); } }
+const readCh3 = i => { try { const d = JSON.parse(localStorage.getItem('hollowPinesCh3_' + i) || 'null'); return d && d.obj >= 43 && !d.ch3done ? d : null; } catch (e) { return null; } };
+const clearCh3 = i => { try { localStorage.removeItem('hollowPinesCh3_' + i); } catch (e) {} };
 const readCh2 = i => { try { const d = JSON.parse(localStorage.getItem('hollowPinesCh2_' + i) || 'null'); return d && d.obj >= 16 && !d.ch2done ? d : null; } catch (e) { return null; } };
 const clearCh2 = i => { try { localStorage.removeItem('hollowPinesCh2_' + i); } catch (e) {} };
-const delSlot = i => { try { localStorage.removeItem(SK(i)); localStorage.removeItem('hollowPinesCh2_' + i); localStorage.removeItem('hollowPinesGear_' + i); } catch (e) {} };
+const delSlot = i => { try { localStorage.removeItem(SK(i)); localStorage.removeItem('hollowPinesCh3_' + i); localStorage.removeItem('hollowPinesCh2_' + i); localStorage.removeItem('hollowPinesGear_' + i); } catch (e) {} };
 function snapshot() { const o = {}; PKEYS.forEach(k => { if (G[k] !== undefined) o[k] = JSON.parse(JSON.stringify(G[k])); }); o.x = P.x; o.z = P.z; o.yaw = P.yaw; o.tower = P.onTower; o.updated = Date.now(); return o; }
 function checkpoint() { CP = snapshot(); writeSlot(G.slot, CP); try { const st = JSON.parse(localStorage.getItem('hollowPinesStats') || '{}'); st.best = Math.max(st.best || 0, G.obj); if (G.done) st.escaped = (st.escaped || 0); localStorage.setItem('hollowPinesStats', JSON.stringify(st)); } catch (e) {} }
 
@@ -80,7 +82,14 @@ const OBJ = [
   [5, 'Find paper for a fuse — by the dead miner (south wall)', () => ({ x: CV.x + PAPER.x, z: CV.z + PAPER.z })],
   [5, 'Pack the powder under the Hollow One’s nest', () => ({ x: CV.x + NEST.x, z: CV.z + NEST.z })],
   [5, 'Light the fuse', () => ({ x: CV.x + NEST.x, z: CV.z + NEST.z })],
-  [5, 'RUN! Out through the east tunnel — toward the daylight!', () => ({ x: CV.x + EXIT_X + 4, z: CV.z + 2 })]
+  [5, 'RUN! Out through the east tunnel — toward the daylight!', () => ({ x: CV.x + EXIT_X + 4, z: CV.z + 2 })],
+  [6, 'Search the old boat on the bank for a flare gun', () => FLG],
+  [6, 'Fire the flare gun straight up into the sky', () => null],
+  [6, 'CLIMB the ladder into the helicopter!', () => null],
+  [6, 'Get in the car they left for you', () => CAR0],
+  [6, 'Drive home — west side of town', () => ({ x: HOME.x + 4.5, z: HOME.z + 4.5 })],
+  [6, 'Survive the night until 6 AM', () => null],
+  [6, 'Done', () => null]
 ];
 const LETTER = `Kid —
 
@@ -292,7 +301,7 @@ function say(text, dur = 3.5, who = '') { subQ.push({ text, dur, who }); }
 function clearSubs() { subQ.length = 0; subT = 0; $('subs').innerHTML = ''; hush(); }
 function hint(t, d = 2.5) { $('hint').textContent = t; $('hint').style.display = 'block'; hintT = d; }
 function tip(id, t) { if (G.tips[id]) return; G.tips[id] = 1; say(t, 4.5, 'Tip'); }
-function refreshObj() { const o = OBJ[G.obj]; $('chap').textContent = G.obj >= 16 ? 'Chapter 2 — The Swamp' : 'Chapter 1 — Hollow Pines'; $('objT').textContent = typeof o[1] === 'function' ? o[1]() : o[1]; }
+function refreshObj() { const o = OBJ[G.obj]; $('chap').textContent = G.obj >= 43 ? 'Chapter 3 — Home' : G.obj >= 16 ? 'Chapter 2 — The Swamp' : 'Chapter 1 — Hollow Pines'; $('objT').textContent = typeof o[1] === 'function' ? o[1]() : o[1]; }
 function setObj(n, noSave) {
   G.obj = n; refreshObj(); const e = $('obj'); e.classList.remove('new'); void e.offsetWidth; e.classList.add('new'); SND.obj();
   if (n === 8) C.aggr = 1; if (n === 10) C.aggr = 2; if (n === 13) C.aggr = 3;
@@ -477,6 +486,7 @@ function updateWeapons(dt, canFire) {
 }
 function fire() {
   const w = WS.cur, st = WSTAT[w];
+  if (w === 'flare' && G.obj === 44) { ch3FireFlare(); WS.fireT = 0.5; return; }
   if (w === 'flare') { if (G.obj === 13 && Math.hypot(P.x - Hp.x, P.z - Hp.z) < 9) fireFlare(); else hint('Save the flare for the helipad!'); WS.fireT = 0.5; return; }
   const k = w === 'pistol' ? 'p' : 's';
   if (G.am[k] <= 0) { SND.dry(); WS.fireT = 0.25; if (G.am[k + 'r'] > 0) reload(); else { hint('Out of ammo!'); remark('I’m out! I’m out of ammo!'); } return; }
@@ -691,7 +701,7 @@ function updateBats(dt) {
 }
 // ================= TUNNEL =================
 const FOG_SWAMP = new THREE.Color(0x1e2818);
-function setEnv(tunnel) { if (P.inCave && typeof caveEnv === 'function') return caveEnv(true); const swamp = !tunnel && !P.inHeli && P.x > 1000; W.swamp.visible = swamp; W.cabin.visible = P.inHeli; W.cabinL.intensity = P.inHeli ? 0.45 : 0; if (!P.inHeli) W.alarmL.intensity = 0; W.crashFire.intensity = swamp ? 2.4 : 0; W.shackL.intensity = swamp ? 1.3 : 0; const c = tunnel ? FOG_TUNNEL : swamp ? FOG_SWAMP : FOG_FOREST; scene.fog.color.copy(c); scene.fog.density = tunnel ? 0.07 : swamp ? 0.047 : 0.032; scene.environment = tunnel ? null : (FX.env || null); hemi.intensity = tunnel ? 0.05 : 0.46; moon.intensity = tunnel ? 0 : 0.34; W.tunnel.visible = tunnel; W.endLight.intensity = tunnel ? 1.4 : 0; if (!tunnel) W.tunL.forEach(l => l.intensity = 0); SND.set('tunnel', tunnel ? 0.16 : 0, 0.5); SND.set('wind', tunnel ? 0.02 : 0.13, 0.5); SND.set('leaves', tunnel ? 0 : 0.025, 0.5); }
+function setEnv(tunnel) { if (P.inCave && typeof caveEnv === 'function') return caveEnv(true); if (P.x < -1000 && typeof ch3Env === 'function') return ch3Env(); const swamp = !tunnel && !P.inHeli && P.x > 1000; W.swamp.visible = swamp; W.cabin.visible = P.inHeli; W.cabinL.intensity = P.inHeli ? 0.45 : 0; if (!P.inHeli) W.alarmL.intensity = 0; W.crashFire.intensity = swamp ? 2.4 : 0; W.shackL.intensity = swamp ? 1.3 : 0; const c = tunnel ? FOG_TUNNEL : swamp ? FOG_SWAMP : FOG_FOREST; scene.fog.color.copy(c); scene.fog.density = tunnel ? 0.07 : swamp ? 0.047 : 0.032; scene.environment = tunnel ? null : (FX.env || null); hemi.intensity = tunnel ? 0.05 : 0.46; moon.intensity = tunnel ? 0 : 0.34; W.tunnel.visible = tunnel; W.endLight.intensity = tunnel ? 1.4 : 0; if (!tunnel) W.tunL.forEach(l => l.intensity = 0); SND.set('tunnel', tunnel ? 0.16 : 0, 0.5); SND.set('wind', tunnel ? 0.02 : 0.13, 0.5); SND.set('leaves', tunnel ? 0 : 0.025, 0.5); }
 async function enterTunnel(restoring) {
   G.mode = 'cut'; fade(1); await wait(650);
   P.inTunnel = true; P.onTower = false; G.gateOpen = false; W.gate.position.y = TB.y; setEnv(true); updateChunks(9999, 9999, 0);
@@ -913,7 +923,7 @@ let pausedFrom = 'play';
 function pause() { if (G.mode !== 'play' && G.mode !== 'climb') return; hush(); pausedFrom = G.mode; G.mode = 'pause'; $('pauseP').style.display = 'grid'; try { document.exitPointerLock(); } catch (e) {} }
 $('pResume').onclick = () => { $('pauseP').style.display = 'none'; G.mode = pausedFrom; lock(true); };
 $('pSet').onclick = () => { $('pauseP').style.display = 'none'; openPanel('setP', 'pauseP'); };
-$('pMenu').onclick = () => { $('pauseP').style.display = 'none'; const safe = G.mode === 'pause' && pausedFrom === 'play' && ![11, 12, 14, 15, 27, 31, 35, 36, 42].includes(G.obj) && C.state !== 'chase' && !P.inTunnel; if (safe) checkpoint(); showMenu(); };
+$('pMenu').onclick = () => { $('pauseP').style.display = 'none'; const safe = G.mode === 'pause' && pausedFrom === 'play' && ![11, 12, 14, 15, 27, 31, 35, 36, 42, 45, 47].includes(G.obj) && C.state !== 'chase' && !P.inTunnel; if (safe) checkpoint(); showMenu(); };
 const DEATH_TIPS = ['Keep your flashlight right on him to make him back off.', 'Shooting him slows him down for a moment.', 'Running drains stamina. Walk when he’s not chasing.', 'Wolves come in packs. The shotgun is in the lookout shed by the tower.', 'Ammo boxes are hidden in sheds and at every landmark.', 'Don’t stare at him when he’s just watching. He doesn’t like it.'];
 function die(by) { if (G.mode !== 'play' && G.mode !== 'scare') return; G.deaths++; G.mode = 'dead'; showDead(by === 'wolf' ? 'The wolves got you.' : by === 'gator' ? 'The alligator dragged you under.' : by === 'mire' ? 'Something in the water dragged you under. When it grabs you, HOLD the use button to break free!' : ''); }
 function showDead(msg) { hush(); SND.set('siren', 0, 0.3);
@@ -1031,7 +1041,7 @@ async function newGame(slot) {
   el.style.display = 'none';
   begin(); say('Harlan left a letter on the log by the fire.', 3.5, 'You');
 }
-function continueSlot(slot) { const d = readSlot(slot); if (!d) return newGame(slot); if (d.ch2done) return playChapter(slot, 2); G.slot = slot; G.tips = { light: 1, gun: 1 }; restore(d); hideMenu(); lock(true); begin(); }
+function continueSlot(slot) { const d = readSlot(slot); if (!d) return newGame(slot); if (d.obj >= 43 && !d.ch3done) { G.slot = slot; G.tips = { light: 1, gun: 1 }; restore(d); hideMenu(); lock(true); begin(); return; } if (d.ch2done) return playChapter3(slot); G.slot = slot; G.tips = { light: 1, gun: 1 }; restore(d); hideMenu(); lock(true); begin(); }
 
 // ================= MENU =================
 let menuOn = false; const MENU_CAM = { x: 4, z: 10 }, MENU_CR = { x: 8, z: -13 };
@@ -1094,13 +1104,14 @@ function playChapter(i, ch, fresh2) {
 function renderSlots() {
   const el = $('slots'); el.innerHTML = '';
   for (let i = 0; i < 3; i++) {
-    const d = readSlot(i), div = document.createElement('div'); div.className = 'slot'; const ch = d ? (d.obj >= 16 ? 2 : 1) : 0;
-    const title = !d ? `Save ${i + 1} — Empty` : d.ch2done ? `Save ${i + 1} — Chapters 1 & 2 beaten!` : `Save ${i + 1} — Chapter ${ch}${ch === 1 ? ': Hollow Pines' : ': The Swamp'}`;
+    const d = readSlot(i), div = document.createElement('div'); div.className = 'slot'; const ch = d ? (d.obj >= 43 ? 3 : d.obj >= 16 ? 2 : 1) : 0;
+    const title = !d ? `Save ${i + 1} — Empty` : d.ch3done ? `Save ${i + 1} — All 3 chapters beaten!` : ch === 3 ? `Save ${i + 1} — Chapter 3: Home` : d.ch2done ? `Save ${i + 1} — Chapters 1 & 2 beaten!` : `Save ${i + 1} — Chapter ${ch}${ch === 1 ? ': Hollow Pines' : ': The Swamp'}`;
     const ot = d && OBJ[d.obj] ? (typeof OBJ[d.obj][1] === 'function' ? 'Find fuel cans for the generator' : OBJ[d.obj][1]) : '';
-    const info = !d ? 'Start a new story here' : (d.ch2done ? 'Chapter 3 coming soon · ' : '') + (d.ch1done && !d.ch2done && ch === 2 ? 'Chapter 2 unlocked! · ' : '') + (d.ch2done ? '' : (d.obj === 23 ? 'Find gas for the pump station' : d.obj === 28 ? 'Open the flood valves' : d.obj === 33 ? 'Clear the clogged grates' : ot) + ' · ') + 'played ' + fmtT(d.time || 0);
+    const info = !d ? 'Start a new story here' : (d.ch2done && ch !== 3 && !d.ch3done ? 'Chapter 3 unlocked! · ' : '') + (d.ch1done && !d.ch2done && ch === 2 ? 'Chapter 2 unlocked! · ' : '') + (d.ch2done ? '' : (d.obj === 23 ? 'Find gas for the pump station' : d.obj === 28 ? 'Open the flood valves' : d.obj === 33 ? 'Clear the clogged grates' : ot) + ' · ') + 'played ' + fmtT(d.time || 0);
     div.innerHTML = `<div><h3></h3><p></p></div><div class="acts"></div>`; div.querySelector('h3').textContent = title; div.querySelector('p').textContent = info;
     const acts = div.querySelector('.acts'); const mkb = (t, fn) => { const b = document.createElement('button'); b.className = 'btn'; b.textContent = t; b.onclick = fn; acts.appendChild(b); return b; };
     if (d && !d.ch2done) mkb(ch === 2 ? 'Continue Chapter 2' : 'Continue', () => { SND.init(); continueSlot(i); });
+    if (d && d.ch2done) { const c3 = ch === 3 ? d : readCh3(i); mkb(c3 ? 'Continue Chapter 3' : 'Chapter 3', () => { SND.init(); playChapter3(i); }); if (c3) mkb('Restart Chapter 3', () => { SND.init(); playChapter3(i, true); }); }
     const c2 = d && (readCh2(i) || (d.obj >= 16 && !d.ch2done ? d : null));
     if (d && d.ch1done) { mkb(ch === 2 ? 'Replay Chapter 1' : 'Chapter 1', () => { SND.init(); playChapter(i, 1); }); if (c2 && ch !== 2) mkb('Continue Chapter 2', () => { SND.init(); playChapter(i, 2); }); else if (!c2) mkb('Chapter 2', () => { SND.init(); playChapter(i, 2); }); if (c2) mkb('Restart Chapter 2', () => { SND.init(); playChapter(i, 2, true); }); }
     else if (d) { const lb = mkb('Chapter 2 🔒', () => {}); lb.disabled = true; lb.title = 'Beat Chapter 1 to unlock'; }
@@ -1186,7 +1197,7 @@ function update(dt) {
   updateCreature(dt); updateAnimals(dt);
   stepParticles(BLOOD, dt); stepParticles(BLACKB, dt); stepPools(dt);
   // world fx
-  chunkT -= dt; if (chunkT <= 0) { chunkT = 0.3; if (!P.inTunnel) updateChunks(P.inHeli ? 9999 : P.x, P.z, 125); }
+  chunkT -= dt; if (chunkT <= 0) { chunkT = 0.3; if (!P.inTunnel) updateChunks(P.inHeli || P.x < -1000 ? 9999 : P.x, P.z, 125); }
   W.fireL.intensity = 1.6 + Math.sin(G.time * 17) * 0.12 + Math.sin(G.time * 7.3) * 0.15;
   W.winMat.emissiveIntensity = 0.5 + Math.sin(G.time * 3) * 0.1 + (rand() < 0.02 ? -0.4 : 0);
   if (W.beacon.visible) W.beacon.material.opacity = Math.sin(G.time * 3) > 0 ? 1 : 0.1;
@@ -1218,7 +1229,7 @@ function loop(now) {
   else if (G.mode === 'scare') updateScare(dt);
   if (!(G.mode === 'scare' && scareT >= 0.32)) {
     const ox = (menuOn || P.inHeli) ? camera.position.x : P.x, oz = (menuOn || P.inHeli) ? camera.position.z : P.z;
-    FX.update(dt, { noCover: !menuOn && P.inHeli, tunnel: !menuOn && (P.inTunnel || P.inCave), storm: menuOn ? 1 : G.obj >= 34 ? 0.15 : G.obj >= 8 ? 1 : G.obj >= 4 ? 0.6 : 0.35, rain: menuOn ? 0.55 : G.obj >= 34 ? 0.08 : G.obj < 4 ? 0.35 : G.obj < 8 ? 0.6 : 0.9, x: ox, z: oz, red: W.flare.visible ? 0.18 : 0, onStrike: lightningReveal });
+    FX.update(dt, { noCover: !menuOn && (P.inHeli || P.x < -1000), tunnel: !menuOn && (P.inTunnel || P.inCave), storm: menuOn ? 1 : G.obj >= 34 ? 0.15 : G.obj >= 8 ? 1 : G.obj >= 4 ? 0.6 : 0.35, rain: menuOn ? 0.55 : G.obj >= 34 ? 0.08 : G.obj < 4 ? 0.35 : G.obj < 8 ? 0.6 : 0.9, x: ox, z: oz, red: W.flare.visible ? 0.18 : 0, onStrike: lightningReveal });
     SND.set('rain', !menuOn && (P.inTunnel || P.inCave) ? 0.015 : (menuOn ? 0.55 : G.obj >= 34 ? 0.12 : G.obj < 4 ? 0.35 : G.obj < 8 ? 0.6 : 0.9) * 0.22, 0.6);
     FX.render();
   }

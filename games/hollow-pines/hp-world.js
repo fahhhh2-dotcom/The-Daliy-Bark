@@ -192,6 +192,7 @@ function baseH(x, z) { return Math.sin(x * 0.012) * Math.cos(z * 0.010) * 7 + Ma
 FLAT.push({ x: LK.x, z: LK.z, r: LK.r + 14, h: baseH(LK.x, LK.z) }); LK.h = FLAT[FLAT.length - 1].h; LK.w = LK.h - 0.9;
 function H(x, z) {
   if (x > 1000) return swampH(x, z);
+  if (x < -1000) return 0;
   let h = baseH(x, z);
   for (const f of FLAT) { const dx = x - f.x, dz = z - f.z, d2 = dx * dx + dz * dz, R = f.r * 1.6; if (d2 < R * R) { const t = smooth(f.r, R, Math.sqrt(d2)); h = f.h + (h - f.h) * t; } }
   const dl = Math.hypot(x - LK.x, z - LK.z); if (dl < LK.r + 6) h -= (1 - smooth(LK.r - 4, LK.r + 6, dl)) * 4;
@@ -219,6 +220,7 @@ function collide(x, z, r) {
   for (const b of BOX) { if (x > b[0] - b[2] - r && x < b[0] + b[2] + r && z > b[1] - b[3] - r && z < b[1] + b[3] + r) { const px = (b[2] + r) - Math.abs(x - b[0]), pz = (b[3] + r) - Math.abs(z - b[1]); if (px < pz) x += Math.sign(x - b[0] || 1) * px; else z += Math.sign(z - b[1] || 1) * pz; } }
   const lx = x - LK.x, lz = z - LK.z, ld = Math.hypot(lx, lz); if (ld < LK.c) { x = LK.x + lx / ld * LK.c; z = LK.z + lz / ld * LK.c; }
   if (x > 1000) return [clamp(x, SW.x - 150, SW.x + 150), clamp(z, SW.z - 222, SW.z + 100)];
+  if (x < -1000) { if (P.inRoom) return [clamp(x, HX - 2.75, HX + 2.75), clamp(z, HZ - 0.4, HZ + 2.2)]; return typeof cityCollide === 'function' ? cityCollide(x, z, r) : [x, z]; }
   return [clamp(x, -325, 325), clamp(z, -325, 325)];
 }
 

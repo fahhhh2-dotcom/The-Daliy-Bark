@@ -7,7 +7,7 @@ const MIRE = MON.makeMire(); MIRE.g.scale.setScalar(0.9);
 // only the big body parts cast shadows (so the flashlight throws a real shadow of them) — the small bits would just cost speed
 [HOL.g, MIRE.g].forEach(g => g.traverse(o => { if (o.isMesh) o.castShadow = !!(o.geometry.attributes.position && o.geometry.attributes.position.count > 1500); }));
 cr.g.rotation.order = 'YXZ';
-const HOLL = new THREE.PointLight(0xc8d4ff, 0, 14, 1.6); scene.add(HOLL);
+const HOLL = new THREE.PointLight(0xc8d4ff, 0, 14, 1.6); HOLL.visible = false; scene.add(HOLL);
 const HS = { state: 'off', x: 0, z: 0, yaw: 0, t: 0, stag: 0, scrT: 6, tx: 0, tz: 0 };
 const MS = { state: 'off', x: 0, z: 0, yaw: 0, hp: 3, t: 0, tugT: 3, tug: null, stag: 0, goreT: 0 };
 const SWL = (lx, lz) => ({ x: SW.x + lx, z: SW.z + lz });
@@ -67,6 +67,7 @@ function ch2Hint() {
   if (G.obj === 29) return { k: 'acid', p: { x: ACIDJ.x, y: H(ACIDJ.x, ACIDJ.z) + 0.7, z: ACIDJ.z } };
   if (G.obj === 30) return { k: 'pour', p: { x: POURP.x, y: 0.4, z: POURP.z } };
   if (G.obj === 33) { const v = nearestGrate(); return { k: 'grate' + (G.grates || []).length, p: { x: v.x, y: 1.1, z: v.z } }; }
+  if (typeof ch3Hint === 'function') { const h3 = ch3Hint(); if (h3) return h3; }
   if (typeof caveHint === 'function') return caveHint();
   return null;
 }
@@ -118,6 +119,7 @@ function ch2Restore() {
   pumpOn([26, 27, 32].includes(G.obj));
   if (G.obj === 32) towerPerch();
   if (typeof caveRestore === 'function') caveRestore();
+  if (typeof ch3Restore === 'function') ch3Restore();
 }
 
 // ---------- the Hollow One: first sighting, the deer ----------
@@ -390,7 +392,7 @@ function hollowCatch() {
 }
 function updateHollow(dt) {
   if (!HOL.g.visible) return;
-  HOLL.intensity = HS.state === 'perch' || (SCN && HS.state === 'scene' && G.obj === 32) ? 1.6 + (FX.light && FX.light.e >= 0 && FX.light.e < 0.4 ? 3 : 0) : 0; if (HOLL.intensity) HOLL.position.set(HS.x, HOL.g.position.y + 4.5, HS.z);
+  HOLL.intensity = HS.state === 'perch' || (SCN && HS.state === 'scene' && G.obj === 32) ? 1.6 + (FX.light && FX.light.e >= 0 && FX.light.e < 0.4 ? 3 : 0) : 0; HOLL.visible = HOLL.intensity > 0; if (HOLL.intensity) HOLL.position.set(HS.x, HOL.g.position.y + 4.5, HS.z);
   if (HS.state === 'perch') { hFace(P.x, P.z, dt * 0.3); HOL.look = Math.hypot(HS.x - P.x, HS.z - P.z) < 70 ? camera.position : null; if (rand() < dt * 0.15) HOL.twitchT = 0.9; if (G.obj === 32 && G.mode === 'play' && Math.hypot(P.x - W.wtower.x, P.z - W.wtower.z) < 27) towerJump(); }
   if (HS.state === 'leave') { HS.t += dt; hMove(HS.tx, HS.tz, 2.4, dt, false); if (HS.t > 9 || Math.hypot(HS.x - P.x, HS.z - P.z) > 38) { hShow(false); if (G.obj === 32) towerPerch(); } }
   if (HS.state === 'chase' && G.mode === 'play') {
@@ -416,7 +418,7 @@ function frogSpot(fr, near) { for (let k = 0; k < 14; k++) { const a = P.yaw + M
     else { const ld = Math.hypot(x - LK.x, z - LK.z); ok = ld > LK.c - 1 && ld < LK.c + 9 || pathDist(x, z) < 1.6 || rand() < 0.15; y = ld < LK.c ? Math.max(H(x, z), LK.w) : H(x, z); }
     if (ok) { fr.x = x; fr.z = z; fr.y = y; fr.on = true; fr.hop = null; fr.g.position.set(x, y, z); fr.g.rotation.y = rand() * 6.28; fr.g.visible = true; return; } } fr.on = false; fr.g.visible = false; }
 function updateFrogs(dt) {
-  const play = G.mode === 'play' || G.mode === 'cut', want = P.inHeli || P.inTunnel || P.inCave || P.onTower || !play ? 0 : P.x > 1000 ? 22 : (Math.hypot(P.x - LK.x, P.z - LK.z) < LK.c + 60 ? 14 : 8);
+  const play = G.mode === 'play' || G.mode === 'cut', want = P.inHeli || P.inTunnel || P.inCave || P.x < -1000 || P.onTower || !play ? 0 : P.x > 1000 ? 22 : (Math.hypot(P.x - LK.x, P.z - LK.z) < LK.c + 60 ? 14 : 8);
   FROGS.forEach((fr, i) => {
     if (i >= want) { fr.g.visible = false; fr.on = false; return; }
     if (!fr.on || Math.hypot(fr.x - P.x, fr.z - P.z) > 40) { if (rand() < dt * 2) frogSpot(fr, false); return; }
@@ -429,6 +431,7 @@ function updateFrogs(dt) {
 }
 
 // the first step onto dry land squashes a frog flat — look down at the mess
+const BOOT_L = new THREE.PointLight(0xfff0d8, 0, 2.4, 1.5); BOOT_L.visible = false; scene.add(BOOT_L);
 function makeBoot() { const g = new THREE.Group(), lea = MSM({ color: 0x2a1e16, roughness: 0.55 }), sole = MSM({ color: 0x111111, roughness: 0.9 }), jean = MSM({ color: 0x23324a, roughness: 0.85 });
   bx(0.13, 0.035, 0.32, sole, 0, 0.0175, 0.04, g); const up = bx(0.12, 0.11, 0.27, lea, 0, 0.09, 0.03, g); const toe = sph(1, lea, 0, 0.07, 0.15, g, 0.06, 0.055, 0.07); cyl(0.065, 0.07, 0.2, 10, lea, 0, 0.22, -0.03, g);
   for (let i = 0; i < 4; i++) bx(0.1, 0.008, 0.012, MSM({ color: 0x8a7a5a }), 0, 0.15 + i * 0.03, 0.04 + i * 0.012, g); g.userData.leg = cyl(0.08, 0.085, 0.9, 10, jean, 0, 0.75, -0.04, g); g.userData.shaft = g.children[3];
@@ -436,7 +439,7 @@ function makeBoot() { const g = new THREE.Group(), lea = MSM({ color: 0x2a1e16, 
 function frogSquish() {
   G.mode = 'cut'; clearSubs(); const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
   const x = P.x + fx * 0.45 + rx * 0.12, z = P.z + fz * 0.45 + rz * 0.12, y = H(x, z) + 0.01;
-  const boot = makeBoot(); scene.add(boot); GOREOBJ.push(boot); const bl = new THREE.PointLight(0xfff0d8, 1.3, 2.4, 1.5); scene.add(bl); GOREOBJ.push(bl); boot.position.set(x, y, z); boot.rotation.y = P.yaw + Math.PI;
+  const boot = makeBoot(); scene.add(boot); GOREOBJ.push(boot); const bl = BOOT_L; boot.position.set(x, y, z); boot.rotation.y = P.yaw + Math.PI;
   const f = makeFrog(); scene.remove(f.g); f.th.visible = false; f.g.scale.set(2.3, 0.35, 2.5); boot.add(f.g); f.g.position.set(0, -0.008, 0.06); f.g.rotation.set(Math.PI, 0, 0); // stuck flat to the sole
   const gut = MSM({ color: 0xb05a5a, roughness: 0.22 }), gut2 = MSM({ color: 0x6a1010, roughness: 0.2 });
   const strands = []; for (let k = 0; k < 4; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.016, 1, 5), k % 2 ? gut2 : gut); scene.add(m); GOREOBJ.push(m); m.visible = false; strands.push({ m, ox: (rand() - 0.5) * 0.1, oz: (rand() - 0.5) * 0.18, gx: x + (rand() - 0.5) * 0.25, gz: z + (rand() - 0.5) * 0.25 }); }
@@ -447,7 +450,7 @@ function frogSquish() {
     // lift the foot and turn the sole toward you: the flattened frog is stuck to it, guts stretching down to the mud
     const lift = smooth(0.9, 1.8, t) * (1 - smooth(4.6, 5.3, t)), tilt = lift * 2.35; boot.userData.leg.visible = lift < 0.15;
     boot.position.set(x - fx * 0.2 * lift, y + lift * 0.62, z - fz * 0.2 * lift); boot.rotation.set(0, P.yaw + Math.PI, 0); boot.rotateX(tilt);
-    boot.updateMatrixWorld(true); const show = lift > 0.08 && t < 4.4; bl.position.set(P.x + fx * 0.15, y + 1.2, P.z + fz * 0.15); bl.intensity = t < 6.4 ? 1.3 : 0;
+    boot.updateMatrixWorld(true); const show = lift > 0.08 && t < 4.4; bl.position.set(P.x + fx * 0.15, y + 1.2, P.z + fz * 0.15); bl.intensity = t < 6.4 ? 1.3 : 0; bl.visible = t < 6.4;
     strands.forEach((st, i) => { st.m.visible = show; if (show) { const top = boot.localToWorld(V3(st.ox, 0, st.oz + 0.05)); stretch(st.m, top, V3(st.gx, y + 0.01, st.gz), 0.05); } });
     if (show && rand() < dt * 8) { const p2 = boot.localToWorld(V3((rand() - 0.5) * 0.1, -0.01, 0.05)); spray(BLOOD, p2.x, p2.y, p2.z, 2, 0.3); }
     if (at(S, 0.4, 'l1')) say('*squelch* …what was that?', 2.2, 'You');
@@ -499,7 +502,7 @@ function updateCarcasses(dt) { carcT -= dt; const near = []; if (carcT <= 0) { c
 function updateMonsters(dt) {
   if (SCN) { SCN.t += dt; SCN.f(SCN, dt); }
   if (G.mode === 'play' && G.obj === 24 && !G.h1 && P.x > 1000) { const dp = Math.hypot(P.x - W.pump.x, P.z - W.pump.z); if (dp < 75 && dp > 28) hollowDeer(); }
-  updateMire(dt); updateHollow(dt); updateFrogs(dt); updateCarcasses(dt); if (typeof updateCave === 'function') updateCave(dt); stepChunks(dt); stepParticles(ACIDP, dt); stepParticles(MUDP, dt);
+  updateMire(dt); updateHollow(dt); updateFrogs(dt); updateCarcasses(dt); if (typeof updateCave === 'function') updateCave(dt); if (typeof updateCh3 === 'function') updateCh3(dt); stepChunks(dt); stepParticles(ACIDP, dt); stepParticles(MUDP, dt);
   if (S_DEER && !SCN) { stepHalf(S_DEER.front, dt); stepHalf(S_DEER.back, dt); }
   if (W.swamp.visible) { const on = Math.sin(G.time * 2.2) > 0.6; W.wtLampM.color.setHex(on ? 0xff2010 : 0x300000); W.wtLampL.intensity = on ? 2.2 : 0; }
   if (!P.held && P.sinkY > 0) P.sinkY = Math.max(0, P.sinkY - dt * 1.5);
