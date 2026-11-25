@@ -86,43 +86,14 @@ const DOORS = { L: { x: -3.1, z: 0.2 }, R: { x: 3.1, z: 0.2 }, C: { x: 0, z: 2.5
   ROOM.lamp = new THREE.PointLight(0x8a9cc8, 0, 11, 1.2); ROOM.lamp.position.set(-1.6, 1.8, -2.2); g.add(ROOM.lamp);
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
 }
-// the Grinner: a cracked porcelain face on a neck far too long, a grin that splits it ear to ear, fingers like dead twigs,
-// and it never moves smoothly — it skips, like a film with frames missing.
-const GRIN = (() => {
-  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
-  const crack = ctex(256, 256, (c, w, h) => { c.fillStyle = '#e4ddd2'; c.fillRect(0, 0, w, h); for (let i = 0; i < 900; i++) { c.fillStyle = `rgba(${120 + rand() * 60},${110 + rand() * 50},${100 + rand() * 40},.08)`; c.fillRect(rand() * w, rand() * h, 3, 3); } c.strokeStyle = 'rgba(30,20,18,.85)'; for (let k = 0; k < 9; k++) { let x = rand() * w, y = rand() * h; c.lineWidth = 1.4; c.beginPath(); c.moveTo(x, y); for (let j = 0; j < 9; j++) { x += (rand() - 0.5) * 34; y += (rand() - 0.5) * 34; c.lineTo(x, y); } c.stroke(); } for (let k = 0; k < 4; k++) { const x = rand() * w, y = h * 0.55 + rand() * h * 0.3, g2 = c.createLinearGradient(x, y, x, y + 70); g2.addColorStop(0, 'rgba(90,6,6,.9)'); g2.addColorStop(1, 'rgba(90,6,6,0)'); c.fillStyle = g2; c.fillRect(x - 2, y, 4, 70); } });
-  const face = MSM({ map: crack, roughness: 0.25, metalness: 0.05 }), skin = MSM({ color: 0xbcb2a6, roughness: 0.5 }), gown = MSM({ map: ctex(128, 256, (c, w, h) => { c.fillStyle = '#7a7468'; c.fillRect(0, 0, w, h); for (let i = 0; i < 40; i++) { const x = rand() * w, y = rand() * h, r = 6 + rand() * 20, gg = c.createRadialGradient(x, y, 0, x, y, r); gg.addColorStop(0, rand() < 0.5 ? 'rgba(60,8,6,.8)' : 'rgba(40,34,26,.7)'); gg.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = gg; c.fillRect(x - r, y - r, r * 2, r * 2); } }), roughness: 0.95, side: THREE.DoubleSide }), hairM = MSM({ color: 0x0a0808, roughness: 0.5 }), gum = MSM({ color: 0x3a0606, roughness: 0.2 });
-  const fl = (pts, r, mat) => MON.flesh(pts, r, { mat, seg: 16, rad: 10, amp: 0.006 }), V = (x, y, z) => new THREE.Vector3(x, y, z);
-  const gw = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.52, 1.7, 16, 6, true), gown); { const p = gw.geometry.attributes.position; for (let i = 0; i < p.count; i++) if (p.getY(i) < -0.6) p.setY(i, p.getY(i) - rand() * 0.25); gw.geometry.computeVertexNormals(); } gw.position.y = 1.05; body.add(gw);
-  body.add(fl([V(0, 1.7, 0), V(0, 2.0, 0.08), V(0, 2.15, 0.2)], [0.17, 0.15, 0.08], gown));
-  // the neck: twice as long as it should be, bending forward
-  const neck = new THREE.Group(); neck.position.set(0, 2.12, 0.2); body.add(neck); neck.add(fl([V(0, 0, 0), V(0, 0.25, 0.08), V(0, 0.48, 0.2), V(0, 0.62, 0.36)], [0.05, 0.042, 0.04, 0.045], skin));
-  [-1, 1].forEach(s => { body.add(fl([V(s * 0.08, 0.3, 0), V(s * 0.09, 0.05, 0.05), V(s * 0.09, 0, 0.22)], [0.035, 0.03, 0.025], skin));
-    const arm = new THREE.Group(); arm.position.set(s * 0.2, 2.02, 0.1); body.add(arm); arm.add(fl([V(0, 0, 0), V(s * 0.1, -0.7, 0.1), V(s * 0.12, -1.35, 0.2), V(s * 0.1, -1.75, 0.26)], [0.04, 0.03, 0.026, 0.018], skin));
-    const hand = new THREE.Group(); hand.position.set(s * 0.1, -1.75, 0.26); arm.add(hand); hand.userData.f = [];
-    for (let f = 0; f < 5; f++) { const fg = new THREE.Group(); fg.rotation.z = s * (f - 2) * 0.14; hand.add(fg); fg.add(fl([V(0, 0, 0), V(s * 0.01, -0.14, 0.03), V(s * 0.015, -0.3, 0.06), V(s * 0.01, -0.4, 0.02)], [0.011, 0.009, 0.007, 0.002], skin)); hand.userData.f.push(fg); }
-    arm.userData.hand = hand; if (s < 0) GR_ARM_L = arm; else GR_ARM_R = arm; });
-  const head = new THREE.Group(); head.position.set(0, 0.68, 0.42); neck.add(head);
-  head.add(MON.blob(0.21, 0.84, 1.18, 0.92, { mat: face, amp: 0.006, ws: 36, hs: 26 }));
-  // the grin: ear to ear, two rows of too many teeth, black inside
-  const mouthG = new THREE.Group(); mouthG.position.set(0, -0.05, 0.13); head.add(mouthG);
-  const inside = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), MSM({ color: 0x050202 })); inside.scale.set(0.17, 0.09, 0.08); inside.rotation.x = Math.PI; inside.position.set(0, 0.01, 0.02); mouthG.add(inside);
-  const lips = new THREE.Mesh(new THREE.TorusGeometry(0.165, 0.02, 6, 28, Math.PI * 1.12), gum); lips.rotation.z = Math.PI - 0.06 * Math.PI; lips.scale.set(1, 0.62, 1); lips.position.set(0, 0.012, 0.06); mouthG.add(lips);
-  for (let row = 0; row < 2; row++) for (let i = 0; i < 26; i++) { const a = Math.PI * 1.03 + (i / 25) * Math.PI * 0.94, L = 0.025 + rand() * 0.03, t = mk(new THREE.ConeGeometry(0.007, L, 4), BONEM, Math.cos(a) * (0.15 - row * 0.012), Math.sin(a) * 0.098 * (row ? 0.85 : 1) + (row ? 0.03 : 0.012), 0.07 - row * 0.015, mouthG); t.rotation.z = row ? 0 : Math.PI; t.rotation.x = (rand() - 0.5) * 0.4; }
-  // eyes: deep black pits with one pinprick of light in each, slightly different heights
-  [-1, 1].forEach(s => { sph(0.045, MAT.black, s * 0.08, 0.07 + s * 0.01, 0.15, head, 1, 1.4, 0.5); sph(0.008, MSM({ color: 0xffffff, emissive: 0xfff8e8, emissiveIntensity: 1.4 }), s * 0.08 + s * 0.006, 0.07 + s * 0.01, 0.175, head); });
-  const hair = new THREE.Group(); head.add(hair); for (let i = 0; i < 46; i++) { const a = (rand() - 0.5) * 3.9, L = 0.6 + rand() * 0.8, front = Math.abs(a) > 1.4; hair.add(fl([V(Math.sin(a) * 0.17, 0.2, -Math.cos(a) * 0.14), V(Math.sin(a) * 0.22, -0.02, -Math.cos(a) * 0.2 + (front ? 0.08 : 0)), V(Math.sin(a) * 0.25 + (rand() - 0.5) * 0.08, -L, -Math.cos(a) * 0.17 + (front ? 0.12 : 0))], [0.012, 0.01, 0.003], hairM)); }
-  g.traverse(o => { if (o.isMesh) o.castShadow = true; }); g.visible = false; scene.add(g);
-  g.userData = { head, neck, body, mouthG, hair, nextJ: 0, jit: V(0, 0, 0) };
-  // stop-motion twitching: it holds perfectly still, then snaps to a new pose between frames
-  g.userData.update = (dt, scare) => { const u = g.userData; u.nextJ -= dt; if (u.nextJ <= 0 || scare) { u.nextJ = scare ? 0.03 : (rand() < 0.75 ? 0.4 + rand() * 1.4 : 0.05 + rand() * 0.1);
-      const big = rand() < 0.18; head.rotation.set((rand() - 0.5) * 0.5, (rand() - 0.5) * 0.7, big ? (rand() < 0.5 ? -1 : 1) * (1.3 + rand() * 0.5) : (rand() - 0.5) * 0.7); neck.rotation.set(0.25 + (rand() - 0.5) * 0.4, (rand() - 0.5) * 0.4, (rand() - 0.5) * 0.3);
-      [GR_ARM_L, GR_ARM_R].forEach((a, i) => { a.rotation.set(-0.3 + (rand() - 0.5) * 0.5, 0, (i ? 1 : -1) * (0.05 + rand() * 0.25)); a.userData.hand.userData.f.forEach(f => f.rotation.x = rand() * 0.9); });
-      body.rotation.z = (rand() - 0.5) * 0.12; if (rand() < 0.3 && g.visible && !scare) SND.crawl && SND.crawl((rand() - 0.5) * 0.6); }
-    mouthG.scale.y = scare ? 1.6 + Math.sin(G.time * 60) * 0.3 : 1; mouthG.scale.x = scare ? 1.25 : 1; };
-  return g;
-})();
-var GR_ARM_L, GR_ARM_R;
+// the Grinner — the Creeping Grinner model: crawls on all fours like a spider, never stops smiling,
+// and when it grins its head turns upside down. It giggles when it notices you looking.
+const CRP = MON.makeCreeper(); CRP.g.scale.setScalar(1.3); CRP.g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+CRP.stepCb = () => { if (CRP.g.visible && rand() < 0.5) SND.crawl((CRP.g.position.x - HX) > 0 ? 0.5 : -0.5); };
+const GRIN = CRP.g;
+GRIN.userData = { head: CRP.head, gT: 0, update: (dt, scare) => { const u = GRIN.userData; u.gT = Math.max(0, u.gT - dt); CRP.grin += ((scare || u.gT > 0 ? 1 : 0) - CRP.grin) * Math.min(1, dt * (scare ? 20 : 4)); CRP.update(dt); } };
+function grinGiggle() { GRIN.userData.gT = 1.6; SND.giggle && SND.giggle(9, 0.25); }
+
 function grinAt(lx, lz, yaw, y) { GRIN.visible = true; GRIN.position.set(HX + lx, y || 0, HZ + lz); GRIN.rotation.set(0, yaw, 0); }
 
 // ---------- chapter 3 flow ----------
@@ -252,10 +223,11 @@ function updateNight(dt) {
   DOORS.C.doors.forEach((d, i) => { const open = holding && at2 === 'C' ? 0 : GR.closet * 0.18; d.rotation.y += ((i ? -1 : 1) * open - d.rotation.y) * Math.min(1, dt * 6); });
   // the Grinner's hallway track
   GR.t -= dt * lvl;
-  if (GR.state === 'away') { GRIN.visible = false; if (GR.t <= 0) { GR.side = rand() < 0.5 ? 'L' : 'R'; GR.state = 'hall'; GR.t = 6 + rand() * 4; const s = GR.side === 'L' ? -1 : 1; GR.ceil = rand() < 0.45; grinAt(s * 9.2, 0.2, -s * Math.PI / 2); if (GR.ceil) { GRIN.rotation.z = Math.PI; GRIN.position.y = 2.42; } SND.step(false, true); } }
-  else if (GR.state === 'hall') { const s = GR.side === 'L' ? -1 : 1;
-    if (P.light && at2 === GR.side && lookingAt(GR.side)) { GR.state = 'away'; GR.t = 5 + rand() * 5; SND.crawl(s * 0.6); SND.stinger(); remark(['It was at the end of the hall — it ran!', 'GET BACK!'], 1); }
-    else if (GR.t <= 0) { GR.state = 'door'; GR.t = 7.5 - hr * 0.5; GR.held = 0; GR.wh = 1.5; grinAt(s * 4.1, 0.2, -s * Math.PI / 2); } }
+  if (GR.state === 'away') { GRIN.visible = false; if (GR.t <= 0) { GR.side = rand() < 0.5 ? 'L' : 'R'; GR.state = 'hall'; GR.t = 6 + rand() * 4; GR.T0 = GR.t; const s = GR.side === 'L' ? -1 : 1; GR.ceil = rand() < 0.45; grinAt(s * 9.4, 0.2, -s * Math.PI / 2); if (GR.ceil) { GRIN.rotation.z = Math.PI; GRIN.position.y = 2.42; } SND.crawl(s * 0.7); } }
+  else if (GR.state === 'hall') { const s = GR.side === 'L' ? -1 : 1, pr = 1 - Math.max(0, GR.t) / (GR.T0 || 8); GRIN.position.x = HX + s * (9.4 - 4.4 * pr); CRP.v = (4.4 / (GR.T0 || 8)) * lvl / 1.3;
+    if (P.light && at2 === GR.side && lookingAt(GR.side)) { GR.state = 'flee'; GR.ft = 1.4; CRP.v = 0; grinGiggle(); SND.stinger(); remark(['It was crawling down the hall — it SMILED at me!', 'GET BACK!'], 1); }
+    else if (GR.t <= 0) { GR.state = 'door'; GR.t = 7.5 - hr * 0.5; GR.held = 0; GR.wh = 1.5; CRP.v = 0; grinAt(s * 4.4, 0.2, -s * Math.PI / 2); } }
+  else if (GR.state === 'flee') { GR.ft -= dt; const s = GR.side === 'L' ? -1 : 1; if (GR.ft < 0.6) { GRIN.position.x += s * dt * 7; GRIN.rotation.y = s * Math.PI / 2; CRP.v = 3; } if (GR.ft <= 0) { GR.state = 'away'; GR.t = 5 + rand() * 5; CRP.v = 0; } }
   else if (GR.state === 'door') { const s = GR.side === 'L' ? -1 : 1, listening = at2 === GR.side && !P.light;
     SND.set('breath', listening ? 0.45 : 0, 0.2);
     GR.wh -= dt; if (listening && GR.wh <= 0) { GR.wh = 3 + rand() * 3; grinWhisper(); }
@@ -263,6 +235,7 @@ function updateNight(dt) {
     if (holding && at2 === GR.side) { GR.held += dt; if (GR.held > 2.6) { GR.state = 'away'; GR.t = 6 + rand() * 6; SND.set('breath', 0, 0.2); SND.step(false, true); SND.crawl(s * 0.5); say('…footsteps. It’s going away.', 2.2, 'You'); } }
     else if (GR.t <= 0) return grinScare(GR.side); }
   if (GR.state !== 'door') SND.set('breath', 0, 0.3);
+  if (GR.state === 'away' || GR.state === 'door') CRP.v = 0;
   // the closet: it creeps further out unless you hold the doors shut
   GR.cT = (GR.cT == null ? 25 : GR.cT) - dt * lvl; if (GR.cT <= 0) { GR.cT = 14 + rand() * 10; GR.closet++; SND.creak(0); if (GR.closet === 2) remark(['The closet door just moved…'], 1); if (GR.closet >= 4) return grinScare('C'); }
   if (holding && at2 === 'C' && GR.closet > 0) { GR.heldC += dt; if (GR.heldC > 2.4) { GR.heldC = 0; GR.closet = Math.max(0, GR.closet - 2); SND.thud(); remark(['Something pushed back from inside…'], 0.8); } }
@@ -274,8 +247,8 @@ function updateNight(dt) {
 function grinWhisper() { SND.whisper(GR.side === 'L' ? -0.7 : 0.7); try { if (window.speechSynthesis && settings.voice !== false) { const u = new SpeechSynthesisUtterance(pick(['let me in', 'let me in', 'I can hear you breathing', 'open the door', 'I like your room'])); u.pitch = 0.1; u.rate = 0.55; u.volume = 0.32; if (VOICE.you) u.voice = VOICE.you; speechSynthesis.speak(u); } } catch (e) {} }
 function grinScare(where) {
   G.mode = 'cut'; SND.set('breath', 0, 0.1); const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
-  runScene((S, dt) => { const k = Math.min(1, S.t / 0.2); GRIN.visible = true; GRIN.position.set(P.x + fx * lerp(2.2, 0.6, k), 0, P.z + fz * lerp(2.2, 0.6, k)); GRIN.rotation.set(0, Math.atan2(-fx, -fz), 0); const hp = GRIN.userData.head.getWorldPosition(V2); GRIN.position.y += camera.position.y - hp.y + 0.05; GRIN.userData.update(dt, true); GRIN.userData.head.rotation.z += Math.sin(S.t * 40) * 0.15; P.shake = 1;
-    if (at(S, 0.02, 'scr')) { SND.scream && SND.scream(); SND.hollowScream(1.2); rumble(1, 1, 1000); $('hurt').style.opacity = 1; }
+  runScene((S, dt) => { const k = Math.min(1, S.t / 0.2); GRIN.visible = true; GRIN.rotation.set(0, Math.atan2(-fx, -fz), 0); GRIN.userData.update(dt, true); GRIN.updateMatrixWorld(true); const hp = GRIN.userData.head.getWorldPosition(V2), d = lerp(2.4, 0.42, k); GRIN.position.x += camera.position.x + fx * d - hp.x; GRIN.position.y += camera.position.y + 0.02 - hp.y; GRIN.position.z += camera.position.z + fz * d - hp.z; P.shake = 1;
+    if (at(S, 0.02, 'scr')) { SND.giggle && SND.giggle(5, 0.3); SND.scream && SND.scream(); SND.hollowScream(1.2); rumble(1, 1, 1000); $('hurt').style.opacity = 1; }
     if (at(S, 1.1, 'dead')) { SCN = null; GRIN.visible = false; G.deaths++; showDead(where === 'C' ? 'It came out of the closet. Hold the closet doors shut when they start to open.' : where === 'B' ? 'They covered the bed. Shine your light on the bed when you hear them crawling.' : 'The Grinner got in. Listen at the door first — if you hear breathing, HOLD the door shut. Never shine the light on it.'); } });
 }
 function winNight() {

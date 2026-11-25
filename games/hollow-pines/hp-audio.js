@@ -200,6 +200,7 @@ const SND = (() => {
     quake() { burst({ dur: 2.6, type: 'lowpass', freq: 300, f2: 40, v: 1, att: 0.004 }); osc({ f: 45, f2: 18, dur: 2.2, v: 1 }); burst({ dur: 1.2, type: 'bandpass', freq: 900, f2: 200, v: 0.35, delay: 0.03 }); },
     stomp(v = 1, pan = 0) { osc({ f: 70, f2: 30, dur: 0.3, v: 0.7 * v, pan }); burst({ dur: 0.25, type: 'lowpass', freq: 350, v: 0.5 * v, pan }); },
     bubble(pan = 0) { osc({ f: 200 + Math.random() * 150, f2: 700 + Math.random() * 300, dur: 0.08, v: 0.12, pan }); },
+    giggle(n = 7, v = 0.2) { if (!AC) return; const t0 = AC.currentTime; for (let i = 0; i < n; i++) { const s = t0 + i * (0.09 + Math.random() * 0.05), f = 560 + Math.random() * 200; const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f, s); o.frequency.exponentialRampToValueAtTime(f * 0.7, s + 0.09); const ws = shaper(3), bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1300; bp.Q.value = 1.5; const g = AC.createGain(); g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(v * (1 - i / n * 0.5), s + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, s + 0.11); o.connect(ws); ws.connect(bp); bp.connect(g); g.connect(MG); o.start(s); o.stop(s + 0.15); } },
     ui() { osc({ f: 330, dur: 0.12, v: 0.06, type: 'triangle' }); },
     thunder() { burst({ dur: 3.5, type: 'lowpass', freq: 220, v: 0.5, att: 0.05 }); osc({ f: 50, f2: 30, dur: 2.5, v: 0.3 }); }
   };

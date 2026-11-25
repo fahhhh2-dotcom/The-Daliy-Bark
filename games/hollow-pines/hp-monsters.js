@@ -277,5 +277,85 @@ const MON = (() => {
     M.headPos = (out) => head.getWorldPosition(out);
     root.visible = false; scene.add(root); SKIN = null; return M;
   }
-  return { makeHollow, makeMire, flesh: (...a) => { SKIN = a[2] && a[2].mat; return flesh(...a); }, blob: (r, sx, sy, sz, o) => { SKIN = o && o.mat; return blob(r, sx, sy, sz, o); }, fbm, noise };
+
+  // ================= THE CREEPING GRINNER =================
+  // crawls on all fours like a spider, never stops smiling; its head flips upside down when it grins
+  function makeCreeper() {
+    const R = (a, b) => a + Math.random() * (b - a);
+    const skinMap = canvasTex(256, (x, s) => {
+      noiseFill(x, s, 1.6, n => { const m = 0.5 + n * 0.5; return [184 + m * 24, 178 + m * 22, 172 + m * 20]; });
+      for (let i = 0; i < 40; i++) { const px = Math.random() * s, py = Math.random() * s, r = R(5, 25), g = x.createRadialGradient(px, py, 0, px, py, r); const c = Math.random() < 0.6 ? '120,100,130' : '150,120,110'; g.addColorStop(0, `rgba(${c},.25)`); g.addColorStop(1, `rgba(${c},0)`); x.fillStyle = g; x.fillRect(px - r, py - r, r * 2, r * 2); }
+      for (let i = 0; i < 40; i++) { let px = Math.random() * s, py = Math.random() * s, w = 1; x.strokeStyle = `rgba(80,90,150,${0.15 + Math.random() * 0.2})`; for (let k = 0; k < 8; k++) { x.lineWidth = w; x.beginPath(); x.moveTo(px, py); px += (Math.random() - 0.5) * 15; py += Math.random() * 12; x.lineTo(px, py); x.stroke(); w *= 0.85; } }
+      x.lineCap = 'round'; for (let i = 0; i < 26; i++) { let px = Math.random() * s, py = Math.random() * s * 0.75, w = R(0.6, 3.5); const col = `rgba(${R(70, 115) | 0},0,${R(0, 8) | 0},${R(0.35, 0.75)})`; x.strokeStyle = col; x.lineWidth = w; x.beginPath(); x.moveTo(px, py); const L = R(10, 70); for (let k = 0; k < 8; k++) { px += R(-1, 1); py += L / 8; x.lineTo(px, py); } x.stroke(); }
+    }, 3);
+    const skinBump = canvasTex(256, (x, s) => noiseFill(x, s, 7, n => { const v = 128 + n * 100; return [v, v, v]; }), 3, false);
+    const eyeTex = canvasTex(128, (x, s) => { x.fillStyle = '#efe6dc'; x.fillRect(0, 0, s, s); for (let i = 0; i < 30; i++) { x.strokeStyle = `rgba(180,20,20,${R(0.3, 0.7)})`; x.lineWidth = R(0.4, 1); let px = Math.random() < 0.5 ? R(0, 15) : R(49, s), py = R(0, s); x.beginPath(); x.moveTo(px, py); for (let k = 0; k < 6; k++) { px += (32 - px) * 0.15 + R(-3, 3); py += (64 - py) * 0.15 + R(-3, 3); x.lineTo(px, py); } x.stroke(); } const g = x.createRadialGradient(32, 64, 0, 32, 64, 8); g.addColorStop(0, '#000'); g.addColorStop(0.3, '#000'); g.addColorStop(0.35, '#7a8a90'); g.addColorStop(1, '#a8b4b8'); x.fillStyle = g; x.beginPath(); x.arc(32, 64, 7.5, 0, 7); x.fill(); }, 1);
+    const skin = new THREE.MeshPhysicalMaterial({ map: skinMap, bumpMap: skinBump, bumpScale: 0.008, roughness: 0.5, clearcoat: 0.3, clearcoatRoughness: 0.4, color: 0xe8e4de });
+    const headSkin = skin.clone(); headSkin.vertexColors = true;
+    const toothMat = new THREE.MeshPhysicalMaterial({ color: 0xc8b8a0, roughness: 0.25, clearcoat: 0.7 }), gumMat = new THREE.MeshPhysicalMaterial({ color: 0x8a2a2c, roughness: 0.3, clearcoat: 1 }), hairMat = new THREE.MeshPhysicalMaterial({ color: 0x0c0a09, roughness: 0.4, clearcoat: 0.6 });
+    const eyeMat = new THREE.MeshPhysicalMaterial({ map: eyeTex, roughness: 0.05, clearcoat: 1, emissive: 0xff1a0a, emissiveIntensity: 0.35 }), nail = new THREE.MeshPhysicalMaterial({ color: 0x5a4a40, roughness: 0.4, clearcoat: 0.5 }), drip = new THREE.MeshPhysicalMaterial({ color: 0x4a0206, roughness: 0.1, clearcoat: 1 });
+    SKIN = skin;
+    const root = new THREE.Group(), bodyG = new THREE.Group(); root.add(bodyG);
+    bodyG.add(flesh([V(0, 0.9, -0.62), V(0, 1.12, -0.2), V(0, 1.1, 0.2), V(0, 1.0, 0.55)], [0.19, 0.16, 0.21, 0.23, 0.14], { seg: 44, rad: 20, sa: 0.8, sb: 1.15, amp: 0.01,
+      disp: (q, dn, t) => { let o = 0; if (dn.y > 0.8) o += Math.pow(Math.max(0, Math.sin(t * 80)), 2) * 0.04 * sm(0.8, 0.95, dn.y); if (dn.y < 0.4 && q.z > -0.15 && q.z < 0.45) o += Math.pow(Math.max(0, Math.sin(q.z * 40)), 3) * 0.022 * (1 - Math.max(0, dn.y)); if (dn.y < -0.5 && q.z < 0) o -= 0.04 * sm(0.5, 0.8, -dn.y); return o; } }));
+    for (const s of [-1, 1]) { const sh = blob(0.13, 1, 0.9, 1, { amp: 0.01, ws: 20, hs: 14 }); sh.position.set(0.26 * s, 1.02, 0.42); bodyG.add(sh); const hp = blob(0.14, 1, 0.9, 1.1, { amp: 0.01, ws: 20, hs: 14 }); hp.position.set(0.2 * s, 0.92, -0.55); bodyG.add(hp); }
+    bodyG.add(flesh([V(0, 1.0, 0.5), V(0, 0.98, 0.68), V(0, 0.92, 0.82)], [0.09, 0.07, 0.075], { seg: 12, rad: 12, disp: (q, dn) => sm(0.4, 0.8, Math.abs(dn.x)) * 0.012 }));
+    const neck = new THREE.Group(); neck.position.set(0, 0.92, 0.84); bodyG.add(neck);
+    const head = new THREE.Group(); head.position.set(0, 0, 0.1); neck.add(head);
+    const GW = 0.15, grinY = u => -0.07 + 0.065 * u * u, onHead = (x, y, lift) => { const zz = 0.17 * Math.sqrt(Math.max(0, 1 - (x / GW) ** 2 * 0.92 - (y / 0.19) ** 2)); return V(x, y, zz + lift); };
+    { const g = new THREE.SphereGeometry(1, 64, 48), a = g.attributes.position, u = V(), col = []; const G2 = (p, c, s2) => Math.exp(-p.distanceToSquared(c) / s2);
+      for (let i = 0; i < a.count; i++) { u.fromBufferAttribute(a, i); const p = V(u.x * 0.15, u.y * 0.19, u.z * 0.17); let o = 0, dk = 0;
+        for (const s of [-1, 1]) { o -= 0.012 * G2(p, V(0.055 * s, 0.035, 0.14), 0.0012); o -= 0.018 * G2(p, V(0.1 * s, -0.03, 0.09), 0.002); o += 0.01 * G2(p, V(0.085 * s, 0.02, 0.12), 0.0008); }
+        o += 0.012 * Math.exp(-((p.y - 0.075) ** 2) / 0.0006) * sm(0.05, 0.15, p.z);
+        if (p.z > 0) { const uu = Math.max(-1, Math.min(1, p.x / GW)), dy = p.y - grinY(uu), band = Math.max(0, 1 - Math.abs(dy) / 0.028) * sm(0.98, 0.85, Math.abs(uu)); o -= 0.016 * band; dk += band * 0.85; }
+        o += fbm(p.x * 30, p.y * 30, p.z * 30, 3) * 0.003; p.addScaledVector(u, o); a.setXYZ(i, p.x, p.y, p.z); const v = 1 - Math.min(0.9, dk); col.push(v, v * 0.9, v * 0.9); }
+      g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals(); head.add(mesh(g, headSkin)); }
+    const eyes = []; for (const s of [-1, 1]) { const e = mesh(new THREE.SphereGeometry(0.032, 20, 14), eyeMat, V(0.055 * s, 0.035, 0.128)); e.rotation.y = s * 0.12; e.castShadow = false; head.add(e); eyes.push(e); }
+    const mouthG = new THREE.Group(); head.add(mouthG); const lowerG = new THREE.Group(); mouthG.add(lowerG);
+    { const N = 26, gu = [], gl = [], lu = [], ll = [];
+      for (let i = 0; i < N; i++) { const u = (i / (N - 1)) * 2 - 1, x = u * GW * 0.93, y = grinY(u);
+        const tu = mesh(new THREE.BoxGeometry(0.016 * (1 - Math.abs(u) * 0.3), 0.02 * (1 - Math.abs(u) * 0.35), 0.008), toothMat, onHead(x, y + 0.009, -0.004)); tu.rotation.y = Math.atan2(x, 0.1); tu.rotation.z = -u * 0.25; tu.castShadow = false; mouthG.add(tu);
+        const tl = mesh(new THREE.BoxGeometry(0.015 * (1 - Math.abs(u) * 0.3), 0.018 * (1 - Math.abs(u) * 0.35), 0.008), toothMat, onHead(x, y - 0.011, -0.004)); tl.rotation.y = Math.atan2(x, 0.1); tl.rotation.z = -u * 0.25; tl.castShadow = false; lowerG.add(tl); }
+      for (let i = 0; i <= 12; i++) { const u = (i / 12) * 2 - 1, x = u * GW * 0.95, y = grinY(u); gu.push(onHead(x, y + 0.02, -0.003)); gl.push(onHead(x, y - 0.021, -0.003)); lu.push(onHead(x, y + 0.029, 0.002)); ll.push(onHead(x, y - 0.03, 0.002)); }
+      mouthG.add(flesh(gu, [0.005, 0.007, 0.005], { seg: 30, rad: 6, mat: gumMat, amp: 0 })); lowerG.add(flesh(gl, [0.005, 0.007, 0.005], { seg: 30, rad: 6, mat: gumMat, amp: 0 }));
+      mouthG.add(flesh(lu, [0.003, 0.006, 0.003], { seg: 30, rad: 6, mat: skin, amp: 0 })); lowerG.add(flesh(ll, [0.003, 0.006, 0.003], { seg: 30, rad: 6, mat: skin, amp: 0 }));
+      for (let i = 0; i < 3; i++) { const L = R(0.08, 0.26), g = new THREE.Group(); g.position.copy(onHead(R(-0.08, 0.08), -0.06, 0)); g.add(flesh([V(0, 0, 0), V(0.003, -L * 0.5, 0), V(0, -L, 0)], [0.006, 0.003, 0.009], { seg: 8, rad: 5, mat: drip, amp: 0 })); lowerG.add(g); } }
+    const hairStrands = []; for (let i = 0; i < 44; i++) { const a = R(-2.2, 2.2), el = R(0.1, 1.2), d = V(Math.sin(a) * Math.cos(el), Math.sin(el), -Math.cos(a) * Math.cos(el)); const g = new THREE.Group(); g.position.set(d.x * 0.14, d.y * 0.18, d.z * 0.16); head.add(g); const L = R(0.3, 0.75), jx = R(-0.03, 0.03); const hm = flesh([V(0, 0, 0), V(jx * 0.5, -L * 0.4, 0), V(jx, -L * 0.8, R(-0.02, 0.02)), V(jx * 1.2, -L, 0)], [0.004, 0.003, 0.002, 0.0005], { seg: 10, rad: 4, mat: hairMat, amp: 0 }); hm.castShadow = false; g.add(hm); hairStrands.push(g); }
+    // limbs: elbows and knees bent up and out like a spider (solved each frame in the creature's own space)
+    const limbSeg = (L, r1, r2) => { const m = flesh([V(0, 0, 0), V(0, L * 0.5, 0), V(0, L, 0)], [r1, (r1 + r2) * 0.55, r2], { seg: 18, rad: 12, amp: 0.004, freq: 12 }); root.add(m); return m; };
+    function digits(isHand) { const g = new THREE.Group(); g.add(blob(0.06, 0.9, 0.35, 1.3, { amp: 0.004, ws: 16, hs: 10 }));
+      for (let i = 0; i < 5; i++) { const a = (i - 2) * 0.28, L = isHand ? (i === 0 ? 0.12 : 0.2 + (i === 2 ? 0.04 : 0)) : 0.08; const s0 = V(Math.sin(a) * 0.04, -0.01, 0.05 + Math.cos(a) * 0.02), e = V(Math.sin(a) * (0.04 + L), -0.02, 0.05 + Math.cos(a) * L * 0.95);
+        g.add(flesh([s0, s0.clone().lerp(e, 0.5).add(V(0, 0.015, 0)), e], [0.011, 0.009, 0.006], { seg: 10, rad: 6, amp: 0.002 })); g.add(flesh([e, e.clone().add(V(Math.sin(a) * 0.02, -0.005, 0.02))], [0.006, 0.002], { seg: 4, rad: 5, mat: nail, amp: 0 })); }
+      root.add(g); return g; }
+    const limbs = [];
+    [[1, 0.3, 1.0, 0.45, 0.75, 0.95, 0.8, 0.85, 0.07, 0.05, 0.055, 0.034], [0, 0.24, 0.9, -0.58, 0.72, -0.95, 0.85, 0.9, 0.09, 0.06, 0.06, 0.04]].forEach(([arm, hx, hy, hz, rx, rz, L1, L2, a1, a2, b1, b2]) => {
+      for (const s of [-1, 1]) limbs.push({ s, arm, hip: V(s * hx, hy, hz), rest: V(s * rx, 0, rz), L1, L2, group: arm ? (s < 0 ? 0 : 1) : (s > 0 ? 0 : 1), F: V(s * rx, 0, rz), from: V(), to: V(), u: 1, stepping: false,
+        up: limbSeg(L1, a1, a2), lo: limbSeg(L2, b1, b2), joint: (() => { const j = blob(arm ? 0.05 : 0.06, 1, 1, 1, { amp: 0.004, ws: 14, hs: 10 }); root.add(j); return j; })(), hand: digits(arm), H: V(), K: V() }); });
+    const _d = V(), _p = V(), _up = V(0, 1, 0), desired = V(), bendV = V(), out = V(), hq = new THREE.Quaternion();
+    function ik(Hh, F, L1, L2, bend, K) { _d.copy(F).sub(Hh); let D = _d.length(); const dir = _d.normalize(); D = Math.min(D, L1 + L2 - 0.01); const a = (L1 * L1 - L2 * L2 + D * D) / (2 * D), h = Math.sqrt(Math.max(0, L1 * L1 - a * a)); _p.copy(bend).addScaledVector(dir, -bend.dot(dir)).normalize(); return K.copy(Hh).addScaledVector(dir, a).addScaledVector(_p, h); }
+    function orient(m, A, B) { m.position.copy(A); _d.copy(B).sub(A).normalize(); m.quaternion.setFromUnitVectors(_up, _d); }
+    root.traverse(o => { if (o.isMesh) o.frustumCulled = false; });
+    const C = { g: root, bodyG, neck, head, mouthG, lowerG, eyes, eyeMat, limbs, v: 0, grin: 0, look: null, t: 0, roll: -0.5, rollT: -0.5, nextRoll: 0, stepCb: null };
+    C.update = function (dt) {
+      const t = (C.t += dt), gA = C.grin, v = C.v;
+      bodyG.position.y = Math.sin(t * 1.3) * 0.015 + Math.abs(Math.sin(t * 6)) * 0.03 * Math.min(1, v * 2); bodyG.rotation.z = Math.sin(t * 3) * 0.05 * Math.min(1, v * 2); bodyG.rotation.x = -gA * 0.1; bodyG.updateMatrix();
+      if (t > C.nextRoll) { C.rollT = -1.1 + Math.random() * 1.4; C.nextRoll = t + 1 + Math.random() * 2.5; } C.roll += (C.rollT - C.roll) * 0.2;
+      let yaw = 0, pitch = 0, W = 0; if (C.look) { root.updateMatrixWorld(true); bodyG.worldToLocal(_p.copy(C.look)); const dx = _p.x - neck.position.x, dy = _p.y - neck.position.y, dz = _p.z - neck.position.z; yaw = Math.max(-1.3, Math.min(1.3, Math.atan2(dx, dz))); pitch = Math.max(-0.7, Math.min(0.6, -Math.atan2(dy, Math.hypot(dx, dz)))); W = 1; }
+      neck.rotation.set(Math.sin(t * 0.7) * 0.08 * (1 - W) + pitch * W + 0.25 * gA, Math.sin(t * 0.43) * 0.35 * (1 - W) + yaw * W, C.roll * (1 - gA) + (-Math.PI * 0.95) * gA + Math.sin(t * 25) * 0.02 * gA);
+      mouthG.scale.set(1 + gA * 0.28, 1 + gA * 0.15, 1); lowerG.position.y = -0.022 * gA; eyes.forEach(e => e.scale.setScalar(1 + gA * 0.18 + W * 0.08)); eyeMat.emissiveIntensity = 0.35 + gA * 1.2;
+      root.updateMatrixWorld(true); head.getWorldQuaternion(hq); hq.invert(); hairStrands.forEach((g, i) => { g.quaternion.copy(hq); g.rotateZ(Math.sin(t * 1.2 + i) * 0.04); });
+      const anyStep = [false, false]; limbs.forEach(l => { if (l.stepping) anyStep[l.group] = true; });
+      limbs.forEach(l => {
+        l.H.copy(l.hip).applyMatrix4(bodyG.matrix); if (!l.stepping) l.F.z -= v * dt; desired.copy(l.rest); desired.z += v * 0.3;
+        if (l.stepping) { l.u += dt / 0.3; const u = Math.min(1, l.u); l.F.lerpVectors(l.from, l.to, u); l.F.y = Math.sin(Math.PI * u) * 0.18; if (u >= 1) { l.stepping = false; l.F.y = 0; if (C.stepCb) C.stepCb(l); } }
+        else if (!anyStep[1 - l.group] && l.F.distanceTo(desired) > 0.36) { l.stepping = true; l.u = 0; l.from.copy(l.F); l.to.copy(desired); anyStep[l.group] = true; }
+        out.set(l.H.x, 0, l.H.z).normalize(); bendV.copy(out).multiplyScalar(0.9).add(_up);
+        ik(l.H, l.F, l.L1, l.L2, bendV, l.K); orient(l.up, l.H, l.K); orient(l.lo, l.K, l.F); l.joint.position.copy(l.K);
+        l.hand.position.copy(l.F); l.hand.position.y += 0.012; l.hand.rotation.set(l.stepping ? -0.5 : 0, Math.atan2(out.x, out.z) + (l.arm ? -0.3 * l.s : 0.2 * l.s), 0); });
+    };
+    const _q2 = new THREE.Quaternion();
+    root.visible = false; scene.add(root); SKIN = null; return C;
+  }
+
+  return { makeHollow, makeMire, makeCreeper, flesh: (...a) => { SKIN = a[2] && a[2].mat; return flesh(...a); }, blob: (r, sx, sy, sz, o) => { SKIN = o && o.mat; return blob(r, sx, sy, sz, o); }, fbm, noise };
 })();
